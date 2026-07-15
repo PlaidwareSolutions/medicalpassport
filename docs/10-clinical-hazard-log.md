@@ -1,0 +1,37 @@
+# 10 — Clinical Hazard Log
+
+Living register of clinical hazards, their causes, mitigations, and residual-risk acceptance. Severity: **Catastrophic** (death/serious harm) · **Major** (harm requiring intervention) · **Moderate** (temporary harm) · **Minor**. Likelihood: High / Medium / Low. Every incident and every new feature review appends or updates entries here; the release gate in [29](29-production-readiness-checklist.md) requires this log reviewed and signed off.
+
+| ID | Hazard | Cause | Severity | Likelihood | Mitigations | Residual risk / owner |
+|----|--------|-------|----------|------------|-------------|----------------------|
+| H-01 | Patient takes same ingredient twice under different brands | Brand→ingredient mapping missing or wrong | Catastrophic | Medium | Validated normalization sources; duplicate-ingredient rule; "uncertain normalization" finding when mapping unconfirmed; catalog maker-checker | Open — clinical lead |
+| H-02 | OCR misreads dose/frequency and patient follows it | Handwriting, low image quality | Catastrophic | High | No extracted value clinically confirmed without human per-field confirmation; confidence display; uncertainty highlighting; originals preserved; low-confidence fields cannot be bulk-confirmed | Open — product + clinical |
+| H-03 | Ambiguous abbreviation (OD/BD/1-0-1/SOS) silently misinterpreted | Auto-interpretation | Major | High | §6 protocol: show detected + interpretation + confidence, require confirmation, preserve both values, allow correction | Open |
+| H-04 | Patient stops medicine because of an alert | Alarming wording | Catastrophic | Medium | Four mandatory statements on every warning; "may be intentional"; no "unsafe" declarations; comprehension testing ([34](34-clinical-validation-plan.md)) | Open |
+| H-05 | False reassurance — no findings shown, patient assumes safety | Incomplete data coverage | Major | High | Empty state explicitly disclaims guarantee; "no reliable information" fallback string; coverage gaps surfaced as "missing information" findings | Open |
+| H-06 | AI fabricates clinical fact (interaction, dose, missed-dose advice) | Generative model hallucination | Catastrophic | Medium | AI restricted to rephrasing approved content; prohibited-output classes; grounding checks; hallucination/unsupported-claim tests; AI outputs audited with model version ([19](19-ai-use-and-guardrails.md)) | Open |
+| H-07 | Missed-dose advice wrong for drug class | Generic advice applied | Major | Medium | Only per-product approved missed-dose content shown; fallback string otherwise; never generic "double next dose" logic | Open |
+| H-08 | Reminder not delivered; dose missed | Browser push unsupported/throttled; provider failure | Major | High | Layered channels (in-app, push, SMS, WhatsApp, caregiver); delivery-state tracking; never assume delivery; missed-dose reconciliation cron | Open |
+| H-09 | Reminder delivered twice / at wrong time after timezone or schedule change | Sync/timezone bugs | Moderate | Medium | Server-authoritative schedule; idempotent dispatch; timezone captured per device; travel handling tests | Open |
+| H-10 | Offline dose events lost or duplicated on sync | Queue bugs, retries | Major | Medium | Idempotent mutation IDs; server dedup; conflict rules ([15](15-offline-sync-strategy.md)); "never silently dropped" UI contract | Open |
+| H-11 | Caregiver acts beyond consent (records dose, edits meds) | Permission gaps | Major | Medium | Server-side granular permission enforcement; immediate revocation; full audit; revoked-caregiver tests | Open |
+| H-12 | Stale medication list shared with doctor | Cache/offline staleness | Major | Medium | Shares generated server-side at access time; last-updated timestamps on summaries; no-store share pages | Open |
+| H-13 | Wrong-patient data shown (profile mix-up in caregiver account) | Context bugs | Catastrophic | Low | Active-profile context explicit in every API call and prominent in UI; authorization checks per profile; contract tests | Open |
+| H-14 | Interaction data source incomplete for Indian FDCs | US-centric sources | Major | High | India-specific catalog strategy ([11](11-medication-knowledge-strategy.md)); combination products first-class; "missing information" findings; documented coverage limits | Open |
+| H-15 | Intentional duplicate prescription flagged, patient distrusts doctor | Alert wording | Moderate | High | "May be intentional" statement mandatory; reviewed-with-professional resolution path | Open |
+| H-16 | PRN (SOS) medicine misinterpreted as scheduled | Data-entry ambiguity | Major | Medium | PRN first-class status; SOS+fixed-schedule combinations blocked with explanation; PRN excluded from missed-dose logic | Open |
+| H-17 | Completed/expired course still reminding (e.g. antibiotics) | End-date handling | Moderate | Medium | Course end dates mandatory for finite courses; completion reminders; "completed medication still scheduled" test case | Open |
+| H-18 | Patient enters wrong strength/unit (mg vs ml vs mcg) | Manual entry error | Major | Medium | Typed unit pickers bound to catalog strengths; conflicting-strength finding (category 10); unclear-unit test case | Open |
+| H-19 | Translation changes clinical meaning | Unreviewed translation | Major | Medium | Approved-translation-only policy; translation review workflow with clinical sign-off; locale comprehension testing | Open |
+| H-20 | Emergency card outdated in an emergency | Stale patient-maintained data | Moderate | Medium | Last-updated stamp on card; periodic review prompt; card clearly patient-maintained | Open |
+| H-21 | Secure share link leaked and accessed by third party | Link forwarding | Major | Medium | Short expiry, optional one-time verification, revocation, access audit visible to patient, no-store, unguessable tokens | Open |
+| H-22 | Data breach exposes medication history | Security failure | Catastrophic | Low | [18](18-security-privacy-and-consent.md) controls; private buckets; encryption; least privilege; breach-response runbook | Open |
+| H-23 | Low-confidence normalization silently used in safety checks | Pipeline shortcut | Major | Medium | Category-12 finding required; unnormalized meds excluded from "no concerns" claims; evaluation records normalization state | Open |
+| H-24 | Taper created/edited without professional authority | Feature misuse | Catastrophic | Low | Tapers only from confirmed prescription or authorized professional; UI provides no self-service taper builder | Open |
+
+## Process
+
+- **New feature:** design review must add/update hazard entries before implementation (checklist item in PR template).
+- **Incident:** post-incident review updates the relevant hazard's likelihood/mitigations and links the incident record.
+- **Release:** [34-clinical-validation-plan](34-clinical-validation-plan.md) test cases map to hazard IDs (traceability matrix); unmitigated Catastrophic/High combinations block release.
+- **Review cadence:** clinical lead reviews the full log quarterly and after every safety-relevant incident.
