@@ -60,6 +60,9 @@ importers:
       '@medpass/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@medpass/medication-terminology':
+        specifier: workspace:*
+        version: link:../../packages/medication-terminology
       '@medpass/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications

@@ -22,6 +22,7 @@ coverage/
 # local databases / scratch
 *.local
 .DS_Store
+.dev-data/
 
 # logs
 *.log

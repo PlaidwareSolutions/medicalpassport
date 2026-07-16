@@ -19,6 +19,9 @@ import { ConsentsController } from "./modules/consents/consents.controller";
 import { CatalogController } from "./modules/catalog/catalog.controller";
 import { MedicationsController } from "./modules/medications/medications.controller";
 import { MedicationsService } from "./modules/medications/medications.service";
+import { SchedulingController } from "./modules/scheduling/scheduling.controller";
+import { SchedulingService } from "./modules/scheduling/scheduling.service";
+import { TimelineService } from "./modules/scheduling/timeline.service";
 
 export const logger = createLogger("api");
 
@@ -34,12 +37,15 @@ const OTP_SENDER = "OTP_SENDER";
     ConsentsController,
     CatalogController,
     MedicationsController,
+    SchedulingController,
   ],
   providers: [
     PrismaService,
     ProfileAccessService,
     IdempotencyService,
     MedicationsService,
+    SchedulingService,
+    TimelineService,
     { provide: OTP_SENDER, useValue: new LogOtpSender((obj, msg) => logger.info(obj, msg)) },
     {
       provide: AuthService,

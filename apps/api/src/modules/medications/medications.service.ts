@@ -4,6 +4,7 @@ import { ERROR_CODES } from "@medpass/domain";
 import type { CreateMedicationInput, UpdateMedicationInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
+import { SchedulingService } from "../scheduling/scheduling.service";
 
 interface Actor {
   userId: string;
@@ -25,7 +26,10 @@ const MEDICATION_INCLUDE = {
 
 @Injectable()
 export class MedicationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scheduling: SchedulingService,
+  ) {}
 
   async list(profileId: string, status?: string) {
     const medications = await this.prisma.patientMedication.findMany({
@@ -120,6 +124,9 @@ export class MedicationsService {
       return medication;
     });
 
+    // Derive the daily schedule from the confirmed instruction, if any
+    // (docs/16). No-op for PRN medicines and non-auto-schedulable patterns.
+    await this.scheduling.regenerateForMedication(created.id);
     // Stage 6 hook: queue safety evaluation on medication added (docs/09).
     return (await this.byId(profileId, created.id))!;
   }
@@ -191,6 +198,10 @@ export class MedicationsService {
       });
     });
 
+    if (input.instruction) {
+      // A new confirmed instruction supersedes any existing schedule.
+      await this.scheduling.regenerateForMedication(id);
+    }
     return (await this.byId(profileId, id))!;
   }
 

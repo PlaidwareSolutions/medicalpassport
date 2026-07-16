@@ -516,6 +516,8 @@ model PatientMedication {
 
   instructions MedicationInstruction[]
   changes      MedicationChange[]
+  schedule     MedicationSchedule?
+  doseEvents   DoseEvent[]
 
   @@index([patientProfileId, status])
   @@map("patient_medications")
@@ -579,6 +581,116 @@ model MedicationChange {
 
   @@index([patientMedicationId, occurredAt])
   @@map("medication_changes")
+}
+
+// ---------- scheduling & dose events (Stage 4 subset of docs/13) ----------
+
+enum ScheduleRecurrence {
+  daily
+  // alternate_day, weekly, taper, custom deferred to a later pass —
+  // frequency codes that need them are never auto-scheduled (docs/09 §6).
+}
+
+enum ScheduleStatus {
+  active
+  paused
+  ended
+}
+
+/// Executable schedule derived from a confirmed instruction (docs/13).
+/// One per medication; only created for auto-schedulable frequency codes
+/// (OD/BD/TDS/HS/PATTERN) — QID/SOS/ALTERNATE_DAY/WEEKLY/CUSTOM require
+/// explicit patient setup and are never silently scheduled.
+model MedicationSchedule {
+  id                  String    @id @default(uuid()) @db.Uuid
+  patientMedicationId String    @unique @map("patient_medication_id") @db.Uuid
+  patientMedication   PatientMedication @relation(fields: [patientMedicationId], references: [id])
+
+  /// Fixed for this MVP pass (docs/16 simplification note); per-profile
+  /// timezone handling is future work.
+  timezone   String             @default("Asia/Kolkata")
+  /// [{ slot: "morning"|"midday"|"night", time: "08:00", quantity: 1 }, ...]
+  slots      Json
+  recurrence ScheduleRecurrence @default(daily)
+  status     ScheduleStatus     @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  scheduledDoses ScheduledDose[]
+
+  @@map("medication_schedules")
+}
+
+enum DoseStatus {
+  upcoming
+  taken
+  skipped
+  missed
+  snoozed
+  could_not_take
+  unavailable
+  problem
+  taken_other_time
+  cancelled
+}
+
+/// Materialized due dose (docs/13). Generated at instruction-confirm time
+/// for a rolling window and extended by a cron job thereafter.
+model ScheduledDose {
+  id                   String             @id @default(uuid()) @db.Uuid
+  medicationScheduleId String             @map("medication_schedule_id") @db.Uuid
+  medicationSchedule   MedicationSchedule @relation(fields: [medicationScheduleId], references: [id])
+
+  dueAt     DateTime   @map("due_at") @db.Timestamptz(6)
+  slotLabel String     @map("slot_label")
+  quantity  Decimal    @db.Decimal(6, 2)
+  status    DoseStatus @default(upcoming)
+  /// Set when snoozed; the dose counts as due again once this passes.
+  snoozedUntil DateTime? @map("snoozed_until") @db.Timestamptz(6)
+
+  rowVersion Int      @default(0) @map("row_version")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  doseEvents DoseEvent[]
+
+  @@unique([medicationScheduleId, dueAt])
+  @@index([dueAt, status])
+  @@map("scheduled_doses")
+}
+
+enum DoseAction {
+  taken
+  skipped
+  snoozed
+  could_not_take
+  unavailable
+  problem
+  taken_other_time
+  cancelled
+}
+
+/// Append-only record of what actually happened (docs/13). PRN doses carry
+/// no scheduledDoseId.
+model DoseEvent {
+  id              String         @id @default(uuid()) @db.Uuid
+  scheduledDoseId String?        @map("scheduled_dose_id") @db.Uuid
+  scheduledDose   ScheduledDose? @relation(fields: [scheduledDoseId], references: [id])
+
+  patientMedicationId String            @map("patient_medication_id") @db.Uuid
+  patientMedication   PatientMedication @relation(fields: [patientMedicationId], references: [id])
+
+  action           DoseAction
+  recordedByUserId String     @map("recorded_by_user_id") @db.Uuid
+  recordedAt       DateTime   @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  effectiveAt      DateTime   @map("effective_at") @db.Timestamptz(6)
+  /// Offline idempotency key (docs/15) — retries of the same client
+  /// mutation resolve to one event.
+  clientMutationId String?    @unique @map("client_mutation_id") @db.Uuid
+  channel          String     @default("pwa")
+
+  @@index([patientMedicationId, recordedAt])
+  @@map("dose_events")
 }
 
 // ---------- platform ----------

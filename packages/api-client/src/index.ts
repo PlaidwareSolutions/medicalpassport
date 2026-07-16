@@ -124,3 +124,24 @@ export interface PatientMedicationDto {
   instruction: MedicationInstructionDto | null;
   createdAt: string;
 }
+
+export interface TimelineItemDto {
+  scheduledDoseId: string;
+  dueAt: string;
+  slotLabel: string;
+  quantity: string;
+  status: string;
+  snoozedUntil: string | null;
+  isDueNow: boolean;
+  medication: {
+    id: string;
+    name: string;
+    doseUnit: string;
+    foodInstruction: string;
+  };
+}
+
+export interface TimelineDto {
+  date: string;
+  items: TimelineItemDto[];
+}

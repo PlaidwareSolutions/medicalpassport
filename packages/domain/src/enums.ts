@@ -67,6 +67,35 @@ export type ConsentType = (typeof CONSENT_TYPES)[number];
 export const MEDICATION_SOURCES = ["search", "manual", "extraction", "previous", "import"] as const;
 export type MedicationSource = (typeof MEDICATION_SOURCES)[number];
 
+export const DOSE_STATUSES = [
+  "upcoming",
+  "taken",
+  "skipped",
+  "missed",
+  "snoozed",
+  "could_not_take",
+  "unavailable",
+  "problem",
+  "taken_other_time",
+  "cancelled",
+] as const;
+export type DoseStatus = (typeof DOSE_STATUSES)[number];
+
+export const DOSE_ACTIONS = [
+  "taken",
+  "skipped",
+  "snoozed",
+  "could_not_take",
+  "unavailable",
+  "problem",
+  "taken_other_time",
+  "cancelled",
+] as const;
+export type DoseAction = (typeof DOSE_ACTIONS)[number];
+
+export const TIMELINE_SLOTS = ["morning", "midday", "night"] as const;
+export type TimelineSlot = (typeof TIMELINE_SLOTS)[number];
+
 export const SUPPORTED_LOCALES = ["en", "hi", "te", "ur"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const RTL_LOCALES: readonly Locale[] = ["ur"];

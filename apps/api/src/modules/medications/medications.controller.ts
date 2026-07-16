@@ -9,6 +9,7 @@ import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { IdempotencyService } from "../../common/idempotency.service";
 import { MedicationsService } from "./medications.service";
+import { SchedulingService } from "../scheduling/scheduling.service";
 
 @Controller()
 export class MedicationsController {
@@ -17,6 +18,7 @@ export class MedicationsController {
     private readonly access: ProfileAccessService,
     private readonly idempotency: IdempotencyService,
     private readonly medications: MedicationsService,
+    private readonly scheduling: SchedulingService,
   ) {}
 
   @Get("profiles/current/medications")
@@ -134,6 +136,15 @@ export class MedicationsController {
       });
       const fresh = await tx.patientMedication.findUniqueOrThrow({ where: { id } });
       return { id: fresh.id, status: fresh.status, rowVersion: fresh.rowVersion };
+    }).then(async (result) => {
+      // Restarting regenerates the window; anything else stops future doses
+      // from appearing so a paused/stopped medicine doesn't keep nagging.
+      if (input.status === "current") {
+        await this.scheduling.regenerateForMedication(id);
+      } else {
+        await this.scheduling.cancelFutureUpcomingDoses(id);
+      }
+      return result;
     });
   }
 
@@ -175,5 +186,6 @@ export class MedicationsController {
         correlationId: req.correlationId,
       });
     });
+    await this.scheduling.cancelFutureUpcomingDoses(id);
   }
 }
