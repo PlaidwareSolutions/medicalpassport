@@ -7,6 +7,7 @@ dist/
 out/
 *.tsbuildinfo
 .turbo/
+next-env.d.ts
 
 # env — only .env.example files are committed
 .env
