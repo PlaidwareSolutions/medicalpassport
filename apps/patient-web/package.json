@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@medpass/api-client": "workspace:*",
+    "@medpass/clinical-rules": "workspace:*",
     "@medpass/design-tokens": "workspace:*",
     "@medpass/domain": "workspace:*",
     "@medpass/localization": "workspace:*",

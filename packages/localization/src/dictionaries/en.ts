@@ -146,6 +146,39 @@ export const en = {
   "safety.no_reliable_data":
     "Reliable medication-safety information is not available for this medicine. Please confirm with a doctor or pharmacist.",
 
+  "safety.finding.exact_duplicate": "Possible duplicate ingredient",
+  "safety.finding.partial_duplicate": "Possible duplicate ingredient (combination medicine)",
+  "safety.finding.class_duplicate": "Similar medicines (same class)",
+  "safety.finding.allergy": "Possible allergy concern",
+  "safety.finding.uncertain_normalization": "Could not fully identify this medicine",
+
+  "safety.explain.exact_duplicate": "{medicines} all contain the same ingredient: {ingredient}.",
+  "safety.explain.partial_duplicate": "{medicines} all contain {ingredient}. Please check if this is intentional.",
+  "safety.explain.class_duplicate": "{medicines} may be a similar type of medicine.",
+  "safety.explain.allergy": "You have a recorded allergy to {allergy}, and {medicine} contains a matching ingredient.",
+  "safety.explain.uncertain_normalization":
+    "We couldn't fully match {medicine} to our medicine list yet, so it can't be checked against your other medicines.",
+
+  "safety.severity.info": "For your information",
+  "safety.severity.low": "Low priority",
+  "safety.severity.moderate": "Please review",
+  "safety.severity.high": "Please review soon",
+
+  "safety.status.open": "Needs review",
+  "safety.status.acknowledged": "Acknowledged",
+  "safety.status.reviewed_with_professional": "Reviewed with a professional",
+  "safety.status.resolved": "Resolved",
+
+  "safety.action.acknowledge": "I'll ask my doctor or pharmacist",
+  "safety.action.mark_reviewed": "Mark as reviewed with a professional",
+  "safety.action.resolve": "Mark as resolved",
+  "safety.medicines_involved": "Medicines involved",
+  "safety.evidence": "Source: {source} (rule v{version})",
+  "safety.checked_at": "Checked {date}",
+  "safety.resolved_findings": "Resolved and reviewed",
+
+  "home.concerns_count": "{count} to review",
+
   "profile.title": "Profile",
   "profile.allergies": "Allergies",
   "profile.conditions": "Conditions",
@@ -164,4 +197,18 @@ export const en = {
 
   "offline.title": "You're offline",
   "offline.body": "This page isn't available offline yet. Your saved medicines are still safe.",
+
+  "allergy.title": "Allergies",
+  "allergy.empty": "No allergies recorded yet.",
+  "allergy.add": "Add an allergy",
+  "allergy.label_label": "What are you allergic to?",
+  "allergy.label_placeholder": "e.g. Penicillin",
+  "allergy.severity_label": "How severe?",
+  "allergy.severity.mild": "Mild",
+  "allergy.severity.moderate": "Moderate",
+  "allergy.severity.severe": "Severe",
+  "allergy.severity.unknown": "Not sure",
+  "allergy.reaction_label": "What happened? (optional)",
+  "allergy.save": "Save allergy",
+  "allergy.saved": "Allergy saved",
 } as const;

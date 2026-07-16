@@ -152,6 +152,9 @@ importers:
       '@medpass/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@medpass/clinical-rules':
+        specifier: workspace:*
+        version: link:../../packages/clinical-rules
       '@medpass/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens

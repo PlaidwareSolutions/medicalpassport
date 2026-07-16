@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
 import { Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
@@ -56,6 +57,12 @@ export default function ProfilePage() {
           </div>
         </>
       ) : null}
+
+      <Link href="/allergies">
+        <Card>
+          <strong>{t("profile.allergies")}</strong>
+        </Card>
+      </Link>
 
       <SectionTitle>{t("profile.language")}</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--size-touch-gap)" }}>

@@ -149,6 +149,7 @@ model PatientProfile {
   conditions             PatientCondition[]
   medications            PatientMedication[]
   practitioners          Practitioner[]
+  safetyEvaluations      SafetyEvaluation[]
 
   @@index([ownerUserId])
   @@map("patient_profiles")
@@ -691,6 +692,111 @@ model DoseEvent {
 
   @@index([patientMedicationId, recordedAt])
   @@map("dose_events")
+}
+
+// ---------- safety review (Stage 6 subset of docs/13) ----------
+//
+// Scope this pass (docs/22): exact/partial ingredient duplication,
+// therapeutic-class duplication, drug-allergy, and uncertain-normalization
+// findings — all derivable from our own catalog data. Drug-drug interaction,
+// drug-condition, food, and alcohol checks need a licensed data source
+// (OD-4) or clinically-reviewed content that doesn't exist yet, so those
+// categories are not evaluated here (never fabricate — docs/19).
+//
+// Rule versioning is a documented simplification: rule key + version are
+// constants in code rather than rows in a maker-checker-approved table,
+// since that governance workflow needs an appointed clinical lead (OD-6)
+// this pass doesn't have. Traceability (source/version/time/inputs) is
+// still fully recorded per finding.
+
+/// One evaluation run over a profile's current medications (docs/09).
+/// Immutable once complete; a new trigger creates a new evaluation rather
+/// than mutating a previous one.
+model SafetyEvaluation {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+
+  trigger       String
+  appVersion    String   @map("app_version")
+  /// Normalized medication/ingredient snapshot the rules ran against.
+  inputSnapshot Json     @map("input_snapshot")
+  startedAt     DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  findings SafetyFinding[]
+
+  @@index([patientProfileId, startedAt])
+  @@map("safety_evaluations")
+}
+
+enum SafetyFindingSeverity {
+  info
+  low
+  moderate
+  high
+}
+
+enum SafetyFindingStatus {
+  open
+  acknowledged
+  reviewed_with_professional
+  resolved
+}
+
+/// A single concern from one evaluation (docs/09 traceability contract).
+/// Acknowledging a finding never deletes it — see SafetyFindingAction.
+model SafetyFinding {
+  id               String           @id @default(uuid()) @db.Uuid
+  evaluationId     String           @map("evaluation_id") @db.Uuid
+  evaluation       SafetyEvaluation @relation(fields: [evaluationId], references: [id])
+  /// Denormalized for direct querying without joining through evaluation.
+  patientProfileId String           @map("patient_profile_id") @db.Uuid
+
+  category    String
+  severity    SafetyFindingSeverity
+  /// patient_medication IDs involved, as text (not @db.Uuid — Prisma scalar
+  /// lists don't support the uuid[] column type directly).
+  medicationIds String[] @map("medication_ids")
+  ruleKey       String   @map("rule_key")
+  ruleVersion   String   @map("rule_version")
+  sourceName    String   @map("source_name")
+  /// Localization key for the plain-language summary.
+  explanationKey String  @map("explanation_key")
+  /// Structured detail (e.g. shared ingredient name) for rendering.
+  detail        Json?
+
+  status       SafetyFindingStatus @default(open)
+  resolvedByUserId String?         @map("resolved_by_user_id") @db.Uuid
+  resolvedAt   DateTime?           @map("resolved_at") @db.Timestamptz(6)
+  evaluatedAt  DateTime            @default(now()) @map("evaluated_at") @db.Timestamptz(6)
+
+  actions SafetyFindingAction[]
+
+  @@index([patientProfileId, status])
+  @@index([evaluationId])
+  @@map("safety_findings")
+}
+
+enum SafetyFindingActionType {
+  acknowledged
+  note_added
+  reviewed_with_professional
+  resolved
+}
+
+/// Append-only action log per finding (docs/13) — the audit trail behind
+/// SafetyFinding.status.
+model SafetyFindingAction {
+  id          String                  @id @default(uuid()) @db.Uuid
+  findingId   String                  @map("finding_id") @db.Uuid
+  finding     SafetyFinding           @relation(fields: [findingId], references: [id])
+  action      SafetyFindingActionType
+  note        String?
+  actorUserId String                  @map("actor_user_id") @db.Uuid
+  occurredAt  DateTime                @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@map("safety_finding_actions")
 }
 
 // ---------- platform ----------

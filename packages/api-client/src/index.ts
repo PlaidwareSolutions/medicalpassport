@@ -145,3 +145,27 @@ export interface TimelineDto {
   date: string;
   items: TimelineItemDto[];
 }
+
+export interface AllergyDto {
+  id: string;
+  label: string;
+  severity: string;
+  reactionNote: string | null;
+  source: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface SafetyFindingDto {
+  id: string;
+  category: string;
+  severity: string;
+  medicationIds: string[];
+  ruleKey: string;
+  ruleVersion: string;
+  sourceName: string;
+  explanationKey: string;
+  detail: Record<string, unknown> | null;
+  status: string;
+  evaluatedAt: string;
+}

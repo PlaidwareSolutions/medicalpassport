@@ -145,6 +145,39 @@ export const hi: Record<keyof typeof en, string> = {
   "safety.no_reliable_data":
     "इस दवा के लिए विश्वसनीय सुरक्षा जानकारी उपलब्ध नहीं है। कृपया डॉक्टर या फ़ार्मासिस्ट से पुष्टि करें।",
 
+  "safety.finding.exact_duplicate": "संभावित डुप्लिकेट घटक",
+  "safety.finding.partial_duplicate": "संभावित डुप्लिकेट घटक (कॉम्बिनेशन दवा)",
+  "safety.finding.class_duplicate": "मिलती-जुलती दवाइयाँ (एक जैसी श्रेणी)",
+  "safety.finding.allergy": "संभावित एलर्जी चिंता",
+  "safety.finding.uncertain_normalization": "इस दवा की पूरी पहचान नहीं हो सकी",
+
+  "safety.explain.exact_duplicate": "{medicines} में एक ही घटक है: {ingredient}।",
+  "safety.explain.partial_duplicate": "{medicines} में {ingredient} है। कृपया जाँच लें कि यह जानबूझकर है या नहीं।",
+  "safety.explain.class_duplicate": "{medicines} एक जैसी तरह की दवाइयाँ हो सकती हैं।",
+  "safety.explain.allergy": "आपको {allergy} से एलर्जी दर्ज है, और {medicine} में मिलता-जुलता घटक है।",
+  "safety.explain.uncertain_normalization":
+    "हम {medicine} को अपनी दवा सूची से पूरी तरह मिला नहीं सके, इसलिए इसकी अन्य दवाओं से तुलना अभी नहीं हो सकती।",
+
+  "safety.severity.info": "जानकारी के लिए",
+  "safety.severity.low": "कम प्राथमिकता",
+  "safety.severity.moderate": "कृपया समीक्षा करें",
+  "safety.severity.high": "जल्द समीक्षा करें",
+
+  "safety.status.open": "समीक्षा ज़रूरी",
+  "safety.status.acknowledged": "स्वीकार किया गया",
+  "safety.status.reviewed_with_professional": "विशेषज्ञ के साथ समीक्षा की गई",
+  "safety.status.resolved": "सुलझाया गया",
+
+  "safety.action.acknowledge": "मैं अपने डॉक्टर या फ़ार्मासिस्ट से पूछूंगा/पूछूंगी",
+  "safety.action.mark_reviewed": "विशेषज्ञ के साथ समीक्षा के रूप में चिह्नित करें",
+  "safety.action.resolve": "सुलझा हुआ चिह्नित करें",
+  "safety.medicines_involved": "शामिल दवाइयाँ",
+  "safety.evidence": "स्रोत: {source} (नियम v{version})",
+  "safety.checked_at": "जाँचा गया {date}",
+  "safety.resolved_findings": "सुलझाई और समीक्षित",
+
+  "home.concerns_count": "{count} समीक्षा बाकी",
+
   "profile.title": "प्रोफ़ाइल",
   "profile.allergies": "एलर्जी",
   "profile.conditions": "बीमारियाँ",
@@ -163,4 +196,18 @@ export const hi: Record<keyof typeof en, string> = {
 
   "offline.title": "आप ऑफ़लाइन हैं",
   "offline.body": "यह पेज अभी ऑफ़लाइन उपलब्ध नहीं है। आपकी सहेजी गई दवाइयाँ सुरक्षित हैं।",
+
+  "allergy.title": "एलर्जी",
+  "allergy.empty": "अभी तक कोई एलर्जी दर्ज नहीं है।",
+  "allergy.add": "एलर्जी जोड़ें",
+  "allergy.label_label": "आपको किससे एलर्जी है?",
+  "allergy.label_placeholder": "जैसे Penicillin",
+  "allergy.severity_label": "कितनी गंभीर?",
+  "allergy.severity.mild": "हल्की",
+  "allergy.severity.moderate": "मध्यम",
+  "allergy.severity.severe": "गंभीर",
+  "allergy.severity.unknown": "पता नहीं",
+  "allergy.reaction_label": "क्या हुआ था? (वैकल्पिक)",
+  "allergy.save": "एलर्जी सहेजें",
+  "allergy.saved": "एलर्जी सहेज ली गई",
 };

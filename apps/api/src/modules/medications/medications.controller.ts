@@ -10,6 +10,7 @@ import { ProfileAccessService } from "../../common/profile-access.service";
 import { IdempotencyService } from "../../common/idempotency.service";
 import { MedicationsService } from "./medications.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
+import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 
 @Controller()
 export class MedicationsController {
@@ -19,6 +20,7 @@ export class MedicationsController {
     private readonly idempotency: IdempotencyService,
     private readonly medications: MedicationsService,
     private readonly scheduling: SchedulingService,
+    private readonly safety: SafetyEvaluationService,
   ) {}
 
   @Get("profiles/current/medications")
@@ -141,6 +143,8 @@ export class MedicationsController {
       // from appearing so a paused/stopped medicine doesn't keep nagging.
       if (input.status === "current") {
         await this.scheduling.regenerateForMedication(id);
+        // Restarting a medicine re-runs safety review (docs/09).
+        await this.safety.evaluate(profileId, "medication_restarted");
       } else {
         await this.scheduling.cancelFutureUpcomingDoses(id);
       }

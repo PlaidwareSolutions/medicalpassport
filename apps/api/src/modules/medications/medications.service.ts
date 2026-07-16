@@ -5,6 +5,7 @@ import type { CreateMedicationInput, UpdateMedicationInput } from "@medpass/vali
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
+import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 
 interface Actor {
   userId: string;
@@ -29,6 +30,7 @@ export class MedicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scheduling: SchedulingService,
+    private readonly safety: SafetyEvaluationService,
   ) {}
 
   async list(profileId: string, status?: string) {
@@ -127,7 +129,8 @@ export class MedicationsService {
     // Derive the daily schedule from the confirmed instruction, if any
     // (docs/16). No-op for PRN medicines and non-auto-schedulable patterns.
     await this.scheduling.regenerateForMedication(created.id);
-    // Stage 6 hook: queue safety evaluation on medication added (docs/09).
+    // Safety review runs on every medication add (docs/09).
+    await this.safety.evaluate(profileId, "medication_added");
     return (await this.byId(profileId, created.id))!;
   }
 

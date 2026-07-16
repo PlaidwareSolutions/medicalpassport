@@ -107,6 +107,18 @@ const PRODUCTS: SeedProduct[] = [
     ingredients: [{ name: "Pantoprazole", strength: 40, unit: "mg" }],
     classes: ["Proton pump inhibitor"],
   },
+  {
+    // Common allergen ingredient, seeded so the drug-allergy safety demo
+    // (add allergy → add matching medicine) has something real to match.
+    brand: "Novamox",
+    manufacturer: "Cipla",
+    generic: "Amoxicillin",
+    form: "capsule",
+    route: "oral",
+    strengthLabel: "500 mg",
+    ingredients: [{ name: "Amoxicillin", strength: 500, unit: "mg" }],
+    classes: ["Penicillin antibiotic"],
+  },
 ];
 
 async function main() {
@@ -179,6 +191,14 @@ async function main() {
       });
     }
   }
+
+  // Common lay term so an allergy labeled "Penicillin" auto-links to the
+  // Amoxicillin ingredient (docs/07 screen 30) via exact/synonym match.
+  await prisma.medicationIngredient.updateMany({
+    where: { name: "Amoxicillin" },
+    data: { synonyms: ["Penicillin", "Amoxil"] },
+  });
+
   // eslint-disable-next-line no-console
   console.log(`Seeded ${PRODUCTS.length} sample products (SAMPLE-DEV-SEED, not clinically reviewed).`);
 }

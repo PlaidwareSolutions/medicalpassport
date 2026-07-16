@@ -145,6 +145,39 @@ export const te: Record<keyof typeof en, string> = {
   "safety.no_reliable_data":
     "ఈ మందుకు నమ్మదగిన భద్రతా సమాచారం అందుబాటులో లేదు. దయచేసి డాక్టర్ లేదా ఫార్మసిస్ట్‌తో నిర్ధారించుకోండి.",
 
+  "safety.finding.exact_duplicate": "సంభావ్య నకిలీ పదార్థం",
+  "safety.finding.partial_duplicate": "సంభావ్య నకిలీ పదార్థం (కాంబినేషన్ మందు)",
+  "safety.finding.class_duplicate": "పోలిన మందులు (ఒకే తరగతి)",
+  "safety.finding.allergy": "సంభావ్య అలర్జీ ఆందోళన",
+  "safety.finding.uncertain_normalization": "ఈ మందును పూర్తిగా గుర్తించలేకపోయాము",
+
+  "safety.explain.exact_duplicate": "{medicines} అన్నింటిలో ఒకే పదార్థం ఉంది: {ingredient}.",
+  "safety.explain.partial_duplicate": "{medicines} అన్నింటిలో {ingredient} ఉంది. ఇది ఉద్దేశపూర్వకమేనా అని దయచేసి తనిఖీ చేయండి.",
+  "safety.explain.class_duplicate": "{medicines} ఒకే రకమైన మందులు కావచ్చు.",
+  "safety.explain.allergy": "మీకు {allergy} పట్ల అలర్జీ నమోదైంది, మరియు {medicine}లో పోలిన పదార్థం ఉంది.",
+  "safety.explain.uncertain_normalization":
+    "{medicine}ను మా మందుల జాబితాతో పూర్తిగా సరిపోల్చలేకపోయాము, కాబట్టి దీన్ని మీ ఇతర మందులతో ఇంకా పోల్చలేము.",
+
+  "safety.severity.info": "సమాచారం కోసం",
+  "safety.severity.low": "తక్కువ ప్రాధాన్యత",
+  "safety.severity.moderate": "దయచేసి సమీక్షించండి",
+  "safety.severity.high": "త్వరగా సమీక్షించండి",
+
+  "safety.status.open": "సమీక్ష అవసరం",
+  "safety.status.acknowledged": "అంగీకరించారు",
+  "safety.status.reviewed_with_professional": "నిపుణుడితో సమీక్షించారు",
+  "safety.status.resolved": "పరిష్కరించారు",
+
+  "safety.action.acknowledge": "నేను నా డాక్టర్ లేదా ఫార్మసిస్ట్‌ని అడుగుతాను",
+  "safety.action.mark_reviewed": "నిపుణుడితో సమీక్షించినట్లు గుర్తించండి",
+  "safety.action.resolve": "పరిష్కరించినట్లు గుర్తించండి",
+  "safety.medicines_involved": "సంబంధిత మందులు",
+  "safety.evidence": "మూలం: {source} (నియమం v{version})",
+  "safety.checked_at": "తనిఖీ చేసినది {date}",
+  "safety.resolved_findings": "పరిష్కరించి సమీక్షించినవి",
+
+  "home.concerns_count": "{count} సమీక్షించాలి",
+
   "profile.title": "ప్రొఫైల్",
   "profile.allergies": "అలర్జీలు",
   "profile.conditions": "వ్యాధులు",
@@ -163,4 +196,18 @@ export const te: Record<keyof typeof en, string> = {
 
   "offline.title": "మీరు ఆఫ్‌లైన్‌లో ఉన్నారు",
   "offline.body": "ఈ పేజీ ఇంకా ఆఫ్‌లైన్‌లో అందుబాటులో లేదు. మీ సేవ్ చేసిన మందులు సురక్షితంగా ఉన్నాయి.",
+
+  "allergy.title": "అలర్జీలు",
+  "allergy.empty": "ఇంకా అలర్జీలు నమోదు కాలేదు.",
+  "allergy.add": "అలర్జీ జోడించండి",
+  "allergy.label_label": "మీకు దేనికి అలర్జీ ఉంది?",
+  "allergy.label_placeholder": "ఉదా. Penicillin",
+  "allergy.severity_label": "ఎంత తీవ్రం?",
+  "allergy.severity.mild": "తేలికపాటి",
+  "allergy.severity.moderate": "మధ్యస్థం",
+  "allergy.severity.severe": "తీవ్రమైన",
+  "allergy.severity.unknown": "తెలియదు",
+  "allergy.reaction_label": "ఏమి జరిగింది? (ఐచ్ఛికం)",
+  "allergy.save": "అలర్జీ సేవ్ చేయండి",
+  "allergy.saved": "అలర్జీ సేవ్ అయింది",
 };

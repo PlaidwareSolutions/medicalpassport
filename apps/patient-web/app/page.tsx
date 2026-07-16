@@ -3,25 +3,28 @@ import Link from "next/link";
 import { Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../components/AppShell";
 import { DoseCard } from "../components/DoseCard";
+import { FindingCard } from "../components/FindingCard";
 import { useI18n } from "../lib/i18n";
 import { useMedications } from "../lib/medications";
+import { isOpenFinding, useSafetyFindings } from "../lib/safety";
 import { useTimeline } from "../lib/timeline";
 
 /**
  * Screen 7: Home (docs/07). Priority order: due now → due next → missed →
- * concerns → refills. Concerns (Stage 6) and refills (later) are not built
- * yet; this shows the three schedule-derived sections that exist today.
+ * concerns → refills. Refill reminders aren't built yet.
  */
 export default function HomePage() {
   const { t } = useI18n();
   const { items: medications, error: medError } = useMedications("current");
   const { data: timeline, error: timelineError, reload } = useTimeline();
+  const { items: findings, reload: reloadFindings } = useSafetyFindings();
 
   const dueNow = (timeline?.items ?? []).filter((i) => i.isDueNow && i.status !== "missed");
   const missed = (timeline?.items ?? []).filter((i) => i.status === "missed");
   const dueNext = (timeline?.items ?? [])
     .filter((i) => i.status === "upcoming" && !i.isDueNow)
     .slice(0, 3);
+  const openFindings = (findings ?? []).filter(isOpenFinding);
 
   const noMedicinesAtAll = medications !== undefined && medications.length === 0;
   const hasAnySchedule = (timeline?.items.length ?? 0) > 0;
@@ -42,17 +45,6 @@ export default function HomePage() {
             <Button fullWidth>{t("home.add_first")}</Button>
           </Link>
         </Card>
-      ) : null}
-
-      {missed.length > 0 ? (
-        <>
-          <SectionTitle>{t("home.missed")}</SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-            {missed.map((item) => (
-              <DoseCard key={item.scheduledDoseId} item={item} onChanged={reload} />
-            ))}
-          </div>
-        </>
       ) : null}
 
       {medications && medications.length > 0 ? (
@@ -76,6 +68,30 @@ export default function HomePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 {dueNext.map((item) => (
                   <DoseCard key={item.scheduledDoseId} item={item} onChanged={reload} />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {missed.length > 0 ? (
+            <>
+              <SectionTitle>{t("home.missed")}</SectionTitle>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+                {missed.map((item) => (
+                  <DoseCard key={item.scheduledDoseId} item={item} onChanged={reload} />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {openFindings.length > 0 ? (
+            <>
+              <SectionTitle>
+                {t("home.concerns")} · {t("home.concerns_count", { count: openFindings.length })}
+              </SectionTitle>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+                {openFindings.map((f) => (
+                  <FindingCard key={f.id} finding={f} onChanged={reloadFindings} />
                 ))}
               </div>
             </>

@@ -13,12 +13,14 @@ import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 
 @Controller("profiles")
 export class ProfilesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProfileAccessService,
+    private readonly safety: SafetyEvaluationService,
   ) {}
 
   @Get()
@@ -194,9 +196,25 @@ export class ProfilesController {
   async addAllergy(@Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId } = await this.access.require(req, "edit_profile");
     const input = parseWith(allergySchema, body);
+
+    // Exact/synonym name match against the controlled ingredient vocabulary
+    // only — never a fuzzy guess (docs/09 §6 "never silently interpret").
+    // No match just means no drug-allergy check is possible for this entry;
+    // it is never fabricated.
+    const norm = (s: string) => s.trim().toLowerCase();
+    const ingredients = await this.prisma.medicationIngredient.findMany({ where: { status: "active" } });
+    const matchedIngredient = ingredients.find(
+      (i) => norm(i.name) === norm(input.label) || i.synonyms.some((s) => norm(s) === norm(input.label)),
+    );
+
     const allergy = await this.prisma.$transaction(async (tx) => {
       const created = await tx.patientAllergy.create({
-        data: { ...input, patientProfileId: profileId, recordedByUserId: req.auth!.userId },
+        data: {
+          ...input,
+          allergenIngredientId: matchedIngredient?.id,
+          patientProfileId: profileId,
+          recordedByUserId: req.auth!.userId,
+        },
       });
       await writeAudit(tx, {
         action: "allergy.created",
@@ -206,10 +224,12 @@ export class ProfilesController {
         entityId: created.id,
         patientProfileId: profileId,
         correlationId: req.correlationId,
+        context: { matchedIngredient: Boolean(matchedIngredient) },
       });
       return created;
     });
-    // Stage 6 hook: allergy changes trigger safety re-evaluation (docs/09).
+    // Allergy changes trigger safety re-evaluation (docs/09).
+    await this.safety.evaluate(profileId, "allergy_added");
     return allergy;
   }
 

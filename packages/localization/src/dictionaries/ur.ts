@@ -145,6 +145,39 @@ export const ur: Record<keyof typeof en, string> = {
   "safety.no_reliable_data":
     "اس دوا کے لیے قابلِ اعتماد حفاظتی معلومات دستیاب نہیں۔ براہ کرم ڈاکٹر یا فارماسسٹ سے تصدیق کریں۔",
 
+  "safety.finding.exact_duplicate": "ممکنہ ڈپلیکیٹ جزو",
+  "safety.finding.partial_duplicate": "ممکنہ ڈپلیکیٹ جزو (مرکب دوا)",
+  "safety.finding.class_duplicate": "ملتی جلتی دوائیں (ایک ہی قسم)",
+  "safety.finding.allergy": "ممکنہ الرجی کا خدشہ",
+  "safety.finding.uncertain_normalization": "اس دوا کی مکمل شناخت نہیں ہو سکی",
+
+  "safety.explain.exact_duplicate": "{medicines} سب میں ایک ہی جزو ہے: {ingredient}۔",
+  "safety.explain.partial_duplicate": "{medicines} سب میں {ingredient} ہے۔ براہ کرم چیک کریں کہ یہ جان بوجھ کر ہے یا نہیں۔",
+  "safety.explain.class_duplicate": "{medicines} ایک جیسی قسم کی دوائیں ہو سکتی ہیں۔",
+  "safety.explain.allergy": "آپ کو {allergy} سے الرجی درج ہے، اور {medicine} میں ملتا جلتا جزو ہے۔",
+  "safety.explain.uncertain_normalization":
+    "ہم {medicine} کو اپنی دوا کی فہرست سے مکمل طور پر ملا نہیں سکے، اس لیے اس کا آپ کی دیگر دواؤں سے موازنہ ابھی ممکن نہیں۔",
+
+  "safety.severity.info": "معلومات کے لیے",
+  "safety.severity.low": "کم ترجیح",
+  "safety.severity.moderate": "براہ کرم جائزہ لیں",
+  "safety.severity.high": "جلد جائزہ لیں",
+
+  "safety.status.open": "جائزہ درکار",
+  "safety.status.acknowledged": "تسلیم کر لیا گیا",
+  "safety.status.reviewed_with_professional": "ماہر کے ساتھ جائزہ لیا گیا",
+  "safety.status.resolved": "حل ہو گیا",
+
+  "safety.action.acknowledge": "میں اپنے ڈاکٹر یا فارماسسٹ سے پوچھوں گا/گی",
+  "safety.action.mark_reviewed": "ماہر کے ساتھ جائزہ شدہ نشان زد کریں",
+  "safety.action.resolve": "حل شدہ نشان زد کریں",
+  "safety.medicines_involved": "شامل دوائیں",
+  "safety.evidence": "ماخذ: {source} (اصول v{version})",
+  "safety.checked_at": "جانچا گیا {date}",
+  "safety.resolved_findings": "حل اور جائزہ شدہ",
+
+  "home.concerns_count": "{count} جائزہ لینا باقی",
+
   "profile.title": "پروفائل",
   "profile.allergies": "الرجیاں",
   "profile.conditions": "بیماریاں",
@@ -163,4 +196,18 @@ export const ur: Record<keyof typeof en, string> = {
 
   "offline.title": "آپ آف لائن ہیں",
   "offline.body": "یہ صفحہ ابھی آف لائن دستیاب نہیں۔ آپ کی محفوظ شدہ دوائیں محفوظ ہیں۔",
+
+  "allergy.title": "الرجیاں",
+  "allergy.empty": "ابھی تک کوئی الرجی درج نہیں ہے۔",
+  "allergy.add": "الرجی شامل کریں",
+  "allergy.label_label": "آپ کو کس چیز سے الرجی ہے؟",
+  "allergy.label_placeholder": "مثلاً Penicillin",
+  "allergy.severity_label": "کتنی شدید؟",
+  "allergy.severity.mild": "ہلکی",
+  "allergy.severity.moderate": "درمیانی",
+  "allergy.severity.severe": "شدید",
+  "allergy.severity.unknown": "معلوم نہیں",
+  "allergy.reaction_label": "کیا ہوا تھا؟ (اختیاری)",
+  "allergy.save": "الرجی محفوظ کریں",
+  "allergy.saved": "الرجی محفوظ ہو گئی",
 };

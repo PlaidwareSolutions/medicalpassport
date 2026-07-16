@@ -1,24 +1,53 @@
 "use client";
-import { Card } from "@medpass/ui-web";
+import { Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { FindingCard } from "../../components/FindingCard";
 import { useI18n } from "../../lib/i18n";
+import { isOpenFinding, useSafetyFindings } from "../../lib/safety";
 
 /**
- * Screen 21: safety review results (docs/07). The deterministic safety engine
- * ships in Stage 6 — until then this surface is honest about its status and
- * never implies "no concerns" means safety is guaranteed.
+ * Screen 21: safety review results (docs/07). Duplicate-ingredient,
+ * therapeutic-class, and drug-allergy checks run on Railway (docs/09) —
+ * this screen only renders what the server already decided.
  */
 export default function SafetyPage() {
   const { t } = useI18n();
+  const { items, error, reload } = useSafetyFindings();
+
+  const open = (items ?? []).filter(isOpenFinding);
+  const resolved = (items ?? []).filter((f) => !isOpenFinding(f));
+
   return (
     <AppShell>
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("safety.title")}</h1>
-      <Card tone="info">
-        <span>{t("safety.coming")}</span>
-      </Card>
-      <Card>
-        <span style={{ color: "var(--color-text-muted)" }}>{t("safety.empty")}</span>
-      </Card>
+
+      {error ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
+      {!items && !error ? <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p> : null}
+
+      {items && open.length === 0 ? (
+        <Card tone="info">
+          <span style={{ color: "var(--color-text-muted)" }}>{t("safety.empty")}</span>
+        </Card>
+      ) : null}
+
+      {open.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          {open.map((f) => (
+            <FindingCard key={f.id} finding={f} onChanged={reload} />
+          ))}
+        </div>
+      ) : null}
+
+      {resolved.length > 0 ? (
+        <>
+          <SectionTitle>{t("safety.resolved_findings")}</SectionTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+            {resolved.map((f) => (
+              <FindingCard key={f.id} finding={f} onChanged={reload} />
+            ))}
+          </div>
+        </>
+      ) : null}
     </AppShell>
   );
 }
