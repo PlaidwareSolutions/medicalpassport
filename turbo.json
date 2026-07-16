@@ -15,7 +15,15 @@
     "lint": {},
     "test": {
       "dependsOn": ["^build"],
-      "env": ["DATABASE_URL", "OTP_DEV_FIXED_CODE"]
+      "env": [
+        "DATABASE_URL",
+        "OTP_DEV_FIXED_CODE",
+        "OTP_HASH_PEPPER",
+        "SESSION_TOKEN_PEPPER",
+        "FIELD_ENCRYPTION_KEY",
+        "OTP_TRANSPORT",
+        "PORT"
+      ]
     },
     "dev": {
       "cache": false,
