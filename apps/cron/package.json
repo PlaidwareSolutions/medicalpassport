@@ -1,0 +1,19 @@
+{
+  "name": "@medpass/cron",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@medpass/audit": "workspace:*",
+    "@medpass/config": "workspace:*",
+    "@medpass/database": "workspace:*",
+    "@medpass/observability": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}

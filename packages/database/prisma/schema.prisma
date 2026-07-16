@@ -1,0 +1,632 @@
+// Stage 2 subset of the full data model (docs/13-data-model.md).
+// Conventions: uuid PKs, timestamptz, soft delete via deletedAt, original vs
+// normalized values in separate columns, no PHI in identifiers.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- identity & access ----------
+
+enum UserStatus {
+  active
+  suspended
+  deletion_pending
+  deleted
+}
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// HMAC digest of the E.164 phone — used for lookup/uniqueness.
+  phoneDigest String @unique @map("phone_digest")
+  /// AES-256-GCM ciphertext of the E.164 phone (application-level encryption).
+  phoneCiphertext String @map("phone_ciphertext")
+
+  phoneVerifiedAt DateTime?  @map("phone_verified_at") @db.Timestamptz(6)
+  email           String?
+  preferredLocale String     @default("en") @map("preferred_locale")
+  status          UserStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  devices                UserDevice[]
+  sessions               Session[]
+  ownedProfiles          PatientProfile[]        @relation("ProfileOwner")
+  claimedProfiles        PatientProfile[]        @relation("ProfileClaimer")
+  caregiverRelationships CaregiverRelationship[] @relation("CaregiverUser")
+
+  @@map("users")
+}
+
+enum DeviceKind {
+  browser
+  android
+  ios
+}
+
+model UserDevice {
+  id              String     @id @default(uuid()) @db.Uuid
+  userId          String     @map("user_id") @db.Uuid
+  user            User       @relation(fields: [userId], references: [id])
+  kind            DeviceKind @default(browser)
+  label           String?
+  userAgentDigest String?    @map("user_agent_digest")
+  lastSeenAt      DateTime   @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt       DateTime?  @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sessions Session[]
+
+  @@index([userId, lastSeenAt])
+  @@map("user_devices")
+}
+
+model Session {
+  id               String     @id @default(uuid()) @db.Uuid
+  userId           String     @map("user_id") @db.Uuid
+  user             User       @relation(fields: [userId], references: [id])
+  userDeviceId     String     @map("user_device_id") @db.Uuid
+  userDevice       UserDevice @relation(fields: [userDeviceId], references: [id])
+  /// SHA-256(pepper + token). Raw tokens are never stored.
+  tokenHash        String     @unique @map("token_hash")
+  refreshTokenHash String     @unique @map("refresh_token_hash")
+  expiresAt        DateTime   @map("expires_at") @db.Timestamptz(6)
+  refreshExpiresAt DateTime   @map("refresh_expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime?  @map("revoked_at") @db.Timestamptz(6)
+  revokeReason     String?    @map("revoke_reason")
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, revokedAt])
+  @@map("sessions")
+}
+
+enum OtpPurpose {
+  login
+  recovery
+  share_verification
+}
+
+model OtpAttempt {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// HMAC digest of the phone; the raw number is not stored on this table.
+  phoneDigest String     @map("phone_digest")
+  /// scrypt(pepper + code). OTP codes are never stored in plaintext.
+  otpHash     String     @map("otp_hash")
+  purpose     OtpPurpose @default(login)
+
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt     DateTime? @map("consumed_at") @db.Timestamptz(6)
+  invalidatedAt  DateTime? @map("invalidated_at") @db.Timestamptz(6)
+  verifyAttempts Int       @default(0) @map("verify_attempts")
+  sentCount      Int       @default(1) @map("sent_count")
+  lastSentAt     DateTime  @default(now()) @map("last_sent_at") @db.Timestamptz(6)
+  ipDigest       String?   @map("ip_digest")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([phoneDigest, createdAt])
+  @@map("otp_attempts")
+}
+
+// ---------- profiles, caregivers, consent ----------
+
+enum Sex {
+  female
+  male
+  other
+  undisclosed
+}
+
+model PatientProfile {
+  id              String  @id @default(uuid()) @db.Uuid
+  ownerUserId     String  @map("owner_user_id") @db.Uuid
+  ownerUser       User    @relation("ProfileOwner", fields: [ownerUserId], references: [id])
+  claimedByUserId String? @map("claimed_by_user_id") @db.Uuid
+  claimedByUser   User?   @relation("ProfileClaimer", fields: [claimedByUserId], references: [id])
+
+  displayName     String  @map("display_name")
+  yearOfBirth     Int?    @map("year_of_birth") @db.SmallInt
+  sex             Sex?
+  preferredLocale String  @default("en") @map("preferred_locale")
+  emergencyCard   Json?   @map("emergency_card")
+
+  rowVersion Int       @default(0) @map("row_version")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  caregiverRelationships CaregiverRelationship[]
+  consents               Consent[]
+  allergies              PatientAllergy[]
+  conditions             PatientCondition[]
+  medications            PatientMedication[]
+  practitioners          Practitioner[]
+
+  @@index([ownerUserId])
+  @@map("patient_profiles")
+}
+
+enum RelationshipStatus {
+  invited
+  active
+  revoked
+  expired
+}
+
+model CaregiverRelationship {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  /// Null until the invited person accepts with their own account.
+  caregiverUserId  String?        @map("caregiver_user_id") @db.Uuid
+  caregiverUser    User?          @relation("CaregiverUser", fields: [caregiverUserId], references: [id])
+
+  invitedPhoneDigest String             @map("invited_phone_digest")
+  relationship       String
+  status             RelationshipStatus @default(invited)
+  acceptedAt         DateTime?          @map("accepted_at") @db.Timestamptz(6)
+  expiresAt          DateTime?          @map("expires_at") @db.Timestamptz(6)
+  revokedAt          DateTime?          @map("revoked_at") @db.Timestamptz(6)
+  revokedByUserId    String?            @map("revoked_by_user_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  permissions CaregiverPermission[]
+
+  @@index([patientProfileId, status])
+  @@index([caregiverUserId, status])
+  @@map("caregiver_relationships")
+}
+
+enum CaregiverScope {
+  view_medications
+  view_schedule
+  manage_reminders
+  record_doses
+  add_medications
+  edit_medications
+  review_concerns
+  share_records
+  manage_profile
+  full_management
+}
+
+model CaregiverPermission {
+  id                      String                @id @default(uuid()) @db.Uuid
+  caregiverRelationshipId String                @map("caregiver_relationship_id") @db.Uuid
+  caregiverRelationship   CaregiverRelationship @relation(fields: [caregiverRelationshipId], references: [id])
+  scope                   CaregiverScope
+  grantedAt               DateTime              @default(now()) @map("granted_at") @db.Timestamptz(6)
+  grantedByUserId         String                @map("granted_by_user_id") @db.Uuid
+  revokedAt               DateTime?             @map("revoked_at") @db.Timestamptz(6)
+
+  @@unique([caregiverRelationshipId, scope])
+  @@map("caregiver_permissions")
+}
+
+enum ConsentType {
+  data_processing
+  sms_reminders
+  whatsapp_reminders
+  email
+  caregiver_access
+  sharing
+  ai_processing
+  emergency_card
+}
+
+enum ConsentStatus {
+  active
+  revoked
+  expired
+}
+
+model Consent {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  type             ConsentType
+  purpose          String
+  scope            Json?
+  status           ConsentStatus  @default(active)
+  grantedAt        DateTime       @default(now()) @map("granted_at") @db.Timestamptz(6)
+  expiresAt        DateTime?      @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime?      @map("revoked_at") @db.Timestamptz(6)
+
+  events ConsentEvent[]
+
+  @@index([patientProfileId, type, status])
+  @@map("consents")
+}
+
+model ConsentEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  consentId   String   @map("consent_id") @db.Uuid
+  consent     Consent  @relation(fields: [consentId], references: [id])
+  event       String
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  context     Json?
+  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([consentId, occurredAt])
+  @@map("consent_events")
+}
+
+/// Patient-scoped prescriber records (MVP). A verified global directory can
+/// supersede these later (docs/13).
+model Practitioner {
+  id                 String          @id @default(uuid()) @db.Uuid
+  createdByProfileId String?         @map("created_by_profile_id") @db.Uuid
+  createdByProfile   PatientProfile? @relation(fields: [createdByProfileId], references: [id])
+  displayName        String          @map("display_name")
+  speciality         String?
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  medications PatientMedication[]
+
+  @@map("practitioners")
+}
+
+enum AllergySeverity {
+  mild
+  moderate
+  severe
+  unknown
+}
+
+enum RecordSource {
+  patient
+  document
+  professional
+}
+
+model PatientAllergy {
+  id                   String                @id @default(uuid()) @db.Uuid
+  patientProfileId     String                @map("patient_profile_id") @db.Uuid
+  patientProfile       PatientProfile        @relation(fields: [patientProfileId], references: [id])
+  label                String
+  allergenIngredientId String?               @map("allergen_ingredient_id") @db.Uuid
+  allergenIngredient   MedicationIngredient? @relation(fields: [allergenIngredientId], references: [id])
+  severity             AllergySeverity       @default(unknown)
+  reactionNote         String?               @map("reaction_note")
+  source               RecordSource          @default(patient)
+  active               Boolean               @default(true)
+  recordedByUserId     String                @map("recorded_by_user_id") @db.Uuid
+  deletedAt            DateTime?             @map("deleted_at") @db.Timestamptz(6)
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId])
+  @@map("patient_allergies")
+}
+
+model PatientCondition {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  label            String
+  note             String?
+  source           RecordSource   @default(patient)
+  active           Boolean        @default(true)
+  recordedByUserId String         @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId])
+  @@map("patient_conditions")
+}
+
+// ---------- medication catalog (non-PHI, admin-owned) ----------
+
+enum CatalogStatus {
+  active
+  deprecated
+  banned
+}
+
+model MedicationIngredient {
+  id       String        @id @default(uuid()) @db.Uuid
+  name     String        @unique
+  synonyms String[]      @default([])
+  status   CatalogStatus @default(active)
+
+  productIngredients MedicationProductIngredient[]
+  allergies          PatientAllergy[]
+
+  @@map("medication_ingredients")
+}
+
+model Manufacturer {
+  id     String        @id @default(uuid()) @db.Uuid
+  name   String        @unique
+  status CatalogStatus @default(active)
+
+  brands MedicationBrand[]
+
+  @@map("manufacturers")
+}
+
+model MedicationBrand {
+  id             String        @id @default(uuid()) @db.Uuid
+  name           String
+  aliases        String[]      @default([])
+  manufacturerId String?       @map("manufacturer_id") @db.Uuid
+  manufacturer   Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  status         CatalogStatus @default(active)
+
+  products MedicationProduct[]
+
+  @@index([name])
+  @@map("medication_brands")
+}
+
+model DosageForm {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  products MedicationProduct[]
+
+  @@map("dosage_forms")
+}
+
+model AdministrationRoute {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  products MedicationProduct[]
+
+  @@map("administration_routes")
+}
+
+model TherapeuticClass {
+  id       String  @id @default(uuid()) @db.Uuid
+  name     String  @unique
+  parentId String? @map("parent_id") @db.Uuid
+
+  classifications ProductClassification[]
+
+  @@map("therapeutic_classes")
+}
+
+enum ReleaseType {
+  immediate
+  sustained
+  extended
+  controlled
+  unspecified
+}
+
+model MedicationProduct {
+  id            String               @id @default(uuid()) @db.Uuid
+  brandId       String?              @map("brand_id") @db.Uuid
+  brand         MedicationBrand?     @relation(fields: [brandId], references: [id])
+  genericName   String               @map("generic_name")
+  dosageFormId  String?              @map("dosage_form_id") @db.Uuid
+  dosageForm    DosageForm?          @relation(fields: [dosageFormId], references: [id])
+  routeId       String?              @map("route_id") @db.Uuid
+  route         AdministrationRoute? @relation(fields: [routeId], references: [id])
+  releaseType   ReleaseType          @default(unspecified) @map("release_type")
+  isCombination Boolean              @default(false) @map("is_combination")
+  /// Human-readable strength summary, e.g. "500 mg".
+  strengthLabel String?              @map("strength_label")
+  regulatoryRef String?              @map("regulatory_ref")
+  /// Source registry entry + version this product row came from (docs/11).
+  sourceName    String?              @map("source_name")
+  sourceVersion String?              @map("source_version")
+  status        CatalogStatus        @default(active)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ingredients     MedicationProductIngredient[]
+  classifications ProductClassification[]
+  medications     PatientMedication[]
+
+  @@index([genericName])
+  @@map("medication_products")
+}
+
+model MedicationProductIngredient {
+  id            String               @id @default(uuid()) @db.Uuid
+  productId     String               @map("product_id") @db.Uuid
+  product       MedicationProduct    @relation(fields: [productId], references: [id])
+  ingredientId  String               @map("ingredient_id") @db.Uuid
+  ingredient    MedicationIngredient @relation(fields: [ingredientId], references: [id])
+  strengthValue Decimal?             @map("strength_value") @db.Decimal(10, 3)
+  strengthUnit  String?              @map("strength_unit")
+
+  @@unique([productId, ingredientId])
+  @@map("medication_product_ingredients")
+}
+
+model ProductClassification {
+  id      String            @id @default(uuid()) @db.Uuid
+  productId String          @map("product_id") @db.Uuid
+  product MedicationProduct @relation(fields: [productId], references: [id])
+  classId String            @map("class_id") @db.Uuid
+  class   TherapeuticClass  @relation(fields: [classId], references: [id])
+  source  String?
+
+  @@unique([productId, classId])
+  @@map("product_classifications")
+}
+
+// ---------- patient medications ----------
+
+enum MedicationStatus {
+  current
+  paused
+  completed
+  stopped
+  unknown
+}
+
+enum NormalizationStatus {
+  unmatched
+  candidate
+  confirmed
+}
+
+enum MedicationSource {
+  search
+  manual
+  extraction
+  previous
+  import
+}
+
+model PatientMedication {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+
+  productId           String?             @map("product_id") @db.Uuid
+  product             MedicationProduct?  @relation(fields: [productId], references: [id])
+  /// Original entered/captured name — immutable, kept separate from
+  /// normalization (docs/13 conventions).
+  enteredName         String              @map("entered_name")
+  normalizationStatus NormalizationStatus @default(unmatched) @map("normalization_status")
+
+  /// Patient-specific reason as recorded — never inferred from common uses.
+  patientReason  String?       @map("patient_reason")
+  practitionerId String?       @map("practitioner_id") @db.Uuid
+  practitioner   Practitioner? @relation(fields: [practitionerId], references: [id])
+
+  source          MedicationSource
+  status          MedicationStatus @default(current)
+  statusChangedAt DateTime         @default(now()) @map("status_changed_at") @db.Timestamptz(6)
+  statusReason    String?          @map("status_reason")
+  startDate       DateTime?        @map("start_date") @db.Date
+  endDate         DateTime?        @map("end_date") @db.Date
+  isPrn           Boolean          @default(false) @map("is_prn")
+
+  rowVersion Int       @default(0) @map("row_version")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  instructions MedicationInstruction[]
+  changes      MedicationChange[]
+
+  @@index([patientProfileId, status])
+  @@map("patient_medications")
+}
+
+enum FrequencyCode {
+  OD
+  BD
+  TDS
+  QID
+  SOS
+  HS
+  PATTERN
+  ALTERNATE_DAY
+  WEEKLY
+  CUSTOM
+}
+
+enum FoodInstruction {
+  before
+  with
+  after
+  any
+  bedtime
+}
+
+model MedicationInstruction {
+  id                  String            @id @default(uuid()) @db.Uuid
+  patientMedicationId String            @map("patient_medication_id") @db.Uuid
+  patientMedication   PatientMedication @relation(fields: [patientMedicationId], references: [id])
+
+  doseQuantity    Decimal         @map("dose_quantity") @db.Decimal(6, 2)
+  doseUnit        String          @map("dose_unit")
+  frequencyCode   FrequencyCode   @map("frequency_code")
+  pattern         String?
+  foodInstruction FoodInstruction @default(any) @map("food_instruction")
+  durationDays    Int?            @map("duration_days")
+  /// Original captured text (OCR / shorthand), preserved verbatim.
+  originalText    String?         @map("original_text")
+
+  confirmedByUserId String   @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt       DateTime @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+  /// Latest instruction wins; superseded rows keep history.
+  supersededAt      DateTime? @map("superseded_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([patientMedicationId, supersededAt])
+  @@map("medication_instructions")
+}
+
+/// Append-only change log per medication (docs/13).
+model MedicationChange {
+  id                  String            @id @default(uuid()) @db.Uuid
+  patientMedicationId String            @map("patient_medication_id") @db.Uuid
+  patientMedication   PatientMedication @relation(fields: [patientMedicationId], references: [id])
+  change              String
+  detail              Json?
+  actorUserId         String            @map("actor_user_id") @db.Uuid
+  occurredAt          DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([patientMedicationId, occurredAt])
+  @@map("medication_changes")
+}
+
+// ---------- platform ----------
+
+/// Server-side ledger of applied client mutations (offline idempotency).
+model OfflineMutation {
+  id               String   @id @default(uuid()) @db.Uuid
+  clientMutationId String   @unique @map("client_mutation_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  patientProfileId String?  @map("patient_profile_id") @db.Uuid
+  entity           String
+  operation        String
+  /// Digest of the applied result, used to answer idempotent replays.
+  resultDigest     String?  @map("result_digest")
+  resultBody       Json?    @map("result_body")
+  appliedAt        DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  @@index([userId, appliedAt])
+  @@map("offline_mutations")
+}
+
+enum AuditActorType {
+  patient
+  caregiver
+  admin
+  system
+  share_visitor
+}
+
+/// Append-only, hash-chained audit log (docs/21). Rows are never updated.
+model AuditEvent {
+  id               String         @id @default(uuid()) @db.Uuid
+  seq              BigInt         @default(autoincrement())
+  actorUserId      String?        @map("actor_user_id") @db.Uuid
+  actorType        AuditActorType @map("actor_type")
+  action           String
+  entityType       String?        @map("entity_type")
+  entityId         String?        @map("entity_id") @db.Uuid
+  patientProfileId String?        @map("patient_profile_id") @db.Uuid
+  correlationId    String?        @map("correlation_id")
+  /// Digests and coarse context only — never raw PHI values.
+  context          Json?
+  prevHash         String?        @map("prev_hash")
+  rowHash          String         @map("row_hash")
+  occurredAt       DateTime       @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, occurredAt])
+  @@index([entityType, entityId])
+  @@index([seq])
+  @@map("audit_events")
+}

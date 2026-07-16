@@ -1,0 +1,25 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["NODE_ENV", "NEXT_PUBLIC_API_URL"]
+    },
+    "generate": {
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {},
+    "test": {
+      "dependsOn": ["^build"],
+      "env": ["DATABASE_URL", "OTP_DEV_FIXED_CODE"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

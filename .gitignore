@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+.next/
+out/
+*.tsbuildinfo
+.turbo/
+
+# env — only .env.example files are committed
+.env
+.env.*
+!.env.example
+
+# generated
+apps/patient-web/public/sw.js
+apps/patient-web/public/swe-worker-*.js
+coverage/
+
+# local databases / scratch
+*.local
+.DS_Store
+
+# logs
+*.log
+.claude/

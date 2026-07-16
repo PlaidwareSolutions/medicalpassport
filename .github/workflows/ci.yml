@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: medpass
+          POSTGRES_PASSWORD: medpass
+          POSTGRES_DB: medpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U medpass"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://medpass:medpass@localhost:5432/medpass
+      OTP_HASH_PEPPER: ci-otp-pepper-not-secret
+      SESSION_TOKEN_PEPPER: ci-session-pepper-not-secret
+      FIELD_ENCRYPTION_KEY: ci-field-key-not-secret-32bytes!
+      OTP_TRANSPORT: log
+      OTP_DEV_FIXED_CODE: "000000"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate + migration check
+        run: |
+          pnpm --filter @medpass/database generate
+          pnpm --filter @medpass/database exec prisma migrate deploy
+          # Fail if the schema drifted from committed migrations.
+          pnpm --filter @medpass/database exec prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "$DATABASE_URL" \
+            --exit-code
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Seed (sample catalog)
+        run: pnpm --filter @medpass/database seed
+
+      - name: Test
+        run: pnpm test
+
+  deploy-staging:
+    # Railway deploy hook (docs/25): fill in RAILWAY_TOKEN + service IDs when
+    # the Railway projects exist (Requires platform configuration).
+    if: github.ref == 'refs/heads/main'
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploy to Railway staging — configure railway up / railway deploy here"

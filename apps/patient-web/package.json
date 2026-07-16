@@ -1,0 +1,30 @@
+{
+  "name": "@medpass/patient-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3000",
+    "start": "next start -p 3000",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@medpass/api-client": "workspace:*",
+    "@medpass/design-tokens": "workspace:*",
+    "@medpass/domain": "workspace:*",
+    "@medpass/localization": "workspace:*",
+    "@medpass/medication-terminology": "workspace:*",
+    "@medpass/ui-web": "workspace:*",
+    "@serwist/next": "^9.0.11",
+    "next": "15.3.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "serwist": "^9.0.11",
+    "typescript": "^5.7.2"
+  }
+}

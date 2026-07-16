@@ -1,0 +1,79 @@
+import { z } from "zod";
+
+export const NodeEnv = z.enum(["development", "test", "staging", "production"]);
+export type NodeEnv = z.infer<typeof NodeEnv>;
+
+/**
+ * Parses environment variables against a schema and fails fast with a
+ * readable list of problems. Secrets must never have silent defaults.
+ */
+export function loadEnv<T extends z.ZodRawShape>(
+  shape: T,
+  source: NodeJS.ProcessEnv = process.env,
+): z.infer<z.ZodObject<T>> {
+  const parsed = z.object(shape).safeParse(source);
+  if (!parsed.success) {
+    const problems = parsed.error.issues
+      .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
+    throw new Error(`Invalid environment configuration:\n${problems}`);
+  }
+  return parsed.data;
+}
+
+export const apiEnvShape = {
+  NODE_ENV: NodeEnv.default("development"),
+  PORT: z.coerce.number().int().positive().default(4000),
+  DATABASE_URL: z.string().url(),
+  /** Pepper mixed into OTP hashes. Required in every environment. */
+  OTP_HASH_PEPPER: z.string().min(16),
+  /** Pepper mixed into session token hashes. */
+  SESSION_TOKEN_PEPPER: z.string().min(16),
+  /** AES-256 key (base64, 32 bytes) for application-level field encryption. */
+  FIELD_ENCRYPTION_KEY: z.string().min(32),
+  /**
+   * OTP transport. "log" is a development-only fake; the API refuses to boot
+   * with it in production.
+   */
+  OTP_TRANSPORT: z.enum(["log", "sms"]).default("log"),
+  /** Development/test only: fixed OTP code so no real SMS is needed. */
+  OTP_DEV_FIXED_CODE: z
+    .string()
+    .regex(/^\d{6}$/)
+    .optional(),
+  /** Comma-separated allowlist of public hostnames (host-header defense). */
+  ALLOWED_HOSTS: z.string().optional(),
+  CORS_ORIGINS: z.string().optional(),
+  REDIS_URL: z.string().url().optional(),
+} as const;
+
+export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;
+
+export const workerEnvShape = {
+  NODE_ENV: NodeEnv.default("development"),
+  DATABASE_URL: z.string().url(),
+  REDIS_URL: z.string().url(),
+} as const;
+
+export const cronEnvShape = {
+  NODE_ENV: NodeEnv.default("development"),
+  DATABASE_URL: z.string().url(),
+} as const;
+
+/** Feature flags. Env-seeded for the MVP; a flag service can replace this. */
+export interface FeatureFlags {
+  readonly prescriptionUpload: boolean;
+  readonly safetyFindings: boolean;
+  readonly sharing: boolean;
+  readonly aiExplanations: boolean;
+}
+
+export function featureFlagsFromEnv(source: NodeJS.ProcessEnv = process.env): FeatureFlags {
+  const on = (key: string) => source[key] === "true";
+  return {
+    prescriptionUpload: on("FLAG_PRESCRIPTION_UPLOAD"),
+    safetyFindings: on("FLAG_SAFETY_FINDINGS"),
+    sharing: on("FLAG_SHARING"),
+    aiExplanations: on("FLAG_AI_EXPLANATIONS"),
+  };
+}

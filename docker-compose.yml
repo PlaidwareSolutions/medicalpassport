@@ -1,0 +1,40 @@
+# Local development dependencies (docs/28): PostgreSQL + Redis + MinIO
+# (R2-compatible object storage for Stage 3 work). Synthetic data only.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: medpass
+      POSTGRES_PASSWORD: medpass
+      POSTGRES_DB: medpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medpass"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "medpass-dev"]
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: medpass
+      MINIO_ROOT_PASSWORD: medpass-dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  miniodata:
