@@ -80,6 +80,7 @@ export const hi: Record<keyof typeof en, string> = {
   "dose.action.problem": "कोई समस्या हो रही है",
   "dose.action.taken_other_time": "दूसरे समय पर ली",
   "dose.recorded": "दर्ज कर लिया गया",
+  "dose.queued_offline": "इस डिवाइस पर सहेजा गया — ऑनलाइन आते ही सिंक होगा।",
 
   "meds.current": "मौजूदा दवाइयाँ",
   "meds.previous": "पुरानी दवाइयाँ",

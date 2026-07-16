@@ -80,6 +80,7 @@ export const te: Record<keyof typeof en, string> = {
   "dose.action.problem": "సమస్య ఎదురవుతోంది",
   "dose.action.taken_other_time": "వేరే సమయంలో తీసుకున్నారు",
   "dose.recorded": "నమోదు చేయబడింది",
+  "dose.queued_offline": "ఈ పరికరంలో సేవ్ చేయబడింది — ఆన్‌లైన్‌కు వచ్చిన వెంటనే సింక్ అవుతుంది.",
 
   "meds.current": "ప్రస్తుత మందులు",
   "meds.previous": "గత మందులు",

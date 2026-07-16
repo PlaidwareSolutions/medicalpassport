@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Button, Card, SectionTitle } from "@medpass/ui-web";
+import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../components/AppShell";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
@@ -16,7 +16,7 @@ import { useTimeline } from "../lib/timeline";
 export default function HomePage() {
   const { t } = useI18n();
   const { items: medications, error: medError } = useMedications("current");
-  const { data: timeline, error: timelineError, reload } = useTimeline();
+  const { data: timeline, error: timelineError, fromCache, patchItem } = useTimeline();
   const { items: findings, reload: reloadFindings } = useSafetyFindings();
 
   const dueNow = (timeline?.items ?? []).filter((i) => i.isDueNow && i.status !== "missed");
@@ -34,6 +34,7 @@ export default function HomePage() {
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("nav.home")}</h1>
 
       {medError || timelineError ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
+      {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
 
       {medications === undefined && !medError ? <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p> : null}
 
@@ -57,7 +58,7 @@ export default function HomePage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
               {dueNow.map((item) => (
-                <DoseCard key={item.scheduledDoseId} item={item} onChanged={reload} />
+                <DoseCard key={item.scheduledDoseId} item={item} onAction={(id, patch) => void patchItem(id, patch)} />
               ))}
             </div>
           )}
@@ -67,7 +68,7 @@ export default function HomePage() {
               <SectionTitle>{t("home.due_next")}</SectionTitle>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 {dueNext.map((item) => (
-                  <DoseCard key={item.scheduledDoseId} item={item} onChanged={reload} />
+                  <DoseCard key={item.scheduledDoseId} item={item} onAction={(id, patch) => void patchItem(id, patch)} />
                 ))}
               </div>
             </>
@@ -78,7 +79,7 @@ export default function HomePage() {
               <SectionTitle>{t("home.missed")}</SectionTitle>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 {missed.map((item) => (
-                  <DoseCard key={item.scheduledDoseId} item={item} onChanged={reload} />
+                  <DoseCard key={item.scheduledDoseId} item={item} onAction={(id, patch) => void patchItem(id, patch)} />
                 ))}
               </div>
             </>

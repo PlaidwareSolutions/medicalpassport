@@ -81,6 +81,7 @@ export const en = {
   "dose.action.problem": "Experiencing a problem",
   "dose.action.taken_other_time": "Taken at another time",
   "dose.recorded": "Recorded",
+  "dose.queued_offline": "Saved on this device — will sync once you're back online.",
 
   "meds.current": "Current medicines",
   "meds.previous": "Previous medicines",

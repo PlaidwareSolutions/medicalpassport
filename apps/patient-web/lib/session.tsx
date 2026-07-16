@@ -37,11 +37,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         // Session revoked/expired: purge profile-scoped local state (docs/15).
-        clearLocalState();
+        await clearLocalState();
         setStatus("signed_out");
       } else {
-        // Network failure: stay usable; screens show offline states.
-        setStatus((s) => (s === "loading" ? "signed_out" : s));
+        // Genuine network failure (no response at all), not a rejection —
+        // this fires on every fresh mount, including reopening the app
+        // offline. A stored profile id means there was a real prior
+        // session: treat it as still "ready" and let each screen serve its
+        // own cached data, rather than bouncing to /welcome as if signed
+        // out. Only a truly fresh, never-signed-in load falls back.
+        const stored = getActiveProfileId();
+        if (stored) {
+          setActive(stored);
+          setStatus("ready");
+        } else {
+          setStatus((s) => (s === "loading" ? "signed_out" : s));
+        }
       }
     }
   }, []);
@@ -59,7 +70,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     try {
       await api.post("/auth/logout");
     } finally {
-      clearLocalState();
+      await clearLocalState();
       setStatus("signed_out");
       router.replace("/welcome");
     }

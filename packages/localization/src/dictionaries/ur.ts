@@ -80,6 +80,7 @@ export const ur: Record<keyof typeof en, string> = {
   "dose.action.problem": "مسئلہ پیش آ رہا ہے",
   "dose.action.taken_other_time": "دوسرے وقت پر لی",
   "dose.recorded": "درج ہو گیا",
+  "dose.queued_offline": "اس ڈیوائس پر محفوظ ہو گیا — آن لائن آتے ہی سنک ہو جائے گا۔",
 
   "meds.current": "موجودہ دوائیں",
   "meds.previous": "پرانی دوائیں",

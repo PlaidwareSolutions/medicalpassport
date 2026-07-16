@@ -1,33 +1,32 @@
 "use client";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Banner, BottomNav } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
+import { useSyncEngine } from "../lib/offline";
 import { useSession } from "../lib/session";
 
+const BANNER_TONE = {
+  online: "info",
+  offline: "warning",
+  syncing: "info",
+  sync_failed: "danger",
+  changes_pending: "warning",
+} as const;
+
 /**
- * Authenticated app frame: online/offline status banner (docs/15 honest
- * status), content region, bottom navigation (docs/06).
+ * Authenticated app frame: honest sync-status banner (docs/15 — online,
+ * offline, syncing, failed, pending, last-synced are all distinguished, not
+ * collapsed into a single online/offline flag), content region, bottom
+ * navigation (docs/06).
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const { status } = useSession();
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    setOnline(navigator.onLine);
-    const up = () => setOnline(true);
-    const down = () => setOnline(false);
-    window.addEventListener("online", up);
-    window.addEventListener("offline", down);
-    return () => {
-      window.removeEventListener("online", up);
-      window.removeEventListener("offline", down);
-    };
-  }, []);
+  const sync = useSyncEngine();
 
   useEffect(() => {
     if (status === "signed_out") router.replace("/welcome");
@@ -50,11 +49,35 @@ export function AppShell({ children }: { children: ReactNode }) {
     { key: "profile", label: t("nav.profile"), icon: "👤", href: "/profile", active: pathname.startsWith("/profile") },
   ];
 
+  const showBanner = sync.status !== "online" || sync.pendingCount > 0;
+
   return (
     <div style={{ minHeight: "100dvh", paddingBottom: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-md))" }}>
-      {!online ? (
-        <div style={{ padding: "var(--space-sm) var(--space-md)" }}>
-          <Banner tone="warning">{t("common.offline_banner")}</Banner>
+      {showBanner ? (
+        <div style={{ padding: "var(--space-sm) var(--space-md)", display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+          <Banner tone={BANNER_TONE[sync.status]}>
+            {sync.status === "offline"
+              ? t("common.offline_banner")
+              : sync.status === "syncing"
+                ? t("sync.syncing")
+                : sync.status === "sync_failed"
+                  ? t("sync.failed")
+                  : t("sync.pending", { count: sync.pendingCount })}
+          </Banner>
+          {/* Pending count is a fact independent of connectivity — show it
+              even while the primary line above is "offline" (docs/15). */}
+          {sync.pendingCount > 0 && sync.status !== "changes_pending" ? (
+            <Banner tone="warning">{t("sync.pending", { count: sync.pendingCount })}</Banner>
+          ) : null}
+          {sync.status === "sync_failed" ? (
+            <button
+              type="button"
+              onClick={() => void sync.flush()}
+              style={{ alignSelf: "flex-start", background: "none", border: "none", color: "var(--color-info)", textDecoration: "underline", cursor: "pointer", padding: 0, fontSize: "var(--font-small)" }}
+            >
+              {t("common.retry")}
+            </button>
+          ) : null}
         </div>
       ) : null}
       <main style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-md)" }}>{children}</main>

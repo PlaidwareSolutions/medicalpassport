@@ -10,13 +10,14 @@ const SLOT_ORDER = ["morning", "midday", "night"] as const;
 /** Screen 8: Today's medication timeline (docs/07), grouped by slot. */
 export default function TimelinePage() {
   const { t } = useI18n();
-  const { data, error, reload } = useTimeline();
+  const { data, error, fromCache, patchItem } = useTimeline();
 
   return (
     <AppShell>
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("timeline.title")}</h1>
 
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
+      {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
       {!data && !error ? <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p> : null}
 
       {data && data.items.length === 0 ? (
@@ -34,7 +35,11 @@ export default function TimelinePage() {
                 <SectionTitle>{t(`timeline.slot.${slot}` as never)}</SectionTitle>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                   {items.map((item) => (
-                    <DoseCard key={item.scheduledDoseId} item={item} onChanged={reload} />
+                    <DoseCard
+                      key={item.scheduledDoseId}
+                      item={item}
+                      onAction={(id, patch) => void patchItem(id, patch)}
+                    />
                   ))}
                 </div>
               </div>

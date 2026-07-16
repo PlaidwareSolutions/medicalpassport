@@ -34,18 +34,31 @@ function formatTime(iso: string): string {
 }
 
 /** Screen 24: record dose (docs/07). One-tap primary actions, "more options" folds the rest. */
-export function DoseCard({ item, onChanged }: { item: TimelineItemDto; onChanged: () => void }) {
+export function DoseCard({
+  item,
+  onAction,
+}: {
+  item: TimelineItemDto;
+  /** Applies the new state immediately — an optimistic patch, not a reload (docs/15). */
+  onAction: (scheduledDoseId: string, patch: Partial<TimelineItemDto>) => void;
+}) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [justQueued, setJustQueued] = useState(false);
 
   const resolved = RESOLVED_STATUSES.has(item.status);
 
   async function act(action: string, snoozeMinutes?: number) {
     setBusy(true);
     try {
-      await recordDoseEvent(item.scheduledDoseId, action, snoozeMinutes ? { snoozeMinutes } : undefined);
-      onChanged();
+      const result = await recordDoseEvent(item.scheduledDoseId, action, snoozeMinutes ? { snoozeMinutes } : undefined);
+      setJustQueued(result.queuedOffline);
+      const patch: Partial<TimelineItemDto> = { status: result.status, isDueNow: false };
+      if (action === "snoozed") {
+        patch.snoozedUntil = new Date(Date.now() + (snoozeMinutes ?? 10) * 60_000).toISOString();
+      }
+      onAction(item.scheduledDoseId, patch);
     } finally {
       setBusy(false);
       setShowMore(false);
@@ -64,6 +77,12 @@ export function DoseCard({ item, onChanged }: { item: TimelineItemDto; onChanged
         </div>
         <Chip tone={STATUS_TONE[item.status]}>{t(`timeline.status.${item.status}` as never)}</Chip>
       </div>
+
+      {justQueued ? (
+        <span style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
+          {t("dose.queued_offline")}
+        </span>
+      ) : null}
 
       {!resolved ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
