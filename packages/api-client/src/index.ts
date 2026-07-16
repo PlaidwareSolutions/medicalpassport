@@ -169,3 +169,36 @@ export interface SafetyFindingDto {
   status: string;
   evaluatedAt: string;
 }
+
+export interface VisitSummaryDto {
+  profile: { displayName: string; yearOfBirth: number | null; sex: string | null };
+  generatedAt: string;
+  allergies?: Array<{ label: string; severity: string; reactionNote: string | null }>;
+  conditions?: Array<{ label: string; note: string | null }>;
+  currentMedications?: Array<{
+    id: string;
+    name: string;
+    ingredients: string[];
+    strengthLabel: string | null;
+    instructionSummary: string;
+    prescriberName: string | null;
+    startDate: string | null;
+  }>;
+  recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
+  unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
+}
+
+export interface ShareDto {
+  id: string;
+  kind: string;
+  sections: Record<string, boolean>;
+  expiresAt: string;
+  revokedAt: string | null;
+  accessCount: number;
+  createdAt: string;
+}
+
+export interface ShareAccessEventDto {
+  result: string;
+  accessedAt: string;
+}

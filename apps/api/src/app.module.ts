@@ -24,6 +24,9 @@ import { SchedulingService } from "./modules/scheduling/scheduling.service";
 import { TimelineService } from "./modules/scheduling/timeline.service";
 import { SafetyController } from "./modules/safety/safety.controller";
 import { SafetyEvaluationService } from "./modules/safety/safety-evaluation.service";
+import { SharingController } from "./modules/sharing/sharing.controller";
+import { SharingService } from "./modules/sharing/sharing.service";
+import { VisitSummaryService } from "./modules/sharing/visit-summary.service";
 
 export const logger = createLogger("api");
 
@@ -41,6 +44,7 @@ const OTP_SENDER = "OTP_SENDER";
     MedicationsController,
     SchedulingController,
     SafetyController,
+    SharingController,
   ],
   providers: [
     PrismaService,
@@ -50,6 +54,8 @@ const OTP_SENDER = "OTP_SENDER";
     SchedulingService,
     TimelineService,
     SafetyEvaluationService,
+    SharingService,
+    VisitSummaryService,
     { provide: OTP_SENDER, useValue: new LogOtpSender((obj, msg) => logger.info(obj, msg)) },
     {
       provide: AuthService,

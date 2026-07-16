@@ -150,6 +150,7 @@ model PatientProfile {
   medications            PatientMedication[]
   practitioners          Practitioner[]
   safetyEvaluations      SafetyEvaluation[]
+  sharePackages          SharePackage[]
 
   @@index([ownerUserId])
   @@map("patient_profiles")
@@ -797,6 +798,79 @@ model SafetyFindingAction {
   occurredAt  DateTime                @default(now()) @map("occurred_at") @db.Timestamptz(6)
 
   @@map("safety_finding_actions")
+}
+
+// ---------- sharing (Stage 7 subset of docs/13) ----------
+//
+// Scope this pass: QR/link sharing of a live-rendered doctor-visit summary.
+// PDF generation (needs a server-side rendering engine, OD-14) and
+// WhatsApp-text export are deferred. Shared content is never a frozen
+// snapshot — it's re-aggregated from current data at each access (docs/12
+// hazard H-12: a stale medication list shown to a doctor is a safety risk),
+// so the same link keeps working correctly if the patient's medicines
+// change between accesses, right up until it's expired or revoked.
+
+/// What a patient opted to share and with which sections (docs/13).
+/// Immutable once created — changing sections means creating a new share.
+model SharePackage {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+
+  /// { medications: true, allergies: true, conditions: true, recentChanges: true, concerns: true }
+  sections        Json
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  links ShareLink[]
+
+  @@map("share_packages")
+}
+
+enum ShareLinkKind {
+  link
+  qr
+}
+
+/// A specific access token for a share package (docs/13). The raw token is
+/// shown to the patient once at creation and never stored — only its hash,
+/// matching the session-token pattern (ADR-5).
+model ShareLink {
+  id             String        @id @default(uuid()) @db.Uuid
+  sharePackageId String        @map("share_package_id") @db.Uuid
+  sharePackage   SharePackage  @relation(fields: [sharePackageId], references: [id])
+
+  tokenHash    String        @unique @map("token_hash")
+  kind         ShareLinkKind @default(link)
+  expiresAt    DateTime      @map("expires_at") @db.Timestamptz(6)
+  revokedAt    DateTime?     @map("revoked_at") @db.Timestamptz(6)
+  revokedByUserId String?    @map("revoked_by_user_id") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  accessEvents ShareAccessEvent[]
+
+  @@map("share_links")
+}
+
+enum ShareAccessResult {
+  success
+  expired
+  revoked
+  not_found
+}
+
+/// Append-only, patient-visible access log (docs/13) — every attempt is
+/// recorded, not just successful ones, so a patient can see probing too.
+model ShareAccessEvent {
+  id          String            @id @default(uuid()) @db.Uuid
+  shareLinkId String            @map("share_link_id") @db.Uuid
+  shareLink   ShareLink         @relation(fields: [shareLinkId], references: [id])
+  result      ShareAccessResult
+  ipDigest    String?           @map("ip_digest")
+  accessedAt  DateTime          @default(now()) @map("accessed_at") @db.Timestamptz(6)
+
+  @@index([shareLinkId, accessedAt])
+  @@map("share_access_events")
 }
 
 // ---------- platform ----------

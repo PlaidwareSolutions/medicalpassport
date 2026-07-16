@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
+import { Button, Card, Chip } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { useI18n } from "../../lib/i18n";
 import { instructionSummary, useMedications } from "../../lib/medications";
@@ -77,7 +77,12 @@ export default function MedicinesPage() {
           ))}
         </div>
       )}
-      <SectionTitle> </SectionTitle>
+
+      <Link href="/visit">
+        <Button variant="secondary" fullWidth>
+          {t("visit.title")}
+        </Button>
+      </Link>
     </AppShell>
   );
 }
