@@ -52,6 +52,14 @@ export const apiEnvShape = {
    */
   OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
   OBJECT_STORAGE_BASE_URL: z.string().url().optional(),
+  /**
+   * Web Push (docs/16) — self-signed VAPID keypair, no external provider or
+   * account needed (unlike SMS/WhatsApp, which are blocked on OD-10).
+   * Optional so the API still boots without push configured.
+   */
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:support@example.com"),
 } as const;
 
 export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;
@@ -68,6 +76,10 @@ export const cronEnvShape = {
   /** Needed by cleanup-abandoned-uploads to derive the object-storage HMAC secret. */
   FIELD_ENCRYPTION_KEY: z.string().min(32),
   OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
+  /** Needed by detect-due-reminders to send web push (docs/16). */
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:support@example.com"),
 } as const;
 
 export type CronEnv = z.infer<z.ZodObject<typeof cronEnvShape>>;

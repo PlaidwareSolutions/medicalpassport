@@ -237,3 +237,12 @@ export interface DocumentExtractionDto {
     candidates: ExtractionCandidateDto[];
   } | null;
 }
+
+export interface VapidPublicKeyDto {
+  publicKey: string | null;
+}
+
+export interface NotificationPreferencesDto {
+  pushEnabled: boolean;
+  privacyMode: "generic" | "full_name";
+}

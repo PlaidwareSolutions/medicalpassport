@@ -103,6 +103,10 @@ export const SUPPORTED_LOCALES = ["en", "hi", "te", "ur"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const RTL_LOCALES: readonly Locale[] = ["ur"];
 
+/** Never expose the medicine name by default (docs/16) — patient opts in. */
+export const NOTIFICATION_PRIVACY_MODES = ["generic", "full_name"] as const;
+export type NotificationPrivacyMode = (typeof NOTIFICATION_PRIVACY_MODES)[number];
+
 export const SAFETY_FINDING_CATEGORIES = [
   "exact_ingredient_duplication",
   "partial_ingredient_duplication",

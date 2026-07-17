@@ -46,6 +46,7 @@ export const AUDIT_ACTIONS = [
   "share.created",
   "share.accessed",
   "share.revoked",
+  "notification.preferences_updated",
   "data.export_requested",
   "data.deletion_requested",
   "admin.audit_searched",

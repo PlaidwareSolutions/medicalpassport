@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
 import { Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { ReminderSettings } from "../../components/ReminderSettings";
 import { api } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { useSession } from "../../lib/session";
@@ -63,6 +64,8 @@ export default function ProfilePage() {
           <strong>{t("profile.allergies")}</strong>
         </Card>
       </Link>
+
+      <ReminderSettings />
 
       <SectionTitle>{t("profile.language")}</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--size-touch-gap)" }}>

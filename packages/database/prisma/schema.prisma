@@ -24,7 +24,7 @@ model User {
   id String @id @default(uuid()) @db.Uuid
 
   /// HMAC digest of the E.164 phone — used for lookup/uniqueness.
-  phoneDigest String @unique @map("phone_digest")
+  phoneDigest     String @unique @map("phone_digest")
   /// AES-256-GCM ciphertext of the E.164 phone (application-level encryption).
   phoneCiphertext String @map("phone_ciphertext")
 
@@ -41,6 +41,7 @@ model User {
   ownedProfiles          PatientProfile[]        @relation("ProfileOwner")
   claimedProfiles        PatientProfile[]        @relation("ProfileClaimer")
   caregiverRelationships CaregiverRelationship[] @relation("CaregiverUser")
+  notificationChannels   NotificationChannel[]
 
   @@map("users")
 }
@@ -132,11 +133,11 @@ model PatientProfile {
   claimedByUserId String? @map("claimed_by_user_id") @db.Uuid
   claimedByUser   User?   @relation("ProfileClaimer", fields: [claimedByUserId], references: [id])
 
-  displayName     String  @map("display_name")
-  yearOfBirth     Int?    @map("year_of_birth") @db.SmallInt
+  displayName     String @map("display_name")
+  yearOfBirth     Int?   @map("year_of_birth") @db.SmallInt
   sex             Sex?
-  preferredLocale String  @default("en") @map("preferred_locale")
-  emergencyCard   Json?   @map("emergency_card")
+  preferredLocale String @default("en") @map("preferred_locale")
+  emergencyCard   Json?  @map("emergency_card")
 
   rowVersion Int       @default(0) @map("row_version")
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
@@ -152,6 +153,8 @@ model PatientProfile {
   safetyEvaluations      SafetyEvaluation[]
   sharePackages          SharePackage[]
   prescriptionDocuments  PrescriptionDocument[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
 
   @@index([ownerUserId])
   @@map("patient_profiles")
@@ -452,12 +455,12 @@ model MedicationProductIngredient {
 }
 
 model ProductClassification {
-  id      String            @id @default(uuid()) @db.Uuid
-  productId String          @map("product_id") @db.Uuid
-  product MedicationProduct @relation(fields: [productId], references: [id])
-  classId String            @map("class_id") @db.Uuid
-  class   TherapeuticClass  @relation(fields: [classId], references: [id])
-  source  String?
+  id        String            @id @default(uuid()) @db.Uuid
+  productId String            @map("product_id") @db.Uuid
+  product   MedicationProduct @relation(fields: [productId], references: [id])
+  classId   String            @map("class_id") @db.Uuid
+  class     TherapeuticClass  @relation(fields: [classId], references: [id])
+  source    String?
 
   @@unique([productId, classId])
   @@map("product_classifications")
@@ -561,8 +564,8 @@ model MedicationInstruction {
   /// Original captured text (OCR / shorthand), preserved verbatim.
   originalText    String?         @map("original_text")
 
-  confirmedByUserId String   @map("confirmed_by_user_id") @db.Uuid
-  confirmedAt       DateTime @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+  confirmedByUserId String    @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt       DateTime  @default(now()) @map("confirmed_at") @db.Timestamptz(6)
   /// Latest instruction wins; superseded rows keep history.
   supersededAt      DateTime? @map("superseded_at") @db.Timestamptz(6)
 
@@ -605,8 +608,8 @@ enum ScheduleStatus {
 /// (OD/BD/TDS/HS/PATTERN) — QID/SOS/ALTERNATE_DAY/WEEKLY/CUSTOM require
 /// explicit patient setup and are never silently scheduled.
 model MedicationSchedule {
-  id                  String    @id @default(uuid()) @db.Uuid
-  patientMedicationId String    @unique @map("patient_medication_id") @db.Uuid
+  id                  String            @id @default(uuid()) @db.Uuid
+  patientMedicationId String            @unique @map("patient_medication_id") @db.Uuid
   patientMedication   PatientMedication @relation(fields: [patientMedicationId], references: [id])
 
   /// Fixed for this MVP pass (docs/16 simplification note); per-profile
@@ -645,17 +648,18 @@ model ScheduledDose {
   medicationScheduleId String             @map("medication_schedule_id") @db.Uuid
   medicationSchedule   MedicationSchedule @relation(fields: [medicationScheduleId], references: [id])
 
-  dueAt     DateTime   @map("due_at") @db.Timestamptz(6)
-  slotLabel String     @map("slot_label")
-  quantity  Decimal    @db.Decimal(6, 2)
-  status    DoseStatus @default(upcoming)
+  dueAt        DateTime   @map("due_at") @db.Timestamptz(6)
+  slotLabel    String     @map("slot_label")
+  quantity     Decimal    @db.Decimal(6, 2)
+  status       DoseStatus @default(upcoming)
   /// Set when snoozed; the dose counts as due again once this passes.
-  snoozedUntil DateTime? @map("snoozed_until") @db.Timestamptz(6)
+  snoozedUntil DateTime?  @map("snoozed_until") @db.Timestamptz(6)
 
   rowVersion Int      @default(0) @map("row_version")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  doseEvents DoseEvent[]
+  doseEvents    DoseEvent[]
+  notifications Notification[]
 
   @@unique([medicationScheduleId, dueAt])
   @@index([dueAt, status])
@@ -696,6 +700,144 @@ model DoseEvent {
   @@map("dose_events")
 }
 
+// ---------- notifications (Stage 4 subset of docs/13) ----------
+//
+// Scope this pass (docs/22): web push only. SMS/WhatsApp/email/caregiver
+// channels, quiet hours, and escalation are documented in docs/16 but
+// deferred — SMS/WhatsApp are blocked on a provider decision (OD-10);
+// email/caregiver channels and escalation are simply not built yet. Web
+// push needs no external provider (self-signed VAPID keys), so it's the
+// one channel implemented here; the schema still uses the full docs/13
+// enums so adding a channel later is additive, not a redesign.
+
+enum NotificationChannelKind {
+  in_app
+  web_push
+  sms
+  whatsapp
+  email
+  caregiver
+}
+
+enum NotificationChannelStatus {
+  active
+  paused
+  failed
+  revoked
+}
+
+/// Per-user push subscription (docs/13 notification_channels). Scoped to the
+/// user, not a profile — one browser subscription can carry reminders for
+/// every profile that user owns.
+model NotificationChannel {
+  id                String                    @id @default(uuid()) @db.Uuid
+  userId            String                    @map("user_id") @db.Uuid
+  user              User                      @relation(fields: [userId], references: [id])
+  channel           NotificationChannelKind   @default(web_push)
+  /// Encrypted JSON (docs/18): the web-push subscription object
+  /// ({endpoint, keys:{p256dh,auth}}). Never stored in the clear.
+  addressCiphertext String                    @map("address_ciphertext")
+  /// Non-secret hash of the endpoint — lets a re-subscribe replace the old
+  /// row without decrypting anything first.
+  endpointDigest    String                    @unique @map("endpoint_digest")
+  status            NotificationChannelStatus @default(active)
+  createdAt         DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  attempts NotificationAttempt[]
+
+  @@index([userId])
+  @@map("notification_channels")
+}
+
+enum NotificationKind {
+  dose_reminder
+  refill
+  completion
+  missed_dose
+  safety_finding
+  caregiver_escalation
+  system
+}
+
+/// Never expose the medicine name by default (docs/16) — patients opt in
+/// explicitly. `standard`/`custom` wording variants are documented but not
+/// built this pass.
+enum NotificationPrivacyMode {
+  generic
+  full_name
+}
+
+enum NotificationStatus {
+  pending
+  dispatching
+  done
+  cancelled
+}
+
+/// One logical reminder (docs/13). `dedupeKey` is what makes the
+/// every-minute detection cron safe to replay.
+model Notification {
+  id               String                  @id @default(uuid()) @db.Uuid
+  patientProfileId String                  @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile          @relation(fields: [patientProfileId], references: [id])
+  kind             NotificationKind        @default(dose_reminder)
+  scheduledDoseId  String?                 @map("scheduled_dose_id") @db.Uuid
+  scheduledDose    ScheduledDose?          @relation(fields: [scheduledDoseId], references: [id])
+  privacyMode      NotificationPrivacyMode @default(generic) @map("privacy_mode")
+  dedupeKey        String                  @unique @map("dedupe_key")
+  status           NotificationStatus      @default(pending)
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  attempts NotificationAttempt[]
+
+  @@map("notifications")
+}
+
+enum NotificationAttemptStatus {
+  queued
+  sent
+  delivered
+  failed
+  retried
+  acknowledged
+  snoozed
+  ignored
+  escalated
+}
+
+/// Delivery truth table (docs/13) — a notification existing is never
+/// confused with it having actually reached the patient.
+model NotificationAttempt {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  notificationId        String                    @map("notification_id") @db.Uuid
+  notification          Notification              @relation(fields: [notificationId], references: [id])
+  notificationChannelId String?                   @map("notification_channel_id") @db.Uuid
+  notificationChannel   NotificationChannel?      @relation(fields: [notificationChannelId], references: [id])
+  channel               NotificationChannelKind
+  status                NotificationAttemptStatus @default(queued)
+  errorDigest           String?                   @map("error_digest")
+  attemptedAt           DateTime                  @default(now()) @map("attempted_at") @db.Timestamptz(6)
+  statusAt              DateTime                  @default(now()) @map("status_at") @db.Timestamptz(6)
+
+  @@index([notificationId])
+  @@map("notification_attempts")
+}
+
+/// Per-profile reminder settings (docs/13). Push is opt-in (`false` default)
+/// and wording defaults to the privacy-safe generic option.
+model NotificationPreference {
+  id               String                  @id @default(uuid()) @db.Uuid
+  patientProfileId String                  @unique @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile          @relation(fields: [patientProfileId], references: [id])
+  pushEnabled      Boolean                 @default(false) @map("push_enabled")
+  privacyMode      NotificationPrivacyMode @default(generic) @map("privacy_mode")
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("notification_preferences")
+}
+
 // ---------- safety review (Stage 6 subset of docs/13) ----------
 //
 // Scope this pass (docs/22): exact/partial ingredient duplication,
@@ -720,10 +862,10 @@ model SafetyEvaluation {
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
 
   trigger       String
-  appVersion    String   @map("app_version")
+  appVersion    String    @map("app_version")
   /// Normalized medication/ingredient snapshot the rules ran against.
-  inputSnapshot Json     @map("input_snapshot")
-  startedAt     DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  inputSnapshot Json      @map("input_snapshot")
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
   completedAt   DateTime? @map("completed_at") @db.Timestamptz(6)
 
   findings SafetyFinding[]
@@ -755,23 +897,23 @@ model SafetyFinding {
   /// Denormalized for direct querying without joining through evaluation.
   patientProfileId String           @map("patient_profile_id") @db.Uuid
 
-  category    String
-  severity    SafetyFindingSeverity
+  category       String
+  severity       SafetyFindingSeverity
   /// patient_medication IDs involved, as text (not @db.Uuid — Prisma scalar
   /// lists don't support the uuid[] column type directly).
-  medicationIds String[] @map("medication_ids")
-  ruleKey       String   @map("rule_key")
-  ruleVersion   String   @map("rule_version")
-  sourceName    String   @map("source_name")
+  medicationIds  String[]              @map("medication_ids")
+  ruleKey        String                @map("rule_key")
+  ruleVersion    String                @map("rule_version")
+  sourceName     String                @map("source_name")
   /// Localization key for the plain-language summary.
-  explanationKey String  @map("explanation_key")
+  explanationKey String                @map("explanation_key")
   /// Structured detail (e.g. shared ingredient name) for rendering.
-  detail        Json?
+  detail         Json?
 
-  status       SafetyFindingStatus @default(open)
-  resolvedByUserId String?         @map("resolved_by_user_id") @db.Uuid
-  resolvedAt   DateTime?           @map("resolved_at") @db.Timestamptz(6)
-  evaluatedAt  DateTime            @default(now()) @map("evaluated_at") @db.Timestamptz(6)
+  status           SafetyFindingStatus @default(open)
+  resolvedByUserId String?             @map("resolved_by_user_id") @db.Uuid
+  resolvedAt       DateTime?           @map("resolved_at") @db.Timestamptz(6)
+  evaluatedAt      DateTime            @default(now()) @map("evaluated_at") @db.Timestamptz(6)
 
   actions SafetyFindingAction[]
 
@@ -837,16 +979,16 @@ enum ShareLinkKind {
 /// shown to the patient once at creation and never stored — only its hash,
 /// matching the session-token pattern (ADR-5).
 model ShareLink {
-  id             String        @id @default(uuid()) @db.Uuid
-  sharePackageId String        @map("share_package_id") @db.Uuid
-  sharePackage   SharePackage  @relation(fields: [sharePackageId], references: [id])
+  id             String       @id @default(uuid()) @db.Uuid
+  sharePackageId String       @map("share_package_id") @db.Uuid
+  sharePackage   SharePackage @relation(fields: [sharePackageId], references: [id])
 
-  tokenHash    String        @unique @map("token_hash")
-  kind         ShareLinkKind @default(link)
-  expiresAt    DateTime      @map("expires_at") @db.Timestamptz(6)
-  revokedAt    DateTime?     @map("revoked_at") @db.Timestamptz(6)
-  revokedByUserId String?    @map("revoked_by_user_id") @db.Uuid
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  tokenHash       String        @unique @map("token_hash")
+  kind            ShareLinkKind @default(link)
+  expiresAt       DateTime      @map("expires_at") @db.Timestamptz(6)
+  revokedAt       DateTime?     @map("revoked_at") @db.Timestamptz(6)
+  revokedByUserId String?       @map("revoked_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
   accessEvents ShareAccessEvent[]
 
@@ -931,12 +1073,12 @@ enum ObjectAccessOperation {
 
 /// Append-only — every authorized access to a file, not just downloads.
 model ObjectAccessEvent {
-  id             String                 @id @default(uuid()) @db.Uuid
-  storedObjectId String                 @map("stored_object_id") @db.Uuid
-  storedObject   StoredObject           @relation(fields: [storedObjectId], references: [id])
-  actorUserId    String?                @map("actor_user_id") @db.Uuid
+  id             String                @id @default(uuid()) @db.Uuid
+  storedObjectId String                @map("stored_object_id") @db.Uuid
+  storedObject   StoredObject          @relation(fields: [storedObjectId], references: [id])
+  actorUserId    String?               @map("actor_user_id") @db.Uuid
   operation      ObjectAccessOperation
-  occurredAt     DateTime               @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  occurredAt     DateTime              @default(now()) @map("occurred_at") @db.Timestamptz(6)
 
   @@index([storedObjectId, occurredAt])
   @@map("object_access_events")
@@ -991,16 +1133,16 @@ enum ExtractionStatus {
 /// Extracted text is never treated as clinically confirmed (docs/14.2) —
 /// only the ExtractionCandidate confirmation flow can promote a value.
 model PrescriptionExtraction {
-  id                     String            @id @default(uuid()) @db.Uuid
-  prescriptionDocumentId String            @map("prescription_document_id") @db.Uuid
+  id                     String               @id @default(uuid()) @db.Uuid
+  prescriptionDocumentId String               @map("prescription_document_id") @db.Uuid
   prescriptionDocument   PrescriptionDocument @relation(fields: [prescriptionDocumentId], references: [id])
   engine                 String
-  engineVersion          String            @map("engine_version")
-  status                 ExtractionStatus  @default(queued)
+  engineVersion          String               @map("engine_version")
+  status                 ExtractionStatus     @default(queued)
   /// Full raw OCR text, preserved verbatim for the "show original" view.
-  rawText                String?           @map("raw_text")
-  completedAt            DateTime?         @map("completed_at") @db.Timestamptz(6)
-  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  rawText                String?              @map("raw_text")
+  completedAt            DateTime?            @map("completed_at") @db.Timestamptz(6)
+  createdAt              DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
 
   candidates ExtractionCandidate[]
 
@@ -1024,20 +1166,20 @@ enum CandidateStatus {
 /// interpretation, confidence — always shown together, confirmation always
 /// required, original always preserved even after correction.
 model ExtractionCandidate {
-  id                String           @id @default(uuid()) @db.Uuid
-  extractionId      String           @map("extraction_id") @db.Uuid
+  id                String                 @id @default(uuid()) @db.Uuid
+  extractionId      String                 @map("extraction_id") @db.Uuid
   extraction        PrescriptionExtraction @relation(fields: [extractionId], references: [id])
   field             ExtractionField
   /// The exact OCR text this candidate was derived from — immutable.
-  detectedText      String           @map("detected_text")
+  detectedText      String                 @map("detected_text")
   /// Machine-proposed plain-language interpretation (e.g. "1-0-1" → OD/BD/TDS + pattern).
-  proposedValue     String?          @map("proposed_value")
-  confidence        Decimal          @db.Decimal(4, 3)
-  status            CandidateStatus  @default(proposed)
-  confirmedValue    String?          @map("confirmed_value")
-  confirmedByUserId String?          @map("confirmed_by_user_id") @db.Uuid
-  confirmedAt       DateTime?        @map("confirmed_at") @db.Timestamptz(6)
-  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  proposedValue     String?                @map("proposed_value")
+  confidence        Decimal                @db.Decimal(4, 3)
+  status            CandidateStatus        @default(proposed)
+  confirmedValue    String?                @map("confirmed_value")
+  confirmedByUserId String?                @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt       DateTime?              @map("confirmed_at") @db.Timestamptz(6)
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("extraction_candidates")
 }

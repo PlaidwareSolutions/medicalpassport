@@ -8,3 +8,4 @@ export * from "./dose.js";
 export * from "./safety.js";
 export * from "./sharing.js";
 export * from "./documents.js";
+export * from "./notifications.js";

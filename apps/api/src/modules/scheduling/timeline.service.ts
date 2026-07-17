@@ -134,6 +134,17 @@ export class TimelineService {
         correlationId: actor.correlationId,
         context: { doseAction: input.action },
       });
+      // Dose acknowledgement from any surface resolves the reminder
+      // everywhere (docs/16) — a notification is never left "sent" forever
+      // once the patient has actually acted on the dose it was about.
+      const notification = await tx.notification.findFirst({ where: { scheduledDoseId } });
+      if (notification) {
+        await tx.notificationAttempt.updateMany({
+          where: { notificationId: notification.id, status: "sent" },
+          data: { status: "acknowledged", statusAt: new Date() },
+        });
+        await tx.notification.update({ where: { id: notification.id }, data: { status: "done" } });
+      }
       return created;
     });
 

@@ -32,6 +32,8 @@ import { DocumentsService } from "./modules/documents/documents.service";
 import { DevStorageController } from "./modules/documents/dev-storage.controller";
 import { ExtractionController } from "./modules/extraction/extraction.controller";
 import { ExtractionService } from "./modules/extraction/extraction.service";
+import { NotificationsController } from "./modules/notifications/notifications.controller";
+import { NotificationsService } from "./modules/notifications/notifications.service";
 
 export const logger = createLogger("api");
 
@@ -53,6 +55,7 @@ const OTP_SENDER = "OTP_SENDER";
     DocumentsController,
     DevStorageController,
     ExtractionController,
+    NotificationsController,
   ],
   providers: [
     PrismaService,
@@ -66,6 +69,7 @@ const OTP_SENDER = "OTP_SENDER";
     VisitSummaryService,
     DocumentsService,
     ExtractionService,
+    NotificationsService,
     { provide: OTP_SENDER, useValue: new LogOtpSender((obj, msg) => logger.info(obj, msg)) },
     {
       provide: AuthService,
