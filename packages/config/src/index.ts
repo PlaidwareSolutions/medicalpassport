@@ -45,6 +45,13 @@ export const apiEnvShape = {
   ALLOWED_HOSTS: z.string().optional(),
   CORS_ORIGINS: z.string().optional(),
   REDIS_URL: z.string().url().optional(),
+  /**
+   * Local-disk object-storage dev stand-in for Cloudflare R2 (docs/24
+   * ADR-12, docs/26). Never used in production — real R2 credentials would
+   * go here instead when that adapter is built.
+   */
+  OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
+  OBJECT_STORAGE_BASE_URL: z.string().url().optional(),
 } as const;
 
 export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;

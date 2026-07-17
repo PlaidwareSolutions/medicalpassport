@@ -38,6 +38,9 @@ export type FrequencyCode = (typeof FREQUENCY_CODES)[number];
 export const FOOD_INSTRUCTIONS = ["before", "with", "after", "any", "bedtime"] as const;
 export type FoodInstruction = (typeof FOOD_INSTRUCTIONS)[number];
 
+export const DOSE_UNITS = ["tablet", "capsule", "ml", "drop", "puff", "sachet", "unit", "application"] as const;
+export type DoseUnit = (typeof DOSE_UNITS)[number];
+
 export const CAREGIVER_SCOPES = [
   "view_medications",
   "view_schedule",

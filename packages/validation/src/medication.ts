@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { FOOD_INSTRUCTIONS, FREQUENCY_CODES, MEDICATION_SOURCES, MEDICATION_STATUSES } from "@medpass/domain";
+import { DOSE_UNITS, FOOD_INSTRUCTIONS, FREQUENCY_CODES, MEDICATION_SOURCES, MEDICATION_STATUSES } from "@medpass/domain";
 
 /**
  * Typed dosing instruction (docs/07 screen 18). Dose amounts come from
@@ -8,7 +8,7 @@ import { FOOD_INSTRUCTIONS, FREQUENCY_CODES, MEDICATION_SOURCES, MEDICATION_STAT
 export const instructionSchema = z
   .object({
     doseQuantity: z.coerce.number().positive().max(100),
-    doseUnit: z.enum(["tablet", "capsule", "ml", "drop", "puff", "sachet", "unit", "application"]),
+    doseUnit: z.enum(DOSE_UNITS),
     frequencyCode: z.enum(FREQUENCY_CODES),
     /** Morning-noon-night pattern such as "1-0-1"; required for PATTERN. */
     pattern: z

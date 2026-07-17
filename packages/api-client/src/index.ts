@@ -202,3 +202,38 @@ export interface ShareAccessEventDto {
   result: string;
   accessedAt: string;
 }
+
+export interface AuthorizeUploadResponseDto {
+  documentId: string;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+export interface DocumentDto {
+  id: string;
+  kind: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface ExtractionCandidateDto {
+  id: string;
+  field: "brand_name" | "frequency" | "food_instruction";
+  detectedText: string;
+  proposedValue: string | null;
+  /** Human-readable version of proposedValue (e.g. a resolved product name). */
+  proposedLabel: string | null;
+  confidence: number;
+  status: "proposed" | "confirmed" | "rejected";
+  confirmedValue: string | null;
+}
+
+export interface DocumentExtractionDto {
+  documentId: string;
+  status: string;
+  extraction: {
+    id: string;
+    status: string;
+    candidates: ExtractionCandidateDto[];
+  } | null;
+}

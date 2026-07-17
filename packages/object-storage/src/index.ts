@@ -36,3 +36,5 @@ export function opaqueObjectKey(kind: string, id: string, now = new Date()): str
   const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
   return `${kind}/${yyyy}/${mm}/${id}`;
 }
+
+export * from "./local-disk.js";

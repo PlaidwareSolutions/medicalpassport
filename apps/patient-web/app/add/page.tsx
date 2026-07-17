@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ApiError, type CatalogProduct } from "@medpass/api-client";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
@@ -128,9 +129,11 @@ export default function AddMedicationPage() {
             <Button variant="secondary" fullWidth onClick={() => setManualMode(true)}>
               {t("add.manual")}
             </Button>
-            <Button variant="ghost" fullWidth disabled>
-              📷 {t("add.scan")}
-            </Button>
+            <Link href="/add/scan">
+              <Button variant="ghost" fullWidth>
+                📷 {t("add.scan")}
+              </Button>
+            </Link>
           </div>
         </>
       ) : (

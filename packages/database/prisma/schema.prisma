@@ -151,6 +151,7 @@ model PatientProfile {
   practitioners          Practitioner[]
   safetyEvaluations      SafetyEvaluation[]
   sharePackages          SharePackage[]
+  prescriptionDocuments  PrescriptionDocument[]
 
   @@index([ownerUserId])
   @@map("patient_profiles")
@@ -871,6 +872,174 @@ model ShareAccessEvent {
 
   @@index([shareLinkId, accessedAt])
   @@map("share_access_events")
+}
+
+// ---------- secure documents & OCR (Stage 3/8 subset of docs/13) ----------
+//
+// Object storage this pass: a local-disk adapter behind the same
+// ObjectStorage interface as production R2 (docs/26, ADR-12) — this is a
+// documented dev-only stand-in, not a substitute architecture; presigned
+// upload/download, opaque keys, verification-before-trust, and audit-on-
+// every-access all work the same way against either backend.
+//
+// OCR this pass: Tesseract.js (local, open-source, no API key) for English
+// text extraction, feeding a deterministic (not AI-generated) extraction
+// pass that matches against our own catalog and the frequency/pattern
+// parser already built in Stage 4. AI-based content simplification/
+// translation and Indic-script/handwriting OCR are not built — they need a
+// provider decision (OD-11/12) this pass doesn't have. Extracted values are
+// never clinically confirmed automatically — every field requires explicit
+// per-field confirmation before it can back a medication (docs/09 §6).
+
+enum StoredObjectBucket {
+  patient_docs
+  ocr_tmp
+}
+
+enum StoredObjectStatus {
+  pending
+  verified
+  quarantined
+  deleted
+}
+
+/// Every stored file, whichever backend actually holds the bytes (docs/13).
+model StoredObject {
+  id          String             @id @default(uuid()) @db.Uuid
+  bucket      StoredObjectBucket
+  /// Opaque, no patient identifiers (docs/13 §13.5): {kind}/{yyyy}/{mm}/{uuid}.
+  objectKey   String             @unique @map("object_key")
+  sha256      String?
+  sizeBytes   Int?               @map("size_bytes")
+  contentType String?            @map("content_type")
+  status      StoredObjectStatus @default(pending)
+  expiresAt   DateTime?          @map("expires_at") @db.Timestamptz(6)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  document     PrescriptionDocument?
+  accessEvents ObjectAccessEvent[]
+
+  @@map("stored_objects")
+}
+
+enum ObjectAccessOperation {
+  presign_upload
+  presign_download
+  stream
+  delete
+}
+
+/// Append-only — every authorized access to a file, not just downloads.
+model ObjectAccessEvent {
+  id             String                 @id @default(uuid()) @db.Uuid
+  storedObjectId String                 @map("stored_object_id") @db.Uuid
+  storedObject   StoredObject           @relation(fields: [storedObjectId], references: [id])
+  actorUserId    String?                @map("actor_user_id") @db.Uuid
+  operation      ObjectAccessOperation
+  occurredAt     DateTime               @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([storedObjectId, occurredAt])
+  @@map("object_access_events")
+}
+
+enum DocumentKind {
+  prescription
+  strip
+  box
+  bottle
+  discharge_summary
+  other
+}
+
+enum DocumentStatus {
+  pending_upload
+  uploaded
+  verified
+  quarantined
+  processing
+  processed
+  failed
+  deleted
+}
+
+/// One uploaded prescription/strip/box/bottle photo (docs/13).
+model PrescriptionDocument {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  storedObjectId   String         @unique @map("stored_object_id") @db.Uuid
+  storedObject     StoredObject   @relation(fields: [storedObjectId], references: [id])
+  kind             DocumentKind   @default(prescription)
+  status           DocumentStatus @default(pending_upload)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  extractions PrescriptionExtraction[]
+
+  @@index([patientProfileId])
+  @@map("prescription_documents")
+}
+
+enum ExtractionStatus {
+  queued
+  running
+  succeeded
+  failed
+}
+
+/// One OCR + deterministic-extraction run over a document (docs/13).
+/// Extracted text is never treated as clinically confirmed (docs/14.2) —
+/// only the ExtractionCandidate confirmation flow can promote a value.
+model PrescriptionExtraction {
+  id                     String            @id @default(uuid()) @db.Uuid
+  prescriptionDocumentId String            @map("prescription_document_id") @db.Uuid
+  prescriptionDocument   PrescriptionDocument @relation(fields: [prescriptionDocumentId], references: [id])
+  engine                 String
+  engineVersion          String            @map("engine_version")
+  status                 ExtractionStatus  @default(queued)
+  /// Full raw OCR text, preserved verbatim for the "show original" view.
+  rawText                String?           @map("raw_text")
+  completedAt            DateTime?         @map("completed_at") @db.Timestamptz(6)
+  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidates ExtractionCandidate[]
+
+  @@map("prescription_extractions")
+}
+
+enum ExtractionField {
+  brand_name
+  frequency
+  food_instruction
+}
+
+enum CandidateStatus {
+  proposed
+  confirmed
+  corrected
+  rejected
+}
+
+/// One proposed field value (docs/09 §6 protocol): detected text, proposed
+/// interpretation, confidence — always shown together, confirmation always
+/// required, original always preserved even after correction.
+model ExtractionCandidate {
+  id                String           @id @default(uuid()) @db.Uuid
+  extractionId      String           @map("extraction_id") @db.Uuid
+  extraction        PrescriptionExtraction @relation(fields: [extractionId], references: [id])
+  field             ExtractionField
+  /// The exact OCR text this candidate was derived from — immutable.
+  detectedText      String           @map("detected_text")
+  /// Machine-proposed plain-language interpretation (e.g. "1-0-1" → OD/BD/TDS + pattern).
+  proposedValue     String?          @map("proposed_value")
+  confidence        Decimal          @db.Decimal(4, 3)
+  status            CandidateStatus  @default(proposed)
+  confirmedValue    String?          @map("confirmed_value")
+  confirmedByUserId String?          @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt       DateTime?        @map("confirmed_at") @db.Timestamptz(6)
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("extraction_candidates")
 }
 
 // ---------- platform ----------

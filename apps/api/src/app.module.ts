@@ -27,6 +27,11 @@ import { SafetyEvaluationService } from "./modules/safety/safety-evaluation.serv
 import { SharingController } from "./modules/sharing/sharing.controller";
 import { SharingService } from "./modules/sharing/sharing.service";
 import { VisitSummaryService } from "./modules/sharing/visit-summary.service";
+import { DocumentsController } from "./modules/documents/documents.controller";
+import { DocumentsService } from "./modules/documents/documents.service";
+import { DevStorageController } from "./modules/documents/dev-storage.controller";
+import { ExtractionController } from "./modules/extraction/extraction.controller";
+import { ExtractionService } from "./modules/extraction/extraction.service";
 
 export const logger = createLogger("api");
 
@@ -45,6 +50,9 @@ const OTP_SENDER = "OTP_SENDER";
     SchedulingController,
     SafetyController,
     SharingController,
+    DocumentsController,
+    DevStorageController,
+    ExtractionController,
   ],
   providers: [
     PrismaService,
@@ -56,6 +64,8 @@ const OTP_SENDER = "OTP_SENDER";
     SafetyEvaluationService,
     SharingService,
     VisitSummaryService,
+    DocumentsService,
+    ExtractionService,
     { provide: OTP_SENDER, useValue: new LogOtpSender((obj, msg) => logger.info(obj, msg)) },
     {
       provide: AuthService,

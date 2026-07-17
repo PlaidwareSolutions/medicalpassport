@@ -24,6 +24,9 @@ coverage/
 .DS_Store
 .dev-data/
 
+# tesseract.js OCR language data — downloaded on first use, not source
+*.traineddata
+
 # logs
 *.log
 .claude/
