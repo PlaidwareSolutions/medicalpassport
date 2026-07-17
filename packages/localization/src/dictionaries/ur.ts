@@ -186,16 +186,22 @@ export const ur: Record<keyof typeof en, string> = {
   "safety.no_reliable_data":
     "اس دوا کے لیے قابلِ اعتماد حفاظتی معلومات دستیاب نہیں۔ براہ کرم ڈاکٹر یا فارماسسٹ سے تصدیق کریں۔",
 
-  "safety.finding.exact_duplicate": "ممکنہ ڈپلیکیٹ جزو",
-  "safety.finding.partial_duplicate": "ممکنہ ڈپلیکیٹ جزو (مرکب دوا)",
-  "safety.finding.class_duplicate": "ملتی جلتی دوائیں (ایک ہی قسم)",
-  "safety.finding.allergy": "ممکنہ الرجی کا خدشہ",
+  "safety.finding.exact_ingredient_duplication": "ممکنہ ڈپلیکیٹ جزو",
+  "safety.finding.partial_ingredient_duplication": "ممکنہ ڈپلیکیٹ جزو (مرکب دوا)",
+  "safety.finding.therapeutic_class_duplication": "ملتی جلتی دوائیں (ایک ہی قسم)",
+  "safety.finding.drug_allergy": "ممکنہ الرجی کا خدشہ",
   "safety.finding.uncertain_normalization": "اس دوا کی مکمل شناخت نہیں ہو سکی",
+  "safety.finding.schedule_conflict": "یاد دہانی کے شیڈول میں مسئلہ",
+  "safety.finding.dose_differs_from_prescription": "خوراک یا وقت بدل گیا ہے",
 
   "safety.explain.exact_duplicate": "{medicines} سب میں ایک ہی جزو ہے: {ingredient}۔",
   "safety.explain.partial_duplicate": "{medicines} سب میں {ingredient} ہے۔ براہ کرم چیک کریں کہ یہ جان بوجھ کر ہے یا نہیں۔",
   "safety.explain.class_duplicate": "{medicines} ایک جیسی قسم کی دوائیں ہو سکتی ہیں۔",
   "safety.explain.allergy": "آپ کو {allergy} سے الرجی درج ہے، اور {medicine} میں ملتا جلتا جزو ہے۔",
+  "safety.explain.schedule_conflict_missing":
+    "{medicine} کے لیے کوئی فعال یاد دہانی شیڈول نہیں ہے، حالانکہ اس کی ترتیب کے مطابق ہونا چاہیے تھا۔ ہو سکتا ہے آپ کو اس کی یاد دہانیاں نہ مل رہی ہوں۔",
+  "safety.explain.schedule_conflict_prn": "{medicine} کو \"ضرورت کے وقت\" کے طور پر نشان زد کیا گیا ہے، لیکن پھر بھی اس کا ایک فعال یاد دہانی شیڈول موجود ہے۔ براہ کرم اس کی وقت کی ترتیبات چیک کریں۔",
+  "safety.explain.dose_differs": "{medicine} اب جس طرح لی جا رہی ہے (خوراک یا وقت)، وہ اسے شامل کرتے وقت پہلی بار طے کیے گئے طریقے سے مختلف ہے۔",
   "safety.explain.uncertain_normalization":
     "ہم {medicine} کو اپنی دوا کی فہرست سے مکمل طور پر ملا نہیں سکے، اس لیے اس کا آپ کی دیگر دواؤں سے موازنہ ابھی ممکن نہیں۔",
 

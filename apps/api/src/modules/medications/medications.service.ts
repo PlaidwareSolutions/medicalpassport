@@ -204,6 +204,10 @@ export class MedicationsService {
     if (input.instruction) {
       // A new confirmed instruction supersedes any existing schedule.
       await this.scheduling.regenerateForMedication(id);
+      // "Medication changes" is itself a safety re-evaluation trigger
+      // (docs/09) — a changed dose/frequency is exactly what
+      // dose_differs_from_prescription and schedule_conflict check for.
+      await this.safety.evaluate(profileId, "medication_updated");
     }
     return (await this.byId(profileId, id))!;
   }

@@ -186,16 +186,22 @@ export const te: Record<keyof typeof en, string> = {
   "safety.no_reliable_data":
     "ఈ మందుకు నమ్మదగిన భద్రతా సమాచారం అందుబాటులో లేదు. దయచేసి డాక్టర్ లేదా ఫార్మసిస్ట్‌తో నిర్ధారించుకోండి.",
 
-  "safety.finding.exact_duplicate": "సంభావ్య నకిలీ పదార్థం",
-  "safety.finding.partial_duplicate": "సంభావ్య నకిలీ పదార్థం (కాంబినేషన్ మందు)",
-  "safety.finding.class_duplicate": "పోలిన మందులు (ఒకే తరగతి)",
-  "safety.finding.allergy": "సంభావ్య అలర్జీ ఆందోళన",
+  "safety.finding.exact_ingredient_duplication": "సంభావ్య నకిలీ పదార్థం",
+  "safety.finding.partial_ingredient_duplication": "సంభావ్య నకిలీ పదార్థం (కాంబినేషన్ మందు)",
+  "safety.finding.therapeutic_class_duplication": "పోలిన మందులు (ఒకే తరగతి)",
+  "safety.finding.drug_allergy": "సంభావ్య అలర్జీ ఆందోళన",
   "safety.finding.uncertain_normalization": "ఈ మందును పూర్తిగా గుర్తించలేకపోయాము",
+  "safety.finding.schedule_conflict": "రిమైండర్ షెడ్యూల్ సమస్య",
+  "safety.finding.dose_differs_from_prescription": "మోతాదు లేదా సమయం మారింది",
 
   "safety.explain.exact_duplicate": "{medicines} అన్నింటిలో ఒకే పదార్థం ఉంది: {ingredient}.",
   "safety.explain.partial_duplicate": "{medicines} అన్నింటిలో {ingredient} ఉంది. ఇది ఉద్దేశపూర్వకమేనా అని దయచేసి తనిఖీ చేయండి.",
   "safety.explain.class_duplicate": "{medicines} ఒకే రకమైన మందులు కావచ్చు.",
   "safety.explain.allergy": "మీకు {allergy} పట్ల అలర్జీ నమోదైంది, మరియు {medicine}లో పోలిన పదార్థం ఉంది.",
+  "safety.explain.schedule_conflict_missing":
+    "{medicine} కోసం సక్రియ రిమైండర్ షెడ్యూల్ లేదు, దాని సెట్టింగ్ ప్రకారం ఒకటి ఉండాలి అయినప్పటికీ. దీనికి మీకు రిమైండర్‌లు రాకపోవచ్చు.",
+  "safety.explain.schedule_conflict_prn": "{medicine} \"అవసరమైనప్పుడు\" అని గుర్తించబడింది, కానీ ఇప్పటికీ సక్రియ రిమైండర్ షెడ్యూల్ ఉంది. దయచేసి దాని సమయ సెట్టింగ్‌లను తనిఖీ చేయండి.",
+  "safety.explain.dose_differs": "{medicine} ఇప్పుడు తీసుకుంటున్న విధానం (మోతాదు లేదా సమయం) అది చేర్చినప్పుడు మొదట నిర్ధారించిన దాని నుండి భిన్నంగా ఉంది.",
   "safety.explain.uncertain_normalization":
     "{medicine}ను మా మందుల జాబితాతో పూర్తిగా సరిపోల్చలేకపోయాము, కాబట్టి దీన్ని మీ ఇతర మందులతో ఇంకా పోల్చలేము.",
 

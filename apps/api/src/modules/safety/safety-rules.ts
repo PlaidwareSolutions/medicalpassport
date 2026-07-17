@@ -4,11 +4,30 @@
  * detection logic itself is directly unit-testable.
  *
  * Scope this pass: exact/partial ingredient duplication, therapeutic-class
- * duplication, drug-allergy, and uncertain-normalization. Drug-drug
- * interaction, drug-condition, food, and alcohol checks need a licensed
- * data source (OD-4) or clinically-reviewed content that doesn't exist yet
- * — never fabricated (docs/19).
+ * duplication, drug-allergy, uncertain-normalization, schedule conflict,
+ * and dose-differs-from-prescription. Drug-drug interaction, drug-condition,
+ * food, and alcohol checks need a licensed data source (OD-4) or
+ * clinically-reviewed content that doesn't exist yet — never fabricated
+ * (docs/19).
+ *
+ * docs/09 names "schedule conflict" and "dose differs from confirmed
+ * prescription" as categories 9–10 but doesn't define their mechanics —
+ * unlike the interaction/allergy checks, no external spec pins these down.
+ * Both are defined here purely from data the app already has, never
+ * fabricated: a schedule conflict is the reminder schedule not matching
+ * what the confirmed instruction implies it should be (missing entirely,
+ * or present despite being PRN); dose-differs compares the medicine's
+ * first-ever confirmed instruction against its current one. Both flag for
+ * confirmation only — never a recommendation to act (docs/02).
  */
+
+const AUTO_SCHEDULABLE_FREQUENCIES = new Set(["OD", "BD", "TDS", "HS", "PATTERN"]);
+
+export interface InstructionSnapshot {
+  doseQuantity: number;
+  frequencyCode: string;
+  pattern: string | null;
+}
 
 export interface MedicationSnapshot {
   id: string;
@@ -18,6 +37,13 @@ export interface MedicationSnapshot {
   ingredientIds: string[];
   ingredientNames: string[];
   classIds: string[];
+  isPrn?: boolean;
+  /** The instruction in force right now. Absent if the medicine has no instruction yet. */
+  currentInstruction?: InstructionSnapshot;
+  /** The very first instruction ever confirmed for this medicine (same row as current if never changed). */
+  firstInstruction?: InstructionSnapshot;
+  /** Whether an active MedicationSchedule row exists for this medicine. */
+  hasActiveSchedule?: boolean;
 }
 
 export interface AllergySnapshot {
@@ -46,10 +72,15 @@ export const RULE_VERSIONS = {
   classDuplicate: { key: "duplicate-therapeutic-class", version: "1" },
   allergyMatch: { key: "allergy-ingredient-match", version: "1" },
   uncertainNormalization: { key: "uncertain-normalization", version: "1" },
+  scheduleConflictMissing: { key: "schedule-conflict-missing", version: "1" },
+  scheduleConflictPrn: { key: "schedule-conflict-prn", version: "1" },
+  doseDiffers: { key: "dose-differs-from-prescription", version: "1" },
 } as const;
 
 const CATALOG_SOURCE = "internal-catalog-normalization";
 const ALLERGY_SOURCE = "patient-reported-allergy";
+const SCHEDULE_SOURCE = "patient-medication-schedule";
+const INSTRUCTION_HISTORY_SOURCE = "patient-instruction-history";
 
 export function evaluateSafety(medications: MedicationSnapshot[], allergies: AllergySnapshot[]): RawFinding[] {
   const findings: RawFinding[] = [];
@@ -59,6 +90,8 @@ export function evaluateSafety(medications: MedicationSnapshot[], allergies: All
   findings.push(...findClassDuplicates(checkable, findings));
   findings.push(...findAllergyMatches(checkable, allergies));
   findings.push(...findUncertainNormalization(medications));
+  findings.push(...findScheduleConflicts(medications));
+  findings.push(...findDoseDiffersFromPrescription(medications));
 
   return findings;
 }
@@ -166,6 +199,88 @@ function findUncertainNormalization(medications: MedicationSnapshot[]): RawFindi
       explanationKey: "safety.explain.uncertain_normalization",
       detail: { medicationName: m.name },
     }));
+}
+
+/**
+ * Flags a mismatch between the confirmed instruction and the actual
+ * reminder schedule: a fixed-frequency medicine with no active schedule
+ * (so the patient isn't being reminded at all) or a PRN medicine that
+ * somehow still has one (docs/16: PRN medicines generate no scheduled
+ * reminders). Both indicate the schedule and the instruction disagree —
+ * never a clinical judgment, just an internal-consistency check.
+ */
+function findScheduleConflicts(medications: MedicationSnapshot[]): RawFinding[] {
+  const findings: RawFinding[] = [];
+  for (const med of medications) {
+    if (med.isPrn) {
+      if (med.hasActiveSchedule) {
+        findings.push({
+          category: "schedule_conflict",
+          severity: "low",
+          medicationIds: [med.id],
+          ruleKey: RULE_VERSIONS.scheduleConflictPrn.key,
+          ruleVersion: RULE_VERSIONS.scheduleConflictPrn.version,
+          sourceName: SCHEDULE_SOURCE,
+          explanationKey: "safety.explain.schedule_conflict_prn",
+          detail: { medicationName: med.name },
+        });
+      }
+      continue;
+    }
+    const frequencyCode = med.currentInstruction?.frequencyCode;
+    if (frequencyCode && AUTO_SCHEDULABLE_FREQUENCIES.has(frequencyCode) && !med.hasActiveSchedule) {
+      findings.push({
+        category: "schedule_conflict",
+        severity: "moderate",
+        medicationIds: [med.id],
+        ruleKey: RULE_VERSIONS.scheduleConflictMissing.key,
+        ruleVersion: RULE_VERSIONS.scheduleConflictMissing.version,
+        sourceName: SCHEDULE_SOURCE,
+        explanationKey: "safety.explain.schedule_conflict_missing",
+        detail: { medicationName: med.name, frequencyCode },
+      });
+    }
+  }
+  return findings;
+}
+
+/**
+ * Compares the medicine's very first confirmed instruction against the one
+ * in force now. Instructions are copy-on-write (docs/13), so this is a
+ * simple, honest diff over the patient's own recorded history — never an
+ * inference about whether a doctor actually authorized the change (docs/09:
+ * dose/frequency changes are always attributed to the patient's own
+ * recording, this only surfaces that a change happened at all).
+ */
+function findDoseDiffersFromPrescription(medications: MedicationSnapshot[]): RawFinding[] {
+  const findings: RawFinding[] = [];
+  for (const med of medications) {
+    const first = med.firstInstruction;
+    const current = med.currentInstruction;
+    if (!first || !current) continue;
+    const changed =
+      first.doseQuantity !== current.doseQuantity ||
+      first.frequencyCode !== current.frequencyCode ||
+      (first.pattern ?? null) !== (current.pattern ?? null);
+    if (!changed) continue;
+    findings.push({
+      category: "dose_differs_from_prescription",
+      severity: "moderate",
+      medicationIds: [med.id],
+      ruleKey: RULE_VERSIONS.doseDiffers.key,
+      ruleVersion: RULE_VERSIONS.doseDiffers.version,
+      sourceName: INSTRUCTION_HISTORY_SOURCE,
+      explanationKey: "safety.explain.dose_differs",
+      detail: {
+        medicationName: med.name,
+        originalDoseQuantity: first.doseQuantity,
+        currentDoseQuantity: current.doseQuantity,
+        originalFrequencyCode: first.frequencyCode,
+        currentFrequencyCode: current.frequencyCode,
+      },
+    });
+  }
+  return findings;
 }
 
 function pairKey(a: string, b: string): string {

@@ -7,6 +7,9 @@ function med(overrides: Partial<MedicationSnapshot> & { id: string; name: string
     ingredientIds: [],
     ingredientNames: [],
     classIds: [],
+    // Assume properly scheduled unless a test is specifically exercising
+    // the schedule-conflict rule — most tests here aren't about scheduling.
+    hasActiveSchedule: true,
     ...overrides,
   };
 }
@@ -102,5 +105,122 @@ describe("evaluateSafety", () => {
   it("returns nothing for a single well-matched medicine with no allergies", () => {
     const meds = [med({ id: "a", name: "Dolo 650", ingredientIds: ["paracetamol"], ingredientNames: ["Paracetamol"] })];
     expect(evaluateSafety(meds, [])).toHaveLength(0);
+  });
+
+  describe("schedule conflicts", () => {
+    it("flags a fixed-frequency medicine with no active schedule", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Amlong",
+          currentInstruction: { doseQuantity: 1, frequencyCode: "OD", pattern: null },
+          hasActiveSchedule: false,
+        }),
+      ];
+      const findings = evaluateSafety(meds, []);
+      expect(findings).toHaveLength(1);
+      expect(findings[0]).toMatchObject({ category: "schedule_conflict", severity: "moderate", medicationIds: ["a"] });
+      expect(findings[0]!.explanationKey).toBe("safety.explain.schedule_conflict_missing");
+    });
+
+    it("flags a PRN medicine that still has an active schedule", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Paracetamol",
+          isPrn: true,
+          currentInstruction: { doseQuantity: 1, frequencyCode: "SOS", pattern: null },
+          hasActiveSchedule: true,
+        }),
+      ];
+      const findings = evaluateSafety(meds, []);
+      expect(findings).toHaveLength(1);
+      expect(findings[0]).toMatchObject({ category: "schedule_conflict", severity: "low", medicationIds: ["a"] });
+      expect(findings[0]!.explanationKey).toBe("safety.explain.schedule_conflict_prn");
+    });
+
+    it("does not flag a fixed-frequency medicine that has its schedule", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Amlong",
+          currentInstruction: { doseQuantity: 1, frequencyCode: "OD", pattern: null },
+          hasActiveSchedule: true,
+        }),
+      ];
+      expect(evaluateSafety(meds, [])).toHaveLength(0);
+    });
+
+    it("does not flag a frequency that's never auto-scheduled even without a schedule (e.g. SOS)", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Paracetamol",
+          currentInstruction: { doseQuantity: 1, frequencyCode: "SOS", pattern: null },
+          hasActiveSchedule: false,
+        }),
+      ];
+      expect(evaluateSafety(meds, [])).toHaveLength(0);
+    });
+
+    it("does not flag a PRN medicine with no schedule (the expected, correct state)", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Paracetamol",
+          isPrn: true,
+          currentInstruction: { doseQuantity: 1, frequencyCode: "SOS", pattern: null },
+          hasActiveSchedule: false,
+        }),
+      ];
+      expect(evaluateSafety(meds, [])).toHaveLength(0);
+    });
+  });
+
+  describe("dose differs from confirmed prescription", () => {
+    it("flags a dose quantity that changed since the medicine was first confirmed", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Amlong",
+          firstInstruction: { doseQuantity: 1, frequencyCode: "OD", pattern: null },
+          currentInstruction: { doseQuantity: 2, frequencyCode: "OD", pattern: null },
+        }),
+      ];
+      const findings = evaluateSafety(meds, []);
+      expect(findings).toHaveLength(1);
+      expect(findings[0]).toMatchObject({ category: "dose_differs_from_prescription", severity: "moderate", medicationIds: ["a"] });
+    });
+
+    it("flags a frequency/pattern change since first confirmed", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Amlong",
+          firstInstruction: { doseQuantity: 1, frequencyCode: "OD", pattern: null },
+          currentInstruction: { doseQuantity: 1, frequencyCode: "PATTERN", pattern: "1-0-1" },
+        }),
+      ];
+      const findings = evaluateSafety(meds, []);
+      expect(findings).toHaveLength(1);
+      expect(findings[0]!.category).toBe("dose_differs_from_prescription");
+    });
+
+    it("does not flag a medicine whose instruction has never changed", () => {
+      const meds = [
+        med({
+          id: "a",
+          name: "Amlong",
+          firstInstruction: { doseQuantity: 1, frequencyCode: "OD", pattern: null },
+          currentInstruction: { doseQuantity: 1, frequencyCode: "OD", pattern: null },
+        }),
+      ];
+      expect(evaluateSafety(meds, [])).toHaveLength(0);
+    });
+
+    it("does not flag a medicine with no instruction history at all", () => {
+      const meds = [med({ id: "a", name: "Amlong" })];
+      expect(evaluateSafety(meds, [])).toHaveLength(0);
+    });
   });
 });

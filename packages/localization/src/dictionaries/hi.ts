@@ -186,16 +186,22 @@ export const hi: Record<keyof typeof en, string> = {
   "safety.no_reliable_data":
     "इस दवा के लिए विश्वसनीय सुरक्षा जानकारी उपलब्ध नहीं है। कृपया डॉक्टर या फ़ार्मासिस्ट से पुष्टि करें।",
 
-  "safety.finding.exact_duplicate": "संभावित डुप्लिकेट घटक",
-  "safety.finding.partial_duplicate": "संभावित डुप्लिकेट घटक (कॉम्बिनेशन दवा)",
-  "safety.finding.class_duplicate": "मिलती-जुलती दवाइयाँ (एक जैसी श्रेणी)",
-  "safety.finding.allergy": "संभावित एलर्जी चिंता",
+  "safety.finding.exact_ingredient_duplication": "संभावित डुप्लिकेट घटक",
+  "safety.finding.partial_ingredient_duplication": "संभावित डुप्लिकेट घटक (कॉम्बिनेशन दवा)",
+  "safety.finding.therapeutic_class_duplication": "मिलती-जुलती दवाइयाँ (एक जैसी श्रेणी)",
+  "safety.finding.drug_allergy": "संभावित एलर्जी चिंता",
   "safety.finding.uncertain_normalization": "इस दवा की पूरी पहचान नहीं हो सकी",
+  "safety.finding.schedule_conflict": "रिमाइंडर शेड्यूल में समस्या",
+  "safety.finding.dose_differs_from_prescription": "खुराक या समय बदल गया है",
 
   "safety.explain.exact_duplicate": "{medicines} में एक ही घटक है: {ingredient}।",
   "safety.explain.partial_duplicate": "{medicines} में {ingredient} है। कृपया जाँच लें कि यह जानबूझकर है या नहीं।",
   "safety.explain.class_duplicate": "{medicines} एक जैसी तरह की दवाइयाँ हो सकती हैं।",
   "safety.explain.allergy": "आपको {allergy} से एलर्जी दर्ज है, और {medicine} में मिलता-जुलता घटक है।",
+  "safety.explain.schedule_conflict_missing":
+    "{medicine} के लिए कोई सक्रिय रिमाइंडर शेड्यूल नहीं है, जबकि इसकी सेटिंग के अनुसार होना चाहिए था। हो सकता है आपको इसके रिमाइंडर न मिल रहे हों।",
+  "safety.explain.schedule_conflict_prn": "{medicine} \"ज़रूरत पड़ने पर\" के लिए चिह्नित है, लेकिन फिर भी इसका एक सक्रिय रिमाइंडर शेड्यूल है। कृपया इसकी समय सेटिंग जाँचें।",
+  "safety.explain.dose_differs": "{medicine} अभी जिस तरह ली जा रही है (खुराक या समय), वह इसे जोड़ते समय पहली बार तय किए गए तरीके से अलग है।",
   "safety.explain.uncertain_normalization":
     "हम {medicine} को अपनी दवा सूची से पूरी तरह मिला नहीं सके, इसलिए इसकी अन्य दवाओं से तुलना अभी नहीं हो सकती।",
 

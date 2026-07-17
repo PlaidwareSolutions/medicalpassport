@@ -19,21 +19,35 @@ export class SafetyEvaluationService {
       where: { patientProfileId: profileId, status: "current", deletedAt: null },
       include: {
         product: { include: { classifications: true, ingredients: { include: { ingredient: true } } } },
+        instructions: { orderBy: { createdAt: "asc" } },
+        schedule: true,
       },
     });
     const allergies = await this.prisma.patientAllergy.findMany({
       where: { patientProfileId: profileId, active: true, deletedAt: null },
     });
 
-    const medSnapshots: MedicationSnapshot[] = medications.map((m) => ({
-      id: m.id,
-      name: m.enteredName,
-      normalizationStatus: m.normalizationStatus,
-      isCombination: m.product?.isCombination ?? false,
-      ingredientIds: m.product?.ingredients.map((i) => i.ingredientId) ?? [],
-      ingredientNames: m.product?.ingredients.map((i) => i.ingredient.name) ?? [],
-      classIds: m.product?.classifications.map((c) => c.classId) ?? [],
-    }));
+    const medSnapshots: MedicationSnapshot[] = medications.map((m) => {
+      const first = m.instructions[0];
+      const current = m.instructions.find((i) => i.supersededAt === null);
+      return {
+        id: m.id,
+        name: m.enteredName,
+        normalizationStatus: m.normalizationStatus,
+        isCombination: m.product?.isCombination ?? false,
+        ingredientIds: m.product?.ingredients.map((i) => i.ingredientId) ?? [],
+        ingredientNames: m.product?.ingredients.map((i) => i.ingredient.name) ?? [],
+        classIds: m.product?.classifications.map((c) => c.classId) ?? [],
+        isPrn: m.isPrn,
+        hasActiveSchedule: m.schedule?.status === "active",
+        firstInstruction: first
+          ? { doseQuantity: Number(first.doseQuantity), frequencyCode: first.frequencyCode, pattern: first.pattern }
+          : undefined,
+        currentInstruction: current
+          ? { doseQuantity: Number(current.doseQuantity), frequencyCode: current.frequencyCode, pattern: current.pattern }
+          : undefined,
+      };
+    });
     const allergySnapshots: AllergySnapshot[] = allergies.map((a) => ({
       id: a.id,
       label: a.label,

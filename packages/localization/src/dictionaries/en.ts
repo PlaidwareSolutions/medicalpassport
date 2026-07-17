@@ -187,11 +187,13 @@ export const en = {
   "safety.no_reliable_data":
     "Reliable medication-safety information is not available for this medicine. Please confirm with a doctor or pharmacist.",
 
-  "safety.finding.exact_duplicate": "Possible duplicate ingredient",
-  "safety.finding.partial_duplicate": "Possible duplicate ingredient (combination medicine)",
-  "safety.finding.class_duplicate": "Similar medicines (same class)",
-  "safety.finding.allergy": "Possible allergy concern",
+  "safety.finding.exact_ingredient_duplication": "Possible duplicate ingredient",
+  "safety.finding.partial_ingredient_duplication": "Possible duplicate ingredient (combination medicine)",
+  "safety.finding.therapeutic_class_duplication": "Similar medicines (same class)",
+  "safety.finding.drug_allergy": "Possible allergy concern",
   "safety.finding.uncertain_normalization": "Could not fully identify this medicine",
+  "safety.finding.schedule_conflict": "Reminder schedule issue",
+  "safety.finding.dose_differs_from_prescription": "Dose or timing has changed",
 
   "safety.explain.exact_duplicate": "{medicines} all contain the same ingredient: {ingredient}.",
   "safety.explain.partial_duplicate": "{medicines} all contain {ingredient}. Please check if this is intentional.",
@@ -199,6 +201,12 @@ export const en = {
   "safety.explain.allergy": "You have a recorded allergy to {allergy}, and {medicine} contains a matching ingredient.",
   "safety.explain.uncertain_normalization":
     "We couldn't fully match {medicine} to our medicine list yet, so it can't be checked against your other medicines.",
+  "safety.explain.schedule_conflict_missing":
+    "{medicine} doesn't have an active reminder schedule, even though how it's set up should have one. You may not be getting reminders for it.",
+  "safety.explain.schedule_conflict_prn":
+    "{medicine} is marked as \"take as needed,\" but still has an active reminder schedule. Please check its timing settings.",
+  "safety.explain.dose_differs":
+    "How {medicine} is set up now (dose or timing) is different from what was first confirmed when it was added.",
 
   "safety.severity.info": "For your information",
   "safety.severity.low": "Low priority",

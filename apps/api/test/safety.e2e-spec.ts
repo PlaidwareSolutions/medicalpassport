@@ -168,4 +168,64 @@ describe("Safety e2e", () => {
     const allergy = await prisma.patientAllergy.findFirst({ where: { label: "Something unusual I once reacted to" } });
     expect(allergy?.allergenIngredientId).toBeNull();
   });
+
+  it("flags a schedule conflict when a fixed-frequency medicine loses its active schedule", async () => {
+    const med = await addManual(token, profileId, "Schedule Gap Test").expect(201);
+    await prisma.medicationSchedule.updateMany({
+      where: { patientMedicationId: med.body.id },
+      data: { status: "ended" },
+    });
+
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/safety/evaluate")).expect(201);
+    const findings = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/safety/findings"),
+    ).expect(200);
+    const conflict = findings.body.items.find(
+      (f: { category: string; medicationIds: string[] }) => f.category === "schedule_conflict" && f.medicationIds.includes(med.body.id),
+    );
+    expect(conflict).toMatchObject({ severity: "moderate", explanationKey: "safety.explain.schedule_conflict_missing" });
+  });
+
+  it("flags a schedule conflict when a PRN medicine has an active schedule anyway", async () => {
+    const med = await addManual(token, profileId, "PRN Schedule Test", true).expect(201);
+    const schedule = await prisma.medicationSchedule.findFirst({ where: { patientMedicationId: med.body.id } });
+    expect(schedule).toBeNull(); // PRN medicines get no schedule by default (docs/16)
+
+    await prisma.medicationSchedule.create({
+      data: {
+        patientMedicationId: med.body.id,
+        timezone: "Asia/Kolkata",
+        slots: [{ slot: "morning", time: "08:00", quantity: 1 }],
+        status: "active",
+      },
+    });
+
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/safety/evaluate")).expect(201);
+    const findings = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/safety/findings"),
+    ).expect(200);
+    const conflict = findings.body.items.find(
+      (f: { category: string; medicationIds: string[] }) => f.category === "schedule_conflict" && f.medicationIds.includes(med.body.id),
+    );
+    expect(conflict).toMatchObject({ severity: "low", explanationKey: "safety.explain.schedule_conflict_prn" });
+  });
+
+  it("flags dose-differs-from-prescription when the confirmed dose changes, and re-evaluates automatically on edit", async () => {
+    const med = await addManual(token, profileId, "Dose Change Test").expect(201);
+    const rowVersion = med.body.rowVersion;
+
+    await auth(token, profileId)(request(app.getHttpServer()).patch(`/v1/medications/${med.body.id}`))
+      .send({ rowVersion, instruction: { doseQuantity: 2, doseUnit: "tablet", frequencyCode: "OD" } })
+      .expect(200);
+
+    // No manual /safety/evaluate call — editing the instruction must trigger it itself.
+    const findings = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/safety/findings"),
+    ).expect(200);
+    const differs = findings.body.items.find(
+      (f: { category: string; medicationIds: string[] }) => f.category === "dose_differs_from_prescription" && f.medicationIds.includes(med.body.id),
+    );
+    expect(differs).toMatchObject({ severity: "moderate" });
+    expect(differs.detail).toMatchObject({ originalDoseQuantity: 1, currentDoseQuantity: 2 });
+  });
 });
