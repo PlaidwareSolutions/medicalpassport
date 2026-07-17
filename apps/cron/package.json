@@ -10,6 +10,7 @@
     "@medpass/audit": "workspace:*",
     "@medpass/config": "workspace:*",
     "@medpass/database": "workspace:*",
+    "@medpass/object-storage": "workspace:*",
     "@medpass/observability": "workspace:*"
   },
   "devDependencies": {

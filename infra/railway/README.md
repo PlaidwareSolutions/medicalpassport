@@ -21,10 +21,13 @@ Everything below is **Requires platform configuration** until the projects exist
 | `0 3 * * *` | `node dist/jobs/cleanup-expired-otps.js` |
 | `30 3 * * *` | `node dist/jobs/cleanup-expired-sessions.js` |
 | `0 2 * * *` | `node dist/jobs/verify-audit-chain.js` |
+| `0 1 * * *` | `node dist/jobs/extend-scheduled-doses.js` |
+| `*/15 * * * *` | `node dist/jobs/reconcile-missed-doses.js` |
+| `0 * * * *` | `node dist/jobs/cleanup-abandoned-uploads.js` |
 
-Later stages add: detect-due-reminders (`* * * * *`), reconcile-missed-doses,
-expire-share-links, cleanup-abandoned-uploads, backup-export/verify,
-retention-cleanup, reconcile-stuck-jobs, operational-report (docs/25 table).
+Later stages add: detect-due-reminders (`* * * * *`), expire-share-links,
+backup-export/verify, retention-cleanup, reconcile-stuck-jobs,
+operational-report (docs/25 table).
 
 ## Environment variables
 

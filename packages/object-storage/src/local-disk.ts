@@ -16,7 +16,8 @@ import { opaqueObjectKey, type BucketPurpose, type ObjectStorage, type Presigned
  */
 export interface LocalDiskConfig {
   rootDir: string;
-  baseUrl: string;
+  /** Only required to presign — a delete/head-only consumer (e.g. a cleanup job) can omit it. */
+  baseUrl?: string;
   /** HMAC key for signing tokens — derive from a real secret, never hardcode. */
   secret: string;
   uploadExpirySeconds?: number;
@@ -55,7 +56,7 @@ export class LocalDiskObjectStorage implements ObjectStorage {
     });
     return {
       objectKey,
-      url: `${this.config.baseUrl}/v1/dev-storage/${token}`,
+      url: `${this.requireBaseUrl()}/v1/dev-storage/${token}`,
       expiresAt: new Date(exp * 1000),
       maxSizeBytes: opts.maxSizeBytes,
       allowedContentTypes: [opts.contentType],
@@ -65,7 +66,7 @@ export class LocalDiskObjectStorage implements ObjectStorage {
   async presignDownload(opts: { bucket: BucketPurpose; objectKey: string }): Promise<{ url: string; expiresAt: Date }> {
     const exp = nowSeconds() + (this.config.downloadExpirySeconds ?? DEFAULT_DOWNLOAD_EXPIRY);
     const token = this.sign({ bucket: opts.bucket, objectKey: opts.objectKey, op: "download", exp });
-    return { url: `${this.config.baseUrl}/v1/dev-storage/${token}`, expiresAt: new Date(exp * 1000) };
+    return { url: `${this.requireBaseUrl()}/v1/dev-storage/${token}`, expiresAt: new Date(exp * 1000) };
   }
 
   async head(opts: { bucket: BucketPurpose; objectKey: string }): Promise<{ exists: boolean; sizeBytes?: number; contentType?: string }> {
@@ -114,6 +115,11 @@ export class LocalDiskObjectStorage implements ObjectStorage {
 
   pathFor(bucket: BucketPurpose, objectKey: string): string {
     return join(this.config.rootDir, bucket, objectKey);
+  }
+
+  private requireBaseUrl(): string {
+    if (!this.config.baseUrl) throw new Error("LocalDiskObjectStorage: baseUrl is required to presign a URL");
+    return this.config.baseUrl;
   }
 
   private sign(payload: StorageToken): string {

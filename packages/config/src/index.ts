@@ -65,7 +65,12 @@ export const workerEnvShape = {
 export const cronEnvShape = {
   NODE_ENV: NodeEnv.default("development"),
   DATABASE_URL: z.string().url(),
+  /** Needed by cleanup-abandoned-uploads to derive the object-storage HMAC secret. */
+  FIELD_ENCRYPTION_KEY: z.string().min(32),
+  OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
 } as const;
+
+export type CronEnv = z.infer<z.ZodObject<typeof cronEnvShape>>;
 
 /** Feature flags. Env-seeded for the MVP; a flag service can replace this. */
 export interface FeatureFlags {
