@@ -4,10 +4,7 @@ import { ERROR_CODES, FREQUENCY_CODES, type AuditActorType, type FrequencyCode }
 import type { CreateMedicationFromExtractionInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
-import { getObjectStorage } from "../../common/storage";
 import { MedicationsService } from "../medications/medications.service";
-import { detectCandidates } from "./candidate-detection";
-import { OCR_ENGINE, OCR_ENGINE_VERSION, runOcr } from "./ocr";
 
 interface Actor {
   userId: string;
@@ -25,12 +22,15 @@ export class ExtractionService {
   ) {}
 
   /**
-   * Runs OCR synchronously in-request (docs/22 Stage 3/8 simplification —
-   * a real deployment would push this to the worker queue so a slow scan
-   * doesn't hold an HTTP connection open). Never fabricates values: every
-   * candidate keeps the exact OCR line it came from alongside a confidence
-   * score, and nothing here is scheduled or shown as fact until the patient
-   * confirms it (docs/09 §6).
+   * Enqueues OCR/PDF-text extraction on the Postgres-backed job queue
+   * (docs/22 Stage 3/8 follow-up) — apps/worker actually runs it, keeping a
+   * slow scan from holding an HTTP connection open. `jobKey` makes this
+   * idempotent: calling process() again for the same document while a job
+   * is already queued/running just returns the existing state rather than
+   * enqueueing twice. Never fabricates values: every candidate the worker
+   * proposes keeps the exact source line alongside a confidence score, and
+   * nothing here is scheduled or shown as fact until the patient confirms
+   * it (docs/09 §6).
    */
   async process(profileId: string, documentId: string, actor: Actor) {
     const doc = await this.prisma.prescriptionDocument.findFirst({
@@ -42,67 +42,29 @@ export class ExtractionService {
       throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "This document hasn't finished uploading yet", 400);
     }
 
-    const extraction = await this.prisma.prescriptionExtraction.create({
-      data: { prescriptionDocumentId: documentId, engine: OCR_ENGINE, engineVersion: OCR_ENGINE_VERSION, status: "running" },
-    });
-    await this.prisma.prescriptionDocument.update({ where: { id: documentId }, data: { status: "processing" } });
-
-    try {
-      const storage = getObjectStorage();
-      const path = storage.pathFor("patient-docs", doc.storedObject.objectKey);
-      const rawText = await runOcr(path);
-
-      const products = await this.prisma.medicationProduct.findMany({
-        where: { status: "active" },
-        include: { brand: true },
-      });
-      const catalog = products.map((p) => ({
-        id: p.id,
-        brandName: p.brand?.name ?? null,
-        brandAliases: p.brand?.aliases ?? [],
-        genericName: p.genericName,
-      }));
-      const candidates = detectCandidates(rawText, catalog);
-
-      await this.prisma.$transaction(async (tx) => {
-        await tx.prescriptionExtraction.update({
-          where: { id: extraction.id },
-          data: { status: "succeeded", rawText, completedAt: new Date() },
-        });
-        for (const c of candidates) {
-          await tx.extractionCandidate.create({
-            data: {
-              extractionId: extraction.id,
-              field: c.field,
-              detectedText: c.detectedText,
-              proposedValue: c.proposedValue,
-              confidence: c.confidence,
-            },
-          });
-        }
-        await tx.prescriptionDocument.update({ where: { id: documentId }, data: { status: "processed" } });
-        await writeAudit(tx, {
-          action: "extraction.processed",
-          actorUserId: actor.userId,
-          actorType: actor.actorType,
-          entityType: "prescription_extraction",
-          entityId: extraction.id,
-          patientProfileId: profileId,
-          correlationId: actor.correlationId,
-          context: { candidateCount: candidates.length, fields: candidates.map((c) => c.field) },
-        });
-      });
-
-      return this.get(profileId, documentId);
-    } catch (err) {
+    const jobKey = `ocr:${documentId}`;
+    const existingJob = await this.prisma.backgroundJob.findUnique({ where: { jobKey } });
+    if (!existingJob) {
       await this.prisma.$transaction([
-        this.prisma.prescriptionExtraction.update({ where: { id: extraction.id }, data: { status: "failed" } }),
-        this.prisma.prescriptionDocument.update({ where: { id: documentId }, data: { status: "failed" } }),
+        this.prisma.backgroundJob.create({
+          data: {
+            queue: "ocr_extraction",
+            jobKey,
+            payload: {
+              documentId,
+              profileId,
+              actorUserId: actor.userId,
+              actorType: actor.actorType,
+              correlationId: actor.correlationId,
+            },
+            correlationId: actor.correlationId,
+          },
+        }),
+        this.prisma.prescriptionDocument.update({ where: { id: documentId }, data: { status: "processing" } }),
       ]);
-      throw err instanceof ApiProblem
-        ? err
-        : new ApiProblem(ERROR_CODES.INTERNAL, "Couldn't read this document. Try a clearer photo.", 500);
     }
+
+    return this.get(profileId, documentId);
   }
 
   async get(profileId: string, documentId: string) {

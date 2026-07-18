@@ -67,7 +67,14 @@ export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;
 export const workerEnvShape = {
   NODE_ENV: NodeEnv.default("development"),
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url(),
+  /**
+   * Real deployments would run BullMQ against this; there's no Redis in
+   * this sandbox, so the worker polls `background_jobs` in Postgres
+   * instead (docs/22 Stage 7/8 follow-up) — optional here since nothing
+   * requires it yet.
+   */
+  REDIS_URL: z.string().url().optional(),
+  OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
 } as const;
 
 export const cronEnvShape = {

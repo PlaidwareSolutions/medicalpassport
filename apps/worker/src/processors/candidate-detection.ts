@@ -33,12 +33,13 @@ const FOOD_KEYWORDS: Array<{ regex: RegExp; value: FoodInstruction }> = [
 ];
 
 /**
- * Deterministic, rule-based candidate detection over raw OCR text — no AI,
- * no guessing. Every candidate keeps its source line (`detectedText`) so the
- * patient always sees exactly what was on the page next to the proposal
- * (docs/09 §6). Dose quantity/duration are intentionally not detected here:
- * OCR digits are unreliable for a hazard-critical field, so those stay as
- * typed pickers (docs/22 Stage 3/8 scoping).
+ * Deterministic, rule-based candidate detection over raw OCR (or PDF-text)
+ * output — no AI, no guessing. Every candidate keeps its source line
+ * (`detectedText`) so the patient always sees exactly what was on the page
+ * next to the proposal (docs/09 §6). Dose quantity/duration are
+ * intentionally not detected here: OCR digits are unreliable for a
+ * hazard-critical field, so those stay as typed pickers (docs/22 Stage 3/8
+ * scoping).
  *
  * Only the single highest-confidence match per field is kept — one proposal
  * slot per field, mirroring the confirmation model in ExtractionCandidate.

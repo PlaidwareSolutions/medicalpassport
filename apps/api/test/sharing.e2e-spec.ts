@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { Test } from "@nestjs/testing";
 import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
@@ -5,15 +7,21 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { startWorker, stopWorker } from "./helpers/worker";
+
+const OBJECT_STORAGE_ROOT = resolve(__dirname, "../.dev-data/object-storage");
 
 /**
  * Stage 7 e2e: doctor-visit summary aggregation, share creation, public
  * token-based access (success/expired/revoked/not-found), selective
- * sections, and the patient-visible access log.
+ * sections, and the patient-visible access log. PDF export runs through a
+ * real apps/worker child process claiming render jobs from the
+ * Postgres-backed queue (docs/22 Stage 7 follow-up), not in-process.
  */
 describe("Sharing e2e", () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let worker: ChildProcessWithoutNullStreams;
 
   const PHONE = "+919000000301";
   const CODE = process.env.OTP_DEV_FIXED_CODE ?? "000000";
@@ -27,15 +35,18 @@ describe("Sharing e2e", () => {
     prisma = moduleRef.get(PrismaService);
 
     await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE audit_events, offline_mutations, medication_changes,
-        medication_instructions, patient_medications, practitioners,
+      TRUNCATE TABLE audit_events, offline_mutations, dead_letter_jobs, background_jobs,
+        medication_changes, medication_instructions, patient_medications, practitioners,
         patient_allergies, patient_conditions, consent_events, consents,
         caregiver_permissions, caregiver_relationships, sessions,
         user_devices, otp_attempts, patient_profiles, users CASCADE
     `);
-  });
+
+    worker = await startWorker(OBJECT_STORAGE_ROOT);
+  }, 60000);
 
   afterAll(async () => {
+    stopWorker(worker);
     await app.close();
   });
 

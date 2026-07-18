@@ -1193,6 +1193,65 @@ model ExtractionCandidate {
 
 // ---------- platform ----------
 
+// background_jobs / dead_letter_jobs (docs/13): originally specced as a
+// mirror of a BullMQ+Redis queue for auditability. There's no Redis in this
+// sandbox (same constraint that made Stage 3/8's OCR and Stage 7's PDF
+// rendering run synchronously in-request), so this pass makes Postgres the
+// primary queue instead of just a mirror — a documented substitution, not a
+// smaller feature: apps/worker claims rows via `SELECT ... FOR UPDATE SKIP
+// LOCKED`, a standard, battle-tested Postgres queue pattern, and the API
+// only ever enqueues + polls for a result.
+
+enum BackgroundJobQueue {
+  ocr_extraction
+  pdf_render
+}
+
+enum BackgroundJobStatus {
+  queued
+  running
+  succeeded
+  failed
+}
+
+model BackgroundJob {
+  id     String             @id @default(uuid()) @db.Uuid
+  queue  BackgroundJobQueue
+  /// Idempotency key — re-enqueueing the same logical job (e.g. the same
+  /// document) reuses the row rather than creating a duplicate.
+  jobKey String             @unique @map("job_key")
+  payload       Json
+  status        BackgroundJobStatus @default(queued)
+  attempts      Int                 @default(0)
+  maxAttempts   Int                 @default(3) @map("max_attempts")
+  correlationId String?             @map("correlation_id")
+  result        Json?
+  errorDigest   String?             @map("error_digest")
+  lockedAt      DateTime?           @map("locked_at") @db.Timestamptz(6)
+  lockedBy      String?             @map("locked_by")
+  startedAt     DateTime?           @map("started_at") @db.Timestamptz(6)
+  completedAt   DateTime?           @map("completed_at") @db.Timestamptz(6)
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([queue, status, createdAt])
+  @@map("background_jobs")
+}
+
+/// Permanently-failed jobs (attempts exhausted), kept for manual replay —
+/// never silently dropped.
+model DeadLetterJob {
+  id            String             @id @default(uuid()) @db.Uuid
+  queue         BackgroundJobQueue
+  originalJobId String             @map("original_job_id") @db.Uuid
+  payload       Json
+  attempts      Int
+  errorDigest   String             @map("error_digest")
+  failedAt      DateTime           @default(now()) @map("failed_at") @db.Timestamptz(6)
+  replayedAt    DateTime?          @map("replayed_at") @db.Timestamptz(6)
+
+  @@map("dead_letter_jobs")
+}
+
 /// Server-side ledger of applied client mutations (offline idempotency).
 model OfflineMutation {
   id               String   @id @default(uuid()) @db.Uuid

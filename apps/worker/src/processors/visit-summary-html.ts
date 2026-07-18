@@ -1,4 +1,30 @@
-import type { VisitSummaryDto } from "./visit-summary.service";
+/**
+ * Mirrors the shape of apps/api's VisitSummaryDto (visit-summary.service.ts)
+ * — the API builds the summary and sends it as the job payload, so the
+ * worker never touches the database for this job type at all, just
+ * renders whatever JSON it's handed. Kept as a plain type here rather than
+ * a shared package import since apps/api isn't set up as an importable
+ * library (docs/02: no premature abstraction) — any drift would fail
+ * loudly (a TypeScript error on the next edit to either side), not
+ * silently.
+ */
+export interface VisitSummaryDto {
+  profile: { displayName: string; yearOfBirth: number | null; sex: string | null };
+  generatedAt: string;
+  allergies?: Array<{ label: string; severity: string; reactionNote: string | null }>;
+  conditions?: Array<{ label: string; note: string | null }>;
+  currentMedications?: Array<{
+    id: string;
+    name: string;
+    ingredients: string[];
+    strengthLabel: string | null;
+    instructionSummary: string;
+    prescriberName: string | null;
+    startDate: string | null;
+  }>;
+  recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
+  unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
+}
 
 /** Escapes text before interpolating into HTML — every field here can contain patient-entered text. */
 function esc(value: string | null | undefined): string {

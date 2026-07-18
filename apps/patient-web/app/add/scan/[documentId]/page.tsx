@@ -21,6 +21,8 @@ function foodLabel(value: string, t: Translate): string {
   return t(`food.${value}` as MessageKey);
 }
 
+const POLL_INTERVAL_MS = 1500;
+
 function displayLabel(candidate: ExtractionCandidateDto, t: Translate): string {
   if (!candidate.proposedValue) return "";
   if (candidate.field === "brand_name") return candidate.proposedLabel ?? candidate.proposedValue;
@@ -62,6 +64,13 @@ export default function ReviewExtractionPage() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]);
+
+  useEffect(() => {
+    if (data?.status !== "processing") return;
+    const timer = setTimeout(() => void load(), POLL_INTERVAL_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   async function confirm(candidate: ExtractionCandidateDto) {
     if (!candidate.proposedValue) return;
@@ -123,6 +132,19 @@ export default function ReviewExtractionPage() {
     return (
       <AppShell>
         <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>
+      </AppShell>
+    );
+  }
+
+  if (data.status === "processing") {
+    return (
+      <AppShell>
+        <Card>
+          <strong>{t("scan.processing")}</strong>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+            {t("scan.processing_hint")}
+          </span>
+        </Card>
       </AppShell>
     );
   }

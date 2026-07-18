@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { Test } from "@nestjs/testing";
 import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
@@ -7,18 +8,24 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
-import { terminateOcrWorker } from "../src/modules/extraction/ocr";
+import { startWorker, stopWorker } from "./helpers/worker";
+
+const OBJECT_STORAGE_ROOT = resolve(__dirname, "../.dev-data/object-storage");
 
 /**
- * Stage 3/8 e2e: presigned upload → signature verification → OCR → candidate
- * review/confirm → medication creation, plus the quarantine path for a file
- * whose bytes don't match its declared type. Requires the seeded catalog
- * (Glycomet 500mg tablet) from packages/database/src/seed.ts. Real OCR runs
- * against a committed synthetic test image — no mocking.
+ * Stage 3/8 e2e: presigned upload → signature verification → OCR (via a real
+ * apps/worker child process claiming jobs from the Postgres-backed queue,
+ * docs/22 Stage 3/8 follow-up) → candidate review/confirm → medication
+ * creation, plus the quarantine path for a file whose bytes don't match its
+ * declared type. Requires the seeded catalog (Glycomet 500mg tablet) from
+ * packages/database/src/seed.ts. Real OCR runs against a committed synthetic
+ * test image — no mocking, and no in-process shortcut for the worker either:
+ * the same binary that runs in production claims and processes the job.
  */
 describe("Documents & extraction e2e", () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let worker: ChildProcessWithoutNullStreams;
 
   const PHONE = "+919000000401";
   const CODE = process.env.OTP_DEV_FIXED_CODE ?? "000000";
@@ -33,17 +40,19 @@ describe("Documents & extraction e2e", () => {
     prisma = moduleRef.get(PrismaService);
 
     await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE audit_events, offline_mutations, extraction_candidates,
-        prescription_extractions, prescription_documents, stored_objects,
-        medication_changes, medication_instructions, patient_medications,
+      TRUNCATE TABLE audit_events, offline_mutations, dead_letter_jobs, background_jobs,
+        extraction_candidates, prescription_extractions, prescription_documents,
+        stored_objects, medication_changes, medication_instructions, patient_medications,
         practitioners, patient_allergies, patient_conditions, consent_events,
         consents, caregiver_permissions, caregiver_relationships, sessions,
         user_devices, otp_attempts, patient_profiles, users CASCADE
     `);
-  }, 30000);
+
+    worker = await startWorker(OBJECT_STORAGE_ROOT);
+  }, 60000);
 
   afterAll(async () => {
-    await terminateOcrWorker();
+    stopWorker(worker);
     await app.close();
   });
 
@@ -52,6 +61,16 @@ describe("Documents & extraction e2e", () => {
     if (profileId) req.set("x-profile-id", profileId);
     return req;
   };
+
+  async function waitForExtraction(token: string, profileId: string, documentId: string) {
+    const deadline = Date.now() + 20000;
+    while (Date.now() < deadline) {
+      const res = await auth(token, profileId)(request(app.getHttpServer()).get(`/v1/documents/${documentId}/extraction`)).expect(200);
+      if (res.body.status === "processed" || res.body.status === "failed") return res.body;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    throw new Error(`extraction for document ${documentId} did not complete within timeout`);
+  }
 
   let token: string;
   let profileId: string;
@@ -103,15 +122,19 @@ describe("Documents & extraction e2e", () => {
     expect(stored.storedObject.sha256).toBeTruthy();
   });
 
-  it("runs real OCR and proposes candidates from the exact detected text", async () => {
+  it("enqueues OCR and the worker proposes candidates from the exact detected text", async () => {
     const res = await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/documents/${documentId}/process`)).expect(
       201,
     );
-    expect(res.body.status).toBe("processed");
-    extractionId = res.body.extraction.id;
+    expect(res.body.status).toBe("processing");
+    expect(res.body.extraction).toBeNull();
 
-    const byField: Record<string, (typeof res.body.extraction.candidates)[number]> = {};
-    for (const c of res.body.extraction.candidates) byField[c.field] = c;
+    const polled = await waitForExtraction(token, profileId, documentId);
+    expect(polled.status).toBe("processed");
+    extractionId = polled.extraction.id;
+
+    const byField: Record<string, (typeof polled.extraction.candidates)[number]> = {};
+    for (const c of polled.extraction.candidates) byField[c.field] = c;
     for (const id of Object.keys(byField)) candidateIdByField[id] = byField[id].id;
 
     expect(byField.brand_name.detectedText).toMatch(/glycomet/i);

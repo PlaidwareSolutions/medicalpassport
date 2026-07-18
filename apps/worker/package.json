@@ -8,13 +8,19 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@medpass/audit": "workspace:*",
     "@medpass/config": "workspace:*",
     "@medpass/database": "workspace:*",
+    "@medpass/domain": "workspace:*",
+    "@medpass/medication-terminology": "workspace:*",
     "@medpass/observability": "workspace:*",
-    "bullmq": "^5.34.0"
+    "pdf-parse": "^1.1.1",
+    "puppeteer": "^25.3.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/pdf-parse": "^1.1.5",
     "typescript": "^5.7.2"
   }
 }
