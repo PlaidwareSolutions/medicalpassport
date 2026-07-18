@@ -246,6 +246,13 @@ export const hi: Record<keyof typeof en, string> = {
   "reminders.privacy_label": "सूचना में क्या लिखा हो?",
   "reminders.privacy_generic": "सिर्फ \"दवा रिमाइंडर\" (सुझाया गया)",
   "reminders.privacy_full_name": "दवा का नाम शामिल करें",
+  "reminders.quiet_hours_title": "शांत समय",
+  "reminders.quiet_hours_intro": "शांत समय के दौरान रिमाइंडर रोक दिए जाते हैं और समय समाप्त होते ही भेज दिए जाते हैं।",
+  "reminders.quiet_hours_on": "चालू",
+  "reminders.quiet_hours_off": "बंद",
+  "reminders.quiet_hours_start": "शुरू",
+  "reminders.quiet_hours_end": "समाप्त",
+  "reminders.caregiver_note": "जिन देखभालकर्ताओं को आपने रिमाइंडर की अनुमति दी है, उन्हें भी ये रिमाइंडर मिलेंगे।",
 
   "sync.online": "ऑनलाइन",
   "sync.offline": "ऑफ़लाइन",

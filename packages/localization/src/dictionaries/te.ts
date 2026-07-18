@@ -246,6 +246,13 @@ export const te: Record<keyof typeof en, string> = {
   "reminders.privacy_label": "నోటిఫికేషన్‌లో ఏమి చెప్పాలి?",
   "reminders.privacy_generic": "కేవలం \"మందు రిమైండర్\" (సిఫార్సు చేయబడింది)",
   "reminders.privacy_full_name": "మందు పేరును చేర్చండి",
+  "reminders.quiet_hours_title": "నిశ్శబ్ద సమయం",
+  "reminders.quiet_hours_intro": "నిశ్శబ్ద సమయంలో రిమైండర్‌లు ఆపివేయబడతాయి మరియు అది ముగిసిన వెంటనే పంపబడతాయి.",
+  "reminders.quiet_hours_on": "ఆన్",
+  "reminders.quiet_hours_off": "ఆఫ్",
+  "reminders.quiet_hours_start": "ప్రారంభం",
+  "reminders.quiet_hours_end": "ముగింపు",
+  "reminders.caregiver_note": "మీరు రిమైండర్ యాక్సెస్ ఇచ్చిన సంరక్షకులకు కూడా ఈ రిమైండర్‌లు అందుతాయి.",
 
   "sync.online": "ఆన్‌లైన్",
   "sync.offline": "ఆఫ్‌లైన్",

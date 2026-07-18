@@ -249,6 +249,13 @@ export const en = {
   "reminders.privacy_label": "What should the notification say?",
   "reminders.privacy_generic": "Just \"Medicine reminder\" (recommended)",
   "reminders.privacy_full_name": "Include the medicine name",
+  "reminders.quiet_hours_title": "Quiet hours",
+  "reminders.quiet_hours_intro": "Reminders are held back during quiet hours and sent as soon as they end.",
+  "reminders.quiet_hours_on": "On",
+  "reminders.quiet_hours_off": "Off",
+  "reminders.quiet_hours_start": "Start",
+  "reminders.quiet_hours_end": "End",
+  "reminders.caregiver_note": "Caregivers you've given reminder access to will get these reminders too.",
 
   "sync.online": "Online",
   "sync.offline": "Offline",

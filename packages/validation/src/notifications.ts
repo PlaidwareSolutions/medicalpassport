@@ -15,8 +15,13 @@ export const webPushUnsubscribeSchema = z.object({
 });
 export type WebPushUnsubscribeInput = z.infer<typeof webPushUnsubscribeSchema>;
 
+const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 export const notificationPreferencesSchema = z.object({
   pushEnabled: z.boolean(),
   privacyMode: z.enum(NOTIFICATION_PRIVACY_MODES),
+  quietHoursEnabled: z.boolean().default(true),
+  quietHoursStart: z.string().regex(TIME_OF_DAY, "Use HH:MM").default("22:00"),
+  quietHoursEnd: z.string().regex(TIME_OF_DAY, "Use HH:MM").default("07:00"),
 });
 export type NotificationPreferencesInput = z.infer<typeof notificationPreferencesSchema>;

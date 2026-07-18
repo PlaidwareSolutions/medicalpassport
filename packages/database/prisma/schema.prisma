@@ -832,6 +832,13 @@ model NotificationPreference {
   patientProfile   PatientProfile          @relation(fields: [patientProfileId], references: [id])
   pushEnabled      Boolean                 @default(false) @map("push_enabled")
   privacyMode      NotificationPrivacyMode @default(generic) @map("privacy_mode")
+  /// Docs/16: quiet hours respected except critical caregiver escalation
+  /// (that carve-out isn't built — every push is deferred, no exceptions).
+  /// Window may wrap midnight (e.g. 22:00-07:00); fixed Asia/Kolkata offset,
+  /// matching the scheduling engine's existing simplification.
+  quietHoursEnabled Boolean  @default(true) @map("quiet_hours_enabled")
+  quietHoursStart   String   @default("22:00") @map("quiet_hours_start")
+  quietHoursEnd     String   @default("07:00") @map("quiet_hours_end")
   createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
 

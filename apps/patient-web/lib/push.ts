@@ -52,6 +52,9 @@ export async function disablePush(): Promise<void> {
 export interface NotificationPreferences {
   pushEnabled: boolean;
   privacyMode: "generic" | "full_name";
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
 }
 
 export async function getPreferences(): Promise<NotificationPreferences> {

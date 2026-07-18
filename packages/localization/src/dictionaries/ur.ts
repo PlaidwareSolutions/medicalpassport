@@ -246,6 +246,13 @@ export const ur: Record<keyof typeof en, string> = {
   "reminders.privacy_label": "اطلاع میں کیا لکھا ہو؟",
   "reminders.privacy_generic": "صرف \"دوا کی یاد دہانی\" (تجویز کردہ)",
   "reminders.privacy_full_name": "دوا کا نام شامل کریں",
+  "reminders.quiet_hours_title": "خاموش اوقات",
+  "reminders.quiet_hours_intro": "خاموش اوقات کے دوران یاد دہانیاں روک دی جاتی ہیں اور ختم ہوتے ہی بھیج دی جاتی ہیں۔",
+  "reminders.quiet_hours_on": "آن",
+  "reminders.quiet_hours_off": "آف",
+  "reminders.quiet_hours_start": "شروع",
+  "reminders.quiet_hours_end": "ختم",
+  "reminders.caregiver_note": "جن نگہداشت کنندگان کو آپ نے یاد دہانی کی اجازت دی ہے انہیں بھی یہ یاد دہانیاں ملیں گی۔",
 
   "sync.online": "آن لائن",
   "sync.offline": "آف لائن",

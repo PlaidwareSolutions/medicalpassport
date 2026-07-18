@@ -8,12 +8,13 @@ import { PrismaService } from "../src/common/prisma.service";
 
 /**
  * Stage 4 follow-up e2e: web push subscription lifecycle, notification
- * preferences (opt-in, privacy-safe default wording), and dose
+ * preferences (opt-in, privacy-safe default wording, quiet hours), and dose
  * acknowledgement resolving a sent reminder. The actual send-over-the-wire
  * path (detect-due-reminders cron + real HTTPS delivery, including the
- * 410-Gone → channel-revoked path) was verified live against a real local
- * HTTPS server rather than exercised here — this suite covers the API
- * surface and DB-side effects the cron job and PWA both depend on.
+ * 410-Gone → channel-revoked path, quiet-hours deferral, and caregiver
+ * reminder fan-out) was verified live against real Postgres data and a real
+ * cron run rather than exercised here — this suite covers the API surface
+ * and DB-side effects the cron job and PWA both depend on.
  */
 describe("Notifications e2e", () => {
   let app: INestApplication;
@@ -78,11 +79,17 @@ describe("Notifications e2e", () => {
     expect(typeof res.body.publicKey === "string" || res.body.publicKey === null).toBe(true);
   });
 
-  it("defaults to push disabled and generic (privacy-safe) wording", async () => {
+  it("defaults to push disabled, generic (privacy-safe) wording, and quiet hours on", async () => {
     const res = await auth(token, profileId)(
       request(app.getHttpServer()).get("/v1/profiles/current/notification-preferences"),
     ).expect(200);
-    expect(res.body).toEqual({ pushEnabled: false, privacyMode: "generic" });
+    expect(res.body).toEqual({
+      pushEnabled: false,
+      privacyMode: "generic",
+      quietHoursEnabled: true,
+      quietHoursStart: "22:00",
+      quietHoursEnd: "07:00",
+    });
   });
 
   it("subscribes a web push channel, storing it encrypted", async () => {
@@ -108,19 +115,41 @@ describe("Notifications e2e", () => {
 
   it("turns push on and records the choice in the audit trail", async () => {
     await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/notification-preferences"))
-      .send({ pushEnabled: true, privacyMode: "generic" })
+      .send({ pushEnabled: true, privacyMode: "generic", quietHoursEnabled: true, quietHoursStart: "22:00", quietHoursEnd: "07:00" })
       .expect(201);
 
     const res = await auth(token, profileId)(
       request(app.getHttpServer()).get("/v1/profiles/current/notification-preferences"),
     ).expect(200);
-    expect(res.body).toEqual({ pushEnabled: true, privacyMode: "generic" });
+    expect(res.body).toEqual({
+      pushEnabled: true,
+      privacyMode: "generic",
+      quietHoursEnabled: true,
+      quietHoursStart: "22:00",
+      quietHoursEnd: "07:00",
+    });
 
     const audit = await prisma.auditEvent.findFirst({
       where: { patientProfileId: profileId, action: "notification.preferences_updated" },
     });
     expect(audit).toBeTruthy();
     expect(JSON.stringify(audit?.context ?? {})).not.toMatch(/notifications test/i);
+  });
+
+  it("lets the patient set a custom quiet-hours window", async () => {
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/notification-preferences"))
+      .send({ pushEnabled: true, privacyMode: "generic", quietHoursEnabled: true, quietHoursStart: "23:00", quietHoursEnd: "06:30" })
+      .expect(201);
+
+    const res = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/notification-preferences"),
+    ).expect(200);
+    expect(res.body).toMatchObject({ quietHoursStart: "23:00", quietHoursEnd: "06:30" });
+
+    // Restore defaults for the tests that follow.
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/notification-preferences"))
+      .send({ pushEnabled: true, privacyMode: "generic", quietHoursEnabled: true, quietHoursStart: "22:00", quietHoursEnd: "07:00" })
+      .expect(201);
   });
 
   it("resolves a sent reminder everywhere once the dose is actually recorded", async () => {

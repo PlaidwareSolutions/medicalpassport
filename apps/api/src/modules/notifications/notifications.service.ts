@@ -51,6 +51,9 @@ export class NotificationsService {
     return {
       pushEnabled: pref?.pushEnabled ?? false,
       privacyMode: pref?.privacyMode ?? "generic",
+      quietHoursEnabled: pref?.quietHoursEnabled ?? true,
+      quietHoursStart: pref?.quietHoursStart ?? "22:00",
+      quietHoursEnd: pref?.quietHoursEnd ?? "07:00",
     };
   }
 
@@ -58,8 +61,8 @@ export class NotificationsService {
     await this.prisma.$transaction(async (tx) => {
       await tx.notificationPreference.upsert({
         where: { patientProfileId: profileId },
-        create: { patientProfileId: profileId, pushEnabled: input.pushEnabled, privacyMode: input.privacyMode },
-        update: { pushEnabled: input.pushEnabled, privacyMode: input.privacyMode },
+        create: { patientProfileId: profileId, ...input },
+        update: { ...input },
       });
       await writeAudit(tx, {
         action: "notification.preferences_updated",
@@ -69,7 +72,7 @@ export class NotificationsService {
         entityId: profileId,
         patientProfileId: profileId,
         correlationId: actor.correlationId,
-        context: { pushEnabled: input.pushEnabled, privacyMode: input.privacyMode },
+        context: { pushEnabled: input.pushEnabled, privacyMode: input.privacyMode, quietHoursEnabled: input.quietHoursEnabled },
       });
     });
     return input;
