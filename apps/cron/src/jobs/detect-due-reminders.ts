@@ -69,6 +69,44 @@ interface Recipient {
   addressCiphertext: string;
 }
 
+interface PendingNotification {
+  kind: string;
+  privacyMode: string;
+  patientMedicationId: string | null;
+  scheduledDose: { medicationSchedule: { patientMedication: { enteredName: string } } } | null;
+}
+
+/**
+ * Builds the push payload for whichever kind of pending notification this is
+ * (docs/16 privacy rule: the medicine name is never shown unless the
+ * profile opted into `full_name`). `refill`/`completion` link to the
+ * medicine itself rather than the timeline, since that's where the patient
+ * acts (docs/07 screen 27).
+ */
+function buildPayload(notification: PendingNotification, medicationName: string | undefined): { title: string; body: string; url: string } {
+  const fullName = notification.privacyMode === "full_name" && medicationName;
+  switch (notification.kind) {
+    case "dose_reminder":
+      return fullName
+        ? { title: medicationName!, body: "It's time to take this now.", url: "/timeline" }
+        : { title: "Medicine reminder", body: "Time to take your scheduled medicine.", url: "/timeline" };
+    case "refill": {
+      const url = `/medicines/${notification.patientMedicationId}`;
+      return fullName
+        ? { title: medicationName!, body: "You may be running low — check your supply.", url }
+        : { title: "Medicine reminder", body: "You may be running low on a medicine. Check your supply.", url };
+    }
+    case "completion": {
+      const url = `/medicines/${notification.patientMedicationId}`;
+      return fullName
+        ? { title: medicationName!, body: "This course was expected to finish. Please review it.", url }
+        : { title: "Medicine reminder", body: "A course of medicine was expected to finish. Please review it.", url };
+    }
+    default:
+      throw new Error(`unexpected notification kind: ${notification.kind}`);
+  }
+}
+
 /** Owner + any caregiver with reminder-management scope (docs/16 consented escalation). */
 async function resolveRecipients(prisma: PrismaClient, profileId: string, ownerUserId: string): Promise<Recipient[]> {
   const caregivers = await prisma.caregiverRelationship.findMany({
@@ -136,12 +174,15 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
   }
 
   // --- Pass 2: attempt dispatch for every still-pending notification, new
-  // or deferred from quiet hours on a previous tick. ---
+  // or deferred from quiet hours on a previous tick — any kind, including
+  // refill/completion queued by generate-refill-reminders.ts, which never
+  // dispatches anything itself. ---
   const pending = await prisma.notification.findMany({
-    where: { status: "pending", kind: "dose_reminder" },
+    where: { status: "pending", kind: { in: ["dose_reminder", "refill", "completion"] } },
     include: {
       patientProfile: { include: { notificationPreference: true } },
       scheduledDose: { include: { medicationSchedule: { include: { patientMedication: true } } } },
+      patientMedication: true,
     },
   });
 
@@ -156,15 +197,22 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
 
     const recipients = await resolveRecipients(prisma, notification.patientProfileId, notification.patientProfile.ownerUserId);
     if (recipients.length === 0) {
-      await prisma.notification.update({ where: { id: notification.id }, data: { status: "cancelled" } });
+      // dose_reminder has no value beyond the push itself (the Timeline
+      // already shows the due dose), so nothing left to do — cancel it.
+      // refill/completion are also a standing in-app list (docs/07 screen
+      // 27): with no push channel there's nothing to send, but the
+      // reminder itself is still real and must stay visible, so it's left
+      // `pending` rather than cancelled — a channel added later still
+      // gets a push on the very next tick.
+      if (notification.kind === "dose_reminder") {
+        await prisma.notification.update({ where: { id: notification.id }, data: { status: "cancelled" } });
+      }
       continue;
     }
 
-    const medicationName = notification.scheduledDose?.medicationSchedule.patientMedication.enteredName;
-    const payload =
-      notification.privacyMode === "full_name" && medicationName
-        ? { title: medicationName, body: "It's time to take this now.", url: "/timeline" }
-        : { title: "Medicine reminder", body: "Time to take your scheduled medicine.", url: "/timeline" };
+    const medicationName =
+      notification.scheduledDose?.medicationSchedule.patientMedication.enteredName ?? notification.patientMedication?.enteredName;
+    const payload = buildPayload(notification, medicationName);
 
     let anySent = false;
     for (const recipient of recipients) {
@@ -203,7 +251,15 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
         });
       }
     }
-    await prisma.notification.update({ where: { id: notification.id }, data: { status: anySent ? "done" : "cancelled" } });
+    // dose_reminder has nothing left to do after a failed send (the Timeline
+    // is the real source of truth) — cancelled. refill/completion's in-app
+    // list (docs/07 screen 27) is the real source of truth regardless of
+    // push outcome, so a failed send leaves it pending rather than making a
+    // still-true condition (low supply, course ended) vanish from view;
+    // only an explicit patient action (mark refilled, dismiss, status
+    // change) ever cancels one of these.
+    const failureStatus = notification.kind === "dose_reminder" ? "cancelled" : "pending";
+    await prisma.notification.update({ where: { id: notification.id }, data: { status: anySent ? "done" : failureStatus } });
     if (anySent) sent++;
   }
 

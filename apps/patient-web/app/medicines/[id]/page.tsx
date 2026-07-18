@@ -105,6 +105,11 @@ export default function MedicineDetailPage() {
             {t("meds.prescribed_by", { name: medication.prescriberName })}
           </div>
         ) : null}
+        {medication.quantityOnHand != null ? (
+          <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+            {t("meds.quantity_remaining", { count: medication.quantityOnHand, unit: medication.instruction?.doseUnit ?? "" })}
+          </div>
+        ) : null}
         {"speechSynthesis" in globalThis ? (
           <Button variant="secondary" onClick={speak}>
             🔊 {t("meds.instruction")}

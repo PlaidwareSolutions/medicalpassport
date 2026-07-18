@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES, MEDICATION_STATUS_TRANSITIONS, type MedicationStatus } from "@medpass/domain";
-import { changeMedicationStatusSchema, createMedicationSchema, updateMedicationSchema } from "@medpass/validation";
+import { changeMedicationStatusSchema, createMedicationSchema, recordRefillSchema, updateMedicationSchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
@@ -160,6 +160,15 @@ export class MedicationsController {
         correlationId: req.correlationId,
         context: { from: medication.status, to: input.status },
       });
+      if (input.status !== "current") {
+        // Leaving "current" (completed, stopped, or paused) answers the
+        // question a completion reminder was asking — resolve it the same
+        // way any other surface resolving a reminder does (docs/16).
+        await tx.notification.updateMany({
+          where: { patientMedicationId: id, kind: "completion", status: { in: ["pending", "done"] } },
+          data: { status: "cancelled" },
+        });
+      }
       const fresh = await tx.patientMedication.findUniqueOrThrow({ where: { id } });
       return { id: fresh.id, status: fresh.status, rowVersion: fresh.rowVersion };
     }).then(async (result) => {
@@ -173,6 +182,18 @@ export class MedicationsController {
         await this.scheduling.cancelFutureUpcomingDoses(id);
       }
       return result;
+    });
+  }
+
+  /** "Mark refilled" (docs/07 screen 27) — distinct from a plain quantity edit; resolves outstanding refill reminders. */
+  @Post("medications/:id/refill")
+  async recordRefill(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+    const { profileId, actorRole } = await this.access.require(req, "edit_medications");
+    const input = parseWith(recordRefillSchema, body);
+    return this.medications.recordRefill(profileId, id, input, {
+      userId: req.auth!.userId,
+      actorRole,
+      correlationId: req.correlationId,
     });
   }
 

@@ -137,9 +137,22 @@ export interface PatientMedicationDto {
   isPrn: boolean;
   startDate: string | null;
   endDate: string | null;
+  quantityOnHand: string | null;
   rowVersion: number;
   instruction: MedicationInstructionDto | null;
   createdAt: string;
+}
+
+export interface RefillReminderDto {
+  notificationId: string;
+  kind: "refill" | "completion";
+  patientMedicationId: string;
+  medicationName: string;
+  prescriberName: string | null;
+  quantityOnHand: string | null;
+  rowVersion: number;
+  daysRemainingEstimate: number | null;
+  estimatedDate: string | null;
 }
 
 export interface TimelineItemDto {

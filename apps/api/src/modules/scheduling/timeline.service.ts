@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
+import { Prisma } from "@medpass/database";
 import { ERROR_CODES, type AuditActorType } from "@medpass/domain";
 import type { RecordDoseEventInput, RecordPrnDoseEventInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
@@ -26,6 +27,32 @@ export interface TimelineItem {
 @Injectable()
 export class TimelineService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Auto-decrements the patient-entered supply snapshot when a dose is
+   * actually taken (docs/07 screen 27) — a no-op when the patient hasn't
+   * opted into refill tracking (quantityOnHand null) or has no confirmed
+   * instruction. Never goes below zero.
+   */
+  private async decrementQuantityOnHand(
+    tx: Prisma.TransactionClient,
+    patientMedicationId: string,
+    action: string,
+  ): Promise<void> {
+    if (action !== "taken" && action !== "taken_other_time") return;
+    const medication = await tx.patientMedication.findUnique({
+      where: { id: patientMedicationId },
+      select: {
+        quantityOnHand: true,
+        instructions: { where: { supersededAt: null }, take: 1, select: { doseQuantity: true } },
+      },
+    });
+    if (medication?.quantityOnHand == null) return;
+    const doseQuantity = medication.instructions[0]?.doseQuantity;
+    if (doseQuantity == null) return;
+    const next = Math.max(0, Number(medication.quantityOnHand) - Number(doseQuantity));
+    await tx.patientMedication.update({ where: { id: patientMedicationId }, data: { quantityOnHand: next } });
+  }
 
   async getDay(profileId: string, dateStr: string): Promise<{ date: string; items: TimelineItem[] }> {
     const dayStart = new Date(`${dateStr}T00:00:00${SCHEDULE_TIMEZONE_OFFSET}`);
@@ -145,6 +172,7 @@ export class TimelineService {
         });
         await tx.notification.update({ where: { id: notification.id }, data: { status: "done" } });
       }
+      await this.decrementQuantityOnHand(tx, scheduledDose.medicationSchedule.patientMedicationId, input.action);
       return created;
     });
 
@@ -189,6 +217,7 @@ export class TimelineService {
         correlationId: actor.correlationId,
         context: { doseAction: input.action, prn: true },
       });
+      await this.decrementQuantityOnHand(tx, medication.id, input.action);
       return created;
     });
 

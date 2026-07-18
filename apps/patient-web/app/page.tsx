@@ -4,20 +4,20 @@ import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../components/AppShell";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
+import { RefillReminderCard } from "../components/RefillReminderCard";
 import { useI18n } from "../lib/i18n";
 import { useMedications } from "../lib/medications";
+import { useRefillReminders } from "../lib/refill-reminders";
 import { isOpenFinding, useSafetyFindings } from "../lib/safety";
 import { useTimeline } from "../lib/timeline";
 
-/**
- * Screen 7: Home (docs/07). Priority order: due now → due next → missed →
- * concerns → refills. Refill reminders aren't built yet.
- */
+/** Screen 7: Home (docs/07). Priority order: due now → due next → missed → concerns → refill/completion reminders. */
 export default function HomePage() {
   const { t } = useI18n();
   const { items: medications, error: medError } = useMedications("current");
   const { data: timeline, error: timelineError, fromCache, patchItem } = useTimeline();
   const { items: findings, reload: reloadFindings } = useSafetyFindings();
+  const { items: refillReminders, reload: reloadRefillReminders } = useRefillReminders();
 
   const dueNow = (timeline?.items ?? []).filter((i) => i.isDueNow && i.status !== "missed");
   const missed = (timeline?.items ?? []).filter((i) => i.status === "missed");
@@ -93,6 +93,17 @@ export default function HomePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 {openFindings.map((f) => (
                   <FindingCard key={f.id} finding={f} onChanged={reloadFindings} />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {refillReminders && refillReminders.length > 0 ? (
+            <>
+              <SectionTitle>{t("home.refill_reminders")}</SectionTitle>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+                {refillReminders.map((r) => (
+                  <RefillReminderCard key={r.notificationId} reminder={r} onChanged={reloadRefillReminders} />
                 ))}
               </div>
             </>

@@ -514,16 +514,22 @@ model PatientMedication {
   startDate       DateTime?        @map("start_date") @db.Date
   endDate         DateTime?        @map("end_date") @db.Date
   isPrn           Boolean          @default(false) @map("is_prn")
+  /// Patient-entered snapshot, auto-decremented on each "taken" dose event
+  /// (docs/07 screen 27) — null means the patient hasn't opted into refill
+  /// tracking for this medicine. Never inferred; only ever set by the
+  /// patient (add/edit) or the mark-refilled action.
+  quantityOnHand  Decimal?         @map("quantity_on_hand") @db.Decimal(8, 2)
 
   rowVersion Int       @default(0) @map("row_version")
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  instructions MedicationInstruction[]
-  changes      MedicationChange[]
-  schedule     MedicationSchedule?
-  doseEvents   DoseEvent[]
+  instructions  MedicationInstruction[]
+  changes       MedicationChange[]
+  schedule      MedicationSchedule?
+  doseEvents    DoseEvent[]
+  notifications Notification[]
 
   @@index([patientProfileId, status])
   @@map("patient_medications")
@@ -778,16 +784,20 @@ enum NotificationStatus {
 /// One logical reminder (docs/13). `dedupeKey` is what makes the
 /// every-minute detection cron safe to replay.
 model Notification {
-  id               String                  @id @default(uuid()) @db.Uuid
-  patientProfileId String                  @map("patient_profile_id") @db.Uuid
-  patientProfile   PatientProfile          @relation(fields: [patientProfileId], references: [id])
-  kind             NotificationKind        @default(dose_reminder)
-  scheduledDoseId  String?                 @map("scheduled_dose_id") @db.Uuid
-  scheduledDose    ScheduledDose?          @relation(fields: [scheduledDoseId], references: [id])
-  privacyMode      NotificationPrivacyMode @default(generic) @map("privacy_mode")
-  dedupeKey        String                  @unique @map("dedupe_key")
-  status           NotificationStatus      @default(pending)
-  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                  String                  @id @default(uuid()) @db.Uuid
+  patientProfileId    String                  @map("patient_profile_id") @db.Uuid
+  patientProfile      PatientProfile          @relation(fields: [patientProfileId], references: [id])
+  kind                NotificationKind        @default(dose_reminder)
+  scheduledDoseId     String?                 @map("scheduled_dose_id") @db.Uuid
+  scheduledDose       ScheduledDose?          @relation(fields: [scheduledDoseId], references: [id])
+  /// Set for `refill`/`completion` kinds (docs/07 screen 27) — dose_reminder
+  /// notifications reach their medication via scheduledDose instead.
+  patientMedicationId String?                 @map("patient_medication_id") @db.Uuid
+  patientMedication   PatientMedication?      @relation(fields: [patientMedicationId], references: [id])
+  privacyMode         NotificationPrivacyMode @default(generic) @map("privacy_mode")
+  dedupeKey           String                  @unique @map("dedupe_key")
+  status              NotificationStatus      @default(pending)
+  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
 
   attempts NotificationAttempt[]
 
@@ -827,20 +837,20 @@ model NotificationAttempt {
 /// Per-profile reminder settings (docs/13). Push is opt-in (`false` default)
 /// and wording defaults to the privacy-safe generic option.
 model NotificationPreference {
-  id               String                  @id @default(uuid()) @db.Uuid
-  patientProfileId String                  @unique @map("patient_profile_id") @db.Uuid
-  patientProfile   PatientProfile          @relation(fields: [patientProfileId], references: [id])
-  pushEnabled      Boolean                 @default(false) @map("push_enabled")
-  privacyMode      NotificationPrivacyMode @default(generic) @map("privacy_mode")
+  id                String                  @id @default(uuid()) @db.Uuid
+  patientProfileId  String                  @unique @map("patient_profile_id") @db.Uuid
+  patientProfile    PatientProfile          @relation(fields: [patientProfileId], references: [id])
+  pushEnabled       Boolean                 @default(false) @map("push_enabled")
+  privacyMode       NotificationPrivacyMode @default(generic) @map("privacy_mode")
   /// Docs/16: quiet hours respected except critical caregiver escalation
   /// (that carve-out isn't built — every push is deferred, no exceptions).
   /// Window may wrap midnight (e.g. 22:00-07:00); fixed Asia/Kolkata offset,
   /// matching the scheduling engine's existing simplification.
-  quietHoursEnabled Boolean  @default(true) @map("quiet_hours_enabled")
-  quietHoursStart   String   @default("22:00") @map("quiet_hours_start")
-  quietHoursEnd     String   @default("07:00") @map("quiet_hours_end")
-  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  quietHoursEnabled Boolean                 @default(true) @map("quiet_hours_enabled")
+  quietHoursStart   String                  @default("22:00") @map("quiet_hours_start")
+  quietHoursEnd     String                  @default("07:00") @map("quiet_hours_end")
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("notification_preferences")
 }
@@ -1215,11 +1225,11 @@ enum BackgroundJobStatus {
 }
 
 model BackgroundJob {
-  id     String             @id @default(uuid()) @db.Uuid
-  queue  BackgroundJobQueue
+  id            String              @id @default(uuid()) @db.Uuid
+  queue         BackgroundJobQueue
   /// Idempotency key — re-enqueueing the same logical job (e.g. the same
   /// document) reuses the row rather than creating a duplicate.
-  jobKey String             @unique @map("job_key")
+  jobKey        String              @unique @map("job_key")
   payload       Json
   status        BackgroundJobStatus @default(queued)
   attempts      Int                 @default(0)

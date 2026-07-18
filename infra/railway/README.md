@@ -25,6 +25,7 @@ Everything below is **Requires platform configuration** until the projects exist
 | `*/15 * * * *` | `node dist/jobs/reconcile-missed-doses.js` |
 | `0 * * * *` | `node dist/jobs/cleanup-abandoned-uploads.js` |
 | `* * * * *` | `node dist/jobs/detect-due-reminders.js` |
+| `0 6 * * *` | `node dist/jobs/generate-refill-reminders.js` |
 
 Later stages add: expire-share-links, backup-export/verify,
 retention-cleanup, reconcile-stuck-jobs, operational-report (docs/25 table).

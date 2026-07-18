@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePattern, proposeSlots } from "./frequency.js";
+import { dailySlotQuantity, parsePattern, proposeSlots } from "./frequency.js";
 
 describe("parsePattern", () => {
   it("parses 1-0-1", () => {
@@ -35,5 +35,14 @@ describe("proposeSlots", () => {
     expect(proposeSlots("SOS")).toBeNull();
     expect(proposeSlots("QID")).toBeNull();
     expect(proposeSlots("ALTERNATE_DAY")).toBeNull();
+  });
+});
+
+describe("dailySlotQuantity", () => {
+  it("sums per-slot quantities for a whole day", () => {
+    expect(dailySlotQuantity(proposeSlots("BD")!)).toBe(2);
+    expect(dailySlotQuantity(proposeSlots("TDS")!)).toBe(3);
+    expect(dailySlotQuantity(parsePattern("1-0-1")!)).toBe(2);
+    expect(dailySlotQuantity(parsePattern("0.5-0-0.5")!)).toBe(1);
   });
 });

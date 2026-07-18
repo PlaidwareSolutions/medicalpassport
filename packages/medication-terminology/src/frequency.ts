@@ -61,3 +61,8 @@ export function parsePattern(pattern: string): SlotDose[] | null {
 export function frequencyDescriptionKey(code: FrequencyCode): string {
   return `frequency.${code.toLowerCase()}`;
 }
+
+/** Total daily dose-unit multiplier across all slots (e.g. BD = 2) — used for refill-supply estimates (docs/07 screen 27). */
+export function dailySlotQuantity(slots: SlotDose[]): number {
+  return slots.reduce((sum, s) => sum + s.quantity, 0);
+}

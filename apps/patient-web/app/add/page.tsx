@@ -32,6 +32,8 @@ export default function AddMedicationPage() {
   const [food, setFood] = useState<Food | undefined>("any");
   const [reason, setReason] = useState("");
   const [prescriber, setPrescriber] = useState("");
+  const [durationDays, setDurationDays] = useState("");
+  const [quantityOnHand, setQuantityOnHand] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [savedOffline, setSavedOffline] = useState(false);
@@ -67,12 +69,14 @@ export default function AddMedicationPage() {
         source: selected ? "search" : "manual",
         ...(reason.trim() ? { patientReason: reason.trim() } : {}),
         ...(prescriber.trim() ? { prescriberName: prescriber.trim() } : {}),
+        ...(quantityOnHand.trim() ? { quantityOnHand: Number(quantityOnHand) } : {}),
         instruction: {
           doseQuantity: Number(doseQuantity),
           doseUnit: "tablet",
           frequencyCode: frequency,
           ...(frequency === "PATTERN" ? { pattern } : {}),
           foodInstruction: food,
+          ...(durationDays.trim() ? { durationDays: Number(durationDays) } : {}),
         },
       });
       // A page navigation while offline needs its own network round-trip
@@ -235,6 +239,22 @@ export default function AddMedicationPage() {
           <TextInput label={t("add.reason_label")} value={reason} onChange={(e) => setReason(e.target.value)} />
           <div style={{ height: "var(--space-sm)" }} />
           <TextInput label={t("add.prescriber_label")} value={prescriber} onChange={(e) => setPrescriber(e.target.value)} />
+          <div style={{ height: "var(--space-sm)" }} />
+          <TextInput
+            label={t("add.duration_label")}
+            type="number"
+            inputMode="numeric"
+            value={durationDays}
+            onChange={(e) => setDurationDays(e.target.value)}
+          />
+          <div style={{ height: "var(--space-sm)" }} />
+          <TextInput
+            label={t("add.quantity_label")}
+            type="number"
+            inputMode="numeric"
+            value={quantityOnHand}
+            onChange={(e) => setQuantityOnHand(e.target.value)}
+          />
 
           <div style={{ marginTop: "var(--space-lg)" }}>
             <Button fullWidth disabled={busy || !nameChosen || !instructionReady} onClick={() => void save()}>

@@ -10,12 +10,14 @@ const CACHED_VARIANTS = ["current", "all"];
 
 export interface EditMedicationPatch {
   patientReason?: string;
+  quantityOnHand?: number | null;
   instruction?: {
     doseQuantity: number;
     doseUnit: string;
     frequencyCode: string;
     pattern?: string;
     foodInstruction: string;
+    durationDays?: number;
   };
 }
 
@@ -134,6 +136,9 @@ async function patchCachedMedication(profileId: string, id: string, patch: EditM
         ? {
             ...m,
             ...(patch.patientReason !== undefined ? { patientReason: patch.patientReason } : {}),
+            ...(patch.quantityOnHand !== undefined
+              ? { quantityOnHand: patch.quantityOnHand != null ? String(patch.quantityOnHand) : null }
+              : {}),
             ...(patch.instruction
               ? {
                   instruction: {
@@ -143,6 +148,7 @@ async function patchCachedMedication(profileId: string, id: string, patch: EditM
                     frequencyCode: patch.instruction.frequencyCode,
                     pattern: patch.instruction.pattern ?? null,
                     foodInstruction: patch.instruction.foodInstruction,
+                    durationDays: patch.instruction.durationDays ?? null,
                   },
                 }
               : {}),

@@ -28,6 +28,8 @@ export default function EditMedicationPage() {
   const [pattern, setPattern] = useState<"1-0-0" | "1-0-1" | "1-1-1" | "0-0-1" | undefined>();
   const [food, setFood] = useState<Food | undefined>();
   const [reason, setReason] = useState("");
+  const [durationDays, setDurationDays] = useState("");
+  const [quantityOnHand, setQuantityOnHand] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [savedOffline, setSavedOffline] = useState(false);
@@ -35,11 +37,13 @@ export default function EditMedicationPage() {
   useEffect(() => {
     if (!medication) return;
     setReason(medication.patientReason ?? "");
+    setQuantityOnHand(medication.quantityOnHand ?? "");
     if (medication.instruction) {
       setDoseQuantity(medication.instruction.doseQuantity as "0.5" | "1" | "2");
       setFrequency(medication.instruction.frequencyCode as Frequency);
       if (medication.instruction.pattern) setPattern(medication.instruction.pattern as never);
       setFood(medication.instruction.foodInstruction as Food);
+      setDurationDays(medication.instruction.durationDays != null ? String(medication.instruction.durationDays) : "");
     }
   }, [medication]);
 
@@ -52,12 +56,14 @@ export default function EditMedicationPage() {
     try {
       const { queuedOffline } = await updateMedication(medication, {
         patientReason: reason.trim(),
+        quantityOnHand: quantityOnHand.trim() ? Number(quantityOnHand) : null,
         instruction: {
           doseQuantity: Number(doseQuantity),
           doseUnit: "tablet",
           frequencyCode: frequency,
           ...(frequency === "PATTERN" ? { pattern } : {}),
           foodInstruction: food,
+          ...(durationDays.trim() ? { durationDays: Number(durationDays) } : {}),
         },
       });
       // Same reasoning as Add: a fresh page navigation needs a network
@@ -162,6 +168,22 @@ export default function EditMedicationPage() {
 
       <SectionTitle>{t("add.reason_label")}</SectionTitle>
       <TextInput label={t("add.reason_label")} value={reason} onChange={(e) => setReason(e.target.value)} />
+      <div style={{ height: "var(--space-sm)" }} />
+      <TextInput
+        label={t("add.duration_label")}
+        type="number"
+        inputMode="numeric"
+        value={durationDays}
+        onChange={(e) => setDurationDays(e.target.value)}
+      />
+      <div style={{ height: "var(--space-sm)" }} />
+      <TextInput
+        label={t("add.quantity_label")}
+        type="number"
+        inputMode="numeric"
+        value={quantityOnHand}
+        onChange={(e) => setQuantityOnHand(e.target.value)}
+      />
 
       <div style={{ marginTop: "var(--space-lg)" }}>
         <Button fullWidth disabled={busy || !instructionReady} onClick={() => void save()}>

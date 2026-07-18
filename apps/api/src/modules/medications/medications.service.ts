@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
-import type { CreateMedicationInput, UpdateMedicationInput } from "@medpass/validation";
+import type { CreateMedicationInput, RecordRefillInput, UpdateMedicationInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
@@ -87,9 +87,16 @@ export class MedicationsService {
           patientReason: input.patientReason,
           practitionerId,
           source: input.source,
-          startDate: input.startDate,
+          // Defaults to today rather than staying null: a patient adding a
+          // medicine is almost always starting it now or very recently, and
+          // a real date (shown on doctor-visit mode, docs/07 screen 28, and
+          // needed for completion reminders, screen 27) beats a blank one —
+          // never a clinical fact, just a bookkeeping default the patient
+          // can correct via edit if it's wrong.
+          startDate: input.startDate ?? new Date(),
           endDate: input.endDate,
           isPrn: input.isPrn || input.instruction.frequencyCode === "SOS",
+          quantityOnHand: input.quantityOnHand,
           instructions: {
             create: {
               doseQuantity: input.instruction.doseQuantity,
@@ -146,6 +153,7 @@ export class MedicationsService {
         data: {
           ...(input.patientReason !== undefined ? { patientReason: input.patientReason } : {}),
           ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
+          ...(input.quantityOnHand !== undefined ? { quantityOnHand: input.quantityOnHand } : {}),
           rowVersion: { increment: 1 },
         },
       });
@@ -212,6 +220,49 @@ export class MedicationsService {
     return (await this.byId(profileId, id))!;
   }
 
+  /**
+   * "Mark refilled" (docs/07 screen 27) — a semantically distinct event from
+   * a plain quantity edit, with its own audit action, since it's the answer
+   * to a refill reminder rather than an incidental correction. Resolves any
+   * outstanding refill reminders for this medication the same way recording
+   * a dose resolves a dose reminder (docs/16 — acknowledgement from any
+   * surface resolves the reminder everywhere).
+   */
+  async recordRefill(profileId: string, id: string, input: RecordRefillInput, actor: Actor) {
+    const medication = await this.prisma.patientMedication.findFirst({
+      where: { id, patientProfileId: profileId, deletedAt: null },
+    });
+    if (!medication) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Medicine not found", 404);
+
+    const { quantityOnHand } = input;
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.patientMedication.updateMany({
+        where: { id, rowVersion: input.rowVersion },
+        data: { quantityOnHand, rowVersion: { increment: 1 } },
+      });
+      if (updated.count === 0) {
+        throw new ApiProblem(ERROR_CODES.CONFLICT_ROW_VERSION, "This medicine was changed elsewhere. Reload and retry.", 409);
+      }
+      await tx.medicationChange.create({
+        data: { patientMedicationId: id, change: "refilled", detail: { quantityOnHand }, actorUserId: actor.userId },
+      });
+      await writeAudit(tx, {
+        action: "medication.refill_recorded",
+        actorUserId: actor.userId,
+        actorType: actor.actorRole,
+        entityType: "patient_medication",
+        entityId: id,
+        patientProfileId: profileId,
+        correlationId: actor.correlationId,
+      });
+      await tx.notification.updateMany({
+        where: { patientMedicationId: id, kind: "refill", status: { in: ["pending", "done"] } },
+        data: { status: "cancelled" },
+      });
+    });
+    return (await this.byId(profileId, id))!;
+  }
+
   private toDto(m: {
     id: string;
     enteredName: string;
@@ -220,6 +271,7 @@ export class MedicationsService {
     isPrn: boolean;
     startDate: Date | null;
     endDate: Date | null;
+    quantityOnHand: unknown;
     rowVersion: number;
     normalizationStatus: string;
     createdAt: Date;
@@ -269,6 +321,7 @@ export class MedicationsService {
       isPrn: m.isPrn,
       startDate: m.startDate?.toISOString().slice(0, 10) ?? null,
       endDate: m.endDate?.toISOString().slice(0, 10) ?? null,
+      quantityOnHand: m.quantityOnHand != null ? String(m.quantityOnHand) : null,
       rowVersion: m.rowVersion,
       instruction: instruction
         ? {

@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
-import type { AuditActorType } from "@medpass/domain";
+import { dailySlotQuantity, type SlotDose } from "@medpass/medication-terminology";
+import { ERROR_CODES, type AuditActorType } from "@medpass/domain";
 import type { NotificationPreferencesInput, WebPushSubscribeInput } from "@medpass/validation";
+import { ApiProblem } from "../../common/errors";
 import { encryptField, sha256Hex } from "../../common/crypto";
 import { env } from "../../common/env";
 import { PrismaService } from "../../common/prisma.service";
@@ -76,5 +78,88 @@ export class NotificationsService {
       });
     });
     return input;
+  }
+
+  /**
+   * Active refill/completion reminders (docs/07 screen 27) — a Home-screen
+   * list, not just a transient push, so the patient can act whenever they
+   * open the app. "Active" means still pending or already pushed but not
+   * yet resolved (marked refilled, dismissed, or the medication left
+   * "current") — never includes cancelled ones.
+   */
+  async listRefillReminders(profileId: string) {
+    const notifications = await this.prisma.notification.findMany({
+      where: { patientProfileId: profileId, kind: { in: ["refill", "completion"] }, status: { in: ["pending", "done"] } },
+      include: {
+        patientMedication: {
+          include: {
+            practitioner: true,
+            instructions: { where: { supersededAt: null }, take: 1 },
+            schedule: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return {
+      items: notifications
+        .filter((n) => n.patientMedication)
+        .map((n) => {
+          const medication = n.patientMedication!;
+          const instruction = medication.instructions[0];
+          let daysRemainingEstimate: number | null = null;
+          let estimatedDate: string | null = null;
+
+          if (n.kind === "refill" && medication.quantityOnHand != null && instruction && medication.schedule) {
+            const slots = medication.schedule.slots as unknown as SlotDose[];
+            const dailyConsumption = Number(instruction.doseQuantity) * dailySlotQuantity(slots);
+            if (dailyConsumption > 0) {
+              daysRemainingEstimate = Math.max(0, Math.floor(Number(medication.quantityOnHand) / dailyConsumption));
+              const date = new Date(Date.now() + daysRemainingEstimate * 24 * 60 * 60 * 1000);
+              estimatedDate = date.toISOString().slice(0, 10);
+            }
+          } else if (n.kind === "completion" && medication.startDate && instruction?.durationDays) {
+            const date = new Date(medication.startDate);
+            date.setUTCDate(date.getUTCDate() + instruction.durationDays);
+            estimatedDate = date.toISOString().slice(0, 10);
+          }
+
+          return {
+            notificationId: n.id,
+            kind: n.kind as "refill" | "completion",
+            patientMedicationId: medication.id,
+            medicationName: medication.enteredName,
+            prescriberName: medication.practitioner?.displayName ?? null,
+            quantityOnHand: medication.quantityOnHand != null ? String(medication.quantityOnHand) : null,
+            rowVersion: medication.rowVersion,
+            daysRemainingEstimate,
+            estimatedDate,
+          };
+        }),
+    };
+  }
+
+  /** Dismisses a refill/completion reminder without acting on it (docs/07 screen 27 secondary action). */
+  async dismissRefillReminder(profileId: string, notificationId: string, actor: Actor) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id: notificationId, patientProfileId: profileId, kind: { in: ["refill", "completion"] } },
+    });
+    if (!notification) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Reminder not found", 404);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.notification.update({ where: { id: notificationId }, data: { status: "cancelled" } });
+      await writeAudit(tx, {
+        action: "notification.dismissed",
+        actorUserId: actor.userId,
+        actorType: actor.actorRole as AuditActorType,
+        entityType: "notification",
+        entityId: notificationId,
+        patientProfileId: profileId,
+        correlationId: actor.correlationId,
+        context: { kind: notification.kind },
+      });
+    });
+    return { dismissed: true as const };
   }
 }

@@ -139,6 +139,9 @@ importers:
       '@medpass/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@medpass/medication-terminology':
+        specifier: workspace:*
+        version: link:../../packages/medication-terminology
       '@medpass/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications

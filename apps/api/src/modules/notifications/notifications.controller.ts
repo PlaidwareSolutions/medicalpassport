@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Req } from "@nestjs/common";
 import { notificationPreferencesSchema, webPushSubscribeSchema, webPushUnsubscribeSchema } from "@medpass/validation";
 import { Public } from "../../common/auth.guard";
 import type { ApiRequest } from "../../common/http";
@@ -42,6 +42,22 @@ export class NotificationsController {
     const { profileId, actorRole } = await this.access.require(req, "manage_reminders");
     const input = parseWith(notificationPreferencesSchema, body);
     return this.notifications.updatePreferences(profileId, input, {
+      userId: req.auth!.userId,
+      actorRole,
+      correlationId: req.correlationId,
+    });
+  }
+
+  @Get("profiles/current/refill-reminders")
+  async listRefillReminders(@Req() req: ApiRequest) {
+    const { profileId } = await this.access.require(req, "view_medications");
+    return this.notifications.listRefillReminders(profileId);
+  }
+
+  @Post("refill-reminders/:notificationId/dismiss")
+  async dismissRefillReminder(@Param("notificationId") notificationId: string, @Req() req: ApiRequest) {
+    const { profileId, actorRole } = await this.access.require(req, "edit_medications");
+    return this.notifications.dismissRefillReminder(profileId, notificationId, {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,

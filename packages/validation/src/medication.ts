@@ -36,6 +36,9 @@ export const instructionSchema = z
   });
 export type InstructionInput = z.infer<typeof instructionSchema>;
 
+/** Patient-entered supply snapshot (docs/07 screen 27) — never inferred. */
+const quantityOnHandSchema = z.coerce.number().nonnegative().max(100_000);
+
 export const createMedicationSchema = z
   .object({
     /** Either a catalog product reference or a free-text entered name. */
@@ -47,6 +50,7 @@ export const createMedicationSchema = z
     startDate: z.coerce.date().optional(),
     endDate: z.coerce.date().optional(),
     isPrn: z.boolean().default(false),
+    quantityOnHand: quantityOnHandSchema.optional(),
     instruction: instructionSchema,
   })
   .superRefine((v, ctx) => {
@@ -68,6 +72,7 @@ export const updateMedicationSchema = z.object({
   patientReason: z.string().trim().max(500).optional(),
   prescriberName: z.string().trim().max(120).optional(),
   endDate: z.coerce.date().nullable().optional(),
+  quantityOnHand: quantityOnHandSchema.nullable().optional(),
   instruction: instructionSchema.optional(),
 });
 export type UpdateMedicationInput = z.infer<typeof updateMedicationSchema>;
@@ -78,3 +83,10 @@ export const changeMedicationStatusSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 export type ChangeMedicationStatusInput = z.infer<typeof changeMedicationStatusSchema>;
+
+/** "Mark refilled" (docs/07 screen 27) — a semantically distinct event from a plain edit (its own audit action). */
+export const recordRefillSchema = z.object({
+  rowVersion: z.number().int().nonnegative(),
+  quantityOnHand: quantityOnHandSchema,
+});
+export type RecordRefillInput = z.infer<typeof recordRefillSchema>;
