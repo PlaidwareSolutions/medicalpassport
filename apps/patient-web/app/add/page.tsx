@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ApiError, type CatalogProduct } from "@medpass/api-client";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
-import { api, getActiveProfileId, newIdempotencyKey } from "../../lib/api";
+import { api } from "../../lib/api";
+import { createMedication } from "../../lib/medications";
 import { useI18n } from "../../lib/i18n";
 
 type Frequency = "OD" | "BD" | "TDS" | "SOS" | "HS" | "PATTERN";
@@ -33,6 +34,7 @@ export default function AddMedicationPage() {
   const [prescriber, setPrescriber] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [savedOffline, setSavedOffline] = useState(false);
 
   useEffect(() => {
     if (query.trim().length < 2 || manualMode) {
@@ -60,24 +62,26 @@ export default function AddMedicationPage() {
     setBusy(true);
     setError(undefined);
     try {
-      await api.post(
-        "/profiles/current/medications",
-        {
-          ...(selected ? { productId: selected.id } : { enteredName: manualName.trim() }),
-          source: selected ? "search" : "manual",
-          ...(reason.trim() ? { patientReason: reason.trim() } : {}),
-          ...(prescriber.trim() ? { prescriberName: prescriber.trim() } : {}),
-          instruction: {
-            doseQuantity: Number(doseQuantity),
-            doseUnit: "tablet",
-            frequencyCode: frequency,
-            ...(frequency === "PATTERN" ? { pattern } : {}),
-            foodInstruction: food,
-          },
+      const { queuedOffline } = await createMedication({
+        ...(selected ? { productId: selected.id } : { enteredName: manualName.trim() }),
+        source: selected ? "search" : "manual",
+        ...(reason.trim() ? { patientReason: reason.trim() } : {}),
+        ...(prescriber.trim() ? { prescriberName: prescriber.trim() } : {}),
+        instruction: {
+          doseQuantity: Number(doseQuantity),
+          doseUnit: "tablet",
+          frequencyCode: frequency,
+          ...(frequency === "PATTERN" ? { pattern } : {}),
+          foodInstruction: food,
         },
-        { idempotencyKey: newIdempotencyKey(), profileId: getActiveProfileId() },
-      );
-      router.replace("/medicines");
+      });
+      // A page navigation while offline needs its own network round-trip
+      // (docs/12 H-12: PHI screens are never cached as `no-store`, so there's
+      // nothing for the browser to serve) — so an offline save stays right
+      // here with an inline confirmation instead of forcing a broken
+      // redirect; an online save can safely move on to the list.
+      if (queuedOffline) setSavedOffline(true);
+      else router.replace("/medicines");
     } catch (err) {
       setError(
         err instanceof ApiError ? (err.problem.errors?.[0]?.message ?? err.problem.title) : t("common.error_generic"),
@@ -85,6 +89,19 @@ export default function AddMedicationPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (savedOffline) {
+    return (
+      <AppShell>
+        <Banner tone="info">{t("meds.saved_offline")}</Banner>
+        <div style={{ marginTop: "var(--space-md)" }}>
+          <Link href="/medicines">
+            <Button fullWidth>{t("nav.medicines")}</Button>
+          </Link>
+        </div>
+      </AppShell>
+    );
   }
 
   return (

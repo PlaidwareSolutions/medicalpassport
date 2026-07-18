@@ -24,6 +24,23 @@ export class ProfileAccessService {
       throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Missing X-Profile-Id header", 400);
     }
 
+    const { actorRole, caregiverScopes } = await this.requireForProfile(userId, profileId, action, req.correlationId);
+    req.profileContext = { profileId, actorRole, caregiverScopes };
+    return { profileId, actorRole };
+  }
+
+  /**
+   * Same policy check as `require()`, but for callers that already have an
+   * explicit (userId, profileId) pair instead of a single-profile request —
+   * e.g. the sync endpoint, where each queued mutation names its own target
+   * profile rather than relying on one X-Profile-Id header (docs/15).
+   */
+  async requireForProfile(
+    userId: string,
+    profileId: string,
+    action: ProfileAction,
+    correlationId?: string,
+  ): Promise<{ actorRole: "patient" | "caregiver"; caregiverScopes: CaregiverScope[] }> {
     const profile = await this.prisma.patientProfile.findFirst({
       where: { id: profileId, deletedAt: null },
       select: { id: true, ownerUserId: true, claimedByUserId: true },
@@ -64,12 +81,11 @@ export class ProfileAccessService {
         actorUserId: userId,
         actorType: "caregiver",
         patientProfileId: profileId,
-        correlationId: req.correlationId,
+        correlationId,
         context: { action },
       });
     }
 
-    req.profileContext = { profileId, actorRole: decision.actorRole, caregiverScopes };
-    return { profileId, actorRole: decision.actorRole };
+    return { actorRole: decision.actorRole, caregiverScopes };
   }
 }

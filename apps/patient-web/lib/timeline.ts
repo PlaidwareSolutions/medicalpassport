@@ -92,10 +92,9 @@ export async function recordDoseEvent(
   const profileId = getActiveProfileId();
   const clientMutationId = crypto.randomUUID();
   const payload = { action, ...opts, clientMutationId };
-  const endpoint = `/doses/${scheduledDoseId}/events`;
 
   try {
-    const res = await api.post<{ status: string }>(endpoint, payload, { profileId });
+    const res = await api.post<{ status: string }>(`/doses/${scheduledDoseId}/events`, payload, { profileId });
     return { status: res.status, queuedOffline: false };
   } catch (err) {
     if (err instanceof ApiError) throw err; // a real rejection (e.g. permission) — never hide it
@@ -104,10 +103,12 @@ export async function recordDoseEvent(
         clientMutationId,
         entity: "dose_event",
         operation: "create",
-        payload,
+        // The direct endpoint takes scheduledDoseId from the URL; the
+        // generic /v1/sync dispatch (docs/15) needs it in the payload
+        // itself, since a queued mutation carries no URL of its own.
+        payload: { ...payload, scheduledDoseId },
         capturedAt: new Date().toISOString(),
         profileId,
-        endpoint,
       });
       notifyMutationQueued();
     }

@@ -74,15 +74,39 @@ export class MedicationsController {
     return medication;
   }
 
+  /**
+   * Sensitive write: accepts an Idempotency-Key so a lost response (e.g. a
+   * flaky connection, or a client that falls back to the offline queue when
+   * it can't tell whether this request landed) doesn't risk a spurious
+   * row-version conflict or a double-applied edit on retry — the same
+   * clientMutationId a queued offline edit replays through `POST /v1/sync`
+   * (docs/15) shares this exact ledger entry.
+   */
   @Patch("medications/:id")
-  async update(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+  async update(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @Headers("idempotency-key") idempotencyKey: string | undefined,
+    @Req() req: ApiRequest,
+  ) {
     const { profileId, actorRole } = await this.access.require(req, "edit_medications");
     const input = parseWith(updateMedicationSchema, body);
-    return this.medications.update(profileId, id, input, {
+
+    const { result } = await this.idempotency.run({
+      key: idempotencyKey,
       userId: req.auth!.userId,
-      actorRole,
-      correlationId: req.correlationId,
+      profileId,
+      entity: "patient_medication",
+      operation: "update",
+      requestDigestSource: body,
+      execute: () =>
+        this.medications.update(profileId, id, input, {
+          userId: req.auth!.userId,
+          actorRole,
+          correlationId: req.correlationId,
+        }),
     });
+    return result;
   }
 
   /** Status transitions are validated; stop/pause reasons attributed (docs/09). */

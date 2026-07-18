@@ -9,3 +9,4 @@ export * from "./safety.js";
 export * from "./sharing.js";
 export * from "./documents.js";
 export * from "./notifications.js";
+export * from "./sync.js";

@@ -6,9 +6,32 @@ import {
   pendingMutationCount,
   removeMutation,
   setLastSynced,
+  type OfflineMutation,
+  type SyncResponse,
   type SyncStatus,
 } from "@medpass/offline-sync";
 import { api, getActiveProfileId } from "./api";
+
+/** Batch cap per docs/15 — chunked client-side so a large queue still flushes. */
+const SYNC_BATCH_SIZE = 50;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+function toEnvelopes(mutations: OfflineMutation[]) {
+  return mutations.map(({ clientMutationId, entity, operation, payload, profileId, capturedAt, baseRowVersion }) => ({
+    clientMutationId,
+    entity,
+    operation,
+    payload,
+    profileId,
+    capturedAt,
+    baseRowVersion,
+  }));
+}
 
 export interface SyncState {
   status: SyncStatus;
@@ -58,16 +81,24 @@ export function useSyncEngine(): SyncState {
     try {
       const mutations = await listPendingMutations();
       let failed = false;
-      for (const mutation of mutations) {
+      for (const batch of chunk(mutations, SYNC_BATCH_SIZE)) {
         try {
-          // The payload already carries clientMutationId (docs/15) — the
-          // API's idempotency check on that key makes this exactly-once
+          // Every mutation replays through the one generic sync endpoint
+          // (docs/15), dispatched server-side by entity+operation. Its
+          // idempotency ledger on clientMutationId makes this exactly-once
           // even if a previous flush attempt partially succeeded.
-          await api.post(mutation.endpoint, mutation.payload, { profileId: mutation.profileId });
-          await removeMutation(mutation.clientMutationId);
+          const res = await api.post<SyncResponse>("/sync", { mutations: toEnvelopes(batch) });
+          for (const id of res.applied) await removeMutation(id);
+          // A conflict (stale rowVersion, revoked permission, unsupported
+          // entity) is a real, considered outcome, not a transient failure —
+          // but there's no conflict-review UI yet (docs/15's "needs your
+          // review" flow), so it stays queued and visible via pendingCount
+          // rather than being silently discarded; the existing sync_failed
+          // banner is the honest signal until that UI exists.
+          if (res.conflicts.length > 0) failed = true;
         } catch {
           failed = true;
-          break; // preserve capture order — don't skip ahead on failure
+          break; // preserve capture order — don't attempt later batches after a genuine failure
         }
       }
       await refreshPendingCount();

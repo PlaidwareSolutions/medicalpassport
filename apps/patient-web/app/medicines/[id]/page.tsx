@@ -1,12 +1,13 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
+import { ApiError } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
-import { instructionSummary } from "../../../lib/medications";
+import { instructionSummary, useMedication } from "../../../lib/medications";
 
 /**
  * Screen 19: medication detail (docs/07). "Commonly used for" and "Your
@@ -16,24 +17,9 @@ import { instructionSummary } from "../../../lib/medications";
 export default function MedicineDetailPage() {
   const { t } = useI18n();
   const params = useParams<{ id: string }>();
-  const [medication, setMedication] = useState<PatientMedicationDto | undefined>();
-  const [error, setError] = useState<string | undefined>();
+  const { medication, error, fromCache, reload } = useMedication(params.id);
+  const [actionError, setActionError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const m = await api.get<PatientMedicationDto>(`/medications/${params.id}`, {
-        profileId: getActiveProfileId(),
-      });
-      setMedication(m);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : t("common.error_generic"));
-    }
-  }, [params.id, t]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function changeStatus(status: "paused" | "current" | "stopped") {
     if (!medication) return;
@@ -44,9 +30,9 @@ export default function MedicineDetailPage() {
       await api.post(`/medications/${medication.id}/status`, { rowVersion: medication.rowVersion, status }, {
         profileId: getActiveProfileId(),
       });
-      await load();
+      await reload();
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : t("common.error_generic"));
+      setActionError(err instanceof ApiError ? err.problem.title : t("common.error_generic"));
     } finally {
       setBusy(false);
     }
@@ -66,10 +52,10 @@ export default function MedicineDetailPage() {
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
   }
 
-  if (error) {
+  if (error && !medication) {
     return (
       <AppShell>
-        <Banner tone="danger">{error}</Banner>
+        <Banner tone="danger">{t("common.error_generic")}</Banner>
       </AppShell>
     );
   }
@@ -86,12 +72,19 @@ export default function MedicineDetailPage() {
 
   return (
     <AppShell>
+      {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
+      {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "var(--space-sm)" }}>
         <h1 style={{ fontSize: "var(--font-title)", margin: 0 }}>
           {medication.product?.brandName ?? medication.enteredName}
         </h1>
         <Chip tone={statusTone}>{t(`meds.status.${medication.status}` as never)}</Chip>
       </div>
+      <Link href={`/medicines/${medication.id}/edit`}>
+        <Button variant="ghost" fullWidth>
+          {t("meds.edit")}
+        </Button>
+      </Link>
 
       {medication.product ? (
         <Card>

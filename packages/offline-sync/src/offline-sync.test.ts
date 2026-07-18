@@ -25,7 +25,6 @@ function makeMutation(overrides: Partial<OfflineMutation> = {}): OfflineMutation
     payload: { action: "taken" },
     capturedAt: new Date().toISOString(),
     profileId: PROFILE_A,
-    endpoint: "/doses/x/events",
     ...overrides,
   };
 }

@@ -101,6 +101,10 @@ export const en = {
     "Reliable medication-safety information is not available for this medicine. Please confirm with a doctor or pharmacist.",
   "meds.history": "History",
   "meds.pause_confirm": "Talk to your doctor or pharmacist before pausing or stopping a medicine.",
+  "meds.saved_offline": "Saved on this device — it'll sync when you're back online.",
+  "meds.edit": "Edit",
+  "meds.edit_title": "Edit medicine",
+  "meds.edit_save": "Save changes",
 
   "add.title": "Add a medicine",
   "add.search": "Search by name",

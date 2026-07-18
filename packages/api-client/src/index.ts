@@ -86,7 +86,7 @@ export class ApiClient {
   post<T>(path: string, body?: unknown, init?: { idempotencyKey?: string; profileId?: string }) {
     return this.request<T>("POST", path, body, init);
   }
-  patch<T>(path: string, body?: unknown, init?: { profileId?: string }) {
+  patch<T>(path: string, body?: unknown, init?: { idempotencyKey?: string; profileId?: string }) {
     return this.request<T>("PATCH", path, body, init);
   }
   delete<T>(path: string, init?: { profileId?: string }) {

@@ -1,10 +1,10 @@
 /**
  * Offline mutation contract shared by the PWA (and native apps later) and
- * the API's per-action idempotent endpoints (docs/15). Stage 5 scope: only
- * `dose_event` mutations are actually queued offline this pass — recording
- * whether a dose was taken is the single highest-value offline action
- * (product vision goal 5). Other entities are defined for forward
- * compatibility but not yet produced by any client code.
+ * the API's `POST /v1/sync` batch endpoint (docs/15), which dispatches each
+ * mutation by `entity`+`operation` rather than a per-mutation URL. Queued
+ * this pass: `dose_event` and `patient_medication` (create/update) — the
+ * other entities are defined for forward compatibility but not yet produced
+ * by any client code or dispatched server-side.
  */
 
 export type SyncEntity =
@@ -26,8 +26,6 @@ export interface OfflineMutation<TPayload = unknown> {
   baseRowVersion?: number;
   capturedAt: string;
   profileId: string;
-  /** Which endpoint to replay this against (Stage 5 simplification — see docs/15 note in README). */
-  endpoint: string;
 }
 
 export type SyncStatus = "online" | "offline" | "syncing" | "sync_failed" | "changes_pending";
