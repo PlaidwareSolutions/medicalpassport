@@ -7,7 +7,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsc -p tsconfig.json --watch & node --watch dist/main.js",
     "start": "node dist/main.js",
-    "test": "jest --runInBand"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
   "dependencies": {
     "@medpass/audit": "workspace:*",
@@ -24,6 +24,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "cookie-parser": "^1.4.7",
+    "puppeteer": "^25.3.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "tesseract.js": "^7.0.0",

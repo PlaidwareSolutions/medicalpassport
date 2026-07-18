@@ -70,3 +70,18 @@ export function shareUrl(token: string): string {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   return `${origin}/s/${token}`;
 }
+
+/** Triggers a real browser download of the patient's own doctor-visit summary as a PDF. */
+export async function downloadVisitSummaryPdf(): Promise<void> {
+  const blob = await api.getBlob("/profiles/current/visit-summary/pdf", { profileId: getActiveProfileId() });
+  triggerDownload(blob, "medication-summary.pdf");
+}
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

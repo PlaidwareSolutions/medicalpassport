@@ -50,9 +50,21 @@ export default function PublicSharePage() {
       </div>
 
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-xs)" }}>{data.profile.displayName}</h1>
-      <p style={{ margin: "0 0 var(--space-md)", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+      <p style={{ margin: "0 0 var(--space-sm)", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
         {t("visit.generated_at", { time: new Date(data.generatedAt).toLocaleString() })}
       </p>
+      <a
+        href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/v1/public/shares/${params.token}/pdf`}
+        style={{
+          display: "inline-block",
+          marginBottom: "var(--space-md)",
+          color: "var(--color-primary)",
+          fontSize: "var(--font-small)",
+          fontWeight: 600,
+        }}
+      >
+        {t("share.download_pdf")}
+      </a>
 
       {data.allergies && data.allergies.length > 0 ? (
         <>

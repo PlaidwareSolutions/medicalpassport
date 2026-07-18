@@ -27,6 +27,7 @@ import { SafetyEvaluationService } from "./modules/safety/safety-evaluation.serv
 import { SharingController } from "./modules/sharing/sharing.controller";
 import { SharingService } from "./modules/sharing/sharing.service";
 import { VisitSummaryService } from "./modules/sharing/visit-summary.service";
+import { VisitSummaryPdfService } from "./modules/sharing/visit-summary-pdf.service";
 import { DocumentsController } from "./modules/documents/documents.controller";
 import { DocumentsService } from "./modules/documents/documents.service";
 import { DevStorageController } from "./modules/documents/dev-storage.controller";
@@ -67,6 +68,7 @@ const OTP_SENDER = "OTP_SENDER";
     SafetyEvaluationService,
     SharingService,
     VisitSummaryService,
+    VisitSummaryPdfService,
     DocumentsService,
     ExtractionService,
     NotificationsService,

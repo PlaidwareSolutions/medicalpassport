@@ -274,6 +274,8 @@ export const te: Record<keyof typeof en, string> = {
   "visit.title": "డాక్టర్-విజిట్ మోడ్",
   "visit.generated_at": "{time}న తయారు చేయబడింది",
   "visit.share_button": "డాక్టర్ లేదా ఫార్మసిస్ట్‌తో పంచుకోండి",
+  "visit.download_pdf": "PDFగా డౌన్‌లోడ్ చేయండి",
+  "visit.download_error": "PDF సృష్టించడం సాధ్యం కాలేదు. దయచేసి మళ్లీ ప్రయత్నించండి.",
   "visit.recent_changes": "ఇటీవలి మార్పులు",
 
   "share.new_title": "మీ మందుల జాబితాను పంచుకోండి",
@@ -308,4 +310,5 @@ export const te: Record<keyof typeof en, string> = {
   "share.not_available_title": "ఈ లింక్ ఇక అందుబాటులో లేదు",
   "share.not_available_body": "ఇది గడువు ముగిసి ఉండవచ్చు లేదా రోగి రద్దు చేసి ఉండవచ్చు. వారిని కొత్త లింక్ పంపమని అడగండి.",
   "share.shared_summary_label": "పంచుకున్న మందుల సారాంశం",
+  "share.download_pdf": "PDFగా డౌన్‌లోడ్ చేయండి",
 };

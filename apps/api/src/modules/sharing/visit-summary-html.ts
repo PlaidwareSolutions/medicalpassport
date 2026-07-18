@@ -1,0 +1,127 @@
+import type { VisitSummaryDto } from "./visit-summary.service";
+
+/** Escapes text before interpolating into HTML — every field here can contain patient-entered text. */
+function esc(value: string | null | undefined): string {
+  if (!value) return "";
+  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function section(title: string, body: string): string {
+  return `<section><h2>${esc(title)}</h2>${body}</section>`;
+}
+
+/**
+ * Renders the same live-aggregated summary (docs/07 screens 28/29) as
+ * static, printable HTML — no client-side script, no external assets, so
+ * it renders identically under a headless browser as it would on screen.
+ * English only this pass (docs/22 scope note); every render carries its
+ * own generation timestamp so a printed copy is never mistaken for current
+ * if read later (docs/12 H-12).
+ */
+export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
+  const parts: string[] = [];
+
+  if (summary.allergies) {
+    parts.push(
+      section(
+        "Allergies",
+        summary.allergies.length
+          ? `<ul>${summary.allergies
+              .map((a) => `<li><strong>${esc(a.label)}</strong> — ${esc(a.severity)}${a.reactionNote ? ` (${esc(a.reactionNote)})` : ""}</li>`)
+              .join("")}</ul>`
+          : "<p class=\"muted\">None recorded.</p>",
+      ),
+    );
+  }
+
+  if (summary.conditions) {
+    parts.push(
+      section(
+        "Conditions",
+        summary.conditions.length
+          ? `<ul>${summary.conditions.map((c) => `<li><strong>${esc(c.label)}</strong>${c.note ? ` — ${esc(c.note)}` : ""}</li>`).join("")}</ul>`
+          : "<p class=\"muted\">None recorded.</p>",
+      ),
+    );
+  }
+
+  if (summary.currentMedications) {
+    parts.push(
+      section(
+        "Current medicines",
+        summary.currentMedications.length
+          ? `<table><thead><tr><th>Medicine</th><th>Ingredients</th><th>Dosing</th><th>Prescriber</th><th>Since</th></tr></thead><tbody>${summary.currentMedications
+              .map(
+                (m) =>
+                  `<tr><td>${esc(m.name)}${m.strengthLabel ? ` (${esc(m.strengthLabel)})` : ""}</td><td>${esc(m.ingredients.join(", "))}</td><td>${esc(m.instructionSummary)}</td><td>${esc(m.prescriberName) || "—"}</td><td>${esc(m.startDate) || "—"}</td></tr>`,
+              )
+              .join("")}</tbody></table>`
+          : "<p class=\"muted\">No current medicines recorded.</p>",
+      ),
+    );
+  }
+
+  if (summary.recentChanges) {
+    parts.push(
+      section(
+        "Recent changes (last 90 days)",
+        summary.recentChanges.length
+          ? `<ul>${summary.recentChanges
+              .map((c) => `<li>${esc(c.medicationName)} — ${esc(c.change.replace(/_/g, " "))} <span class="muted">(${formatDate(c.occurredAt)})</span></li>`)
+              .join("")}</ul>`
+          : "<p class=\"muted\">No changes in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.unresolvedConcerns) {
+    parts.push(
+      section(
+        "Unresolved safety concerns",
+        summary.unresolvedConcerns.length
+          ? `<ul>${summary.unresolvedConcerns
+              .map(
+                (c) =>
+                  `<li><strong>${esc(c.category.replace(/_/g, " "))}</strong> (${esc(c.severity)}) — ${esc(c.summary)}</li>`,
+              )
+              .join("")}<li class="muted">This may have been prescribed intentionally. Please confirm with a doctor or pharmacist before changing anything.</li></ul>`
+          : "<p class=\"muted\">None open.</p>",
+      ),
+    );
+  }
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Medication summary</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1a1d1f; margin: 0; padding: 32px 40px; font-size: 13px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .meta { color: #4c5563; font-size: 12px; margin-bottom: 24px; }
+  h2 { font-size: 14px; margin: 20px 0 8px; border-bottom: 1px solid #d4dbd8; padding-bottom: 4px; }
+  ul { margin: 0; padding-left: 18px; }
+  li { margin-bottom: 4px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eceff0; font-size: 12px; vertical-align: top; }
+  th { color: #4c5563; font-weight: 600; }
+  .muted { color: #4c5563; }
+  section { break-inside: avoid; }
+  footer { margin-top: 24px; font-size: 10px; color: #8a8f96; }
+</style>
+</head>
+<body>
+  <h1>${esc(summary.profile.displayName)}</h1>
+  <div class="meta">
+    ${summary.profile.yearOfBirth ? `Born ${summary.profile.yearOfBirth} · ` : ""}${summary.profile.sex ? `${esc(summary.profile.sex)} · ` : ""}Generated ${formatDate(summary.generatedAt)}
+  </div>
+  ${parts.join("")}
+  <footer>Generated by medpass from the patient's own records. Not a prescription or medical advice. This may not reflect information the patient hasn't recorded.</footer>
+</body>
+</html>`;
+}

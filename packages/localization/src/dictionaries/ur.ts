@@ -274,6 +274,8 @@ export const ur: Record<keyof typeof en, string> = {
   "visit.title": "ڈاکٹر وزٹ موڈ",
   "visit.generated_at": "{time} کو تیار کیا گیا",
   "visit.share_button": "ڈاکٹر یا فارماسسٹ کے ساتھ شیئر کریں",
+  "visit.download_pdf": "PDF کے طور پر ڈاؤن لوڈ کریں",
+  "visit.download_error": "PDF نہیں بن سکی۔ براہ کرم دوبارہ کوشش کریں۔",
   "visit.recent_changes": "حالیہ تبدیلیاں",
 
   "share.new_title": "اپنی دوا کی فہرست شیئر کریں",
@@ -308,4 +310,5 @@ export const ur: Record<keyof typeof en, string> = {
   "share.not_available_title": "یہ لنک اب دستیاب نہیں",
   "share.not_available_body": "یہ ختم ہو چکا ہو گا یا مریض نے منسوخ کر دیا ہو گا۔ ان سے نیا لنک مانگیں۔",
   "share.shared_summary_label": "شیئر کردہ دوا کا خلاصہ",
+  "share.download_pdf": "PDF کے طور پر ڈاؤن لوڈ کریں",
 };

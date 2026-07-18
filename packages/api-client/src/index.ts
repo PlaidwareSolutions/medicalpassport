@@ -66,6 +66,23 @@ export class ApiClient {
   get<T>(path: string, init?: { profileId?: string }) {
     return this.request<T>("GET", path, undefined, init);
   }
+
+  /** For binary responses (e.g. PDF export) — same auth, no JSON parsing. */
+  async getBlob(path: string, init?: { profileId?: string }): Promise<Blob> {
+    const headers: Record<string, string> = {};
+    const token = this.opts.getBearerToken?.();
+    if (token) headers.authorization = `Bearer ${token}`;
+    if (init?.profileId) headers["x-profile-id"] = init.profileId;
+
+    const doFetch = this.opts.fetchImpl ?? fetch;
+    const res = await doFetch(`${this.opts.baseUrl}${path}`, { method: "GET", headers, credentials: "include" });
+    if (!res.ok) {
+      const json = (await res.json().catch(() => null)) as ProblemDetails | null;
+      const problem = json ?? { type: "about:blank", title: "Request failed", status: res.status, code: "internal_error" };
+      throw new ApiError(problem, res.status);
+    }
+    return res.blob();
+  }
   post<T>(path: string, body?: unknown, init?: { idempotencyKey?: string; profileId?: string }) {
     return this.request<T>("POST", path, body, init);
   }

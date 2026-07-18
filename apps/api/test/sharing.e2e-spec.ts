@@ -118,6 +118,43 @@ describe("Sharing e2e", () => {
     expect(publicRes.body.allergies).toBeUndefined();
   });
 
+  it("exports the patient's own doctor-visit summary as a real PDF", async () => {
+    const res = await auth(token, profileId)(request(app.getHttpServer()).get("/v1/profiles/current/visit-summary/pdf")).expect(
+      200,
+    );
+    expect(res.headers["content-type"]).toBe("application/pdf");
+    expect(res.headers["content-disposition"]).toContain("attachment");
+    expect(res.headers["cache-control"]).toContain("no-store");
+    expect(Buffer.isBuffer(res.body)).toBe(true);
+    expect(res.body.subarray(0, 4).toString("ascii")).toBe("%PDF");
+    expect(res.body.length).toBeGreaterThan(1000);
+  }, 30000);
+
+  it("exports a public share as a PDF matching its selective sections, with no auth", async () => {
+    const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
+      .send({
+        sections: { medications: true, allergies: false, conditions: false, recentChanges: false, concerns: false },
+        expiresInHours: 1,
+        kind: "link",
+      })
+      .expect(201);
+
+    const res = await request(app.getHttpServer()).get(`/v1/public/shares/${created.body.token}/pdf`).expect(200);
+    expect(res.headers["content-type"]).toBe("application/pdf");
+    expect(res.body.subarray(0, 4).toString("ascii")).toBe("%PDF");
+
+    // The access is real and audited, same as the JSON path.
+    const log = await auth(token, profileId)(
+      request(app.getHttpServer()).get(`/v1/shares/${created.body.id}/accesses`),
+    ).expect(200);
+    expect(log.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ result: "success" })]));
+  }, 30000);
+
+  it("rejects a PDF export for an unknown token the same way as the JSON path", async () => {
+    const res = await request(app.getHttpServer()).get("/v1/public/shares/not-a-real-token-at-all/pdf").expect(404);
+    expect(res.body.title).toBe("This link is no longer available");
+  });
+
   it("records every access attempt in the patient-visible log", async () => {
     await request(app.getHttpServer()).get(`/v1/public/shares/${shareToken}`).expect(200);
 

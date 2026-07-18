@@ -277,6 +277,8 @@ export const en = {
   "visit.title": "Doctor-visit mode",
   "visit.generated_at": "Generated {time}",
   "visit.share_button": "Share with a doctor or pharmacist",
+  "visit.download_pdf": "Download as PDF",
+  "visit.download_error": "Couldn't create the PDF. Please try again.",
   "visit.recent_changes": "Recent changes",
 
   "share.new_title": "Share your medicine list",
@@ -311,4 +313,5 @@ export const en = {
   "share.not_available_title": "This link is no longer available",
   "share.not_available_body": "It may have expired or been revoked by the patient. Ask them to share a new link.",
   "share.shared_summary_label": "Shared medicine summary",
+  "share.download_pdf": "Download as PDF",
 } as const;

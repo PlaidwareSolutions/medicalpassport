@@ -1,9 +1,10 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import { Banner, Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { useI18n } from "../../lib/i18n";
-import { useVisitSummary } from "../../lib/sharing";
+import { downloadVisitSummaryPdf, useVisitSummary } from "../../lib/sharing";
 
 const SEVERITY_TONE: Record<string, "default" | "warning" | "danger"> = {
   info: "default",
@@ -19,6 +20,20 @@ const SEVERITY_TONE: Record<string, "default" | "warning" | "danger"> = {
 export default function VisitModePage() {
   const { t } = useI18n();
   const { data, error } = useVisitSummary();
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | undefined>();
+
+  async function handleDownload() {
+    setDownloading(true);
+    setDownloadError(undefined);
+    try {
+      await downloadVisitSummaryPdf();
+    } catch {
+      setDownloadError(t("visit.download_error"));
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (error) {
     return (
@@ -42,9 +57,15 @@ export default function VisitModePage() {
         {t("visit.generated_at", { time: new Date(data.generatedAt).toLocaleString() })}
       </p>
 
+      {downloadError ? <Banner tone="danger">{downloadError}</Banner> : null}
+
       <Link href="/share/new">
         <Button fullWidth>{t("visit.share_button")}</Button>
       </Link>
+      <div style={{ height: "var(--space-sm)" }} />
+      <Button variant="secondary" fullWidth disabled={downloading} onClick={() => void handleDownload()}>
+        {t("visit.download_pdf")}
+      </Button>
 
       {data.allergies && data.allergies.length > 0 ? (
         <>
