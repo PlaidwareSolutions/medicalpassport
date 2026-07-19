@@ -202,6 +202,7 @@ export class ExtractionService {
         productId: brand.confirmedValue,
         source: "extraction",
         isPrn: input.isPrn,
+        criticalEscalation: false,
         patientReason: input.patientReason,
         prescriberName: input.prescriberName,
         startDate: input.startDate,

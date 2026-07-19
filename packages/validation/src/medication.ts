@@ -51,6 +51,8 @@ export const createMedicationSchema = z
     endDate: z.coerce.date().optional(),
     isPrn: z.boolean().default(false),
     quantityOnHand: quantityOnHandSchema.optional(),
+    /** Patient opt-in only (docs/16) — never inferred clinical severity. */
+    criticalEscalation: z.boolean().default(false),
     instruction: instructionSchema,
   })
   .superRefine((v, ctx) => {
@@ -73,6 +75,7 @@ export const updateMedicationSchema = z.object({
   prescriberName: z.string().trim().max(120).optional(),
   endDate: z.coerce.date().nullable().optional(),
   quantityOnHand: quantityOnHandSchema.nullable().optional(),
+  criticalEscalation: z.boolean().optional(),
   instruction: instructionSchema.optional(),
 });
 export type UpdateMedicationInput = z.infer<typeof updateMedicationSchema>;

@@ -30,6 +30,7 @@ export default function EditMedicationPage() {
   const [reason, setReason] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [quantityOnHand, setQuantityOnHand] = useState("");
+  const [criticalEscalation, setCriticalEscalation] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [savedOffline, setSavedOffline] = useState(false);
@@ -38,6 +39,7 @@ export default function EditMedicationPage() {
     if (!medication) return;
     setReason(medication.patientReason ?? "");
     setQuantityOnHand(medication.quantityOnHand ?? "");
+    setCriticalEscalation(medication.criticalEscalation);
     if (medication.instruction) {
       setDoseQuantity(medication.instruction.doseQuantity as "0.5" | "1" | "2");
       setFrequency(medication.instruction.frequencyCode as Frequency);
@@ -57,6 +59,7 @@ export default function EditMedicationPage() {
       const { queuedOffline } = await updateMedication(medication, {
         patientReason: reason.trim(),
         quantityOnHand: quantityOnHand.trim() ? Number(quantityOnHand) : null,
+        criticalEscalation,
         instruction: {
           doseQuantity: Number(doseQuantity),
           doseUnit: "tablet",
@@ -183,6 +186,21 @@ export default function EditMedicationPage() {
         inputMode="numeric"
         value={quantityOnHand}
         onChange={(e) => setQuantityOnHand(e.target.value)}
+      />
+
+      <SectionTitle>{t("add.critical_escalation_label")}</SectionTitle>
+      <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+        {t("add.critical_escalation_intro")}
+      </span>
+      <ChoiceGrid
+        label={t("add.critical_escalation_label")}
+        columns={2}
+        choices={[
+          { value: "off", label: t("add.critical_escalation_off") },
+          { value: "on", label: t("add.critical_escalation_on") },
+        ]}
+        value={criticalEscalation ? "on" : "off"}
+        onChange={(v) => setCriticalEscalation(v === "on")}
       />
 
       <div style={{ marginTop: "var(--space-lg)" }}>

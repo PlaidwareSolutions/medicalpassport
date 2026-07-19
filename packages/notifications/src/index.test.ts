@@ -65,6 +65,19 @@ describe("TelnyxSmsSender", () => {
     expect(body.text).toContain("Amoxicillin");
   });
 
+  it("builds privacy-safe wording for caregiver_escalation, generic and full_name", async () => {
+    const fetchMock = mockFetchOnce(200, { data: { id: "msg-6" } });
+    await sender.sendTemplate("+12817451997", "caregiver_escalation", { medicationName: "" });
+    let body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.text).toMatch(/missed dose/i);
+    expect(body.text).not.toMatch(/paracetamol|amoxicillin/i);
+
+    mockFetchOnce(200, { data: { id: "msg-7" } });
+    await sender.sendTemplate("+12817451997", "caregiver_escalation", { medicationName: "Amoxicillin" });
+    body = JSON.parse((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(body.text).toContain("Amoxicillin");
+  });
+
   it("rejects an unknown template key rather than sending something unvalidated", async () => {
     await expect(sender.sendTemplate("+12817451997", "not_a_real_template", {})).rejects.toThrow(/unknown sms template/i);
   });

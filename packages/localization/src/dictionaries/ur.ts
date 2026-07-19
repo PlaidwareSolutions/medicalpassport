@@ -121,6 +121,10 @@ export const ur: Record<keyof typeof en, string> = {
   "add.quantity_label": "اس وقت آپ کے پاس کتنی ہیں؟ (اختیاری)",
   "add.reason_label": "ڈاکٹر نے کس لیے بتائی؟ (اختیاری)",
   "add.prescriber_label": "ڈاکٹر کا نام (اختیاری)",
+  "add.critical_escalation_label": "اگر اس دوا کی خوراک چھوٹ جائے",
+  "add.critical_escalation_intro": "اسے صرف ان دواؤں کے لیے آن کریں جہاں خوراک چھوٹنا فوری طور پر اہم ہو — اس سے آدھی رات میں بھی آپ کے دیکھ بھال کرنے والے کو فوراً اطلاع مل جائے گی۔",
+  "add.critical_escalation_on": "دیکھ بھال کرنے والے کو فوراً مطلع کریں",
+  "add.critical_escalation_off": "صرف عام یاد دہانی",
   "add.save": "دوا محفوظ کریں",
   "add.saved": "دوا محفوظ ہو گئی",
 

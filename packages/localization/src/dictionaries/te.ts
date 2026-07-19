@@ -121,6 +121,10 @@ export const te: Record<keyof typeof en, string> = {
   "add.quantity_label": "ఇప్పుడు మీ వద్ద ఎన్ని ఉన్నాయి? (ఐచ్ఛికం)",
   "add.reason_label": "డాక్టర్ దేనికోసం అని చెప్పారు? (ఐచ్ఛికం)",
   "add.prescriber_label": "డాక్టర్ పేరు (ఐచ్ఛికం)",
+  "add.critical_escalation_label": "ఈ మందు మోతాదు మిస్ అయితే",
+  "add.critical_escalation_intro": "మోతాదు మిస్ కావడం అత్యవసరంగా ముఖ్యమైన మందులకు మాత్రమే దీన్ని ఆన్ చేయండి — ఇది అర్ధరాత్రి అయినా మీ కేర్‌గివర్‌కు వెంటనే తెలియజేస్తుంది.",
+  "add.critical_escalation_on": "నా కేర్‌గివర్‌కు వెంటనే తెలియజేయండి",
+  "add.critical_escalation_off": "సాధారణ రిమైండర్ మాత్రమే",
   "add.save": "మందు సేవ్ చేయండి",
   "add.saved": "మందు సేవ్ అయింది",
 

@@ -122,6 +122,10 @@ export const en = {
   "add.quantity_label": "How many do you have now? (optional)",
   "add.reason_label": "What did the doctor say it is for? (optional)",
   "add.prescriber_label": "Doctor's name (optional)",
+  "add.critical_escalation_label": "If I miss a dose of this medicine",
+  "add.critical_escalation_intro": "Only turn this on for medicines where a missed dose matters urgently — it will alert your caregiver right away, even in the middle of the night.",
+  "add.critical_escalation_on": "Alert my caregiver immediately",
+  "add.critical_escalation_off": "Normal reminder only",
   "add.save": "Save medicine",
   "add.saved": "Medicine saved",
 

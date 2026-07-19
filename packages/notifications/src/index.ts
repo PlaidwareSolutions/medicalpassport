@@ -12,7 +12,7 @@ export interface OtpSender {
 }
 
 /** Pre-approved, PHI-free-unless-opted-in message keys (docs/16) — never freeform text. */
-export type SmsTemplateKey = "dose_reminder" | "refill" | "completion";
+export type SmsTemplateKey = "dose_reminder" | "refill" | "completion" | "caregiver_escalation";
 
 export interface SmsMessageSender {
   sendTemplate(phoneE164: string, templateKey: string, params: Record<string, string>): Promise<{ providerMessageId: string }>;
@@ -92,6 +92,8 @@ const SMS_TEMPLATES: Record<SmsTemplateKey, (name: string | undefined) => string
   dose_reminder: (name) => (name ? `${name}: it's time to take this now.` : "Medicine reminder: time to take your scheduled medicine."),
   refill: (name) => (name ? `${name}: you may be running low — check your supply.` : "Medicine reminder: you may be running low on a medicine. Check your supply."),
   completion: (name) => (name ? `${name}: this course was expected to finish. Please review it.` : "Medicine reminder: a course of medicine was expected to finish. Please review it."),
+  caregiver_escalation: (name) =>
+    name ? `${name}: a scheduled dose may have been missed. Please check in.` : "Missed dose: a scheduled dose may have been missed. Please check in.",
 };
 
 interface TelnyxMessageResponse {

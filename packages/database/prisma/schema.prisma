@@ -519,6 +519,10 @@ model PatientMedication {
   /// tracking for this medicine. Never inferred; only ever set by the
   /// patient (add/edit) or the mark-refilled action.
   quantityOnHand  Decimal?         @map("quantity_on_hand") @db.Decimal(8, 2)
+  /// Patient opt-in only (docs/16 "opt-in policy") — never an inferred
+  /// clinical judgement of severity. When true, a missed dose of this
+  /// medicine escalates to caregivers immediately, bypassing quiet hours.
+  criticalEscalation Boolean       @default(false) @map("critical_escalation")
 
   rowVersion Int       @default(0) @map("row_version")
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
@@ -790,8 +794,11 @@ model Notification {
   kind                NotificationKind        @default(dose_reminder)
   scheduledDoseId     String?                 @map("scheduled_dose_id") @db.Uuid
   scheduledDose       ScheduledDose?          @relation(fields: [scheduledDoseId], references: [id])
-  /// Set for `refill`/`completion` kinds (docs/07 screen 27) — dose_reminder
-  /// notifications reach their medication via scheduledDose instead.
+  /// Set for `refill`/`completion` kinds (docs/07 screen 27) and for
+  /// `caregiver_escalation` (alongside scheduledDoseId, to look up the
+  /// medicine's criticalEscalation bypass flag at dispatch time) —
+  /// dose_reminder notifications reach their medication via scheduledDose
+  /// alone.
   patientMedicationId String?                 @map("patient_medication_id") @db.Uuid
   patientMedication   PatientMedication?      @relation(fields: [patientMedicationId], references: [id])
   privacyMode         NotificationPrivacyMode @default(generic) @map("privacy_mode")

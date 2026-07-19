@@ -138,6 +138,7 @@ export interface PatientMedicationDto {
   startDate: string | null;
   endDate: string | null;
   quantityOnHand: string | null;
+  criticalEscalation: boolean;
   rowVersion: number;
   instruction: MedicationInstructionDto | null;
   createdAt: string;

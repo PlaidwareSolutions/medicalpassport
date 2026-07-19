@@ -121,6 +121,10 @@ export const hi: Record<keyof typeof en, string> = {
   "add.quantity_label": "अभी आपके पास कितनी हैं? (वैकल्पिक)",
   "add.reason_label": "डॉक्टर ने किसलिए बताई? (वैकल्पिक)",
   "add.prescriber_label": "डॉक्टर का नाम (वैकल्पिक)",
+  "add.critical_escalation_label": "अगर इस दवा की खुराक छूट जाए",
+  "add.critical_escalation_intro": "इसे केवल उन दवाओं के लिए चालू करें जहाँ खुराक छूटना तुरंत मायने रखता है — इससे आपके देखभालकर्ता को आधी रात में भी तुरंत सूचना मिलेगी।",
+  "add.critical_escalation_on": "देखभालकर्ता को तुरंत सूचित करें",
+  "add.critical_escalation_off": "सामान्य रिमाइंडर ही",
   "add.save": "दवा सहेजें",
   "add.saved": "दवा सहेज ली गई",
 

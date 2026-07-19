@@ -34,6 +34,7 @@ export default function AddMedicationPage() {
   const [prescriber, setPrescriber] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [quantityOnHand, setQuantityOnHand] = useState("");
+  const [criticalEscalation, setCriticalEscalation] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [savedOffline, setSavedOffline] = useState(false);
@@ -70,6 +71,7 @@ export default function AddMedicationPage() {
         ...(reason.trim() ? { patientReason: reason.trim() } : {}),
         ...(prescriber.trim() ? { prescriberName: prescriber.trim() } : {}),
         ...(quantityOnHand.trim() ? { quantityOnHand: Number(quantityOnHand) } : {}),
+        criticalEscalation,
         instruction: {
           doseQuantity: Number(doseQuantity),
           doseUnit: "tablet",
@@ -254,6 +256,21 @@ export default function AddMedicationPage() {
             inputMode="numeric"
             value={quantityOnHand}
             onChange={(e) => setQuantityOnHand(e.target.value)}
+          />
+
+          <SectionTitle>{t("add.critical_escalation_label")}</SectionTitle>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+            {t("add.critical_escalation_intro")}
+          </span>
+          <ChoiceGrid
+            label={t("add.critical_escalation_label")}
+            columns={2}
+            choices={[
+              { value: "off", label: t("add.critical_escalation_off") },
+              { value: "on", label: t("add.critical_escalation_on") },
+            ]}
+            value={criticalEscalation ? "on" : "off"}
+            onChange={(v) => setCriticalEscalation(v === "on")}
           />
 
           <div style={{ marginTop: "var(--space-lg)" }}>

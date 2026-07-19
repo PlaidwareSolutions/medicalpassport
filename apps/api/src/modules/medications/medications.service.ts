@@ -97,6 +97,7 @@ export class MedicationsService {
           endDate: input.endDate,
           isPrn: input.isPrn || input.instruction.frequencyCode === "SOS",
           quantityOnHand: input.quantityOnHand,
+          criticalEscalation: input.criticalEscalation,
           instructions: {
             create: {
               doseQuantity: input.instruction.doseQuantity,
@@ -154,6 +155,7 @@ export class MedicationsService {
           ...(input.patientReason !== undefined ? { patientReason: input.patientReason } : {}),
           ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
           ...(input.quantityOnHand !== undefined ? { quantityOnHand: input.quantityOnHand } : {}),
+          ...(input.criticalEscalation !== undefined ? { criticalEscalation: input.criticalEscalation } : {}),
           rowVersion: { increment: 1 },
         },
       });
@@ -272,6 +274,7 @@ export class MedicationsService {
     startDate: Date | null;
     endDate: Date | null;
     quantityOnHand: unknown;
+    criticalEscalation: boolean;
     rowVersion: number;
     normalizationStatus: string;
     createdAt: Date;
@@ -322,6 +325,7 @@ export class MedicationsService {
       startDate: m.startDate?.toISOString().slice(0, 10) ?? null,
       endDate: m.endDate?.toISOString().slice(0, 10) ?? null,
       quantityOnHand: m.quantityOnHand != null ? String(m.quantityOnHand) : null,
+      criticalEscalation: m.criticalEscalation,
       rowVersion: m.rowVersion,
       instruction: instruction
         ? {

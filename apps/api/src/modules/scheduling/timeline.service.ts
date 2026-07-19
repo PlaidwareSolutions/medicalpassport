@@ -161,11 +161,12 @@ export class TimelineService {
         correlationId: actor.correlationId,
         context: { doseAction: input.action },
       });
-      // Dose acknowledgement from any surface resolves the reminder
-      // everywhere (docs/16) — a notification is never left "sent" forever
-      // once the patient has actually acted on the dose it was about.
-      const notification = await tx.notification.findFirst({ where: { scheduledDoseId } });
-      if (notification) {
+      // Dose acknowledgement from any surface resolves every notification
+      // tied to this dose (docs/16) — a plain dose_reminder and a
+      // caregiver_escalation can both exist for the same scheduledDoseId, so
+      // this must resolve all of them, not just the first found.
+      const notifications = await tx.notification.findMany({ where: { scheduledDoseId } });
+      for (const notification of notifications) {
         await tx.notificationAttempt.updateMany({
           where: { notificationId: notification.id, status: "sent" },
           data: { status: "acknowledged", statusAt: new Date() },
