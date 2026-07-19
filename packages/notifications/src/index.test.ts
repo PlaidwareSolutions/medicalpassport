@@ -1,5 +1,6 @@
+import { generateKeyPairSync, sign as signEd25519 } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TelnyxSmsSender } from "./index.js";
+import { TelnyxSmsSender, parseTelnyxDeliveryOutcome, verifyTelnyxWebhookSignature } from "./index.js";
 
 function mockFetchOnce(status: number, body: unknown) {
   const fetchMock = vi.fn().mockResolvedValue({
@@ -85,5 +86,81 @@ describe("TelnyxSmsSender", () => {
   it("throws a clear error when Telnyx's response has no message id and no parseable error body", async () => {
     mockFetchOnce(500, null);
     await expect(sender.sendOtp("+919000000001", "123456", "en")).rejects.toThrow(/telnyx_http_500/);
+  });
+});
+
+describe("verifyTelnyxWebhookSignature", () => {
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const rawPublicKeyBase64 = publicKey.export({ type: "spki", format: "der" }).subarray(-32).toString("base64");
+
+  function sign(timestamp: string, body: string): string {
+    const signedData = Buffer.concat([Buffer.from(timestamp, "utf8"), Buffer.from("|", "utf8"), Buffer.from(body, "utf8")]);
+    return signEd25519(null, signedData, privateKey).toString("base64");
+  }
+
+  it("accepts a genuinely valid signature over timestamp|body", () => {
+    const timestamp = "1732000000";
+    const body = JSON.stringify({ data: { event_type: "message.finalized" } });
+    const signature = sign(timestamp, body);
+    expect(verifyTelnyxWebhookSignature(Buffer.from(body), signature, timestamp, rawPublicKeyBase64)).toBe(true);
+  });
+
+  it("rejects a signature when the body was tampered with after signing", () => {
+    const timestamp = "1732000000";
+    const signature = sign(timestamp, JSON.stringify({ data: { event_type: "message.finalized" } }));
+    const tampered = JSON.stringify({ data: { event_type: "message.sent" } });
+    expect(verifyTelnyxWebhookSignature(Buffer.from(tampered), signature, timestamp, rawPublicKeyBase64)).toBe(false);
+  });
+
+  it("rejects a signature made with a different key than the configured public key", () => {
+    const timestamp = "1732000000";
+    const body = JSON.stringify({ data: { event_type: "message.finalized" } });
+    const signature = sign(timestamp, body);
+    const otherKey = generateKeyPairSync("ed25519").publicKey.export({ type: "spki", format: "der" }).subarray(-32).toString("base64");
+    expect(verifyTelnyxWebhookSignature(Buffer.from(body), signature, timestamp, otherKey)).toBe(false);
+  });
+
+  it("never throws on malformed input — treats it as an invalid signature", () => {
+    expect(verifyTelnyxWebhookSignature(Buffer.from("{}"), "not-valid-base64!!", "123", "also-not-valid!!")).toBe(false);
+  });
+});
+
+describe("parseTelnyxDeliveryOutcome", () => {
+  it("extracts a delivered outcome from a message.finalized event", () => {
+    const outcome = parseTelnyxDeliveryOutcome({
+      data: { event_type: "message.finalized", payload: { id: "msg-1", to: [{ status: "delivered" }] } },
+    });
+    expect(outcome).toEqual({ messageId: "msg-1", outcome: "delivered" });
+  });
+
+  it("extracts a failed outcome with the real error digest", () => {
+    const outcome = parseTelnyxDeliveryOutcome({
+      data: {
+        event_type: "message.finalized",
+        payload: {
+          id: "msg-2",
+          to: [{ status: "delivery_failed" }],
+          errors: [{ code: "40329", detail: "Tollfree number is not verified" }],
+        },
+      },
+    });
+    expect(outcome).toEqual({ messageId: "msg-2", outcome: "failed", errorDigest: "telnyx_40329: Tollfree number is not verified" });
+  });
+
+  it("ignores message.sent — already captured synchronously at send time", () => {
+    expect(parseTelnyxDeliveryOutcome({ data: { event_type: "message.sent", payload: { id: "msg-3", to: [{ status: "sent" }] } } })).toBeNull();
+  });
+
+  it("ignores an inconclusive delivery_unconfirmed status", () => {
+    expect(
+      parseTelnyxDeliveryOutcome({
+        data: { event_type: "message.finalized", payload: { id: "msg-4", to: [{ status: "delivery_unconfirmed" }] } },
+      }),
+    ).toBeNull();
+  });
+
+  it("returns null when the payload is missing expected fields", () => {
+    expect(parseTelnyxDeliveryOutcome({ data: { event_type: "message.finalized", payload: {} } })).toBeNull();
+    expect(parseTelnyxDeliveryOutcome({})).toBeNull();
   });
 });

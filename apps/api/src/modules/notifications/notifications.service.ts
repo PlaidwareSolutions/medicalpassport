@@ -162,4 +162,20 @@ export class NotificationsService {
     });
     return { dismissed: true as const };
   }
+
+  /**
+   * Applies a Telnyx delivery-status webhook to the attempt it belongs to
+   * (docs/16 follow-up — signature already verified by the caller). No
+   * matching attempt is expected and fine to ignore silently: OTP sends
+   * never create a `NotificationAttempt` row, so their webhooks have
+   * nothing to correlate against.
+   */
+  async recordTelnyxDeliveryOutcome(messageId: string, outcome: "delivered" | "failed", errorDigest?: string): Promise<void> {
+    const attempt = await this.prisma.notificationAttempt.findFirst({ where: { providerMessageId: messageId } });
+    if (!attempt) return;
+    await this.prisma.notificationAttempt.update({
+      where: { id: attempt.id },
+      data: { status: outcome, statusAt: new Date(), ...(errorDigest ? { errorDigest } : {}) },
+    });
+  }
 }

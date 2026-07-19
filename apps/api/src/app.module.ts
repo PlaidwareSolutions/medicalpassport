@@ -36,6 +36,7 @@ import { ExtractionController } from "./modules/extraction/extraction.controller
 import { ExtractionService } from "./modules/extraction/extraction.service";
 import { NotificationsController } from "./modules/notifications/notifications.controller";
 import { NotificationsService } from "./modules/notifications/notifications.service";
+import { TelnyxWebhookController } from "./modules/notifications/telnyx-webhook.controller";
 import { SyncController } from "./modules/sync/sync.controller";
 import { SyncService } from "./modules/sync/sync.service";
 
@@ -60,6 +61,7 @@ const OTP_SENDER = "OTP_SENDER";
     DevStorageController,
     ExtractionController,
     NotificationsController,
+    TelnyxWebhookController,
     SyncController,
   ],
   providers: [
@@ -84,7 +86,11 @@ const OTP_SENDER = "OTP_SENDER";
       // simulates the send instead.
       useValue:
         env().OTP_TRANSPORT === "sms"
-          ? new TelnyxSmsSender({ apiKey: env().TELNYX_API_KEY!, fromNumber: env().TELNYX_FROM_NUMBER! })
+          ? new TelnyxSmsSender({
+              apiKey: env().TELNYX_API_KEY!,
+              fromNumber: env().TELNYX_FROM_NUMBER!,
+              webhookUrl: env().TELNYX_WEBHOOK_URL,
+            })
           : new LogOtpSender((obj, msg) => logger.info(obj, msg)),
     },
     {

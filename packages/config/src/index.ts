@@ -68,6 +68,17 @@ export const apiEnvShape = {
    */
   TELNYX_API_KEY: z.string().optional(),
   TELNYX_FROM_NUMBER: z.string().optional(),
+  /**
+   * Delivery-status webhooks (docs/16 follow-up): TELNYX_PUBLIC_KEY (from
+   * the Telnyx portal, distinct from the API key) verifies the Ed25519
+   * signature on incoming webhook calls; TELNYX_WEBHOOK_URL is the full
+   * public HTTPS URL of this API's webhook endpoint
+   * (`https://<host>/v1/webhooks/telnyx/sms`), passed to Telnyx on send so
+   * it knows where to deliver status updates. Both optional — without them
+   * SMS still sends, it just never learns the final delivery outcome.
+   */
+  TELNYX_PUBLIC_KEY: z.string().optional(),
+  TELNYX_WEBHOOK_URL: z.string().url().optional(),
 } as const;
 
 export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;
@@ -98,6 +109,8 @@ export const cronEnvShape = {
   /** Needed by detect-due-reminders to send SMS reminders (docs/16, OD-10). */
   TELNYX_API_KEY: z.string().optional(),
   TELNYX_FROM_NUMBER: z.string().optional(),
+  /** Passed to Telnyx on send so delivery-status webhooks reach the API (must match its TELNYX_WEBHOOK_URL). */
+  TELNYX_WEBHOOK_URL: z.string().url().optional(),
 } as const;
 
 export type CronEnv = z.infer<z.ZodObject<typeof cronEnvShape>>;

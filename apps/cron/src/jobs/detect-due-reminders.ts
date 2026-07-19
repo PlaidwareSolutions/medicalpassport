@@ -32,6 +32,12 @@
  * own `pushEnabled` preference toggle, since that's a UX on/off switch
  * independent of whether a channel happens to still be registered.
  *
+ * A successful SMS send's `NotificationAttempt` records Telnyx's message id
+ * (`providerMessageId`) — this job only ever sees the synchronous
+ * queue-acceptance result, not the real final delivery outcome, which
+ * arrives later via the API's Telnyx webhook receiver
+ * (`TelnyxWebhookController`) and correlates back to this same row.
+ *
  * Decrypting stored channel addresses duplicates the small AES-256-GCM
  * routine in apps/api/src/common/crypto.ts rather than sharing it — same
  * reasoning as extend-scheduled-doses.ts: the cron app has no NestJS
@@ -194,7 +200,7 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
       : undefined;
   const smsSender =
     config.TELNYX_API_KEY && config.TELNYX_FROM_NUMBER
-      ? new TelnyxSmsSender({ apiKey: config.TELNYX_API_KEY, fromNumber: config.TELNYX_FROM_NUMBER })
+      ? new TelnyxSmsSender({ apiKey: config.TELNYX_API_KEY, fromNumber: config.TELNYX_FROM_NUMBER, webhookUrl: config.TELNYX_WEBHOOK_URL })
       : undefined;
   if (!pushSender && !smsSender) {
     log.info({}, "no reminder channel configured (no VAPID keys, no Telnyx key) — skipping");
@@ -311,12 +317,18 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
         } else if (recipient.channel === "sms") {
           if (!smsSender) throw new Error("sms channel exists but TELNYX_API_KEY/TELNYX_FROM_NUMBER aren't configured");
           const phoneE164 = decryptPlaintext(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
-          await smsSender.sendTemplate(phoneE164, notification.kind, {
+          const { providerMessageId } = await smsSender.sendTemplate(phoneE164, notification.kind, {
             medicationName: notification.privacyMode === "full_name" ? (medicationName ?? "") : "",
           });
           anySent = true;
           await prisma.notificationAttempt.create({
-            data: { notificationId: notification.id, notificationChannelId: recipient.channelId, channel: "sms", status: "sent" },
+            data: {
+              notificationId: notification.id,
+              notificationChannelId: recipient.channelId,
+              channel: "sms",
+              status: "sent",
+              providerMessageId,
+            },
           });
         }
       } catch (err) {

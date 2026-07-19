@@ -9,6 +9,7 @@ async function bootstrap(): Promise<void> {
   const config = env(); // fail fast on invalid environment
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: false, // pino handles logging
+    rawBody: true, // Telnyx webhook signature verification needs the exact signed bytes
   });
 
   app.use(cookieParser());

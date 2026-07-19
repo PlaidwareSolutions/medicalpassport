@@ -834,10 +834,15 @@ model NotificationAttempt {
   channel               NotificationChannelKind
   status                NotificationAttemptStatus @default(queued)
   errorDigest           String?                   @map("error_digest")
+  /// Provider-side send id (Telnyx message id) — correlates a later
+  /// delivery-status webhook back to this attempt. Null for web push (no
+  /// provider message id) and for sends made before this field existed.
+  providerMessageId     String?                   @map("provider_message_id")
   attemptedAt           DateTime                  @default(now()) @map("attempted_at") @db.Timestamptz(6)
   statusAt              DateTime                  @default(now()) @map("status_at") @db.Timestamptz(6)
 
   @@index([notificationId])
+  @@index([providerMessageId])
   @@map("notification_attempts")
 }
 

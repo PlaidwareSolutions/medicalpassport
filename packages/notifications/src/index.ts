@@ -4,6 +4,7 @@
  * transport, which the API refuses to run in production. Web push (docs/16)
  * needs no such decision — it's standards-based and provider-free.
  */
+import { createPublicKey, verify as verifySignature } from "node:crypto";
 import webpush from "web-push";
 
 export interface OtpSender {
@@ -110,13 +111,18 @@ interface TelnyxMessageResponse {
  * diagnosis rather than a generic "send failed".
  */
 export class TelnyxSmsSender implements OtpSender, SmsMessageSender {
-  constructor(private readonly config: { apiKey: string; fromNumber: string }) {}
+  constructor(private readonly config: { apiKey: string; fromNumber: string; webhookUrl?: string }) {}
 
   private async send(to: string, text: string): Promise<string> {
     const res = await fetch("https://api.telnyx.com/v2/messages", {
       method: "POST",
       headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: this.config.fromNumber, to, text }),
+      body: JSON.stringify({
+        from: this.config.fromNumber,
+        to,
+        text,
+        ...(this.config.webhookUrl ? { webhook_url: this.config.webhookUrl } : {}),
+      }),
     });
     const json = (await res.json().catch(() => null)) as TelnyxMessageResponse | null;
     if (!res.ok || !json?.data) {
@@ -142,4 +148,69 @@ export class TelnyxSmsSender implements OtpSender, SmsMessageSender {
     const providerMessageId = await this.send(phoneE164, text);
     return { providerMessageId };
   }
+}
+
+// Fixed 12-byte ASN.1 prefix that turns Telnyx's raw 32-byte Ed25519 public
+// key into a valid SPKI DER structure Node's crypto module can import —
+// Telnyx (like most webhook providers) hands out the raw key, not a PEM/DER
+// blob, and Node has no "raw Ed25519 key" import path of its own.
+const ED25519_SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
+
+/**
+ * Verifies a Telnyx delivery-status webhook's Ed25519 signature against the
+ * *raw* request body (docs/16 delivery-status webhook follow-up) — must run
+ * before the JSON is parsed/trusted, on the exact bytes Telnyx signed
+ * (`"{timestamp}|{raw body}"`, per Telnyx's messaging webhook docs).
+ */
+export function verifyTelnyxWebhookSignature(
+  rawBody: Buffer,
+  signatureBase64: string,
+  timestamp: string,
+  publicKeyBase64: string,
+): boolean {
+  try {
+    const publicKey = createPublicKey({
+      key: Buffer.concat([ED25519_SPKI_PREFIX, Buffer.from(publicKeyBase64, "base64")]),
+      format: "der",
+      type: "spki",
+    });
+    const signedData = Buffer.concat([Buffer.from(timestamp, "utf8"), Buffer.from("|", "utf8"), rawBody]);
+    return verifySignature(null, signedData, publicKey, Buffer.from(signatureBase64, "base64"));
+  } catch {
+    return false;
+  }
+}
+
+export interface TelnyxDeliveryOutcome {
+  messageId: string;
+  outcome: "delivered" | "failed";
+  errorDigest?: string;
+}
+
+/**
+ * Reduces a Telnyx messaging webhook event to the one thing a
+ * `NotificationAttempt` cares about: did this specific send end up
+ * delivered or failed. `message.sent`/`queued`/`sending` (already captured
+ * synchronously at send time) and anything this app never triggers (e.g.
+ * inbound `message.received`) are deliberately ignored — returns `null`.
+ */
+export function parseTelnyxDeliveryOutcome(body: unknown): TelnyxDeliveryOutcome | null {
+  const event = body as {
+    data?: {
+      event_type?: string;
+      payload?: { id?: string; to?: Array<{ status?: string }>; errors?: Array<{ code?: string; detail?: string }> };
+    };
+  };
+  if (event.data?.event_type !== "message.finalized") return null;
+  const payload = event.data.payload;
+  const messageId = payload?.id;
+  const status = payload?.to?.[0]?.status;
+  if (!messageId || !status) return null;
+
+  if (status === "delivered") return { messageId, outcome: "delivered" };
+  if (status === "delivery_failed" || status === "sending_failed") {
+    const err = payload?.errors?.[0];
+    return { messageId, outcome: "failed", errorDigest: err ? `telnyx_${err.code}: ${err.detail}` : "delivery_failed" };
+  }
+  return null; // delivery_unconfirmed etc. — no confident outcome to record
 }
