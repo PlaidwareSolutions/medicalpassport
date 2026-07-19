@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { useI18n } from "../../../lib/i18n";
-import { createShare, shareUrl } from "../../../lib/sharing";
+import { createShare, shareUrl, shareVisitSummaryViaWhatsApp } from "../../../lib/sharing";
 
 const SECTION_KEYS = ["medications", "allergies", "conditions", "recentChanges", "concerns"] as const;
 const EXPIRY_OPTIONS = [
@@ -24,6 +24,8 @@ export default function CreateSharePage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ url: string } | undefined>();
   const [copied, setCopied] = useState(false);
+  const [whatsAppBusy, setWhatsAppBusy] = useState(false);
+  const [whatsAppError, setWhatsAppError] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -47,6 +49,18 @@ export default function CreateSharePage() {
     await navigator.clipboard.writeText(result.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function shareViaWhatsApp() {
+    setWhatsAppBusy(true);
+    setWhatsAppError(false);
+    try {
+      await shareVisitSummaryViaWhatsApp(sections);
+    } catch {
+      setWhatsAppError(true);
+    } finally {
+      setWhatsAppBusy(false);
+    }
   }
 
   if (result) {
@@ -127,6 +141,12 @@ export default function CreateSharePage() {
 
       <Button fullWidth disabled={busy} onClick={() => void create()}>
         {t("share.create")}
+      </Button>
+
+      <div style={{ height: "var(--space-md)" }} />
+      {whatsAppError ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
+      <Button variant="secondary" fullWidth disabled={whatsAppBusy} onClick={() => void shareViaWhatsApp()}>
+        {t("share.whatsapp_button")}
       </Button>
     </AppShell>
   );

@@ -324,6 +324,7 @@ export const hi: Record<keyof typeof en, string> = {
   "share.expiry.24h": "24 घंटे",
   "share.expiry.7d": "7 दिन",
   "share.create": "साझा करें",
+  "share.whatsapp_button": "WhatsApp से भेजें",
   "share.copy_link": "लिंक कॉपी करें",
   "share.copied": "कॉपी हो गया!",
   "share.revocable_note": "आप कभी भी अपनी साझा सूची से इसे रद्द कर सकते हैं।",

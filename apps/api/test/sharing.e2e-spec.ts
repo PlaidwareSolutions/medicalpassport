@@ -161,6 +161,25 @@ describe("Sharing e2e", () => {
     expect(log.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ result: "success" })]));
   }, 30000);
 
+  it("exports the patient's own doctor-visit summary as WhatsApp-ready plain text", async () => {
+    const res = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/visit-summary/text"),
+    ).expect(200);
+    expect(typeof res.body.text).toBe("string");
+    expect(res.body.text).toContain("Sharing Test Medicine");
+    expect(res.body.text).toContain("Dust");
+    expect(res.body.text).not.toMatch(/<[a-z]+>/i); // plain text, not HTML markup
+  });
+
+  it("the text export respects selective sections the same way the PDF/JSON exports do", async () => {
+    const res = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/visit-summary/text?allergies=false"),
+    ).expect(200);
+    expect(res.body.text).toContain("Sharing Test Medicine");
+    expect(res.body.text).not.toContain("Dust");
+    expect(res.body.text).not.toMatch(/allergies/i);
+  });
+
   it("rejects a PDF export for an unknown token the same way as the JSON path", async () => {
     const res = await request(app.getHttpServer()).get("/v1/public/shares/not-a-real-token-at-all/pdf").expect(404);
     expect(res.body.title).toBe("This link is no longer available");

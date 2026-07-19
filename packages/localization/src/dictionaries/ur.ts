@@ -324,6 +324,7 @@ export const ur: Record<keyof typeof en, string> = {
   "share.expiry.24h": "24 گھنٹے",
   "share.expiry.7d": "7 دن",
   "share.create": "شیئر کریں",
+  "share.whatsapp_button": "WhatsApp کے ذریعے شیئر کریں",
   "share.copy_link": "لنک کاپی کریں",
   "share.copied": "کاپی ہو گیا!",
   "share.revocable_note": "آپ کسی بھی وقت اپنی شیئرز کی فہرست سے اسے منسوخ کر سکتے ہیں۔",

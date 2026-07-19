@@ -77,6 +77,20 @@ export async function downloadVisitSummaryPdf(): Promise<void> {
   triggerDownload(blob, "medication-summary.pdf");
 }
 
+/**
+ * Opens WhatsApp's own share intent with the visit summary as plain text
+ * (docs/07 screen 29) — no WhatsApp Business API account exists to send
+ * through server-side (OD-10), so the patient's own WhatsApp app sends it,
+ * the same way any other "share to WhatsApp" link works on web or mobile.
+ */
+export async function shareVisitSummaryViaWhatsApp(sections: Record<string, boolean>): Promise<void> {
+  const query = new URLSearchParams(Object.entries(sections).map(([k, v]) => [k, String(v)])).toString();
+  const res = await api.get<{ text: string }>(`/profiles/current/visit-summary/text?${query}`, {
+    profileId: getActiveProfileId(),
+  });
+  window.open(`https://wa.me/?text=${encodeURIComponent(res.text)}`, "_blank", "noopener,noreferrer");
+}
+
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

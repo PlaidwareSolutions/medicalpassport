@@ -327,6 +327,7 @@ export const en = {
   "share.expiry.24h": "24 hours",
   "share.expiry.7d": "7 days",
   "share.create": "Create share",
+  "share.whatsapp_button": "Share via WhatsApp",
   "share.copy_link": "Copy link",
   "share.copied": "Copied!",
   "share.revocable_note": "You can revoke this share at any time from your shares list.",

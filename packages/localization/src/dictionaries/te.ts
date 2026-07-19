@@ -324,6 +324,7 @@ export const te: Record<keyof typeof en, string> = {
   "share.expiry.24h": "24 గంటలు",
   "share.expiry.7d": "7 రోజులు",
   "share.create": "పంచుకోండి",
+  "share.whatsapp_button": "WhatsApp ద్వారా షేర్ చేయండి",
   "share.copy_link": "లింక్ కాపీ చేయండి",
   "share.copied": "కాపీ అయింది!",
   "share.revocable_note": "మీరు ఎప్పుడైనా మీ షేర్‌ల జాబితా నుండి దీన్ని రద్దు చేయవచ్చు.",

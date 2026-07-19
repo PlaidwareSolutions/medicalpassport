@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
-import { createShareSchema } from "@medpass/validation";
+import { createShareSchema, visitSummaryTextQuerySchema } from "@medpass/validation";
 import { Public } from "../../common/auth.guard";
 import { sha256Hex } from "../../common/crypto";
 import type { ApiRequest } from "../../common/http";
@@ -9,6 +9,7 @@ import { ProfileAccessService } from "../../common/profile-access.service";
 import { SharingService } from "./sharing.service";
 import { ALL_SECTIONS, VisitSummaryService } from "./visit-summary.service";
 import { VisitSummaryPdfService } from "./visit-summary-pdf.service";
+import { renderVisitSummaryText } from "./visit-summary-text";
 
 @Controller()
 export class SharingController {
@@ -36,6 +37,22 @@ export class SharingController {
     res.setHeader("content-disposition", 'attachment; filename="medication-summary.pdf"');
     res.setHeader("cache-control", "private, no-store");
     res.send(buffer);
+  }
+
+  /**
+   * Plain-text summary for the patient's own WhatsApp app to send (docs/07
+   * screen 29 "WhatsApp text summary") — there's no WhatsApp Business API
+   * account to send through server-side (OD-10 blocked), so this hands the
+   * formatted text to the client, which opens WhatsApp's own share intent.
+   * Respects the same selective sections as share creation (all included
+   * by default, matching `ALL_SECTIONS`).
+   */
+  @Get("profiles/current/visit-summary/text")
+  async visitSummaryText(@Query() query: unknown, @Req() req: ApiRequest) {
+    const { profileId } = await this.access.require(req, "share_records");
+    const sections = parseWith(visitSummaryTextQuerySchema, query);
+    const summary = await this.visitSummary.build(profileId, sections);
+    return { text: renderVisitSummaryText(summary) };
   }
 
   @Post("profiles/current/shares")
