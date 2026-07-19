@@ -276,3 +276,12 @@ export interface NotificationPreferencesDto {
   pushEnabled: boolean;
   privacyMode: "generic" | "full_name";
 }
+
+export interface ConsentDto {
+  id: string;
+  type: string;
+  purpose: string;
+  status: "active" | "revoked" | "expired";
+  grantedAt: string;
+  revokedAt: string | null;
+}

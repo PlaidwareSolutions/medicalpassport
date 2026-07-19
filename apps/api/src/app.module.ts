@@ -1,7 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { createLogger } from "@medpass/observability";
-import { LogOtpSender, type OtpSender } from "@medpass/notifications";
+import { LogOtpSender, TelnyxSmsSender, type OtpSender } from "@medpass/notifications";
+import { env } from "./common/env";
 import { PrismaService } from "./common/prisma.service";
 import { CorrelationMiddleware } from "./common/correlation.middleware";
 import { LoggingInterceptor } from "./common/logging.interceptor";
@@ -76,7 +77,16 @@ const OTP_SENDER = "OTP_SENDER";
     ExtractionService,
     NotificationsService,
     SyncService,
-    { provide: OTP_SENDER, useValue: new LogOtpSender((obj, msg) => logger.info(obj, msg)) },
+    {
+      provide: OTP_SENDER,
+      // OTP_TRANSPORT="sms" (docs/16, OD-10 — now unblocked via Telnyx) sends
+      // a real OTP; "log" (dev-only, refused in production — see env.ts)
+      // simulates the send instead.
+      useValue:
+        env().OTP_TRANSPORT === "sms"
+          ? new TelnyxSmsSender({ apiKey: env().TELNYX_API_KEY!, fromNumber: env().TELNYX_FROM_NUMBER! })
+          : new LogOtpSender((obj, msg) => logger.info(obj, msg)),
+    },
     {
       provide: AuthService,
       useFactory: (prisma: PrismaService, otpSender: OtpSender) => new AuthService(prisma, otpSender),

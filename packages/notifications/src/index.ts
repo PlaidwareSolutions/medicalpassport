@@ -11,6 +11,9 @@ export interface OtpSender {
   sendOtp(phoneE164: string, code: string, locale: string): Promise<void>;
 }
 
+/** Pre-approved, PHI-free-unless-opted-in message keys (docs/16) — never freeform text. */
+export type SmsTemplateKey = "dose_reminder" | "refill" | "completion";
+
 export interface SmsMessageSender {
   sendTemplate(phoneE164: string, templateKey: string, params: Record<string, string>): Promise<{ providerMessageId: string }>;
 }
@@ -75,5 +78,66 @@ export class VapidWebPushSender implements WebPushSender {
       }
       throw err;
     }
+  }
+}
+
+/**
+ * Privacy-safe SMS wording (docs/16) — the medicine name only appears in the
+ * `full_name`-opted-in variant, mirroring the push payload text in
+ * apps/cron's detect-due-reminders.ts exactly (kept in sync manually; a
+ * genuine drift between the two would just mean inconsistent wording across
+ * channels, not a broken send). Terse: SMS is billed per-segment.
+ */
+const SMS_TEMPLATES: Record<SmsTemplateKey, (name: string | undefined) => string> = {
+  dose_reminder: (name) => (name ? `${name}: it's time to take this now.` : "Medicine reminder: time to take your scheduled medicine."),
+  refill: (name) => (name ? `${name}: you may be running low — check your supply.` : "Medicine reminder: you may be running low on a medicine. Check your supply."),
+  completion: (name) => (name ? `${name}: this course was expected to finish. Please review it.` : "Medicine reminder: a course of medicine was expected to finish. Please review it."),
+};
+
+interface TelnyxMessageResponse {
+  data?: { id: string };
+  errors?: Array<{ code: string; detail: string }>;
+}
+
+/**
+ * Real SMS delivery via Telnyx (docs/16, OD-10) — a thin wrapper around
+ * `POST /v2/messages`, the same call for both OTP and reminder templates.
+ * Throws on failure (matching both interfaces' existing throw-on-failure
+ * contract) with the real Telnyx error code/detail in the message, since
+ * callers (the cron's NotificationAttempt recording) want that detail for
+ * diagnosis rather than a generic "send failed".
+ */
+export class TelnyxSmsSender implements OtpSender, SmsMessageSender {
+  constructor(private readonly config: { apiKey: string; fromNumber: string }) {}
+
+  private async send(to: string, text: string): Promise<string> {
+    const res = await fetch("https://api.telnyx.com/v2/messages", {
+      method: "POST",
+      headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ from: this.config.fromNumber, to, text }),
+    });
+    const json = (await res.json().catch(() => null)) as TelnyxMessageResponse | null;
+    if (!res.ok || !json?.data) {
+      const err = json?.errors?.[0];
+      throw new Error(err ? `telnyx_${err.code}: ${err.detail}` : `telnyx_http_${res.status}`);
+    }
+    return json.data.id;
+  }
+
+  /** OTP codes are never logged (docs/12 §log hygiene) — only ever sent. */
+  async sendOtp(phoneE164: string, code: string, locale: string): Promise<void> {
+    const text =
+      locale === "hi"
+        ? `आपका मेडपास कोड ${code} है। इसे किसी के साथ साझा न करें।`
+        : `Your medpass code is ${code}. Do not share this with anyone.`;
+    await this.send(phoneE164, text);
+  }
+
+  async sendTemplate(phoneE164: string, templateKey: string, params: Record<string, string>): Promise<{ providerMessageId: string }> {
+    const build = SMS_TEMPLATES[templateKey as SmsTemplateKey];
+    if (!build) throw new Error(`Unknown SMS template: ${templateKey}`);
+    const text = build(params.medicationName);
+    const providerMessageId = await this.send(phoneE164, text);
+    return { providerMessageId };
   }
 }

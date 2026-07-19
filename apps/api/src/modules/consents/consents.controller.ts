@@ -1,13 +1,15 @@
 import { Body, Controller, Get, Post, Req } from "@nestjs/common";
 import { Param } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
-import { ERROR_CODES } from "@medpass/domain";
+import { ERROR_CODES, type ConsentType } from "@medpass/domain";
 import { grantConsentSchema } from "@medpass/validation";
+import type { Prisma } from "@medpass/database";
 import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { decryptField, encryptField, phoneDigest } from "../../common/crypto";
 
 @Controller()
 export class ConsentsController {
@@ -15,6 +17,25 @@ export class ConsentsController {
     private readonly prisma: PrismaService,
     private readonly access: ProfileAccessService,
   ) {}
+
+  /**
+   * Consent cascade (docs/18): granting/revoking `sms_reminders` activates
+   * or revokes the matching SMS `NotificationChannel` — only the patient
+   * (never a caregiver; `manage_consents` grants no caregiver scope, docs/18)
+   * can reach this, so `req.auth!.userId`'s own on-file phone is always the
+   * right number, the same one already verified at OTP sign-in.
+   */
+  private async cascadeConsent(tx: Prisma.TransactionClient, userId: string, type: ConsentType, status: "active" | "revoked") {
+    if (type !== "sms_reminders") return;
+    const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { phoneCiphertext: true } });
+    const phoneE164 = decryptField(user.phoneCiphertext);
+    const endpointDigest = phoneDigest(phoneE164);
+    await tx.notificationChannel.upsert({
+      where: { endpointDigest },
+      create: { userId, channel: "sms", addressCiphertext: encryptField(phoneE164), endpointDigest, status },
+      update: { status },
+    });
+  }
 
   @Get("profiles/current/consents")
   async list(@Req() req: ApiRequest) {
@@ -52,6 +73,7 @@ export class ConsentsController {
         correlationId: req.correlationId,
         context: { type: input.type },
       });
+      await this.cascadeConsent(tx, req.auth!.userId, input.type, "active");
       return consent;
     });
   }
@@ -79,9 +101,10 @@ export class ConsentsController {
         correlationId: req.correlationId,
         context: { type: consent.type },
       });
-      // Cascade enforcement hooks land with their features (channels: Stage 4,
-      // sharing: Stage 7). Caregiver-access consent is enforced via the
-      // relationship tables today.
+      await this.cascadeConsent(tx, req.auth!.userId, consent.type, "revoked");
+      // Sharing (Stage 7) and caregiver-access consent cascades: sharing has
+      // no consent-gated dependency yet; caregiver access is enforced via
+      // the relationship tables directly today.
       return updated;
     });
   }

@@ -270,6 +270,11 @@ export const te: Record<keyof typeof en, string> = {
   "reminders.new_quantity_label": "ఇప్పుడు మీ వద్ద ఎన్ని ఉన్నాయి?",
   "reminders.save": "సేవ్ చేయండి",
   "reminders.dismiss": "తీసివేయండి",
+  "reminders.sms_title": "SMS రిమైండర్‌లు",
+  "reminders.sms_intro": "మందు తీసుకునే సమయం అయినప్పుడు, యాప్ తెరవకుండానే టెక్స్ట్ మెసేజ్ పొందండి. ప్రామాణిక సందేశ రేట్లు వర్తించవచ్చు.",
+  "reminders.sms_enabled": "SMS రిమైండర్‌లు ఆన్‌లో ఉన్నాయి",
+  "reminders.sms_enable": "SMS రిమైండర్‌లను ఆన్ చేయండి",
+  "reminders.sms_disable": "SMS రిమైండర్‌లను ఆఫ్ చేయండి",
 
   "sync.online": "ఆన్‌లైన్",
   "sync.offline": "ఆఫ్‌లైన్",

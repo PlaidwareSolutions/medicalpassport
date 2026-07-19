@@ -1,10 +1,10 @@
 /**
- * Detects scheduled doses due within a small sliding window and sends a web
- * push reminder (docs/16 — reminders are core to the product; never depend
- * only on browser notifications, but this is the one channel unblocked
- * this pass: SMS/WhatsApp need a provider decision, OD-10). Idempotent via
- * `dedupeKey` on Notification, so a restart or an overlapping run can never
- * double-send for the same dose.
+ * Detects scheduled doses due within a small sliding window and dispatches a
+ * reminder over every channel the recipient has active — web push, and now
+ * SMS via Telnyx (docs/16, OD-10 resolved this pass; WhatsApp remains
+ * blocked — no WhatsApp Business Account connected to this account).
+ * Idempotent via `dedupeKey` on Notification, so a restart or an
+ * overlapping run can never double-send for the same dose.
  *
  * Detection and dispatch are separate passes: a Notification is created
  * (status `pending`) the moment a dose becomes due, but only actually sent
@@ -16,7 +16,15 @@
  * holding `manage_reminders` (or `full_management`) — consented reminder
  * fan-out, not the separate missed-dose escalation flow (not built).
  *
- * Decrypting the stored push subscription duplicates the small AES-256-GCM
+ * SMS is gated purely by an active `sms` NotificationChannel existing at
+ * all — which only ever exists because the consents cascade
+ * (ConsentsController) created it when the patient granted `sms_reminders`
+ * consent, so "channel active" already means "consented" (docs/16: SMS
+ * needs explicit consent). Web push additionally requires the patient's
+ * own `pushEnabled` preference toggle, since that's a UX on/off switch
+ * independent of whether a channel happens to still be registered.
+ *
+ * Decrypting stored channel addresses duplicates the small AES-256-GCM
  * routine in apps/api/src/common/crypto.ts rather than sharing it — same
  * reasoning as extend-scheduled-doses.ts: the cron app has no NestJS
  * dependency, and this is a handful of lines (docs/02: no premature
@@ -24,14 +32,14 @@
  * not silently.
  */
 import { createDecipheriv, createHash } from "node:crypto";
-import { VapidWebPushSender, type WebPushSubscriptionDetails } from "@medpass/notifications";
-import type { PrismaClient } from "@medpass/database";
+import { TelnyxSmsSender, VapidWebPushSender, type WebPushSubscriptionDetails } from "@medpass/notifications";
+import type { NotificationChannelKind, PrismaClient } from "@medpass/database";
 import { runJob } from "../lib/run-job";
 
 const WINDOW_MINUTES = 2;
 const SCHEDULE_TIMEZONE_OFFSET_MINUTES = 5.5 * 60; // Asia/Kolkata, fixed (matches extend-scheduled-doses.ts)
 
-function decryptAddress(ciphertext: string, fieldEncryptionKey: string): WebPushSubscriptionDetails {
+function decryptPlaintext(ciphertext: string, fieldEncryptionKey: string): string {
   const key = createHash("sha256").update(fieldEncryptionKey).digest();
   const buf = Buffer.from(ciphertext, "base64");
   const iv = buf.subarray(0, 12);
@@ -39,8 +47,11 @@ function decryptAddress(ciphertext: string, fieldEncryptionKey: string): WebPush
   const data = buf.subarray(28);
   const decipher = createDecipheriv("aes-256-gcm", key, iv);
   decipher.setAuthTag(tag);
-  const plaintext = Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
-  return JSON.parse(plaintext) as WebPushSubscriptionDetails;
+  return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
+}
+
+function decryptWebPushSubscription(ciphertext: string, fieldEncryptionKey: string): WebPushSubscriptionDetails {
+  return JSON.parse(decryptPlaintext(ciphertext, fieldEncryptionKey)) as WebPushSubscriptionDetails;
 }
 
 /** Minutes since local midnight, in the fixed IST offset. */
@@ -66,6 +77,7 @@ function isWithinQuietHours(pref: { quietHoursEnabled: boolean; quietHoursStart:
 
 interface Recipient {
   channelId: string;
+  channel: NotificationChannelKind;
   addressCiphertext: string;
 }
 
@@ -83,7 +95,7 @@ interface PendingNotification {
  * medicine itself rather than the timeline, since that's where the patient
  * acts (docs/07 screen 27).
  */
-function buildPayload(notification: PendingNotification, medicationName: string | undefined): { title: string; body: string; url: string } {
+function buildPushPayload(notification: PendingNotification, medicationName: string | undefined): { title: string; body: string; url: string } {
   const fullName = notification.privacyMode === "full_name" && medicationName;
   switch (notification.kind) {
     case "dose_reminder":
@@ -108,7 +120,12 @@ function buildPayload(notification: PendingNotification, medicationName: string 
 }
 
 /** Owner + any caregiver with reminder-management scope (docs/16 consented escalation). */
-async function resolveRecipients(prisma: PrismaClient, profileId: string, ownerUserId: string): Promise<Recipient[]> {
+async function resolveRecipients(
+  prisma: PrismaClient,
+  profileId: string,
+  ownerUserId: string,
+  pref: { pushEnabled: boolean } | null,
+): Promise<Recipient[]> {
   const caregivers = await prisma.caregiverRelationship.findMany({
     where: {
       patientProfileId: profileId,
@@ -119,22 +136,32 @@ async function resolveRecipients(prisma: PrismaClient, profileId: string, ownerU
     select: { caregiverUserId: true },
   });
   const userIds = [ownerUserId, ...caregivers.map((c) => c.caregiverUserId!)];
+
+  // web_push is gated by the patient's own on/off preference; sms's only
+  // gate is the channel existing at all, since it only exists because
+  // consent was granted (see file header).
+  const wantedChannels: NotificationChannelKind[] = ["sms"];
+  if (pref?.pushEnabled) wantedChannels.push("web_push");
+
   const channels = await prisma.notificationChannel.findMany({
-    where: { userId: { in: userIds }, channel: "web_push", status: "active" },
+    where: { userId: { in: userIds }, channel: { in: wantedChannels }, status: "active" },
   });
-  return channels.map((c) => ({ channelId: c.id, addressCiphertext: c.addressCiphertext }));
+  return channels.map((c) => ({ channelId: c.id, channel: c.channel, addressCiphertext: c.addressCiphertext }));
 }
 
 runJob("detect-due-reminders", async ({ prisma, log, config }) => {
-  if (!config.VAPID_PUBLIC_KEY || !config.VAPID_PRIVATE_KEY) {
-    log.info({}, "push not configured (VAPID keys unset) — skipping");
+  const pushSender =
+    config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
+      ? new VapidWebPushSender({ publicKey: config.VAPID_PUBLIC_KEY, privateKey: config.VAPID_PRIVATE_KEY, subject: config.VAPID_SUBJECT })
+      : undefined;
+  const smsSender =
+    config.TELNYX_API_KEY && config.TELNYX_FROM_NUMBER
+      ? new TelnyxSmsSender({ apiKey: config.TELNYX_API_KEY, fromNumber: config.TELNYX_FROM_NUMBER })
+      : undefined;
+  if (!pushSender && !smsSender) {
+    log.info({}, "no reminder channel configured (no VAPID keys, no Telnyx key) — skipping");
     return { sent: 0 };
   }
-  const sender = new VapidWebPushSender({
-    publicKey: config.VAPID_PUBLIC_KEY,
-    privateKey: config.VAPID_PRIVATE_KEY,
-    subject: config.VAPID_SUBJECT,
-  });
 
   // --- Pass 1: detect newly-due doses, create a pending Notification. ---
   const now = new Date();
@@ -151,13 +178,11 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
   let created = 0;
   for (const dose of dueDoses) {
     const profile = dose.medicationSchedule.patientMedication.patientProfile;
-    if (!profile.notificationPreference?.pushEnabled) continue;
-
-    const dedupeKey = `${dose.id}:web_push`;
+    const dedupeKey = `${dose.id}:reminder`;
     const existing = await prisma.notification.findUnique({ where: { dedupeKey } });
     if (existing) continue;
 
-    const recipients = await resolveRecipients(prisma, profile.id, profile.ownerUserId);
+    const recipients = await resolveRecipients(prisma, profile.id, profile.ownerUserId, profile.notificationPreference);
     if (recipients.length === 0) continue; // nothing to notify yet — re-detected next tick while still in window
 
     await prisma.notification.create({
@@ -165,7 +190,7 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
         patientProfileId: profile.id,
         kind: "dose_reminder",
         scheduledDoseId: dose.id,
-        privacyMode: profile.notificationPreference.privacyMode,
+        privacyMode: profile.notificationPreference?.privacyMode ?? "generic",
         dedupeKey,
         status: "pending",
       },
@@ -195,15 +220,15 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
       continue;
     }
 
-    const recipients = await resolveRecipients(prisma, notification.patientProfileId, notification.patientProfile.ownerUserId);
+    const recipients = await resolveRecipients(prisma, notification.patientProfileId, notification.patientProfile.ownerUserId, pref);
     if (recipients.length === 0) {
-      // dose_reminder has no value beyond the push itself (the Timeline
+      // dose_reminder has no value beyond the send itself (the Timeline
       // already shows the due dose), so nothing left to do — cancel it.
       // refill/completion are also a standing in-app list (docs/07 screen
-      // 27): with no push channel there's nothing to send, but the
-      // reminder itself is still real and must stay visible, so it's left
-      // `pending` rather than cancelled — a channel added later still
-      // gets a push on the very next tick.
+      // 27): with no channel there's nothing to send, but the reminder
+      // itself is still real and must stay visible, so it's left `pending`
+      // rather than cancelled — a channel added later still gets a send on
+      // the very next tick.
       if (notification.kind === "dose_reminder") {
         await prisma.notification.update({ where: { id: notification.id }, data: { status: "cancelled" } });
       }
@@ -212,41 +237,54 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
 
     const medicationName =
       notification.scheduledDose?.medicationSchedule.patientMedication.enteredName ?? notification.patientMedication?.enteredName;
-    const payload = buildPayload(notification, medicationName);
 
     let anySent = false;
     for (const recipient of recipients) {
       try {
-        const subscription = decryptAddress(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
-        const result = await sender.send(subscription, payload);
-        if (result.ok) {
+        if (recipient.channel === "web_push") {
+          if (!pushSender) throw new Error("web_push channel exists but VAPID keys aren't configured");
+          const subscription = decryptWebPushSubscription(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
+          const result = await pushSender.send(subscription, buildPushPayload(notification, medicationName));
+          if (result.ok) {
+            anySent = true;
+            await prisma.notificationAttempt.create({
+              data: { notificationId: notification.id, notificationChannelId: recipient.channelId, channel: "web_push", status: "sent" },
+            });
+          } else {
+            await prisma.notificationAttempt.create({
+              data: {
+                notificationId: notification.id,
+                notificationChannelId: recipient.channelId,
+                channel: "web_push",
+                status: "failed",
+                errorDigest: `http_${result.statusCode ?? "unknown"}`,
+              },
+            });
+            if (result.gone) {
+              await prisma.notificationChannel.update({ where: { id: recipient.channelId }, data: { status: "revoked" } });
+            }
+          }
+        } else if (recipient.channel === "sms") {
+          if (!smsSender) throw new Error("sms channel exists but TELNYX_API_KEY/TELNYX_FROM_NUMBER aren't configured");
+          const phoneE164 = decryptPlaintext(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
+          await smsSender.sendTemplate(phoneE164, notification.kind, {
+            medicationName: notification.privacyMode === "full_name" ? (medicationName ?? "") : "",
+          });
           anySent = true;
           await prisma.notificationAttempt.create({
-            data: { notificationId: notification.id, notificationChannelId: recipient.channelId, channel: "web_push", status: "sent" },
+            data: { notificationId: notification.id, notificationChannelId: recipient.channelId, channel: "sms", status: "sent" },
           });
-        } else {
-          await prisma.notificationAttempt.create({
-            data: {
-              notificationId: notification.id,
-              notificationChannelId: recipient.channelId,
-              channel: "web_push",
-              status: "failed",
-              errorDigest: `http_${result.statusCode ?? "unknown"}`,
-            },
-          });
-          if (result.gone) {
-            await prisma.notificationChannel.update({ where: { id: recipient.channelId }, data: { status: "revoked" } });
-          }
         }
       } catch (err) {
-        log.error({ channelId: recipient.channelId, err: err instanceof Error ? err.message : "unknown" }, "push send failed");
+        const message = err instanceof Error ? err.message : "unknown";
+        log.error({ channelId: recipient.channelId, channel: recipient.channel, err: message }, "reminder send failed");
         await prisma.notificationAttempt.create({
           data: {
             notificationId: notification.id,
             notificationChannelId: recipient.channelId,
-            channel: "web_push",
+            channel: recipient.channel,
             status: "failed",
-            errorDigest: "send_error",
+            errorDigest: message.slice(0, 200),
           },
         });
       }
@@ -254,7 +292,7 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
     // dose_reminder has nothing left to do after a failed send (the Timeline
     // is the real source of truth) — cancelled. refill/completion's in-app
     // list (docs/07 screen 27) is the real source of truth regardless of
-    // push outcome, so a failed send leaves it pending rather than making a
+    // send outcome, so a failed send leaves it pending rather than making a
     // still-true condition (low supply, course ended) vanish from view;
     // only an explicit patient action (mark refilled, dismiss, status
     // change) ever cancels one of these.

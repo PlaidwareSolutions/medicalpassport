@@ -270,6 +270,11 @@ export const hi: Record<keyof typeof en, string> = {
   "reminders.new_quantity_label": "अभी आपके पास कितनी हैं?",
   "reminders.save": "सहेजें",
   "reminders.dismiss": "खारिज करें",
+  "reminders.sms_title": "SMS रिमाइंडर",
+  "reminders.sms_intro": "जब दवा लेने का समय हो, तो ऐप खोले बिना भी एक टेक्स्ट मैसेज पाएं। मानक संदेश दरें लागू हो सकती हैं।",
+  "reminders.sms_enabled": "SMS रिमाइंडर चालू हैं",
+  "reminders.sms_enable": "SMS रिमाइंडर चालू करें",
+  "reminders.sms_disable": "SMS रिमाइंडर बंद करें",
 
   "sync.online": "ऑनलाइन",
   "sync.offline": "ऑफ़लाइन",

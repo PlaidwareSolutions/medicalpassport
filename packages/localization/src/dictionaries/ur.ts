@@ -270,6 +270,11 @@ export const ur: Record<keyof typeof en, string> = {
   "reminders.new_quantity_label": "اس وقت آپ کے پاس کتنی ہیں؟",
   "reminders.save": "محفوظ کریں",
   "reminders.dismiss": "مسترد کریں",
+  "reminders.sms_title": "SMS یاد دہانیاں",
+  "reminders.sms_intro": "دوا لینے کا وقت ہونے پر ایپ کھولے بغیر بھی ایک ٹیکسٹ میسج حاصل کریں۔ معیاری میسج ریٹس لاگو ہو سکتے ہیں۔",
+  "reminders.sms_enabled": "SMS یاد دہانیاں آن ہیں",
+  "reminders.sms_enable": "SMS یاد دہانیاں آن کریں",
+  "reminders.sms_disable": "SMS یاد دہانیاں آف کریں",
 
   "sync.online": "آن لائن",
   "sync.offline": "آف لائن",

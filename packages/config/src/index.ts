@@ -60,6 +60,14 @@ export const apiEnvShape = {
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default("mailto:support@example.com"),
+  /**
+   * SMS (docs/16, OD-10) — Telnyx. Optional so the API still boots without
+   * it configured (OTP_TRANSPORT stays "log", SMS reminders stay
+   * unavailable); required for OTP_TRANSPORT="sms" and for any SMS
+   * reminder channel to actually dispatch.
+   */
+  TELNYX_API_KEY: z.string().optional(),
+  TELNYX_FROM_NUMBER: z.string().optional(),
 } as const;
 
 export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;
@@ -87,6 +95,9 @@ export const cronEnvShape = {
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default("mailto:support@example.com"),
+  /** Needed by detect-due-reminders to send SMS reminders (docs/16, OD-10). */
+  TELNYX_API_KEY: z.string().optional(),
+  TELNYX_FROM_NUMBER: z.string().optional(),
 } as const;
 
 export type CronEnv = z.infer<z.ZodObject<typeof cronEnvShape>>;

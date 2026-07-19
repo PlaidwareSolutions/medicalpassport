@@ -1,9 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ApiError } from "@medpass/api-client";
+import { ApiError, type ConsentDto } from "@medpass/api-client";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { disablePush, enablePush, getPreferences, pushSupported, savePreferences } from "../lib/push";
+import { grantConsent, listConsents, revokeConsent } from "../lib/consents";
 import { useI18n } from "../lib/i18n";
+
+const SMS_CONSENT_PURPOSE = "Send a text message reminder when a scheduled dose is due, or when a refill/course reminder fires.";
 
 /**
  * Screen 33 (docs/07): opt-in web push + privacy wording. Push is always
@@ -20,6 +23,8 @@ export function ReminderSettings() {
   const [quietHoursEnd, setQuietHoursEnd] = useState("07:00");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [smsConsent, setSmsConsent] = useState<ConsentDto | undefined>();
+  const [smsBusy, setSmsBusy] = useState(false);
 
   useEffect(() => {
     if (!supported) return;
@@ -33,6 +38,36 @@ export function ReminderSettings() {
       })
       .catch(() => {});
   }, [supported]);
+
+  useEffect(() => {
+    void reloadSmsConsent();
+  }, []);
+
+  async function reloadSmsConsent() {
+    try {
+      const items = await listConsents();
+      setSmsConsent(items.find((c) => c.type === "sms_reminders" && c.status === "active"));
+    } catch {
+      // Non-fatal — the SMS section just shows as off.
+    }
+  }
+
+  async function toggleSms() {
+    setSmsBusy(true);
+    setError(undefined);
+    try {
+      if (smsConsent) {
+        await revokeConsent(smsConsent.id);
+      } else {
+        await grantConsent("sms_reminders", SMS_CONSENT_PURPOSE);
+      }
+      await reloadSmsConsent();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.problem.title : t("reminders.error_generic"));
+    } finally {
+      setSmsBusy(false);
+    }
+  }
 
   function currentPrefs(overrides: Partial<ReturnType<typeof snapshot>> = {}) {
     return { ...snapshot(), ...overrides };
@@ -160,6 +195,18 @@ export function ReminderSettings() {
             </span>
           </>
         )}
+      </Card>
+
+      <SectionTitle>{t("reminders.sms_title")}</SectionTitle>
+      <Card>
+        <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+          {smsConsent ? t("reminders.sms_enabled") : t("reminders.sms_intro")}
+        </span>
+        <div style={{ marginTop: "var(--space-sm)" }}>
+          <Button variant={smsConsent ? "secondary" : "primary"} disabled={smsBusy} onClick={() => void toggleSms()}>
+            {smsConsent ? t("reminders.sms_disable") : t("reminders.sms_enable")}
+          </Button>
+        </div>
       </Card>
     </>
   );

@@ -273,6 +273,11 @@ export const en = {
   "reminders.new_quantity_label": "How many do you have now?",
   "reminders.save": "Save",
   "reminders.dismiss": "Dismiss",
+  "reminders.sms_title": "SMS reminders",
+  "reminders.sms_intro": "Get a text message when it's time for a dose, even without the app open. Standard message rates may apply.",
+  "reminders.sms_enabled": "SMS reminders are on",
+  "reminders.sms_enable": "Turn on SMS reminders",
+  "reminders.sms_disable": "Turn off SMS reminders",
 
   "sync.online": "Online",
   "sync.offline": "Offline",
