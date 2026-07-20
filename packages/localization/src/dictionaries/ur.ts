@@ -5,6 +5,8 @@ export const ur: Record<keyof typeof en, string> = {
   "app.name": "دوا پاسپورٹ",
   "app.tagline": "اپنی تمام دوائیں ایک جگہ رکھیں",
   "app.not_a_doctor": "یہ ایپ آپ کے ڈاکٹر یا فارماسسٹ کی جگہ نہیں لیتی۔",
+  "app.update_available": "ایک نیا ورژن تیار ہے۔",
+  "app.update_reload": "ریفریش کریں",
 
   "nav.home": "ہوم",
   "nav.medicines": "دوائیں",

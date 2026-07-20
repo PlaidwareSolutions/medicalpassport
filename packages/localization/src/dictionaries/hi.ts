@@ -5,6 +5,8 @@ export const hi: Record<keyof typeof en, string> = {
   "app.name": "दवा पासपोर्ट",
   "app.tagline": "अपनी सभी दवाइयाँ एक जगह रखें",
   "app.not_a_doctor": "यह ऐप आपके डॉक्टर या फ़ार्मासिस्ट की जगह नहीं लेता।",
+  "app.update_available": "एक नया वर्शन तैयार है।",
+  "app.update_reload": "रीफ़्रेश करें",
 
   "nav.home": "होम",
   "nav.medicines": "दवाइयाँ",

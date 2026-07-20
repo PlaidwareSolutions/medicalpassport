@@ -2,9 +2,10 @@
 import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Banner, BottomNav } from "@medpass/ui-web";
+import { Banner, BottomNav, Button } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
 import { useSyncEngine } from "../lib/offline";
+import { useServiceWorkerUpdate } from "../lib/sw-update";
 import { useSession } from "../lib/session";
 
 const BANNER_TONE = {
@@ -27,6 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { status } = useSession();
   const sync = useSyncEngine();
+  const swUpdate = useServiceWorkerUpdate();
 
   useEffect(() => {
     if (status === "signed_out") router.replace("/welcome");
@@ -49,7 +51,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     { key: "profile", label: t("nav.profile"), icon: "👤", href: "/profile", active: pathname.startsWith("/profile") },
   ];
 
-  const showBanner = sync.status !== "online" || sync.pendingCount > 0 || sync.storageTrimmed || sync.conflictCount > 0;
+  const showBanner =
+    sync.status !== "online" || sync.pendingCount > 0 || sync.storageTrimmed || sync.conflictCount > 0 || swUpdate.updateAvailable;
 
   return (
     <div style={{ minHeight: "100dvh", paddingBottom: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-md))" }}>
@@ -85,6 +88,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link href="/sync/conflicts" style={{ color: "inherit", textDecoration: "underline" }}>
                 {t("sync.conflicts_review")}
               </Link>
+            </Banner>
+          ) : null}
+          {swUpdate.updateAvailable ? (
+            <Banner tone="info">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-sm)" }}>
+                <span>{t("app.update_available")}</span>
+                <Button variant="secondary" onClick={swUpdate.reload}>
+                  {t("app.update_reload")}
+                </Button>
+              </div>
             </Banner>
           ) : null}
         </div>

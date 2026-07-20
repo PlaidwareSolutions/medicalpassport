@@ -6,6 +6,8 @@ export const en = {
   "app.name": "Medicine Passport",
   "app.tagline": "Keep all your medicines in one place",
   "app.not_a_doctor": "This app does not replace your doctor or pharmacist.",
+  "app.update_available": "A new version is ready.",
+  "app.update_reload": "Refresh",
 
   "nav.home": "Home",
   "nav.medicines": "Medicines",

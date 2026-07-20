@@ -5,6 +5,8 @@ export const te: Record<keyof typeof en, string> = {
   "app.name": "మందుల పాస్‌పోర్ట్",
   "app.tagline": "మీ మందులన్నీ ఒకే చోట ఉంచుకోండి",
   "app.not_a_doctor": "ఈ యాప్ మీ డాక్టర్ లేదా ఫార్మసిస్ట్ స్థానాన్ని భర్తీ చేయదు.",
+  "app.update_available": "కొత్త వెర్షన్ సిద్ధంగా ఉంది.",
+  "app.update_reload": "రిఫ్రెష్ చేయండి",
 
   "nav.home": "హోమ్",
   "nav.medicines": "మందులు",
