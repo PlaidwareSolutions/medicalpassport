@@ -16,6 +16,7 @@
     "db:seed": "pnpm --filter @medpass/database seed"
   },
   "devDependencies": {
+    "railway": "3.5.9",
     "turbo": "^2.5.0",
     "typescript": "^5.7.2"
   }
