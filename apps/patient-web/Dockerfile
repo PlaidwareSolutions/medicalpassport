@@ -19,4 +19,7 @@ COPY --from=build /repo /repo
 USER node
 WORKDIR /repo/apps/patient-web
 EXPOSE 3000
-CMD ["pnpm", "start"]
+# Not "pnpm start": Corepack lazily fetches the pnpm binary itself over the
+# network on first invocation, which is a flaky, unnecessary dependency for a
+# runtime container to have at all — invoke Next directly instead.
+CMD ["node_modules/.bin/next", "start", "-p", "3000"]
