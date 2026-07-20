@@ -358,4 +358,5 @@ export const en = {
   "share.not_available_body": "It may have expired or been revoked by the patient. Ask them to share a new link.",
   "share.shared_summary_label": "Shared medicine summary",
   "share.download_pdf": "Download as PDF",
+  "share.qr_code_alt": "QR code linking to your shared medicine summary",
 } as const;

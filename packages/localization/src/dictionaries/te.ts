@@ -355,4 +355,5 @@ export const te: Record<keyof typeof en, string> = {
   "share.not_available_body": "ఇది గడువు ముగిసి ఉండవచ్చు లేదా రోగి రద్దు చేసి ఉండవచ్చు. వారిని కొత్త లింక్ పంపమని అడగండి.",
   "share.shared_summary_label": "పంచుకున్న మందుల సారాంశం",
   "share.download_pdf": "PDFగా డౌన్‌లోడ్ చేయండి",
+  "share.qr_code_alt": "మీ షేర్ చేసిన మందుల సారాంశానికి లింక్ చేసే QR కోడ్",
 };

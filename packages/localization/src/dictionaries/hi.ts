@@ -355,4 +355,5 @@ export const hi: Record<keyof typeof en, string> = {
   "share.not_available_body": "यह समाप्त हो गया होगा या मरीज़ द्वारा रद्द कर दिया गया होगा। उनसे नया लिंक माँगें।",
   "share.shared_summary_label": "साझा की गई दवा सूची",
   "share.download_pdf": "PDF के रूप में डाउनलोड करें",
+  "share.qr_code_alt": "आपके साझा किए गए दवा सारांश का लिंक देने वाला QR कोड",
 };

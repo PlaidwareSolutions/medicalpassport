@@ -70,13 +70,15 @@ export default function SharesPage() {
                 </span>
                 <button
                   type="button"
+                  aria-expanded={expandedId === s.id}
+                  aria-controls={`access-log-${s.id}`}
                   onClick={() => void toggleLog(s.id)}
                   style={{ background: "none", border: "none", color: "var(--color-info)", textAlign: "start", padding: 0, cursor: "pointer" }}
                 >
                   {t("share.access_count", { count: s.accessCount })}
                 </button>
                 {expandedId === s.id ? (
-                  <div style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
+                  <div id={`access-log-${s.id}`} style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
                     {accessLog.length === 0
                       ? t("share.no_accesses")
                       : accessLog.map((a, i) => (

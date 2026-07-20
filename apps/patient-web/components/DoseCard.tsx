@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { TimelineItemDto } from "@medpass/api-client";
 import { Button, Card, Chip } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
@@ -46,6 +46,7 @@ export function DoseCard({
   const [busy, setBusy] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
+  const moreOptionsId = useId();
 
   const resolved = RESOLVED_STATUSES.has(item.status);
 
@@ -99,6 +100,8 @@ export function DoseCard({
           </div>
           <button
             type="button"
+            aria-expanded={showMore}
+            aria-controls={moreOptionsId}
             onClick={() => setShowMore((s) => !s)}
             style={{
               background: "none",
@@ -114,7 +117,7 @@ export function DoseCard({
             {t("dose.action.more")}
           </button>
           {showMore ? (
-            <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
+            <div id={moreOptionsId} style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
               <Button variant="secondary" disabled={busy} onClick={() => void act("could_not_take")}>
                 {t("dose.action.could_not_take")}
               </Button>

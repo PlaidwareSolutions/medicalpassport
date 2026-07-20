@@ -355,4 +355,5 @@ export const ur: Record<keyof typeof en, string> = {
   "share.not_available_body": "یہ ختم ہو چکا ہو گا یا مریض نے منسوخ کر دیا ہو گا۔ ان سے نیا لنک مانگیں۔",
   "share.shared_summary_label": "شیئر کردہ دوا کا خلاصہ",
   "share.download_pdf": "PDF کے طور پر ڈاؤن لوڈ کریں",
+  "share.qr_code_alt": "آپ کے شیئر کردہ دوا کے خلاصے سے مربوط QR کوڈ",
 };

@@ -69,7 +69,7 @@ export default function CreateSharePage() {
         <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("share.ready_title")}</h1>
         <Card>
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <canvas ref={canvasRef} />
+            <canvas ref={canvasRef} role="img" aria-label={t("share.qr_code_alt")} />
           </div>
           <div
             style={{

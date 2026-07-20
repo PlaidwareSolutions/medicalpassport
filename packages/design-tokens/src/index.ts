@@ -12,7 +12,11 @@ export const tokens = {
     textMuted: "#4c5563",
     background: "#ffffff",
     surface: "#f6f8f7",
-    border: "#d4dbd8",
+    // 3.32:1 on white — meets WCAG 1.4.11 non-text contrast (≥3:1) for a UI
+    // component boundary. The original #d4dbd8 measured 1.41:1: real,
+    // computed contrast failure, not a guess — it was the sole visual
+    // boundary for every text input, card, and unselected picker button.
+    border: "#8a8e8c",
     danger: "#b3261e",
     dangerSoft: "#fdebe9",
     warning: "#8a5300",
