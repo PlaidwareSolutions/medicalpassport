@@ -80,6 +80,11 @@ export default defineRailway(() => {
     replicas: { [region]: 1 },
     env: {
       NODE_ENV: "production",
+      // The app hardcodes `next start -p 3000` and never reads process.env.PORT
+      // itself — this is purely for Railway's own healthcheck/port-routing
+      // prober, which otherwise mis-detects the port (diagnosed by deploys
+      // failing at the healthcheck stage until this was set).
+      PORT: "3000",
       // Build-time (Next.js inlines NEXT_PUBLIC_* at build) — managed
       // out-of-band for now since it flips between the temporary
       // *.up.railway.app verification domain and staging-api.medidocs.app
@@ -93,7 +98,8 @@ export default defineRailway(() => {
     build: { builder: "DOCKERFILE", dockerfilePath: "apps/admin-web/Dockerfile" },
     healthcheck: "/",
     replicas: { [region]: 1 },
-    env: { NODE_ENV: "production" },
+    // See patient-web's PORT comment — same reason, different hardcoded port.
+    env: { NODE_ENV: "production", PORT: "3001" },
   });
 
   // Cron jobs (docs/25 schedule table) — one service per job, all sharing
