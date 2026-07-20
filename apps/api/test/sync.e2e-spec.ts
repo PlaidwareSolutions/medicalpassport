@@ -31,7 +31,7 @@ describe("Sync e2e", () => {
     prisma = moduleRef.get(PrismaService);
 
     await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE audit_events, offline_mutations, dose_events, scheduled_doses,
+      TRUNCATE TABLE audit_events, rate_limit_buckets, offline_mutations, dose_events, scheduled_doses,
         medication_schedules, medication_changes, medication_instructions,
         patient_medications, practitioners, patient_allergies, patient_conditions,
         consent_events, consents, caregiver_permissions, caregiver_relationships,

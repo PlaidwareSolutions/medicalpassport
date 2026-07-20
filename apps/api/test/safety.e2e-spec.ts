@@ -28,7 +28,7 @@ describe("Safety e2e", () => {
     prisma = moduleRef.get(PrismaService);
 
     await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE audit_events, offline_mutations, medication_changes,
+      TRUNCATE TABLE audit_events, rate_limit_buckets, offline_mutations, medication_changes,
         medication_instructions, patient_medications, practitioners,
         patient_allergies, patient_conditions, consent_events, consents,
         caregiver_permissions, caregiver_relationships, sessions,

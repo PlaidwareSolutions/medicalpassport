@@ -45,7 +45,7 @@ describe("Telnyx delivery-status webhook e2e", () => {
     prisma = moduleRef.get(PrismaServiceCtor);
 
     await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE audit_events, notification_attempts, notifications,
+      TRUNCATE TABLE audit_events, rate_limit_buckets, notification_attempts, notifications,
         notification_channels, patient_medications, patient_profiles, users CASCADE
     `);
   }, 30000);

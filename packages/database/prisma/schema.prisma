@@ -1297,6 +1297,24 @@ model OfflineMutation {
   @@map("offline_mutations")
 }
 
+/// Application-level rate limiting (docs/14/18/26 — "Cloudflare is never the
+/// only protection"; this must stand alone). Fixed-window counter per
+/// `key` (e.g. `otp_request:203.0.113.5`) + window start; originally specced
+/// against Redis (`rate:` key namespace, docs/25) but there's no Redis in
+/// this sandbox, so Postgres is the counter store instead — same documented
+/// substitution as the background-job queue. `RateLimitGuard` upserts and
+/// increments atomically via `ON CONFLICT DO UPDATE`, so concurrent requests
+/// can never under-count.
+model RateLimitBucket {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String
+  windowStart DateTime @map("window_start") @db.Timestamptz(6)
+  count       Int      @default(1)
+
+  @@unique([key, windowStart])
+  @@map("rate_limit_buckets")
+}
+
 enum AuditActorType {
   patient
   caregiver

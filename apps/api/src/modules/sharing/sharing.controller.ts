@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, Req, Res } from "@nestjs/com
 import type { Response } from "express";
 import { createShareSchema, visitSummaryTextQuerySchema } from "@medpass/validation";
 import { Public } from "../../common/auth.guard";
+import { RateLimit } from "../../common/rate-limit.guard";
 import { sha256Hex } from "../../common/crypto";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
@@ -87,6 +88,7 @@ export class SharingController {
    * the token itself is opaque and carries no PHI, so this is safe.
    */
   @Public()
+  @RateLimit({ name: "share_access", limit: 30, windowSeconds: 60 })
   @Get("public/shares/:token")
   async publicAccess(@Param("token") token: string, @Req() req: ApiRequest, @Res({ passthrough: true }) res: Response) {
     res.setHeader("cache-control", "private, no-store");
@@ -95,6 +97,7 @@ export class SharingController {
 
   /** Same public, no-auth access path as above, rendered as a downloadable PDF. */
   @Public()
+  @RateLimit({ name: "share_access", limit: 30, windowSeconds: 60 })
   @Get("public/shares/:token/pdf")
   async publicAccessPdf(@Param("token") token: string, @Req() req: ApiRequest, @Res() res: Response) {
     const summary = await this.sharing.accessByToken(token, req.ip ? sha256Hex(req.ip) : undefined);

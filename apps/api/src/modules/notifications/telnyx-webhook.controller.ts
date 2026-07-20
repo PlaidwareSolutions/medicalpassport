@@ -6,6 +6,7 @@ import { Public } from "../../common/auth.guard";
 import { ApiProblem } from "../../common/errors";
 import { env } from "../../common/env";
 import type { ApiRequest } from "../../common/http";
+import { RateLimit } from "../../common/rate-limit.guard";
 import { NotificationsService } from "./notifications.service";
 
 /**
@@ -15,13 +16,17 @@ import { NotificationsService } from "./notifications.service";
  * tried the carrier. Unauthenticated by necessity (Telnyx calls this
  * directly, no session) — the Ed25519 signature is the only thing standing
  * between this endpoint and a spoofed delivery report, so it's checked
- * against the raw body before anything else runs.
+ * against the raw body before anything else runs. A generous per-IP rate
+ * limit (docs/26 lists "webhooks" as a protected flow) adds defense-in-depth
+ * against a flood of signature-verification attempts, which cost real CPU
+ * even when rejected.
  */
 @Controller("webhooks/telnyx")
 export class TelnyxWebhookController {
   constructor(private readonly notifications: NotificationsService) {}
 
   @Public()
+  @RateLimit({ name: "telnyx_webhook", limit: 120, windowSeconds: 60 })
   @Post("sms")
   @HttpCode(200)
   async smsDeliveryStatus(

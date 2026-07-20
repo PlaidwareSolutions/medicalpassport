@@ -4,6 +4,7 @@ import { otpRequestSchema, otpVerifySchema, refreshSchema } from "@medpass/valid
 import { env } from "../../common/env";
 import { parseWith } from "../../common/zod";
 import { Public, SESSION_COOKIE } from "../../common/auth.guard";
+import { RateLimit } from "../../common/rate-limit.guard";
 import type { ApiRequest } from "../../common/http";
 import { AuthService, type IssuedSession } from "./auth.service";
 import { PrismaService } from "../../common/prisma.service";
@@ -18,6 +19,7 @@ export class AuthController {
   ) {}
 
   @Public()
+  @RateLimit({ name: "otp_request", limit: 10, windowSeconds: 3600 })
   @Post("otp/request")
   @HttpCode(202)
   async requestOtp(@Body() body: unknown, @Req() req: ApiRequest) {
@@ -28,6 +30,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit({ name: "otp_verify", limit: 20, windowSeconds: 3600 })
   @Post("otp/verify")
   async verifyOtp(@Body() body: unknown, @Req() req: ApiRequest, @Res({ passthrough: true }) res: Response) {
     const input = parseWith(otpVerifySchema, body);

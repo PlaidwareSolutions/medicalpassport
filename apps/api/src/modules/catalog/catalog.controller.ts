@@ -3,6 +3,7 @@ import type { Response } from "express";
 import { catalogSearchSchema } from "@medpass/validation";
 import { ERROR_CODES } from "@medpass/domain";
 import { ApiProblem } from "../../common/errors";
+import { RateLimit } from "../../common/rate-limit.guard";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
@@ -16,6 +17,7 @@ import { PrismaService } from "../../common/prisma.service";
 export class CatalogController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @RateLimit({ name: "catalog_search", limit: 60, windowSeconds: 60 })
   @Get("products")
   async search(@Query() query: Record<string, string>, @Req() _req: ApiRequest, @Res({ passthrough: true }) res: Response) {
     const input = parseWith(catalogSearchSchema, query);

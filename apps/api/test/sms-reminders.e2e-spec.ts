@@ -31,7 +31,7 @@ describe("SMS reminder consent cascade e2e", () => {
     prisma = moduleRef.get(PrismaService);
 
     await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE audit_events, notification_attempts, notifications,
+      TRUNCATE TABLE audit_events, rate_limit_buckets, notification_attempts, notifications,
         notification_channels, notification_preferences, consent_events,
         consents, dose_events, scheduled_doses, medication_schedules,
         medication_changes, medication_instructions, patient_medications,

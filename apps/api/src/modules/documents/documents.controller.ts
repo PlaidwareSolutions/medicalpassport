@@ -3,6 +3,7 @@ import { authorizeUploadSchema } from "@medpass/validation";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { RateLimit } from "../../common/rate-limit.guard";
 import { DocumentsService } from "./documents.service";
 
 @Controller()
@@ -12,6 +13,7 @@ export class DocumentsController {
     private readonly documents: DocumentsService,
   ) {}
 
+  @RateLimit({ name: "document_upload", limit: 20, windowSeconds: 3600 })
   @Post("profiles/current/documents/authorize-upload")
   async authorizeUpload(@Body() body: unknown, @Req() req: ApiRequest) {
     // Uploading a prescription photo is part of adding a medication.

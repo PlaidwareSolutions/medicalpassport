@@ -8,6 +8,8 @@ import { CorrelationMiddleware } from "./common/correlation.middleware";
 import { LoggingInterceptor } from "./common/logging.interceptor";
 import { ProblemDetailsFilter } from "./common/problem.filter";
 import { AuthGuard } from "./common/auth.guard";
+import { RateLimitGuard } from "./common/rate-limit.guard";
+import { RateLimitService } from "./common/rate-limit.service";
 import { ProfileAccessService } from "./common/profile-access.service";
 import { IdempotencyService } from "./common/idempotency.service";
 import { HealthController } from "./modules/health/health.controller";
@@ -67,6 +69,7 @@ const OTP_SENDER = "OTP_SENDER";
   providers: [
     PrismaService,
     ProfileAccessService,
+    RateLimitService,
     IdempotencyService,
     MedicationsService,
     SchedulingService,
@@ -98,6 +101,10 @@ const OTP_SENDER = "OTP_SENDER";
       useFactory: (prisma: PrismaService, otpSender: OtpSender) => new AuthService(prisma, otpSender),
       inject: [PrismaService, OTP_SENDER],
     },
+    // Rate limiting runs before auth (docs/26: several rate-limited flows —
+    // OTP request/verify, public share access — are @Public() and have no
+    // session to gate them anyway; guard order matches registration order).
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useValue: new ProblemDetailsFilter(logger) },
     { provide: APP_INTERCEPTOR, useValue: new LoggingInterceptor(logger) },

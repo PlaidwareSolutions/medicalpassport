@@ -26,6 +26,7 @@ Everything below is **Requires platform configuration** until the projects exist
 | `0 * * * *` | `node dist/jobs/cleanup-abandoned-uploads.js` |
 | `* * * * *` | `node dist/jobs/detect-due-reminders.js` |
 | `0 6 * * *` | `node dist/jobs/generate-refill-reminders.js` |
+| `0 4 * * *` | `node dist/jobs/cleanup-rate-limit-buckets.js` |
 
 Later stages add: expire-share-links, backup-export/verify,
 retention-cleanup, reconcile-stuck-jobs, operational-report (docs/25 table).
