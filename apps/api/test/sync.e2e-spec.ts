@@ -158,7 +158,32 @@ describe("Sync e2e", () => {
     rowVersion = detail.body.rowVersion;
   });
 
-  it("reports a stale rowVersion as a row_version conflict, not a batch-aborting error", async () => {
+  it("a stale rowVersion on a non-clinical-only edit auto-merges against the current version, not reported as a conflict", async () => {
+    const clientMutationId = randomUUID();
+    const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
+      .send({
+        mutations: [
+          {
+            clientMutationId,
+            entity: "patient_medication",
+            operation: "update",
+            profileId,
+            capturedAt: new Date().toISOString(),
+            payload: { id: medicationId, rowVersion: rowVersion - 1, patientReason: "Stale but disjoint edit" },
+          },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.conflicts).toEqual([]);
+    expect(res.body.applied).toEqual([clientMutationId]);
+
+    const detail = await auth(tokenA, profileId)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(detail.body.patientReason).toBe("Stale but disjoint edit");
+    rowVersion = detail.body.rowVersion;
+  });
+
+  it("a stale rowVersion on a pure dose/frequency edit still reports a genuine row_version conflict — never auto-merged", async () => {
     const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
       .send({
         mutations: [
@@ -168,7 +193,11 @@ describe("Sync e2e", () => {
             operation: "update",
             profileId,
             capturedAt: new Date().toISOString(),
-            payload: { id: medicationId, rowVersion: rowVersion - 1, patientReason: "Stale edit" },
+            payload: {
+              id: medicationId,
+              rowVersion: rowVersion - 1,
+              instruction: { doseQuantity: 2, doseUnit: "tablet", frequencyCode: "BD" },
+            },
           },
         ],
       })
@@ -177,7 +206,45 @@ describe("Sync e2e", () => {
     expect(res.body.applied).toEqual([]);
     expect(res.body.conflicts).toHaveLength(1);
     expect(res.body.conflicts[0].kind).toBe("row_version");
-    expect(res.body.conflicts[0].serverState.patientReason).toBe("Queued while offline");
+    expect(res.body.conflicts[0].serverState.patientReason).toBe("Stale but disjoint edit");
+
+    const detail = await auth(tokenA, profileId)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(detail.body.instruction.frequencyCode).not.toBe("BD"); // the clinical edit was never applied
+  });
+
+  it("a stale mixed edit (safe field + instruction) applies the safe field and reports only the instruction as unmerged", async () => {
+    const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
+      .send({
+        mutations: [
+          {
+            clientMutationId: randomUUID(),
+            entity: "patient_medication",
+            operation: "update",
+            profileId,
+            capturedAt: new Date().toISOString(),
+            payload: {
+              id: medicationId,
+              rowVersion: rowVersion - 1,
+              patientReason: "Mixed edit: reason changed",
+              instruction: { doseQuantity: 2, doseUnit: "tablet", frequencyCode: "BD" },
+            },
+          },
+        ],
+      })
+      .expect(201);
+
+    expect(res.body.applied).toEqual([]);
+    expect(res.body.conflicts).toHaveLength(1);
+    expect(res.body.conflicts[0].kind).toBe("field_conflict");
+    expect(res.body.conflicts[0].unmergedFields).toEqual(["instruction"]);
+    // The safe field is reflected in the returned serverState immediately...
+    expect(res.body.conflicts[0].serverState.patientReason).toBe("Mixed edit: reason changed");
+
+    // ...and genuinely persisted, while the clinical field was left untouched.
+    const detail = await auth(tokenA, profileId)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(detail.body.patientReason).toBe("Mixed edit: reason changed");
+    expect(detail.body.instruction.frequencyCode).not.toBe("BD");
+    rowVersion = detail.body.rowVersion;
   });
 
   it("reports an unsupported entity as an invalid conflict without aborting the rest of the batch", async () => {
@@ -240,6 +307,66 @@ describe("Sync e2e", () => {
     expect(after.body.items.find((i: { scheduledDoseId: string }) => i.scheduledDoseId === item.scheduledDoseId).status).toBe(
       "taken",
     );
+  });
+
+  let cursor: string;
+
+  it("a first sync with no cursor reports no changes, but returns one to use next time", async () => {
+    const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
+      .send({ mutations: [], profileId })
+      .expect(201);
+    expect(res.body.changes).toEqual([]);
+    expect(typeof res.body.nextCursor).toBe("string");
+    cursor = res.body.nextCursor;
+  });
+
+  it("polling again immediately with that cursor reports nothing new", async () => {
+    const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
+      .send({ mutations: [], cursor, profileId })
+      .expect(201);
+    expect(res.body.changes).toEqual([]);
+  });
+
+  it("reports a medications change signal once something changed since the cursor", async () => {
+    const current = await auth(tokenA, profileId)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    await auth(tokenA, profileId)(request(app.getHttpServer()).patch(`/v1/medications/${medicationId}`))
+      .send({ rowVersion: current.body.rowVersion, patientReason: "Changed after the cursor" })
+      .expect(200);
+
+    const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
+      .send({ mutations: [], cursor, profileId })
+      .expect(201);
+    expect(res.body.changes).toEqual(expect.arrayContaining([{ profileId, scope: "medications" }]));
+    cursor = res.body.nextCursor;
+  });
+
+  it("reports a timeline change signal with the affected date once a dose is recorded", async () => {
+    // Today's one OD slot was already recorded "taken" by an earlier test — use tomorrow's, which is still "upcoming".
+    const tomorrow = new Date(Date.now() + 5.5 * 60 * 60 * 1000 + 86_400_000).toISOString().slice(0, 10);
+    const timeline = await auth(tokenA, profileId)(
+      request(app.getHttpServer()).get(`/v1/profiles/current/timeline?date=${tomorrow}`),
+    ).expect(200);
+    const item = timeline.body.items.find((i: { status: string }) => i.status === "upcoming");
+    expect(item).toBeTruthy();
+
+    await auth(tokenA, profileId)(request(app.getHttpServer()).post(`/v1/doses/${item.scheduledDoseId}/events`))
+      .send({ action: "taken" })
+      .expect(201);
+
+    const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
+      .send({ mutations: [], cursor, profileId })
+      .expect(201);
+    const timelineChange = res.body.changes.find((c: { scope: string }) => c.scope === "timeline");
+    expect(timelineChange).toBeTruthy();
+    expect(timelineChange.profileId).toBe(profileId);
+    expect(timelineChange.dates).toEqual(expect.arrayContaining([timeline.body.date]));
+  });
+
+  it("reports no changes when profileId is omitted, even with a cursor and real changes since", async () => {
+    const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
+      .send({ mutations: [], cursor })
+      .expect(201);
+    expect(res.body.changes).toEqual([]);
   });
 
   it("rejects a request signed in as nobody", async () => {

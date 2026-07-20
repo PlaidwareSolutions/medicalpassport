@@ -21,6 +21,6 @@ export class SyncController {
     if (!userId) throw new ApiProblem(ERROR_CODES.UNAUTHENTICATED, "Sign in to continue", 401);
 
     const input = parseWith(syncBatchSchema, body);
-    return this.sync.apply(userId, input.mutations, req.correlationId);
+    return this.sync.apply(userId, input.mutations, input.cursor, input.profileId, req.correlationId);
   }
 }

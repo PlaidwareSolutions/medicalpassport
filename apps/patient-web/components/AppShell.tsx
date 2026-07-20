@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { key: "profile", label: t("nav.profile"), icon: "👤", href: "/profile", active: pathname.startsWith("/profile") },
   ];
 
-  const showBanner = sync.status !== "online" || sync.pendingCount > 0;
+  const showBanner = sync.status !== "online" || sync.pendingCount > 0 || sync.storageTrimmed || sync.conflictCount > 0;
 
   return (
     <div style={{ minHeight: "100dvh", paddingBottom: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-md))" }}>
@@ -77,6 +77,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               {t("common.retry")}
             </button>
+          ) : null}
+          {sync.storageTrimmed ? <Banner tone="info">{t("sync.storage_trimmed")}</Banner> : null}
+          {sync.conflictCount > 0 ? (
+            <Banner tone="warning">
+              {t("sync.conflicts_pending", { count: sync.conflictCount })}{" "}
+              <Link href="/sync/conflicts" style={{ color: "inherit", textDecoration: "underline" }}>
+                {t("sync.conflicts_review")}
+              </Link>
+            </Banner>
           ) : null}
         </div>
       ) : null}

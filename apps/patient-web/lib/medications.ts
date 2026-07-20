@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
-import { cacheMedications, enqueueMutation, getCachedMedications } from "@medpass/offline-sync";
+import { cacheMedications, enqueueMutation, getCachedMedications, type SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId, newIdempotencyKey } from "./api";
-import { notifyMutationQueued } from "./offline";
+import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
 
 /** The two cached list variants any screen actually reads (docs/15) — Home's "current" and the Medicines tab's unfiltered "all". */
 const CACHED_VARIANTS = ["current", "all"];
@@ -62,6 +62,19 @@ export function useMedications(status?: string) {
     void load();
   }, [load]);
 
+  // A caregiver's edit (or this patient's own other device) made while this
+  // screen wasn't actively fetching — reload once told the medications list
+  // for this profile changed (docs/15 incremental sync), rather than waiting
+  // for the patient to navigate away and back.
+  useEffect(() => {
+    function onRemoteChange(e: Event) {
+      const change = (e as CustomEvent<SyncChangeSignal>).detail;
+      if (change.scope === "medications" && change.profileId === getActiveProfileId()) void load();
+    }
+    window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+    return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+  }, [load]);
+
   return { items, error, fromCache, reload: load };
 }
 
@@ -111,6 +124,19 @@ export function useMedication(id: string) {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // The signal doesn't say which medicine changed (docs/15 — an
+  // invalidation, not a patch), so any "medications changed" for this
+  // profile reloads this one too — cheap, and correct whether or not it
+  // was this specific medicine.
+  useEffect(() => {
+    function onRemoteChange(e: Event) {
+      const change = (e as CustomEvent<SyncChangeSignal>).detail;
+      if (change.scope === "medications" && change.profileId === getActiveProfileId()) void load();
+    }
+    window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+    return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
   }, [load]);
 
   return { medication, error, fromCache, reload: load };

@@ -32,13 +32,33 @@ export type SyncStatus = "online" | "offline" | "syncing" | "sync_failed" | "cha
 
 export interface SyncConflict {
   clientMutationId: string;
-  kind: "row_version" | "deleted" | "permission_revoked" | "invalid";
+  kind: "row_version" | "field_conflict" | "deleted" | "permission_revoked" | "invalid";
   serverState?: unknown;
+  /**
+   * Set only for `field_conflict`: the fields the client tried to change
+   * that couldn't be safely auto-merged (docs/15 — clinical-safety fields
+   * like dose/frequency always need explicit re-confirmation, never a
+   * silent merge). Every other field in the same mutation was applied.
+   */
+  unmergedFields?: string[];
+}
+
+/**
+ * An invalidation signal, not a row-level patch (docs/15's `changes[]`) —
+ * this app always re-fetches whole lists fresh from the server rather than
+ * patching cached records field-by-field, so "something changed" is enough
+ * to tell a listening screen to reload; it doesn't need to say what.
+ */
+export interface SyncChangeSignal {
+  profileId: string;
+  scope: "medications" | "timeline";
+  /** Only set for `scope: "timeline"` — IST calendar dates (YYYY-MM-DD) affected. */
+  dates?: string[];
 }
 
 export interface SyncResponse {
   applied: string[];
   conflicts: SyncConflict[];
-  changes: unknown[];
+  changes: SyncChangeSignal[];
   nextCursor: string;
 }

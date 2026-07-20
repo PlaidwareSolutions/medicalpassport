@@ -8,6 +8,16 @@ interface CacheRecord<T> {
   cachedAt: string;
 }
 
+export interface StoredConflict {
+  clientMutationId: string;
+  profileId: string;
+  entity: string;
+  kind: string;
+  unmergedFields?: string[];
+  serverState?: unknown;
+  detectedAt: string;
+}
+
 interface OfflineSchema extends DBSchema {
   medications: {
     key: string; // profileId
@@ -26,10 +36,15 @@ interface OfflineSchema extends DBSchema {
     key: string;
     value: { key: string; value: string };
   };
+  /** Mutations a sync round-trip couldn't (fully) apply — docs/15 "needs your review", never silently dropped. */
+  conflicts: {
+    key: string; // clientMutationId
+    value: StoredConflict;
+  };
 }
 
 const DB_NAME = "medpass-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<OfflineSchema>> | undefined;
 
@@ -49,6 +64,7 @@ export function openOfflineDb(): Promise<IDBPDatabase<OfflineSchema>> {
         const store = db.createObjectStore("mutations", { keyPath: "clientMutationId" });
         store.createIndex("by-capturedAt", "capturedAt");
       }
+      if (!db.objectStoreNames.contains("conflicts")) db.createObjectStore("conflicts", { keyPath: "clientMutationId" });
     },
   });
   return dbPromise;

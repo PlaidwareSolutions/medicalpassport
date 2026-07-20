@@ -18,9 +18,17 @@ export const syncMutationEnvelopeSchema = z.object({
 });
 export type SyncMutationEnvelope = z.infer<typeof syncMutationEnvelopeSchema>;
 
-/** Batch ≤ 50 mutations per docs/15. */
+/**
+ * Batch ≤ 50 mutations per docs/15. `mutations` may be empty — a poll purely
+ * for incremental server→client changes (docs/15's `changes[]`/cursor
+ * stream) still needs a round-trip even when nothing is locally queued.
+ * `profileId` scopes that changes computation to the caller's active
+ * profile — mutations already carry their own `profileId` each, but an
+ * empty batch has none to infer it from.
+ */
 export const syncBatchSchema = z.object({
   cursor: z.string().optional(),
-  mutations: z.array(syncMutationEnvelopeSchema).min(1).max(50),
+  profileId: z.string().uuid().optional(),
+  mutations: z.array(syncMutationEnvelopeSchema).max(50).default([]),
 });
 export type SyncBatchInput = z.infer<typeof syncBatchSchema>;

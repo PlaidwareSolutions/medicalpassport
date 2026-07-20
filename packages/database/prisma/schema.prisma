@@ -667,12 +667,18 @@ model ScheduledDose {
 
   rowVersion Int      @default(0) @map("row_version")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Bumped on every status change — including cron-driven ones (missed-dose
+  /// reconciliation, snooze expiry) that carry no DoseEvent of their own —
+  /// so incremental sync (docs/15) can detect "this dose changed" even when
+  /// no explicit patient/caregiver action caused it.
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   doseEvents    DoseEvent[]
   notifications Notification[]
 
   @@unique([medicationScheduleId, dueAt])
   @@index([dueAt, status])
+  @@index([updatedAt])
   @@map("scheduled_doses")
 }
 

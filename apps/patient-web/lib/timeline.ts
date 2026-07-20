@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, type TimelineDto, type TimelineItemDto } from "@medpass/api-client";
-import { cacheTimeline, enqueueMutation, getCachedTimeline } from "@medpass/offline-sync";
+import { cacheTimeline, enqueueMutation, getCachedTimeline, type SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId } from "./api";
-import { notifyMutationQueued } from "./offline";
+import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
 
 /** Fixed +05:30 offset — matches the API's Asia/Kolkata simplification (docs/16). */
 function istToday(): string {
@@ -48,6 +48,20 @@ export function useTimeline(date?: string) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // A caregiver recording a dose (or this patient's own other device) while
+  // this screen wasn't fetching — reload only if the changed date is the
+  // one actually being viewed (docs/15 incremental sync).
+  useEffect(() => {
+    function onRemoteChange(e: Event) {
+      const change = (e as CustomEvent<SyncChangeSignal>).detail;
+      if (change.scope === "timeline" && change.profileId === getActiveProfileId() && change.dates?.includes(effectiveDate)) {
+        void load();
+      }
+    }
+    window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+    return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+  }, [load, effectiveDate]);
 
   /**
    * Applies a dose-status change to the currently-displayed timeline
