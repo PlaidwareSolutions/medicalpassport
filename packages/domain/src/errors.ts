@@ -16,6 +16,7 @@ export const ERROR_CODES = {
   OTP_LOCKED: "otp_locked",
   OTP_RESEND_LIMIT: "otp_resend_limit",
   RATE_LIMITED: "rate_limited",
+  STORAGE_QUOTA_EXCEEDED: "storage_quota_exceeded",
   INVALID_STATUS_TRANSITION: "invalid_status_transition",
   CONSENT_REQUIRED: "consent_required",
   INTERNAL: "internal_error",

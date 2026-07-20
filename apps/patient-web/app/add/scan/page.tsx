@@ -27,6 +27,7 @@ export default function ScanDocumentPage() {
   const [file, setFile] = useState<File | undefined>();
   const [stage, setStage] = useState<"idle" | "uploading" | "processing" | "error">("idle");
   const [error, setError] = useState<string | undefined>();
+  const [approachingStorageQuota, setApproachingStorageQuota] = useState(false);
 
   function pickFile(f: File | undefined) {
     setError(undefined);
@@ -48,6 +49,7 @@ export default function ScanDocumentPage() {
         { kind, contentType, sizeBytes: file.size },
         { idempotencyKey: newIdempotencyKey(), profileId: getActiveProfileId() },
       );
+      setApproachingStorageQuota(authRes.approachingStorageQuota);
 
       const putRes = await fetch(authRes.uploadUrl, {
         method: "PUT",
@@ -91,6 +93,8 @@ export default function ScanDocumentPage() {
       <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-md)" }}>{t("scan.intro")}</p>
 
       {error ? <Banner tone="danger">{error}</Banner> : null}
+
+      {approachingStorageQuota ? <Banner tone="warning">{t("scan.approaching_storage_quota")}</Banner> : null}
 
       {busy ? (
         <Card>

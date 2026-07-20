@@ -44,6 +44,17 @@
  * dependency, and this is a handful of lines (docs/02: no premature
  * abstraction). Any drift would fail loudly (decryption produces garbage),
  * not silently.
+ *
+ * Cost control (docs/31 "reminder limits: per-profile channel caps... never
+ * throttle patient-critical reminders"): a daily per-profile cap on SMS
+ * sends applies only to `refill`/`completion` — informational, already
+ * backed by their own standing in-app list, so skipping today's SMS
+ * attempt loses nothing safety-critical. `dose_reminder` and
+ * `caregiver_escalation` never check the cap — those are exactly the
+ * reminders that must never be silently throttled. The cap reuses the same
+ * `RateLimitBucket` table the API's `RateLimitService` uses (docs/22 Stage
+ * 11 follow-up), duplicated here as a plain query for the same
+ * no-NestJS-in-cron reason as the decryption helpers above.
  */
 import { createDecipheriv, createHash } from "node:crypto";
 import { TelnyxSmsSender, VapidWebPushSender, type WebPushSubscriptionDetails } from "@medpass/notifications";
@@ -52,6 +63,21 @@ import { runJob } from "../lib/run-job";
 
 const WINDOW_MINUTES = 2;
 const SCHEDULE_TIMEZONE_OFFSET_MINUTES = 5.5 * 60; // Asia/Kolkata, fixed (matches extend-scheduled-doses.ts)
+/** Generous: well above docs/31's ~3 reminders/day/patient baseline, bounding a genuine runaway rather than normal heavy use. */
+const SMS_REMINDER_DAILY_CAP = 15;
+const NON_CRITICAL_KINDS = new Set(["refill", "completion"]);
+
+/** Same fixed-window upsert-increment as RateLimitService (apps/api) — see file header for why this is duplicated here. */
+async function checkAndIncrementDailyCap(prisma: PrismaClient, key: string, limit: number): Promise<boolean> {
+  const windowMs = 24 * 60 * 60 * 1000;
+  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
+  const bucket = await prisma.rateLimitBucket.upsert({
+    where: { key_windowStart: { key, windowStart } },
+    create: { key, windowStart, count: 1 },
+    update: { count: { increment: 1 } },
+  });
+  return bucket.count <= limit;
+}
 
 function decryptPlaintext(ciphertext: string, fieldEncryptionKey: string): string {
   const key = createHash("sha256").update(fieldEncryptionKey).digest();
@@ -316,6 +342,20 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
           }
         } else if (recipient.channel === "sms") {
           if (!smsSender) throw new Error("sms channel exists but TELNYX_API_KEY/TELNYX_FROM_NUMBER aren't configured");
+          if (NON_CRITICAL_KINDS.has(notification.kind)) {
+            const withinCap = await checkAndIncrementDailyCap(
+              prisma,
+              `sms_reminder_daily:${notification.patientProfileId}`,
+              SMS_REMINDER_DAILY_CAP,
+            );
+            if (!withinCap) {
+              log.warn(
+                { profileId: notification.patientProfileId, kind: notification.kind },
+                "daily SMS reminder cap reached — skipping this non-critical send, reminder stays pending",
+              );
+              continue;
+            }
+          }
           const phoneE164 = decryptPlaintext(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
           const { providerMessageId } = await smsSender.sendTemplate(phoneE164, notification.kind, {
             medicationName: notification.privacyMode === "full_name" ? (medicationName ?? "") : "",

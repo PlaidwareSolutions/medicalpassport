@@ -238,6 +238,8 @@ export interface AuthorizeUploadResponseDto {
   documentId: string;
   uploadUrl: string;
   expiresAt: string;
+  /** Soft warn (docs/31 cost controls) — still succeeded, but nearing the per-profile document storage quota. */
+  approachingStorageQuota: boolean;
 }
 
 export interface DocumentDto {

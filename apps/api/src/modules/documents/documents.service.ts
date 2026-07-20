@@ -7,14 +7,31 @@ import { ERROR_CODES, type AuditActorType } from "@medpass/domain";
 import { maxBytesFor, type AuthorizeUploadInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
+import { RateLimitService } from "../../common/rate-limit.service";
 import { getObjectStorage } from "../../common/storage";
 import { signatureMatches } from "../../common/file-signature";
 
 const BUCKET = "patient-docs" as const;
 
+/**
+ * Cost controls (docs/31): a per-profile document storage quota (soft warn,
+ * hard cap) and a per-user daily upload count quota — distinct from the
+ * per-file size/type limit above, which bounds one upload, not the total
+ * or the rate of them. 200 MB comfortably covers docs/31's baseline
+ * assumption (~2 uploads/patient/month at ~1–2 MB each) with real headroom;
+ * 20/day is generous for a legitimate batch-scanning session while still
+ * bounding a genuine runaway/abuse case.
+ */
+const PROFILE_STORAGE_QUOTA_BYTES = 200 * 1024 * 1024;
+const PROFILE_STORAGE_WARN_RATIO = 0.8;
+const DAILY_UPLOAD_QUOTA = 20;
+
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rateLimit: RateLimitService,
+  ) {}
 
   async authorizeUpload(
     profileId: string,
@@ -25,6 +42,25 @@ export class DocumentsService {
     if (input.sizeBytes > maxSizeBytes) {
       throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "File is too large", 400);
     }
+
+    const { allowed: withinDailyQuota } = await this.rateLimit.checkAndIncrement(
+      `document_upload_daily:${actor.userId}`,
+      DAILY_UPLOAD_QUOTA,
+      24 * 60 * 60,
+    );
+    if (!withinDailyQuota) {
+      throw new ApiProblem(ERROR_CODES.RATE_LIMITED, "You've reached today's upload limit. Please try again tomorrow.", 429);
+    }
+
+    const currentUsage = await this.profileStorageBytes(profileId);
+    if (currentUsage + input.sizeBytes > PROFILE_STORAGE_QUOTA_BYTES) {
+      throw new ApiProblem(
+        ERROR_CODES.STORAGE_QUOTA_EXCEEDED,
+        "You've reached your document storage limit. Contact support if you need more space.",
+        400,
+      );
+    }
+    const approachingStorageQuota = currentUsage + input.sizeBytes > PROFILE_STORAGE_QUOTA_BYTES * PROFILE_STORAGE_WARN_RATIO;
 
     const storage = getObjectStorage();
     const presigned = await storage.presignUpload({ bucket: BUCKET, contentType: input.contentType, maxSizeBytes });
@@ -63,7 +99,21 @@ export class DocumentsService {
       return doc;
     });
 
-    return { documentId: document.id, uploadUrl: presigned.url, expiresAt: presigned.expiresAt.toISOString() };
+    return {
+      documentId: document.id,
+      uploadUrl: presigned.url,
+      expiresAt: presigned.expiresAt.toISOString(),
+      approachingStorageQuota,
+    };
+  }
+
+  /** Sum of verified (actually-stored) document bytes for a profile — pending/quarantined objects don't count yet. */
+  private async profileStorageBytes(profileId: string): Promise<number> {
+    const result = await this.prisma.storedObject.aggregate({
+      where: { status: "verified", document: { patientProfileId: profileId } },
+      _sum: { sizeBytes: true },
+    });
+    return result._sum.sizeBytes ?? 0;
   }
 
   /**

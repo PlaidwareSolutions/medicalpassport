@@ -165,6 +165,7 @@ export const hi: Record<keyof typeof en, string> = {
   "scan.processing": "आपका पर्चा पढ़ा जा रहा है…",
   "scan.processing_hint": "इसमें कुछ सेकंड लग सकते हैं।",
   "scan.upload_error": "यह फ़ाइल अपलोड नहीं हो सकी। कृपया फिर से प्रयास करें।",
+  "scan.approaching_storage_quota": "आप अपनी दस्तावेज़ भंडारण सीमा के करीब पहुँच रहे हैं। ज़्यादा जगह चाहिए तो पुरानी फ़ाइलें हटाने पर विचार करें।",
   "scan.process_error": "यह दस्तावेज़ पढ़ा नहीं जा सका। साफ़ फोटो लें, या दवा खुद दर्ज करें।",
   "scan.try_again": "फिर से प्रयास करें",
   "scan.add_manually": "इसके बजाय खुद दर्ज करें",

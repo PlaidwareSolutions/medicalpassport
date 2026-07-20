@@ -166,6 +166,7 @@ export const en = {
   "scan.processing": "Reading your prescription…",
   "scan.processing_hint": "This can take a few seconds.",
   "scan.upload_error": "Couldn't upload this file. Please try again.",
+  "scan.approaching_storage_quota": "You're nearing your document storage limit. Consider removing older files if you need more room.",
   "scan.process_error": "Couldn't read this document. Try a clearer photo, or add the medicine by hand.",
   "scan.try_again": "Try again",
   "scan.add_manually": "Add manually instead",

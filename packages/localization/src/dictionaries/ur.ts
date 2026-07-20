@@ -165,6 +165,7 @@ export const ur: Record<keyof typeof en, string> = {
   "scan.processing": "آپ کا نسخہ پڑھا جا رہا ہے…",
   "scan.processing_hint": "اس میں چند سیکنڈ لگ سکتے ہیں۔",
   "scan.upload_error": "یہ فائل اپ لوڈ نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔",
+  "scan.approaching_storage_quota": "آپ اپنی دستاویز اسٹوریج کی حد کے قریب پہنچ رہے ہیں۔ مزید جگہ کے لیے پرانی فائلیں ہٹانے پر غور کریں۔",
   "scan.process_error": "یہ دستاویز پڑھی نہیں جا سکی۔ واضح تصویر لیں، یا دوا خود درج کریں۔",
   "scan.try_again": "دوبارہ کوشش کریں",
   "scan.add_manually": "اس کے بجائے خود درج کریں",
