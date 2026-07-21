@@ -86,9 +86,9 @@ export default defineRailway(() => {
       // failing at the healthcheck stage until this was set).
       PORT: "3000",
       // Build-time (Next.js inlines NEXT_PUBLIC_* at build) — managed
-      // out-of-band for now since it flips between the temporary
-      // *.up.railway.app verification domain and staging-api.medidocs.app
-      // once Cloudflare DNS for the latter actually resolves.
+      // out-of-band, currently https://staging-api.medidocs.app now that
+      // Cloudflare DNS for it is live and verified (was the temporary
+      // *.up.railway.app domain before that).
       NEXT_PUBLIC_API_URL: preserve(),
     },
   });
