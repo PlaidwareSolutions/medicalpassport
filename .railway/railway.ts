@@ -17,20 +17,20 @@ import { defineRailway, github, postgres, preserve, project, service } from "rai
  *   rate limiter both already run on Postgres (documented substitutions,
  *   see apps/worker and apps/api/src/common/rate-limit.service.ts) — so
  *   provisioning an unused addon would be pure cost with no function.
- * - No Telnyx/VAPID secrets committed here: generated fresh for this
- *   environment and set via `railway variables` directly on each service,
- *   never written to source (docs/28: secrets only in Railway variables).
- * - Domain: medidocs.app (OD-1, purchased via Cloudflare). This environment
- *   uses `staging-*.medidocs.app` subdomains, reserving the bare hostnames
- *   (docs/26's `app.`/`api.`/`admin.` pattern) for real production later.
- *   These domains won't actually resolve until the matching CNAME records
- *   exist in Cloudflare (next phase, not yet wired) — declaring them here
- *   now just registers intent; `railway domain` generates a working
- *   `*.up.railway.app` fallback for this pass's verification in the
- *   meantime. The docs/25 non-negotiable ("users only ever reach services
- *   through Cloudflare-proxied hostnames, never *.railway.app directly") is
- *   a production rule — the temporary railway.app fallback is for our own
- *   verification, not end-user traffic.
+ * - No Telnyx/VAPID/R2 secrets committed here: generated fresh for this
+ *   environment and set via `railway variable set --stdin` directly on
+ *   each service, never written to source (docs/28: secrets only in
+ *   Railway variables) — declared as `preserve()` below so `config apply`
+ *   doesn't delete them.
+ * - Domain: medidocs.app (OD-1, purchased via Cloudflare) — DNS, TLS/HSTS,
+ *   a WAF rate-limit rule, and cache rules are live in Cloudflare (not
+ *   tracked in this file; configured directly via the Cloudflare API).
+ *   `staging-*.medidocs.app` subdomains are used here, reserving the bare
+ *   hostnames (docs/26's `app.`/`api.`/`admin.` pattern) for real
+ *   production later. Custom domains themselves aren't declarable in this
+ *   file at all (Railway rejects it — add via `railway domain`, this file
+ *   only manages what's added after).
+ * - R2 (docs/26 §13): real, live — see r2Env below.
  */
 export default defineRailway(() => {
   // All real work lives on "foundation" — main is still the original scaffold commit.
@@ -38,6 +38,22 @@ export default defineRailway(() => {
   const region = "asia-southeast1-eqsg3a"; // Singapore (docs/25 §Region, OD-5 assumption)
 
   const db = postgres("postgres", { region });
+
+  // Real R2 (docs/26 §13, Stage 11 follow-up) — 5 buckets provisioned
+  // (medpass-dev-{patient-docs,derived,ocr-tmp,backups,public-assets}) in
+  // the same shared Cloudflare account as the zone, hence the project-
+  // specific prefix rather than docs/26's plain "dev-" (this account hosts
+  // several unrelated projects' buckets too). R2_ACCESS_KEY_ID/
+  // R2_SECRET_ACCESS_KEY are derived from a Cloudflare API token scoped to
+  // *only* Workers R2 Storage — deliberately not the broader DNS/WAF/Zone
+  // Settings token used to provision the zone itself, since this credential
+  // lives in the running app (least privilege).
+  const r2Env = {
+    R2_ACCOUNT_ID: "db356ac44b40bc2b194b6838d03eb84b",
+    R2_BUCKET_PREFIX: "medpass-dev-",
+    R2_ACCESS_KEY_ID: preserve(),
+    R2_SECRET_ACCESS_KEY: preserve(),
+  };
 
   const api = service("api", {
     source: repo,
@@ -60,6 +76,7 @@ export default defineRailway(() => {
       VAPID_PUBLIC_KEY: preserve(),
       VAPID_PRIVATE_KEY: preserve(),
       VAPID_SUBJECT: preserve(),
+      ...r2Env,
     },
   });
 
@@ -70,6 +87,7 @@ export default defineRailway(() => {
     env: {
       NODE_ENV: "staging",
       DATABASE_URL: db.env.DATABASE_URL,
+      ...r2Env,
     },
   });
 
@@ -121,7 +139,8 @@ export default defineRailway(() => {
   const verifyAuditChain = cronJob("cron-verify-audit-chain", "0 2 * * *", "verify-audit-chain");
   const extendScheduledDoses = cronJob("cron-extend-scheduled-doses", "0 1 * * *", "extend-scheduled-doses");
   const reconcileMissedDoses = cronJob("cron-reconcile-missed-doses", "*/15 * * * *", "reconcile-missed-doses");
-  const cleanupAbandonedUploads = cronJob("cron-cleanup-abandoned-uploads", "0 * * * *", "cleanup-abandoned-uploads");
+  // Needs R2 access — deletes stale objects via the same ObjectStorage interface.
+  const cleanupAbandonedUploads = cronJob("cron-cleanup-abandoned-uploads", "0 * * * *", "cleanup-abandoned-uploads", r2Env);
   // Needs its own VAPID keypair (web push) matching api's — also preserve()'d.
   const detectDueReminders = cronJob("cron-detect-due-reminders", "* * * * *", "detect-due-reminders", {
     VAPID_PUBLIC_KEY: preserve(),

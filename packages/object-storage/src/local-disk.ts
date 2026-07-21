@@ -1,5 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { mkdir, open, rm, stat } from "node:fs/promises";
+import { mkdir, open, readFile, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { opaqueObjectKey, type BucketPurpose, type ObjectStorage, type PresignedUpload } from "./index.js";
 
@@ -80,6 +80,10 @@ export class LocalDiskObjectStorage implements ObjectStorage {
 
   async delete(opts: { bucket: BucketPurpose; objectKey: string }): Promise<void> {
     await rm(this.pathFor(opts.bucket, opts.objectKey), { force: true });
+  }
+
+  async getObjectBytes(opts: { bucket: BucketPurpose; objectKey: string }): Promise<Buffer> {
+    return readFile(this.pathFor(opts.bucket, opts.objectKey));
   }
 
   /** Verifies and decodes a token issued by presignUpload/presignDownload. */

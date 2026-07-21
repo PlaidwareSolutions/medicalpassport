@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES, type AuditActorType } from "@medpass/domain";
 import { maxBytesFor, type AuthorizeUploadInput } from "@medpass/validation";
+import { LocalDiskObjectStorage } from "@medpass/object-storage";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import { RateLimitService } from "../../common/rate-limit.service";
@@ -138,11 +139,9 @@ export class DocumentsService {
     }
 
     const storage = getObjectStorage();
-    const path = storage.pathFor("patient-docs", doc.storedObject.objectKey);
-    const { readFile } = await import("node:fs/promises");
     let bytes: Buffer;
     try {
-      bytes = await readFile(path);
+      bytes = await storage.getObjectBytes({ bucket: "patient-docs", objectKey: doc.storedObject.objectKey });
     } catch {
       throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Upload not found — try uploading again", 400);
     }
@@ -235,9 +234,12 @@ export class DocumentsService {
   }
 
   // ---- dev-storage passthrough (docs/26 direct-upload/download flow) ----
+  // Only meaningful against the local-disk backend — real R2 presigned URLs
+  // point directly at Cloudflare, so these routes are never generated (and
+  // never hit) once R2 is configured. Guarded rather than assumed.
 
   async handleDevUpload(token: string, req: Request): Promise<void> {
-    const storage = getObjectStorage();
+    const storage = this.requireLocalDiskStorage();
     let payload;
     try {
       payload = storage.verify(token);
@@ -249,7 +251,7 @@ export class DocumentsService {
   }
 
   async handleDevDownload(token: string, res: Response): Promise<void> {
-    const storage = getObjectStorage();
+    const storage = this.requireLocalDiskStorage();
     let payload;
     try {
       payload = storage.verify(token);
@@ -265,5 +267,13 @@ export class DocumentsService {
     res.setHeader("content-type", storedObject.contentType ?? "application/octet-stream");
     res.setHeader("cache-control", "private, no-store");
     createReadStream(path).pipe(res);
+  }
+
+  private requireLocalDiskStorage(): LocalDiskObjectStorage {
+    const storage = getObjectStorage();
+    if (!(storage instanceof LocalDiskObjectStorage)) {
+      throw new ApiProblem(ERROR_CODES.NOT_FOUND, "This link has expired", 404);
+    }
+    return storage;
   }
 }

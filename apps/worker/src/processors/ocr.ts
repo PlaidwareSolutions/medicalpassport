@@ -15,9 +15,9 @@ function getWorker(): Promise<Worker> {
   return workerPromise;
 }
 
-export async function runOcr(imagePath: string): Promise<string> {
+export async function runOcr(image: Buffer): Promise<string> {
   const worker = await getWorker();
-  const { data } = await worker.recognize(imagePath);
+  const { data } = await worker.recognize(image);
   return data.text;
 }
 

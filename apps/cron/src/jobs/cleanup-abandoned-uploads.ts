@@ -3,13 +3,14 @@
  * presigned URL was issued but the upload/verify step never completed
  * before it expired, or a file was quarantined for a bad signature and has
  * sat past its retention window. Deletes the physical object via the same
- * `ObjectStorage` interface production R2 will use, then marks both the
+ * `ObjectStorage` interface — real R2 when configured (docs/26 §13, Stage
+ * 11 follow-up), the local-disk stand-in otherwise — then marks both the
  * stored object and its document row `deleted` rather than hard-deleting —
  * matching docs/25's initial cron schedule (hourly).
  */
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import { LocalDiskObjectStorage, type BucketPurpose } from "@medpass/object-storage";
+import { createObjectStorage, type BucketPurpose } from "@medpass/object-storage";
 import { runJob } from "../lib/run-job";
 
 const QUARANTINE_RETENTION_DAYS = 7;
@@ -20,9 +21,20 @@ const BUCKET_PURPOSE: Record<string, BucketPurpose> = {
 };
 
 runJob("cleanup-abandoned-uploads", async ({ prisma, log, config }) => {
-  const storage = new LocalDiskObjectStorage({
-    rootDir: resolve(process.cwd(), config.OBJECT_STORAGE_ROOT),
-    secret: createHash("sha256").update(config.FIELD_ENCRYPTION_KEY + ":object-storage").digest("hex"),
+  const storage = createObjectStorage({
+    r2:
+      config.R2_ACCOUNT_ID && config.R2_ACCESS_KEY_ID && config.R2_SECRET_ACCESS_KEY && config.R2_BUCKET_PREFIX
+        ? {
+            accountId: config.R2_ACCOUNT_ID,
+            accessKeyId: config.R2_ACCESS_KEY_ID,
+            secretAccessKey: config.R2_SECRET_ACCESS_KEY,
+            bucketPrefix: config.R2_BUCKET_PREFIX,
+          }
+        : undefined,
+    local: {
+      rootDir: resolve(process.cwd(), config.OBJECT_STORAGE_ROOT),
+      secret: createHash("sha256").update(config.FIELD_ENCRYPTION_KEY + ":object-storage").digest("hex"),
+    },
   });
 
   const quarantineCutoff = new Date(Date.now() - QUARANTINE_RETENTION_DAYS * 24 * 60 * 60 * 1000);

@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import pdfParse from "pdf-parse";
 
 export const PDF_TEXT_ENGINE = "pdf-parse";
@@ -12,8 +11,7 @@ export const PDF_TEXT_ENGINE_VERSION = "1.1.1";
  * detection as the OCR path (docs/09 §6): no separate code path for
  * "confidence" or "confirmation", just a different raw-text source.
  */
-export async function extractPdfText(pdfPath: string): Promise<string> {
-  const buffer = await readFile(pdfPath);
+export async function extractPdfText(buffer: Buffer): Promise<string> {
   const { text } = await pdfParse(buffer);
   return text;
 }

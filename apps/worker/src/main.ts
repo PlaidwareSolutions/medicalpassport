@@ -8,9 +8,12 @@
  * doctor-visit-summary PDF rendering (Stage 7) — both previously ran
  * synchronously inside the API request.
  */
+import { createHash } from "node:crypto";
+import { resolve } from "node:path";
 import { getPrisma } from "@medpass/database";
 import { loadEnv, workerEnvShape } from "@medpass/config";
 import { createLogger } from "@medpass/observability";
+import { createObjectStorage } from "@medpass/object-storage";
 import { claimNextJob, completeJob, failJob } from "./lib/queue";
 import { processOcrExtraction, type OcrExtractionPayload } from "./processors/ocr-extraction";
 import { terminateOcrWorker } from "./processors/ocr";
@@ -20,6 +23,28 @@ import type { VisitSummaryDto } from "./processors/visit-summary-html";
 const logger = createLogger("worker");
 const env = loadEnv(workerEnvShape);
 const prisma = getPrisma();
+
+// Same R2-or-local-disk selection as apps/api/src/common/storage.ts — the
+// worker never presigns URLs itself, only reads bytes via getObjectBytes,
+// but needs the same backend (docs/26 §13, Stage 11 follow-up).
+const objectStorage = createObjectStorage({
+  r2:
+    env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET_PREFIX
+      ? {
+          accountId: env.R2_ACCOUNT_ID,
+          accessKeyId: env.R2_ACCESS_KEY_ID,
+          secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+          bucketPrefix: env.R2_BUCKET_PREFIX,
+        }
+      : undefined,
+  local: {
+    rootDir: resolve(process.cwd(), env.OBJECT_STORAGE_ROOT),
+    // Only used by LocalDiskObjectStorage to sign/verify presigned tokens —
+    // the worker only ever calls getObjectBytes/pathFor, never presigns
+    // anything itself, so this value is never actually exercised.
+    secret: createHash("sha256").update(env.OBJECT_STORAGE_ROOT + ":object-storage").digest("hex"),
+  },
+});
 
 const POLL_INTERVAL_MS = 500;
 const QUEUES = ["ocr_extraction", "pdf_render"] as const;
@@ -34,7 +59,7 @@ async function pollQueue(queue: (typeof QUEUES)[number]): Promise<boolean> {
   try {
     let result: unknown;
     if (queue === "ocr_extraction") {
-      await processOcrExtraction(prisma, env.OBJECT_STORAGE_ROOT, job.payload as OcrExtractionPayload);
+      await processOcrExtraction(prisma, objectStorage, job.payload as OcrExtractionPayload);
       result = { ok: true };
     } else {
       const pdf = await renderPdf((job.payload as { summary: VisitSummaryDto }).summary);

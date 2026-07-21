@@ -47,11 +47,22 @@ export const apiEnvShape = {
   REDIS_URL: z.string().url().optional(),
   /**
    * Local-disk object-storage dev stand-in for Cloudflare R2 (docs/24
-   * ADR-12, docs/26). Never used in production — real R2 credentials would
-   * go here instead when that adapter is built.
+   * ADR-12, docs/26) — used whenever the R2_* vars below aren't all set.
    */
   OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
   OBJECT_STORAGE_BASE_URL: z.string().url().optional(),
+  /**
+   * Real Cloudflare R2 (docs/26 §13, Stage 11 follow-up). All four optional
+   * and only meaningful together — `createObjectStorage` falls back to the
+   * local-disk stand-in above unless every one of them is set.
+   * R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY are derived from a Cloudflare API
+   * token scoped to *only* Workers R2 Storage (never a broader token —
+   * that credential lives in the running app, so least-privilege matters).
+   */
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET_PREFIX: z.string().optional(),
   /**
    * Web Push (docs/16) — self-signed VAPID keypair, no external provider or
    * account needed (unlike SMS/WhatsApp, which are blocked on OD-10).
@@ -94,6 +105,11 @@ export const workerEnvShape = {
    */
   REDIS_URL: z.string().url().optional(),
   OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
+  /** Real R2 (docs/26 §13) — see apiEnvShape's comment; falls back to local-disk unless all four are set. */
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET_PREFIX: z.string().optional(),
 } as const;
 
 export const cronEnvShape = {
@@ -102,6 +118,11 @@ export const cronEnvShape = {
   /** Needed by cleanup-abandoned-uploads to derive the object-storage HMAC secret. */
   FIELD_ENCRYPTION_KEY: z.string().min(32),
   OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
+  /** Real R2 (docs/26 §13) — see apiEnvShape's comment; falls back to local-disk unless all four are set. */
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET_PREFIX: z.string().optional(),
   /** Needed by detect-due-reminders to send web push (docs/16). */
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),

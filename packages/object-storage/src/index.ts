@@ -1,12 +1,14 @@
 /**
- * Cloudflare R2 access layer — Stage 3 scaffold.
+ * Cloudflare R2 access layer.
  *
  * Contract (docs/26): private buckets only; opaque object keys with no
  * patient identifiers; short-lived presigned URLs issued only after
  * authorization; every issuance audited; no permanent public URLs stored.
  *
- * The implementation will use the S3-compatible API (ADR-12); local
- * development pairs with MinIO via docker-compose.
+ * Two implementations share this interface: `LocalDiskObjectStorage` (docs/24
+ * ADR-12, the dev/test default) and `R2ObjectStorage` (the real S3-compatible
+ * backend, docs/26 §13 — Stage 11 follow-up), selected by `createObjectStorage`
+ * based on whether R2 credentials are configured.
  */
 
 export type BucketPurpose = "patient-docs" | "derived" | "ocr-tmp" | "backups";
@@ -28,6 +30,8 @@ export interface ObjectStorage {
   presignDownload(opts: { bucket: BucketPurpose; objectKey: string }): Promise<{ url: string; expiresAt: Date }>;
   head(opts: { bucket: BucketPurpose; objectKey: string }): Promise<{ exists: boolean; sizeBytes?: number; contentType?: string }>;
   delete(opts: { bucket: BucketPurpose; objectKey: string }): Promise<void>;
+  /** Reads an object's full bytes — used where the server itself needs the content (signature verification, OCR), not just a client-facing URL. */
+  getObjectBytes(opts: { bucket: BucketPurpose; objectKey: string }): Promise<Buffer>;
 }
 
 /** Generates an opaque, non-guessable object key: {kind}/{yyyy}/{mm}/{uuid}. */
@@ -38,3 +42,5 @@ export function opaqueObjectKey(kind: string, id: string, now = new Date()): str
 }
 
 export * from "./local-disk.js";
+export * from "./r2.js";
+export * from "./factory.js";

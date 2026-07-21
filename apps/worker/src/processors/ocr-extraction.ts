@@ -1,5 +1,5 @@
-import { join } from "node:path";
 import type { PrismaClient } from "@medpass/database";
+import type { ObjectStorage } from "@medpass/object-storage";
 import { writeAudit } from "@medpass/audit";
 import type { AuditActorType } from "@medpass/domain";
 import { detectCandidates } from "./candidate-detection";
@@ -21,7 +21,7 @@ export interface OcrExtractionPayload {
  * candidate detection, same audit trail, same "never fabricate" rule —
  * only the caller (a queued job, not an HTTP request) is different.
  */
-export async function processOcrExtraction(prisma: PrismaClient, objectStorageRoot: string, payload: OcrExtractionPayload): Promise<void> {
+export async function processOcrExtraction(prisma: PrismaClient, storage: ObjectStorage, payload: OcrExtractionPayload): Promise<void> {
   const { documentId, profileId, actorUserId, actorType, correlationId } = payload;
 
   const doc = await prisma.prescriptionDocument.findFirstOrThrow({
@@ -30,7 +30,6 @@ export async function processOcrExtraction(prisma: PrismaClient, objectStorageRo
   });
 
   const isPdf = doc.storedObject.contentType === "application/pdf";
-  const path = join(objectStorageRoot, "patient-docs", doc.storedObject.objectKey);
 
   const extraction = await prisma.prescriptionExtraction.create({
     data: {
@@ -42,7 +41,8 @@ export async function processOcrExtraction(prisma: PrismaClient, objectStorageRo
   });
 
   try {
-    const rawText = isPdf ? await extractPdfText(path) : await runOcr(path);
+    const bytes = await storage.getObjectBytes({ bucket: "patient-docs", objectKey: doc.storedObject.objectKey });
+    const rawText = isPdf ? await extractPdfText(bytes) : await runOcr(bytes);
 
     const products = await prisma.medicationProduct.findMany({
       where: { status: "active" },
