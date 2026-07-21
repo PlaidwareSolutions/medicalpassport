@@ -77,6 +77,16 @@ export default defineRailway(() => {
       VAPID_PRIVATE_KEY: preserve(),
       VAPID_SUBJECT: preserve(),
       ...r2Env,
+      // Telnyx (docs/16, OD-10) — wired in for the voice-OTP supplementary
+      // channel (Stage 4 follow-up). OTP_TRANSPORT stays "log" by default
+      // (see above); flip it to "voice" only for a deliberate live test,
+      // never left on as this environment's default without a decision to
+      // do so. TELNYX_API_KEY/TELNYX_PUBLIC_KEY are secrets (preserve()'d);
+      // the number and connection ID aren't.
+      TELNYX_API_KEY: preserve(),
+      TELNYX_PUBLIC_KEY: preserve(),
+      TELNYX_FROM_NUMBER: "+18443496782",
+      TELNYX_VOICE_CONNECTION_ID: "3009076702736287119",
     },
   });
 
