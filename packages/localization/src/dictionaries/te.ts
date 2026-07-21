@@ -38,6 +38,7 @@ export const te: Record<keyof typeof en, string> = {
   "auth.sent_generic": "ఈ నంబర్ కోడ్‌లు అందుకోగలిగితే, కోడ్ పంపబడింది.",
   "auth.invalid_code": "ఆ కోడ్ సరైనది కాదు. దయచేసి సరిచూసి మళ్లీ ప్రయత్నించండి.",
   "auth.locked": "చాలా ఎక్కువ ప్రయత్నాలు. దయచేసి తర్వాత కొత్త కోడ్ అడగండి.",
+  "auth.verification_failed": "మీరు రోబోట్ కాదని మేము నిర్ధారించలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.",
   "auth.sign_out": "సైన్ అవుట్",
 
   "profile.create_title": "మీ గురించి చెప్పండి",

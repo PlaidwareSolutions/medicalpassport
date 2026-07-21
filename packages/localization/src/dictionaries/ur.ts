@@ -38,6 +38,7 @@ export const ur: Record<keyof typeof en, string> = {
   "auth.sent_generic": "اگر یہ نمبر کوڈ وصول کر سکتا ہے تو کوڈ بھیج دیا گیا ہے۔",
   "auth.invalid_code": "یہ کوڈ درست نہیں ہے۔ براہ کرم جانچ کر دوبارہ کوشش کریں۔",
   "auth.locked": "بہت زیادہ کوششیں۔ براہ کرم بعد میں نیا کوڈ طلب کریں۔",
+  "auth.verification_failed": "ہم یہ تصدیق نہیں کر سکے کہ آپ روبوٹ نہیں ہیں۔ براہ کرم دوبارہ کوشش کریں۔",
   "auth.sign_out": "سائن آؤٹ",
 
   "profile.create_title": "اپنے بارے میں بتائیں",

@@ -38,6 +38,7 @@ export const hi: Record<keyof typeof en, string> = {
   "auth.sent_generic": "यदि यह नंबर कोड प्राप्त कर सकता है, तो कोड भेज दिया गया है।",
   "auth.invalid_code": "यह कोड सही नहीं है। कृपया जाँच कर फिर कोशिश करें।",
   "auth.locked": "बहुत अधिक प्रयास। कृपया बाद में नया कोड माँगें।",
+  "auth.verification_failed": "हम यह सत्यापित नहीं कर सके कि आप रोबोट नहीं हैं। कृपया फिर से प्रयास करें।",
   "auth.sign_out": "साइन आउट",
 
   "profile.create_title": "अपने बारे में बताएं",

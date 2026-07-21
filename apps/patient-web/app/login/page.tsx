@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
-import { Banner, Button, TextInput } from "@medpass/ui-web";
+import { Banner, Button, TextInput, TurnstileWidget } from "@medpass/ui-web";
 import { api } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { useSession } from "../../lib/session";
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | undefined>();
   const [resendIn, setResendIn] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState<string | undefined>();
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -33,7 +34,7 @@ export default function LoginPage() {
     setBusy(true);
     setError(undefined);
     try {
-      await api.post("/auth/otp/request", { phone });
+      await api.post("/auth/otp/request", { phone, turnstileToken });
       setNotice(t("auth.sent_generic"));
       setStep("code");
       setResendIn(RESEND_SECONDS);
@@ -66,6 +67,8 @@ export default function LoginPage() {
       case "otp_locked":
       case "otp_resend_limit":
         return t("auth.locked");
+      case "turnstile_failed":
+        return t("auth.verification_failed");
       case "validation_failed":
         return err.problem.errors?.[0]?.message ?? t("common.error_generic");
       default:
@@ -90,6 +93,7 @@ export default function LoginPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
+          <TurnstileWidget siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} onToken={setTurnstileToken} />
           <Button fullWidth disabled={busy || phone.replace(/\D/g, "").length < 8} onClick={() => void requestCode()}>
             {t("auth.send_code")}
           </Button>

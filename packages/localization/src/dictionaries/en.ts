@@ -39,6 +39,7 @@ export const en = {
   "auth.sent_generic": "If this number can receive codes, one has been sent.",
   "auth.invalid_code": "That code is not correct. Please check and try again.",
   "auth.locked": "Too many attempts. Please request a new code later.",
+  "auth.verification_failed": "We couldn't verify you're not a robot. Please try again.",
   "auth.sign_out": "Sign out",
 
   "profile.create_title": "Tell us about yourself",

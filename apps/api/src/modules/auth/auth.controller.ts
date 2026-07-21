@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { otpRequestSchema, otpVerifySchema, refreshSchema } from "@medpass/validation";
+import { ERROR_CODES } from "@medpass/domain";
 import { env } from "../../common/env";
 import { parseWith } from "../../common/zod";
+import { ApiProblem } from "../../common/errors";
 import { Public, SESSION_COOKIE } from "../../common/auth.guard";
 import { RateLimit } from "../../common/rate-limit.guard";
+import { verifyTurnstile } from "../../common/turnstile";
 import type { ApiRequest } from "../../common/http";
 import { AuthService, type IssuedSession } from "./auth.service";
 import { PrismaService } from "../../common/prisma.service";
@@ -24,6 +27,11 @@ export class AuthController {
   @HttpCode(202)
   async requestOtp(@Body() body: unknown, @Req() req: ApiRequest) {
     const input = parseWith(otpRequestSchema, body);
+    // Covers both "login" and "recovery" purposes (docs/26 §12.4) — recovery
+    // shares this same endpoint, not a separate one.
+    if (!(await verifyTurnstile(env().TURNSTILE_SECRET_KEY, input.turnstileToken, req.ip))) {
+      throw new ApiProblem(ERROR_CODES.TURNSTILE_FAILED, "Verification failed. Please try again.", 400);
+    }
     await this.auth.requestOtp(input, req.ip, req.correlationId);
     // Enumeration-safe: same response whether or not the number exists.
     return { message: "If this number can receive codes, one has been sent." };

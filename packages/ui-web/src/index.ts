@@ -6,3 +6,4 @@ export * from "./components/Banner";
 export * from "./components/SectionTitle";
 export * from "./components/ChoiceGrid";
 export * from "./components/BottomNav";
+export * from "./components/TurnstileWidget";

@@ -99,6 +99,17 @@ export const apiEnvShape = {
    */
   TELNYX_PUBLIC_KEY: z.string().optional(),
   TELNYX_WEBHOOK_URL: z.string().url().optional(),
+  /**
+   * Cloudflare Turnstile (docs/26 §12.4, OD-15) — bot-detection on OTP
+   * request (covers both "login" and "recovery" purposes; account recovery
+   * shares this same endpoint, not a separate one). Optional: when unset
+   * (dev/local, Cloudflare Turnstile not provisioned), verification is
+   * skipped entirely rather than refused. "Managed" widget mode means
+   * Cloudflare itself decides whether a visitor needs a visible challenge
+   * or passes invisibly — docs/26's "challenged when suspicious", with no
+   * custom suspicion-scoring needed on this side.
+   */
+  TURNSTILE_SECRET_KEY: z.string().optional(),
 } as const;
 
 export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;
