@@ -152,6 +152,13 @@ export const cronEnvShape = {
   TELNYX_FROM_NUMBER: z.string().optional(),
   /** Passed to Telnyx on send so delivery-status webhooks reach the API (must match its TELNYX_WEBHOOK_URL). */
   TELNYX_WEBHOOK_URL: z.string().url().optional(),
+  /**
+   * Backups (docs/27) — AES-256 key (base64, 32 bytes) backup-export uses to
+   * encrypt the pg_dump client-side before it ever leaves Postgres, and
+   * restore-test uses to decrypt it back. Required for backup-export/
+   * verify-backups/restore-test; other cron jobs don't read it.
+   */
+  BACKUP_ENCRYPTION_KEY: z.string().min(32).optional(),
 } as const;
 
 export type CronEnv = z.infer<z.ZodObject<typeof cronEnvShape>>;

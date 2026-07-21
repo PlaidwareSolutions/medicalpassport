@@ -1323,6 +1323,54 @@ enum AuditActorType {
   share_visitor
 }
 
+enum BackupExecutionStatus {
+  running
+  succeeded
+  failed
+}
+
+/// A daily pg_dump logical export, client-side encrypted before leaving
+/// Postgres, uploaded to R2 (docs/27). `tableRowCounts` is captured at
+/// export time so a later restore test has a manifest to check against
+/// without needing the original database to still be in its old state.
+model BackupExecution {
+  id             String                @id @default(uuid()) @db.Uuid
+  startedAt      DateTime              @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt    DateTime?             @map("completed_at") @db.Timestamptz(6)
+  status         BackupExecutionStatus @default(running)
+  objectKey      String?               @map("object_key")
+  sizeBytes      Int?                  @map("size_bytes")
+  sha256         String?
+  tableRowCounts Json?                 @map("table_row_counts")
+  errorDigest    String?               @map("error_digest")
+
+  restoreTests RestoreTest[]
+
+  @@map("backup_executions")
+}
+
+enum RestoreTestStatus {
+  running
+  passed
+  failed
+}
+
+/// docs/27: "a backup without a passing restore test does not count toward
+/// RPO" — this table is what makes that claim checkable rather than assumed.
+model RestoreTest {
+  id                String            @id @default(uuid()) @db.Uuid
+  backupExecutionId String            @map("backup_execution_id") @db.Uuid
+  backupExecution   BackupExecution   @relation(fields: [backupExecutionId], references: [id])
+  startedAt         DateTime          @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt       DateTime?         @map("completed_at") @db.Timestamptz(6)
+  status            RestoreTestStatus @default(running)
+  rowCountsMatch    Boolean?          @map("row_counts_match")
+  detail            Json?
+  errorDigest       String?           @map("error_digest")
+
+  @@map("restore_tests")
+}
+
 /// Append-only, hash-chained audit log (docs/21). Rows are never updated.
 model AuditEvent {
   id               String         @id @default(uuid()) @db.Uuid

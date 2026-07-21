@@ -16,6 +16,11 @@ RUN pnpm --filter @medpass/cron... build
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# backup-export/restore-test (docs/27) shell out to the real pg_dump/
+# pg_restore/createdb/dropdb binaries — not reimplemented in JS, since a
+# logical export's fidelity (schema, sequences, constraints) is exactly
+# what pg_dump already guarantees.
+RUN apk add --no-cache postgresql18-client
 COPY --from=build /repo /repo
 USER node
 WORKDIR /repo/apps/cron

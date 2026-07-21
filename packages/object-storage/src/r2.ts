@@ -82,4 +82,10 @@ export class R2ObjectStorage implements ObjectStorage {
     if (!bytes) throw new Error(`R2 object not found: ${opts.bucket}/${opts.objectKey}`);
     return Buffer.from(bytes);
   }
+
+  async putObjectBytes(opts: { bucket: BucketPurpose; objectKey: string; body: Buffer; contentType: string }): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({ Bucket: this.bucketName(opts.bucket), Key: opts.objectKey, Body: opts.body, ContentType: opts.contentType }),
+    );
+  }
 }

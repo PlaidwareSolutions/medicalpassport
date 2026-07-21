@@ -58,6 +58,7 @@ flowchart TB
 | cleanup-abandoned-uploads | 0 * * * * |
 | content-freshness-check | 0 2 * * 0 |
 | backup-export + verify-backups | 0 1 * * * / 0 3 * * * |
+| restore-test | 0 4 1 * * (monthly) |
 | retention-cleanup | 0 4 * * * |
 | reconcile-stuck-jobs | */30 * * * * |
 | operational-report | 0 7 * * * |

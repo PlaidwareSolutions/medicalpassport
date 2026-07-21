@@ -32,6 +32,8 @@ export interface ObjectStorage {
   delete(opts: { bucket: BucketPurpose; objectKey: string }): Promise<void>;
   /** Reads an object's full bytes — used where the server itself needs the content (signature verification, OCR), not just a client-facing URL. */
   getObjectBytes(opts: { bucket: BucketPurpose; objectKey: string }): Promise<Buffer>;
+  /** Writes bytes directly, server-side — for ops/admin writers (e.g. backup exports) that already hold real credentials and have no browser client to hand a presigned URL to. */
+  putObjectBytes(opts: { bucket: BucketPurpose; objectKey: string; body: Buffer; contentType: string }): Promise<void>;
 }
 
 /** Generates an opaque, non-guessable object key: {kind}/{yyyy}/{mm}/{uuid}. */

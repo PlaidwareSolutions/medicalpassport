@@ -168,6 +168,15 @@ export default defineRailway(() => {
   const generateRefillReminders = cronJob("cron-generate-refill-reminders", "0 6 * * *", "generate-refill-reminders");
   const cleanupRateLimitBuckets = cronJob("cron-cleanup-rate-limit-buckets", "0 4 * * *", "cleanup-rate-limit-buckets");
 
+  // Backups (docs/27, Stage 11 follow-up) — real pg_dump + R2 + a monthly
+  // restore test into a genuine scratch database. BACKUP_ENCRYPTION_KEY is a
+  // dedicated secret (not FIELD_ENCRYPTION_KEY) since backup exports are a
+  // different trust boundary — one key compromise shouldn't unlock the other.
+  const backupEnv = { ...r2Env, BACKUP_ENCRYPTION_KEY: preserve() };
+  const backupExport = cronJob("cron-backup-export", "0 1 * * *", "backup-export", backupEnv);
+  const verifyBackups = cronJob("cron-verify-backups", "0 3 * * *", "verify-backups", backupEnv);
+  const restoreTest = cronJob("cron-restore-test", "0 4 1 * *", "restore-test", backupEnv);
+
   return project("medpass-dev", {
     resources: [
       db,
@@ -184,6 +193,9 @@ export default defineRailway(() => {
       detectDueReminders,
       generateRefillReminders,
       cleanupRateLimitBuckets,
+      backupExport,
+      verifyBackups,
+      restoreTest,
     ],
   });
 });
