@@ -38,7 +38,7 @@ Living register. Per spec §29: when uncertain we state the uncertainty, documen
 | OD-12 | AI provider + no-training contractual terms | Eng + legal | Stage 8 | Adapter-based; provider must meet §15.3 checklist |
 | OD-13 | Observability backend (OTLP-compatible) | Eng | Stage 11 | Structured logs + Railway metrics until chosen |
 | OD-14 | PDF generation approach (headless Chromium in worker vs library) | Eng | Stage 7 | Worker-side headless Chromium assumed (no client PDF with PHI) |
-| OD-15 | Turnstile placement tuning (which flows, thresholds) | Eng | Stage 11 | OTP request + admin login challenged when suspicious; verified server-side |
+| OD-15 | Turnstile placement tuning (which flows, thresholds) | Eng | Stage 11 | **Resolved for OTP request this session**: a real Turnstile widget (Cloudflare API-provisioned, "managed" mode — Cloudflare's own bot-risk assessment decides visible-challenge vs invisible-pass, satisfying "challenged when suspicious" without custom scoring) verified server-side via `verifyTurnstile`, covering both "login" and "recovery" purposes on the shared `/v1/auth/otp/request` endpoint. Live-verified: real widget execution in a browser, real server-side rejection of a missing token, and a real human completing the full flow successfully. Admin login still unresolved — no admin login endpoint exists in this codebase yet to challenge |
 
 ## Standing assumptions
 
