@@ -87,6 +87,10 @@ export default defineRailway(() => {
       TELNYX_PUBLIC_KEY: preserve(),
       TELNYX_FROM_NUMBER: "+18443496782",
       TELNYX_VOICE_CONNECTION_ID: "3009076702736287119",
+      // Turnstile (docs/26 §12.4, Stage 11 follow-up) — the secret key is
+      // set via `railway variable set --stdin`; the widget's site key
+      // (public, safe client-side) lives on patient-web below instead.
+      TURNSTILE_SECRET_KEY: preserve(),
     },
   });
 
@@ -118,6 +122,10 @@ export default defineRailway(() => {
       // Cloudflare DNS for it is live and verified (was the temporary
       // *.up.railway.app domain before that).
       NEXT_PUBLIC_API_URL: preserve(),
+      // Turnstile site key (docs/26 §12.4) — public by design, safe as a
+      // literal here; the widget is provisioned for the staging-app.
+      // medidocs.app + localhost domains only.
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "0x4AAAAAAD6vGglnBMbvP_EJ",
     },
   });
 
