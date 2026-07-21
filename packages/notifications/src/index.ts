@@ -187,6 +187,111 @@ export interface TelnyxDeliveryOutcome {
   errorDigest?: string;
 }
 
+interface TelnyxCallResponse {
+  data?: { call_control_id: string };
+  errors?: Array<{ code: string; detail: string }>;
+}
+
+/**
+ * Real voice-call OTP delivery via Telnyx Call Control (docs/16, OD-10) — a
+ * supplementary channel alongside SMS while India's SMS DLT registration
+ * remains open, NOT a confirmed regulatory workaround: TRAI's TCCCPR rules
+ * also cover automated/bulk voice and IVR traffic, not just SMS (docs/24
+ * OD-10) — this is redundancy, not a clean bypass.
+ *
+ * Call answering is asynchronous, so `sendOtp` only *initiates* the call;
+ * the actual "speak the code" and "hang up" commands are issued later by
+ * `TelnyxVoiceWebhookController` once Telnyx reports the call was answered
+ * and, respectively, that TTS playback finished. The code travels in
+ * `client_state` (Telnyx's opaque base64 passthrough, echoed back on every
+ * webhook event for this call) rather than a server-side store — it's
+ * already exactly as exposed to Telnyx's own infrastructure as an SMS OTP's
+ * message body is, so this isn't a new trust boundary.
+ */
+export class TelnyxVoiceOtpSender implements OtpSender {
+  constructor(private readonly config: { apiKey: string; fromNumber: string; connectionId: string }) {}
+
+  async sendOtp(phoneE164: string, code: string, locale: string): Promise<void> {
+    const clientState = Buffer.from(JSON.stringify({ code, locale })).toString("base64");
+    const res = await fetch("https://api.telnyx.com/v2/calls", {
+      method: "POST",
+      headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        connection_id: this.config.connectionId,
+        to: phoneE164,
+        from: this.config.fromNumber,
+        client_state: clientState,
+      }),
+    });
+    const json = (await res.json().catch(() => null)) as TelnyxCallResponse | null;
+    if (!res.ok || !json?.data) {
+      const err = json?.errors?.[0];
+      throw new Error(err ? `telnyx_${err.code}: ${err.detail}` : `telnyx_http_${res.status}`);
+    }
+  }
+}
+
+/**
+ * Spoken OTP text (docs/16 wording rules apply here too — no PHI, just the
+ * code). Digits are comma-joined so Telnyx's TTS engine pauses between each
+ * one, and the code is spoken twice for a channel with no way to "look back"
+ * at a message. Only `hi-IN`/`en-IN` are used — Telnyx's `speak` action
+ * supports Hindi and Indian-accented English (confirmed via its API
+ * reference) but has no Telugu or Urdu voice, so those locales fall back to
+ * English rather than guessing at an unsupported language code.
+ */
+export function buildVoiceOtpSpeech(code: string, locale: string): { payload: string; language: string } {
+  const digits = code.split("").join(", ");
+  if (locale === "hi") {
+    return { payload: `आपका मेडपास सत्यापन कोड है: ${digits}। दोबारा: ${digits}।`, language: "hi-IN" };
+  }
+  return { payload: `Your medpass verification code is: ${digits}. Again: ${digits}.`, language: "en-IN" };
+}
+
+/** Commands an in-progress call to speak text via TTS (Telnyx Call Control). */
+export async function telnyxSpeak(apiKey: string, callControlId: string, payload: string, language: string): Promise<void> {
+  await fetch(`https://api.telnyx.com/v2/calls/${callControlId}/actions/speak`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    body: JSON.stringify({ payload, voice: "female", language }),
+  });
+}
+
+/** Ends an in-progress call (Telnyx Call Control). */
+export async function telnyxHangup(apiKey: string, callControlId: string): Promise<void> {
+  await fetch(`https://api.telnyx.com/v2/calls/${callControlId}/actions/hangup`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+  });
+}
+
+export interface TelnyxCallEvent {
+  eventType: string;
+  callControlId: string;
+  clientState?: { code: string; locale: string };
+}
+
+/** Reduces a Telnyx Call Control webhook event to what the voice-OTP flow needs. */
+export function parseTelnyxCallEvent(body: unknown): TelnyxCallEvent | null {
+  const event = body as {
+    data?: { event_type?: string; payload?: { call_control_id?: string; client_state?: string } };
+  };
+  const eventType = event.data?.event_type;
+  const callControlId = event.data?.payload?.call_control_id;
+  if (!eventType || !callControlId) return null;
+
+  let clientState: { code: string; locale: string } | undefined;
+  const raw = event.data?.payload?.client_state;
+  if (raw) {
+    try {
+      clientState = JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as { code: string; locale: string };
+    } catch {
+      clientState = undefined;
+    }
+  }
+  return { eventType, callControlId, clientState };
+}
+
 /**
  * Reduces a Telnyx messaging webhook event to the one thing a
  * `NotificationAttempt` cares about: did this specific send end up

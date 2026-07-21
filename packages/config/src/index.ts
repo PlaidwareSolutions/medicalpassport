@@ -33,9 +33,12 @@ export const apiEnvShape = {
   FIELD_ENCRYPTION_KEY: z.string().min(32),
   /**
    * OTP transport. "log" is a development-only fake; the API refuses to boot
-   * with it in production.
+   * with it in production. "voice" (docs/16, OD-10) is a supplementary
+   * channel alongside "sms" — not a replacement, and not a confirmed way
+   * around India's SMS DLT requirement (TRAI's rules also cover automated
+   * voice/IVR traffic).
    */
-  OTP_TRANSPORT: z.enum(["log", "sms"]).default("log"),
+  OTP_TRANSPORT: z.enum(["log", "sms", "voice"]).default("log"),
   /** Development/test only: fixed OTP code so no real SMS is needed. */
   OTP_DEV_FIXED_CODE: z
     .string()
@@ -79,6 +82,12 @@ export const apiEnvShape = {
    */
   TELNYX_API_KEY: z.string().optional(),
   TELNYX_FROM_NUMBER: z.string().optional(),
+  /**
+   * Voice OTP (docs/16, OD-10 supplementary channel) — the Call Control
+   * Application/connection ID that owns TELNYX_FROM_NUMBER for outbound
+   * calling. Required for OTP_TRANSPORT="voice".
+   */
+  TELNYX_VOICE_CONNECTION_ID: z.string().optional(),
   /**
    * Delivery-status webhooks (docs/16 follow-up): TELNYX_PUBLIC_KEY (from
    * the Telnyx portal, distinct from the API key) verifies the Ed25519

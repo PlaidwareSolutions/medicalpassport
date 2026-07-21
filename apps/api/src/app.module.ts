@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { createLogger } from "@medpass/observability";
-import { LogOtpSender, TelnyxSmsSender, type OtpSender } from "@medpass/notifications";
+import { LogOtpSender, TelnyxSmsSender, TelnyxVoiceOtpSender, type OtpSender } from "@medpass/notifications";
 import { env } from "./common/env";
 import { PrismaService } from "./common/prisma.service";
 import { CorrelationMiddleware } from "./common/correlation.middleware";
@@ -39,6 +39,7 @@ import { ExtractionService } from "./modules/extraction/extraction.service";
 import { NotificationsController } from "./modules/notifications/notifications.controller";
 import { NotificationsService } from "./modules/notifications/notifications.service";
 import { TelnyxWebhookController } from "./modules/notifications/telnyx-webhook.controller";
+import { TelnyxVoiceWebhookController } from "./modules/notifications/telnyx-voice-webhook.controller";
 import { SyncController } from "./modules/sync/sync.controller";
 import { SyncService } from "./modules/sync/sync.service";
 
@@ -64,6 +65,7 @@ const OTP_SENDER = "OTP_SENDER";
     ExtractionController,
     NotificationsController,
     TelnyxWebhookController,
+    TelnyxVoiceWebhookController,
     SyncController,
   ],
   providers: [
@@ -85,8 +87,9 @@ const OTP_SENDER = "OTP_SENDER";
     {
       provide: OTP_SENDER,
       // OTP_TRANSPORT="sms" (docs/16, OD-10 — now unblocked via Telnyx) sends
-      // a real OTP; "log" (dev-only, refused in production — see env.ts)
-      // simulates the send instead.
+      // a real OTP over SMS; "voice" (OD-10 supplementary channel) places a
+      // real voice call instead; "log" (dev-only, refused in production —
+      // see env.ts) simulates the send.
       useValue:
         env().OTP_TRANSPORT === "sms"
           ? new TelnyxSmsSender({
@@ -94,7 +97,13 @@ const OTP_SENDER = "OTP_SENDER";
               fromNumber: env().TELNYX_FROM_NUMBER!,
               webhookUrl: env().TELNYX_WEBHOOK_URL,
             })
-          : new LogOtpSender((obj, msg) => logger.info(obj, msg)),
+          : env().OTP_TRANSPORT === "voice"
+            ? new TelnyxVoiceOtpSender({
+                apiKey: env().TELNYX_API_KEY!,
+                fromNumber: env().TELNYX_FROM_NUMBER!,
+                connectionId: env().TELNYX_VOICE_CONNECTION_ID!,
+              })
+            : new LogOtpSender((obj, msg) => logger.info(obj, msg)),
     },
     {
       provide: AuthService,
