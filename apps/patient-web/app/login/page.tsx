@@ -94,7 +94,17 @@ export default function LoginPage() {
             onChange={(e) => setPhone(e.target.value)}
           />
           <TurnstileWidget siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} onToken={setTurnstileToken} />
-          <Button fullWidth disabled={busy || phone.replace(/\D/g, "").length < 8} onClick={() => void requestCode()}>
+          <Button
+            fullWidth
+            disabled={
+              busy ||
+              phone.replace(/\D/g, "").length < 8 ||
+              // Only wait on a token when a widget actually exists (dev/local
+              // with no site key renders nothing and never calls onToken).
+              (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)
+            }
+            onClick={() => void requestCode()}
+          >
             {t("auth.send_code")}
           </Button>
         </>
