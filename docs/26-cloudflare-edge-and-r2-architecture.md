@@ -14,6 +14,8 @@ Cloudflare's role (spec §7.2, §12, §13): public front door, traffic-security 
 
 Rules (spec §12.1): all public traffic proxied; **strict (full) TLS** to origin; Railway-generated domains never exposed to users; hostname allowlist — unexpected hosts rejected at edge and at origin (host-header validation middleware); client IP preserved via `CF-Connecting-IP` (trusted only from Cloudflare ranges); certificate management documented (Cloudflare edge certs + Railway origin certs); origin access restricted where practical (Cloudflare IP allowlisting at origin, ADR if mTLS/tunnel needed later).
 
+**Built and live:** the real zone is `medidocs.app` (not the `example.com` placeholders above), Full (strict) TLS + HSTS (`include_subdomains`) at the zone level, WAF managed ruleset active. Staging: `staging-app.`/`staging-api.`/`staging-admin.medidocs.app` → the `medpass-dev` Railway project. Production: `app.`/`api.`/`admin.medidocs.app` → the `medpass-prod` Railway project (Stage 11 follow-up, production pilot bring-up — see docs/25 and docs/22 Stage 11). A no-cache rule bypasses caching on both environments' api/admin hostnames together (personalized/sensitive, never cached), and the OTP-request rate-limit rule (2/10s per IP) covers both environments' api hostname too — added as a single expression matching either hostname rather than duplicated rules, so both environments stay covered without drift.
+
 ```mermaid
 flowchart LR
     U[User] -->|TLS| CF[Cloudflare edge\nDNS · WAF · rate limit · bot · Turnstile]
@@ -50,6 +52,8 @@ Used where it improves abuse resistance: web OTP request, account recovery, publ
 | `stg-*` / `dev-*` | full separation per environment | short TTLs |
 
 Never real production patient data in dev/staging buckets. Patient buckets private; access only via short-lived presigned URLs, authenticated backend streaming, or an approved narrow gateway.
+
+**Built and live:** real bucket names are `medpass-dev-{patient-docs,derived,ocr-tmp,backups,public-assets}` and, as of the production pilot bring-up (Stage 11 follow-up), a genuinely separate `medpass-prod-{patient-docs,derived,ocr-tmp,backups,public-assets}` set — both in the same shared Cloudflare account (hence the project-specific prefix rather than this table's plain `prod-`/`stg-`/`dev-`). Bucket-level isolation between the two environments is real. Credential-level isolation is not, honestly, for this pass: the R2 access-key/secret used by both `medpass-dev` and `medpass-prod` is currently the same value, because the Cloudflare API token available for this work can create buckets but lacks permission to mint a new scoped R2 API token (no dashboard access to do it manually). Flagged here rather than glossed over — a genuinely separate production R2 credential is real follow-up work, not yet done.
 
 ### Presigned rules (spec §13.2)
 Expire quickly (upload ≤ 10 min, download ≤ 5 min) · created only after authorization · scoped to one object + one operation · unpredictable opaque names · every issuance audited (`object_access_events`) · never in normal logs · content-type restricted · size enforced by app validation + verification.
