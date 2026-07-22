@@ -21,6 +21,18 @@ export class AuthController {
     private readonly prisma: PrismaService,
   ) {}
 
+  /**
+   * Lets the PWA show accurate delivery-channel wording ("we'll call you"
+   * vs "we've texted you") instead of defaulting to the SMS assumption
+   * most patients otherwise bring to an OTP screen — a real point of
+   * confusion once voice became this environment's actual OTP transport.
+   */
+  @Public()
+  @Get("otp-transport")
+  otpTransport() {
+    return { transport: env().OTP_TRANSPORT };
+  }
+
   @Public()
   @RateLimit({ name: "otp_request", limit: 10, windowSeconds: 3600 })
   @Post("otp/request")

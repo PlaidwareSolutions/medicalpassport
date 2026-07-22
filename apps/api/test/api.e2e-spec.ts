@@ -70,6 +70,11 @@ describe("API e2e", () => {
     expect(ready.body.checks.postgres).toBe("ok");
   });
 
+  it("exposes the configured OTP transport, unauthenticated, so the PWA can show accurate delivery wording", async () => {
+    const res = await request(app.getHttpServer()).get("/v1/auth/otp-transport").expect(200);
+    expect(res.body.transport).toBe(process.env.OTP_TRANSPORT ?? "log");
+  });
+
   it("rejects unauthenticated PHI access and never publicly caches", async () => {
     const res = await request(app.getHttpServer()).get("/v1/profiles").expect(401);
     expect(res.headers["cache-control"]).toContain("no-store");

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@medpass/api-client";
+import { ApiError, type OtpTransportDto } from "@medpass/api-client";
 import { Banner, Button, TextInput, TurnstileWidget } from "@medpass/ui-web";
 import { api } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [notice, setNotice] = useState<string | undefined>();
   const [resendIn, setResendIn] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState<string | undefined>();
+  const [otpTransport, setOtpTransport] = useState<OtpTransportDto["transport"]>("sms");
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -30,12 +31,23 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [resendIn]);
 
+  useEffect(() => {
+    // Drives accurate "we'll call you" vs "we've texted you" wording below
+    // — real confusion otherwise, since most patients bring an SMS
+    // assumption to any OTP screen. Falls back to the sms/generic copy on
+    // any fetch failure, never blocking the login flow over this.
+    api
+      .get<OtpTransportDto>("/auth/otp-transport")
+      .then((res) => setOtpTransport(res.transport))
+      .catch(() => undefined);
+  }, []);
+
   async function requestCode() {
     setBusy(true);
     setError(undefined);
     try {
       await api.post("/auth/otp/request", { phone, turnstileToken });
-      setNotice(t("auth.sent_generic"));
+      setNotice(otpTransport === "voice" ? t("auth.sent_voice") : t("auth.sent_generic"));
       setStep("code");
       setResendIn(RESEND_SECONDS);
     } catch (err) {
@@ -86,7 +98,7 @@ export default function LoginPage() {
         <>
           <TextInput
             label={t("auth.phone_label")}
-            help={t("auth.phone_help")}
+            help={otpTransport === "voice" ? t("auth.phone_help_voice") : t("auth.phone_help")}
             type="tel"
             inputMode="tel"
             autoComplete="tel"
@@ -110,6 +122,11 @@ export default function LoginPage() {
         </>
       ) : (
         <>
+          {otpTransport === "voice" ? (
+            <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+              {t("auth.code_hint_voice")}
+            </span>
+          ) : null}
           <TextInput
             label={t("auth.code_label")}
             type="text"

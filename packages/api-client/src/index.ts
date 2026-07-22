@@ -275,6 +275,10 @@ export interface VapidPublicKeyDto {
   publicKey: string | null;
 }
 
+export interface OtpTransportDto {
+  transport: "log" | "sms" | "voice";
+}
+
 export interface NotificationPreferencesDto {
   pushEnabled: boolean;
   privacyMode: "generic" | "full_name";
