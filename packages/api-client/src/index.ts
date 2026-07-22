@@ -1,4 +1,4 @@
-import type { ProblemDetails } from "@medpass/domain";
+import type { CaregiverScope, ProblemDetails } from "@medpass/domain";
 
 /**
  * Typed API client shared by the PWA and (later) native apps. Sessions ride
@@ -106,6 +106,32 @@ export interface ProfileSummary {
   displayName: string;
   relationship: "self" | "dependent" | "caregiver";
   rowVersion: number;
+}
+
+export type CaregiverRelationshipKind = "parent" | "child" | "spouse" | "sibling" | "other";
+
+export interface CaregiverRelationshipDto {
+  id: string;
+  relationship: CaregiverRelationshipKind;
+  /** The API only ever returns "invited" | "active" today (revoked/expired
+   * rows are filtered out server-side) — typed against the full enum for
+   * accuracy, not against what's currently reachable. */
+  status: "invited" | "active" | "revoked" | "expired";
+  scopes: CaregiverScope[];
+  acceptedAt: string | null;
+  expiresAt: string | null;
+}
+
+export interface CaregiverInvitationDto {
+  id: string;
+  patientDisplayName: string;
+  relationship: CaregiverRelationshipKind;
+  scopes: CaregiverScope[];
+  expiresAt: string | null;
+}
+
+export interface CaregiverAccessEventDto {
+  accessedAt: string;
 }
 
 export interface CatalogProduct {

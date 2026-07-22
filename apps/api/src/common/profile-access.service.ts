@@ -74,12 +74,16 @@ export class ProfileAccessService {
       throw new ApiProblem(ERROR_CODES.CAREGIVER_SCOPE_MISSING, "You don't have access to do this", 403);
     }
 
-    // Every caregiver use of delegated access is audited (docs/18).
+    // Every caregiver use of delegated access is audited (docs/18) — entity
+    // fields let the patient-visible access log (docs/23 E3.3) find exactly
+    // this relationship's history, not every caregiver's mixed together.
     if (decision.actorRole === "caregiver") {
       await writeAudit(this.prisma, {
         action: "caregiver.access_used",
         actorUserId: userId,
         actorType: "caregiver",
+        entityType: "caregiver_relationship",
+        entityId: relationship!.id,
         patientProfileId: profileId,
         correlationId,
         context: { action },

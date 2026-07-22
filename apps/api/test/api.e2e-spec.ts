@@ -217,9 +217,12 @@ describe("API e2e", () => {
       .send({ phone: PHONE_B, scopes: ["view_medications"], relationship: "child" })
       .expect(201);
 
-    // B sees and accepts the invitation.
+    // B sees and accepts the invitation — the offered scopes must be visible
+    // before accepting (informed consent, docs/23 E3.2), not accepted blind.
     const invitations = await auth(tokenB)(request(app.getHttpServer()).get("/v1/caregivers/invitations")).expect(200);
-    expect(invitations.body.items.map((i: { id: string }) => i.id)).toContain(invite.body.id);
+    const invitationSeen = invitations.body.items.find((i: { id: string }) => i.id === invite.body.id);
+    expect(invitationSeen).toBeTruthy();
+    expect(invitationSeen.scopes).toEqual(["view_medications"]);
     await auth(tokenB)(request(app.getHttpServer()).post("/v1/caregivers/accept"))
       .send({ invitationId: invite.body.id })
       .expect(201);
@@ -241,6 +244,13 @@ describe("API e2e", () => {
       where: { patientProfileId: profileA, action: "caregiver.access_used" },
     });
     expect(audits.length).toBeGreaterThan(0);
+
+    // A can see B's access history — patient-visible access log (docs/23 E3.3).
+    const accessLog = await auth(tokenA, profileA)(
+      request(app.getHttpServer()).get(`/v1/caregivers/${invite.body.id}/accesses`),
+    ).expect(200);
+    expect(accessLog.body.items.length).toBeGreaterThan(0);
+    expect(accessLog.body.items[0].accessedAt).toBeTruthy();
 
     // A revokes; B's next request fails immediately.
     await auth(tokenA, profileA)(request(app.getHttpServer()).delete(`/v1/caregivers/${invite.body.id}`)).expect(204);

@@ -129,7 +129,19 @@ export function notifyMutationQueued(): void {
  * even with nothing locally queued — a caregiver's edit made while this
  * device was offline needs its own signal, not just "my mutations applied."
  */
-export function useSyncEngine(): SyncState {
+/**
+ * `activeProfileId` is accepted (rather than read internally via
+ * `getActiveProfileId()` alone) so a caregiver switching profiles refreshes
+ * `conflictCount`/`lastSyncedAt` for the newly active profile immediately —
+ * neither is otherwise re-derived until an unrelated online/offline/
+ * visibility/mutation-queued event happens to fire (docs/10 H-13: a stale
+ * conflict count or last-synced time from the previous profile is exactly
+ * the kind of cross-profile leak that hazard exists to prevent). The rest of
+ * the engine (in-flight flush state, `pendingCount`) deliberately does NOT
+ * remount on profile switch — see AppShell's `key`-based remount boundary,
+ * which wraps `{children}` only, not this hook.
+ */
+export function useSyncEngine(activeProfileId?: string): SyncState {
   const [status, setStatus] = useState<SyncStatus>("online");
   const [pendingCount, setPendingCount] = useState(0);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | undefined>();
@@ -201,11 +213,14 @@ export function useSyncEngine(): SyncState {
     }
   }, [refreshCounts]);
 
+  // Re-derives profile-scoped counts on every profile switch, without
+  // remounting the rest of the engine (see the function doc comment above).
   useEffect(() => {
     void refreshCounts();
-    const profileId = getActiveProfileId();
-    if (profileId) void getLastSynced(profileId).then(setLastSyncedAt);
+    if (activeProfileId) void getLastSynced(activeProfileId).then(setLastSyncedAt);
+  }, [activeProfileId, refreshCounts]);
 
+  useEffect(() => {
     const goOnline = () => void flush();
     const goOffline = () => setStatus("offline");
     const onVisible = () => {

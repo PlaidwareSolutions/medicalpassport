@@ -19,8 +19,9 @@ interface SessionItem {
 /** Screens 2/35 + profile hub (docs/07): language, profiles, sessions, sign out. */
 export default function ProfilePage() {
   const { t, locale, setLocale } = useI18n();
-  const { profiles, activeProfileId, selectProfile, signOut } = useSession();
+  const { profiles, activeProfileId, signOut } = useSession();
   const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const activeProfile = profiles.find((p) => p.id === activeProfileId);
 
   useEffect(() => {
     api
@@ -38,30 +39,23 @@ export default function ProfilePage() {
     <AppShell>
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("profile.title")}</h1>
 
-      {profiles.length > 1 ? (
-        <>
-          <SectionTitle>{t("profile.title")}</SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-            {profiles.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => selectProfile(p.id)}
-                style={{ textAlign: "start", border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: "var(--font-family)" }}
-              >
-                <Card tone={p.id === activeProfileId ? "info" : "default"}>
-                  <strong>{p.displayName}</strong>
-                  <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{p.relationship}</span>
-                </Card>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : null}
-
       <Link href="/allergies">
         <Card>
           <strong>{t("profile.allergies")}</strong>
+        </Card>
+      </Link>
+
+      {activeProfile?.relationship !== "caregiver" ? (
+        <Link href="/caregivers">
+          <Card>
+            <strong>{t("profile.caregivers")}</strong>
+          </Card>
+        </Link>
+      ) : null}
+
+      <Link href="/profile/dependents/new">
+        <Card>
+          <strong>{t("profile.add_dependent")}</strong>
         </Card>
       </Link>
 

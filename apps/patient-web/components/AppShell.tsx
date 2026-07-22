@@ -3,6 +3,8 @@ import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Banner, BottomNav, Button } from "@medpass/ui-web";
+import { ProfileSwitcher } from "./ProfileSwitcher";
+import { useCaregiverInvitations } from "../lib/caregivers";
 import { useI18n } from "../lib/i18n";
 import { useSyncEngine } from "../lib/offline";
 import { useServiceWorkerUpdate } from "../lib/sw-update";
@@ -26,9 +28,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
-  const { status } = useSession();
-  const sync = useSyncEngine();
+  const { status, activeProfileId } = useSession();
+  const sync = useSyncEngine(activeProfileId);
   const swUpdate = useServiceWorkerUpdate();
+  const invitations = useCaregiverInvitations();
+  const pendingInvitations = invitations.items?.length ?? 0;
 
   useEffect(() => {
     if (status === "signed_out") router.replace("/welcome");
@@ -56,6 +60,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ minHeight: "100dvh", paddingBottom: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-md))" }}>
+      <ProfileSwitcher />
+      {pendingInvitations > 0 ? (
+        <div style={{ padding: "var(--space-sm) var(--space-md) 0" }}>
+          <Banner tone="info">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-sm)" }}>
+              <span>{t("caregiver.pending_invitations_banner", { count: pendingInvitations })}</span>
+              <Link href="/caregivers/invitations" style={{ color: "inherit", textDecoration: "underline" }}>
+                {t("caregiver.pending_invitations_link")}
+              </Link>
+            </div>
+          </Banner>
+        </div>
+      ) : null}
       {showBanner ? (
         <div style={{ padding: "var(--space-sm) var(--space-md)", display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
           <Banner tone={BANNER_TONE[sync.status]}>
@@ -102,7 +119,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           ) : null}
         </div>
       ) : null}
-      <main style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-md)" }}>{children}</main>
+      {/* Keyed on the active profile: forces every page underneath to fully
+          remount and refetch on a profile switch, rather than risking any
+          hook silently going on showing the previous profile's data
+          (docs/10 H-13 — wrong-patient data in a caregiver account). */}
+      <main key={activeProfileId} style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-md)" }}>
+        {children}
+      </main>
       <BottomNav
         items={items}
         renderLink={(item, children) => (

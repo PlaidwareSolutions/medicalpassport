@@ -185,15 +185,35 @@ export class CaregiversController {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: req.auth!.userId } });
     const items = await this.prisma.caregiverRelationship.findMany({
       where: { invitedPhoneDigest: user.phoneDigest, status: "invited" },
-      include: { patientProfile: { select: { displayName: true } } },
+      include: {
+        patientProfile: { select: { displayName: true } },
+        permissions: { where: { revokedAt: null } },
+      },
     });
     return {
       items: items.map((i) => ({
         id: i.id,
         patientDisplayName: i.patientProfile.displayName,
         relationship: i.relationship,
+        // Informed consent: the invitee should see exactly what they'd be
+        // granted before accepting, not accept blind (docs/23 E3.2).
+        scopes: i.permissions.map((p) => p.scope),
+        expiresAt: i.expiresAt,
       })),
     };
+  }
+
+  /** Patient-visible access log (docs/23 E3.3, docs/07 screen 6 "last-used"). */
+  @Get("caregivers/:relationshipId/accesses")
+  async accesses(@Param("relationshipId") relationshipId: string, @Req() req: ApiRequest) {
+    const { profileId } = await this.access.require(req, "manage_caregivers");
+    const relationship = await this.requireRelationship(relationshipId, profileId);
+    const events = await this.prisma.auditEvent.findMany({
+      where: { entityType: "caregiver_relationship", entityId: relationship.id, action: "caregiver.access_used" },
+      orderBy: { occurredAt: "desc" },
+      select: { occurredAt: true },
+    });
+    return { items: events.map((e) => ({ accessedAt: e.occurredAt })) };
   }
 
   private async requireRelationship(id: string, profileId: string) {
