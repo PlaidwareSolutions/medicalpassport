@@ -177,6 +177,12 @@ export default defineRailway(() => {
   const verifyBackups = cronJob("cron-verify-backups", "0 3 * * *", "verify-backups", backupEnv);
   const restoreTest = cronJob("cron-restore-test", "0 4 1 * *", "restore-test", backupEnv);
 
+  // Monitoring (docs/21 "Operational reports") — no new observability vendor
+  // (OD-13 stays open); a daily structured-log summary of DLQ/job-failure/
+  // reminder-pipeline/backup health, standing in until a real OTLP backend
+  // is chosen.
+  const operationalReport = cronJob("cron-operational-report", "* * * * *", "operational-report");
+
   return project("medpass-dev", {
     resources: [
       db,
@@ -196,6 +202,7 @@ export default defineRailway(() => {
       backupExport,
       verifyBackups,
       restoreTest,
+      operationalReport,
     ],
   });
 });
