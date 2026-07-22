@@ -43,3 +43,5 @@ Cloudflare security events (WAF blocks, rate-limit hits, bot scores) reviewed vi
 ## Operational reports (cron)
 
 Daily: job failures, DLQ contents, reminder pipeline summary, backup status. Weekly: alert-quality summary for clinical review, content freshness, overdue approvals, cost snapshot ([31](31-cost-and-capacity-model.md)).
+
+**Built and live (Stage 11 follow-up):** the daily report (`operational-report` cron, 07:00) is real — job-failure count, DLQ added/outstanding, reminder-attempt counts by channel/status, and latest backup/restore-test status, as one structured log line, plus explicit `warn`/`error` lines when DLQ is non-empty or the latest backup/restore-test didn't succeed. This is genuinely the full "Daily" list above; the "Weekly" report (content freshness, overdue approvals, cost snapshot) is not built — those depend on features (content review workflow, cost dashboard) that don't exist yet either. No new observability vendor was needed for this — OD-13 (a real OTLP-compatible backend, dashboards, alerting) remains open; this is a real, working stand-in within Railway's own log viewer, not a preview of the eventual system.

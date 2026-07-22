@@ -48,6 +48,8 @@ Revoke link(s) via admin tools → review `share_access_events` → notify patie
 ### R10 — Bad deploy
 Rollback to previous image (Railway) → if migration involved: assess forward-fix vs down-migration (down only if data-safe; else restore path) → post-deploy smoke → PIR on why gates missed it.
 
+**Rehearsed this session (Stage 11):** the "roll forward" path — commit a fix, push, Railway auto-builds and redeploys from the new commit — was exercised for real dozens of times this session (every deploy fix along the way), always successfully, and is the primary, proven recovery path. "Rollback to previous image" specifically (redeploying a named *older* deployment without a new commit) is a real Railway dashboard feature but isn't exposed by the CLI (`railway redeploy`/`railway deployment redeploy` only ever redeploy the *latest* deployment, or pull fresh from source with `--from-source` — neither accepts a target deployment ID) — so that specific action needs the Railway web dashboard, not automatable from here. Documented honestly rather than claimed as tested.
+
 ### R11 — Clinical content / safety-rule error (P1)
 Immediately unpublish content version / disable rule version (versioned system enables instant revert) → clinical lead assesses patient exposure via evaluation records (traceability: which patients saw which rule version) → corrective notification to affected patients if clinically warranted (clinical lead decision) → hazard log + Gate re-run.
 

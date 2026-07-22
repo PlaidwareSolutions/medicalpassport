@@ -2,6 +2,12 @@
 
 Non-negotiable: **backups are not valid until restoration is tested** (spec §30). `backup_executions` + `restore_tests` tables record every run; a backup without a passing restore test does not count toward RPO.
 
+**Built and live-verified this session (Stage 11 follow-up):** `backup-export` (daily 01:00) runs a real `pg_dump` (custom format), encrypts it client-side (AES-256-GCM, a dedicated `BACKUP_ENCRYPTION_KEY` — deliberately separate from `FIELD_ENCRYPTION_KEY`, a different trust boundary) before it ever leaves Postgres, uploads to R2's `backups` bucket, and records a per-table row-count manifest. `verify-backups` (daily 03:00) independently re-downloads and re-hashes the latest backup, checking freshness/size/checksum. `restore-test` (monthly) decrypts the latest backup, restores it via `pg_restore` into a genuine scratch database on the same Postgres server (`CREATE DATABASE`/`DROP DATABASE`, never touching the real app database), and compares every table's restored row count against the manifest.
+
+Live-verified against the real deployed Railway environment (not just locally): a real backup ran (50 tables, ~137KB encrypted), `verify-backups` confirmed it fresh/present/checksum-matched, and `restore-test` restored it into a scratch database and confirmed all row counts matched (`row_counts_match: true`) — the scratch database was then dropped as designed. This is the first real evidence that `backup_executions`/`restore_tests` exist and a passing restore test actually happened, per this doc's own non-negotiable framing above.
+
+Not yet built: encryption key custody outside Railway (the key currently lives in Railway variables, not a separate KMS/age setup — docs/27's original "keys held outside Railway" framing isn't fully met yet); R2 cross-bucket sync/versioning for `patient-docs`/`derived`; the quarterly region-loss game day; Railway's own PITR configuration (not verified this pass — this covers the independent `pg_dump` path only).
+
 ## Objectives (initial; revisit at launch)
 
 | Metric | Target |
