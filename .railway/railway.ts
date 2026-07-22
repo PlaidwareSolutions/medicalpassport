@@ -181,7 +181,7 @@ export default defineRailway(() => {
   // (OD-13 stays open); a daily structured-log summary of DLQ/job-failure/
   // reminder-pipeline/backup health, standing in until a real OTLP backend
   // is chosen.
-  const operationalReport = cronJob("cron-operational-report", "* * * * *", "operational-report");
+  const operationalReport = cronJob("cron-operational-report", "0 7 * * *", "operational-report");
 
   return project("medpass-dev", {
     resources: [
