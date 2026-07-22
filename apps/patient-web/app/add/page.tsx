@@ -9,7 +9,7 @@ import { api } from "../../lib/api";
 import { createMedication } from "../../lib/medications";
 import { useI18n } from "../../lib/i18n";
 
-type Frequency = "OD" | "BD" | "TDS" | "SOS" | "HS" | "PATTERN";
+type Frequency = "OD" | "BD" | "TDS" | "SOS" | "HS" | "PATTERN" | "WEEKLY" | "FORTNIGHTLY" | "MONTHLY";
 type Food = "before" | "with" | "after" | "any";
 
 /**
@@ -204,6 +204,9 @@ export default function AddMedicationPage() {
               { value: "HS", label: t("frequency.hs") },
               { value: "SOS", label: t("frequency.sos") },
               { value: "PATTERN", label: t("frequency.pattern") },
+              { value: "WEEKLY", label: t("frequency.weekly") },
+              { value: "FORTNIGHTLY", label: t("frequency.fortnightly") },
+              { value: "MONTHLY", label: t("frequency.monthly") },
             ]}
             value={frequency}
             onChange={setFrequency}

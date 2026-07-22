@@ -140,6 +140,8 @@ export const te: Record<keyof typeof en, string> = {
   "frequency.pattern": "సొంత నమూనా (ఉదా. 1-0-1)",
   "frequency.alternate_day": "రోజు విడిచి రోజు",
   "frequency.weekly": "వారానికి ఒకసారి",
+  "frequency.fortnightly": "2 వారాలకు ఒకసారి",
+  "frequency.monthly": "నెలకు ఒకసారి",
   "frequency.custom": "కస్టమ్",
 
   "food.before": "భోజనానికి ముందు",

@@ -176,6 +176,136 @@ describe("Scheduling e2e", () => {
     expect(stored?.scheduledDoseId).toBeNull();
   });
 
+  it("auto-schedules a WEEKLY medicine anchored to its start date, 2 occurrences in the 14-day window", async () => {
+    const today = istDateString();
+    const res = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Test Weekly Medicine",
+        source: "manual",
+        startDate: today,
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "WEEKLY" },
+      })
+      .expect(201);
+    const medicationId = res.body.id;
+
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({
+      where: { patientMedicationId: medicationId },
+    });
+    expect(schedule.recurrence).toBe("weekly");
+    expect(schedule.anchorDate?.toISOString().slice(0, 10)).toBe(today);
+
+    const doses = await prisma.scheduledDose.findMany({
+      where: { medicationScheduleId: schedule.id },
+      orderBy: { dueAt: "asc" },
+    });
+    // Anchor day (0) and day 7 fall inside [today, today+14); day 14 doesn't.
+    expect(doses).toHaveLength(2);
+    expect(doses.every((d) => d.slotLabel === "morning")).toBe(true);
+    expect(doses[0]!.dueAt.toISOString().slice(0, 10)).toBe(istDateString(0));
+    expect(doses[1]!.dueAt.toISOString().slice(0, 10)).toBe(istDateString(7));
+
+    const timelineToday = await auth(token, profileId)(
+      request(app.getHttpServer()).get(`/v1/profiles/current/timeline?date=${today}`),
+    ).expect(200);
+    expect(timelineToday.body.items.some((i: { scheduledDoseId: string }) => i.scheduledDoseId === doses[0]!.id)).toBe(
+      true,
+    );
+
+    // An off-cycle day gets no dose for THIS schedule specifically (other
+    // medicines in this shared test profile, e.g. the BD one above, may
+    // still have their own doses due that same day).
+    const offCycleDay = istDateString(3);
+    const offCycleDose = await prisma.scheduledDose.findFirst({
+      where: {
+        medicationScheduleId: schedule.id,
+        dueAt: {
+          gte: new Date(`${offCycleDay}T00:00:00+05:30`),
+          lt: new Date(`${istDateString(4)}T00:00:00+05:30`),
+        },
+      },
+    });
+    expect(offCycleDose).toBeNull();
+  });
+
+  it("auto-schedules a FORTNIGHTLY medicine, 1 occurrence in the 14-day window", async () => {
+    const today = istDateString();
+    const res = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Test Fortnightly Medicine",
+        source: "manual",
+        startDate: today,
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "FORTNIGHTLY" },
+      })
+      .expect(201);
+    const medicationId = res.body.id;
+
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({
+      where: { patientMedicationId: medicationId },
+    });
+    expect(schedule.recurrence).toBe("fortnightly");
+
+    const doses = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id } });
+    // Only the anchor day (0) falls inside [today, today+14); day 14 doesn't.
+    expect(doses).toHaveLength(1);
+    expect(doses[0]!.dueAt.toISOString().slice(0, 10)).toBe(today);
+  });
+
+  it("auto-schedules a MONTHLY medicine anchored to its start date's day-of-month", async () => {
+    const today = istDateString();
+    const res = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Test Monthly Medicine",
+        source: "manual",
+        startDate: today,
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "MONTHLY" },
+      })
+      .expect(201);
+    const medicationId = res.body.id;
+
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({
+      where: { patientMedicationId: medicationId },
+    });
+    expect(schedule.recurrence).toBe("monthly");
+
+    const doses = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id } });
+    // Next month's occurrence is well outside the 14-day rolling window.
+    expect(doses).toHaveLength(1);
+    expect(doses[0]!.dueAt.toISOString().slice(0, 10)).toBe(today);
+  });
+
+  it("editing a medicine's startDate moves a WEEKLY schedule's anchor", async () => {
+    const today = istDateString();
+    const res = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Test Weekly Anchor Move",
+        source: "manual",
+        startDate: today,
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "WEEKLY" },
+      })
+      .expect(201);
+    const medicationId = res.body.id;
+    const medBefore = await prisma.patientMedication.findUniqueOrThrow({ where: { id: medicationId } });
+
+    const newAnchor = istDateString(2);
+    await auth(token, profileId)(request(app.getHttpServer()).patch(`/v1/medications/${medicationId}`))
+      .send({ rowVersion: medBefore.rowVersion, startDate: newAnchor })
+      .expect(200);
+
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({
+      where: { patientMedicationId: medicationId },
+    });
+    expect(schedule.anchorDate?.toISOString().slice(0, 10)).toBe(newAnchor);
+    const doses = await prisma.scheduledDose.findMany({
+      where: { medicationScheduleId: schedule.id },
+      orderBy: { dueAt: "asc" },
+    });
+    // New anchor (today+2) and new anchor+7 (today+9) both still fall
+    // inside the [today, today+14) window.
+    expect(doses).toHaveLength(2);
+    expect(doses[0]!.dueAt.toISOString().slice(0, 10)).toBe(newAnchor);
+    expect(doses[1]!.dueAt.toISOString().slice(0, 10)).toBe(istDateString(9));
+  });
+
   it("clears future doses on pause and regenerates them on resume", async () => {
     const tomorrow = istDateString(1);
     const beforePause = await auth(token, profileId)(

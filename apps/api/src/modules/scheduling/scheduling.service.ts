@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { proposeSlots, type SlotDose } from "@medpass/medication-terminology";
-import type { FrequencyCode } from "@medpass/domain";
+import { AUTO_SCHEDULABLE_FREQUENCY_CODES, type FrequencyCode } from "@medpass/domain";
+import type { MedicationSchedule, ScheduleRecurrence } from "@medpass/database";
 import { PrismaService } from "../../common/prisma.service";
+import { isDueOnDate } from "./recurrence";
 
 /**
  * Default wall-clock times per slot (docs/16 simplification note: fixed
@@ -18,8 +20,17 @@ const DEFAULT_SLOT_TIMES: Record<SlotDose["slot"], string> = {
 const SCHEDULE_TIMEZONE_OFFSET = "+05:30"; // Asia/Kolkata, fixed (no DST)
 const ROLLING_WINDOW_DAYS = 14;
 
-/** Frequency codes that can be auto-scheduled without extra patient setup. */
-const AUTO_SCHEDULABLE: FrequencyCode[] = ["OD", "BD", "TDS", "HS", "PATTERN"];
+/** Which ScheduleRecurrence a given frequency code derives (docs/09 §6). */
+const FREQUENCY_RECURRENCE: Partial<Record<FrequencyCode, ScheduleRecurrence>> = {
+  OD: "daily",
+  BD: "daily",
+  TDS: "daily",
+  HS: "daily",
+  PATTERN: "daily",
+  WEEKLY: "weekly",
+  FORTNIGHTLY: "fortnightly",
+  MONTHLY: "monthly",
+};
 
 interface ScheduleSlot {
   slot: SlotDose["slot"];
@@ -50,8 +61,8 @@ export class SchedulingService {
     if (medication.status !== "current" || medication.isPrn || !instruction) {
       return; // PRN and non-current medications have no scheduled doses.
     }
-    if (!AUTO_SCHEDULABLE.includes(instruction.frequencyCode)) {
-      return; // QID/ALTERNATE_DAY/WEEKLY/CUSTOM need explicit setup (docs/09 §6).
+    if (!AUTO_SCHEDULABLE_FREQUENCY_CODES.includes(instruction.frequencyCode)) {
+      return; // QID/ALTERNATE_DAY/CUSTOM need explicit setup, not yet built (docs/09 §6).
     }
 
     const proposed = proposeSlots(instruction.frequencyCode, instruction.pattern ?? undefined);
@@ -62,14 +73,19 @@ export class SchedulingService {
       time: DEFAULT_SLOT_TIMES[s.slot],
       quantity: s.quantity,
     }));
+    const recurrence = FREQUENCY_RECURRENCE[instruction.frequencyCode] ?? "daily";
+    // Weekly/fortnightly/monthly anchor to the medication's own start date
+    // (day-of-week / day-of-month comes from it) — defaults to "today" the
+    // same way patientMedication.startDate itself defaults on create.
+    const anchorDate = recurrence === "daily" ? null : (medication.startDate ?? new Date());
 
     const schedule = await this.prisma.medicationSchedule.upsert({
       where: { patientMedicationId },
-      create: { patientMedicationId, slots: slots as object, status: "active" },
-      update: { slots: slots as object, status: "active" },
+      create: { patientMedicationId, slots: slots as object, recurrence, anchorDate, status: "active" },
+      update: { slots: slots as object, recurrence, anchorDate, status: "active" },
     });
 
-    await this.materializeWindow(schedule.id, slots, ROLLING_WINDOW_DAYS);
+    await this.materializeWindow(schedule, ROLLING_WINDOW_DAYS);
   }
 
   /**
@@ -96,8 +112,7 @@ export class SchedulingService {
     const schedules = await this.prisma.medicationSchedule.findMany({ where: { status: "active" } });
     let dosesCreated = 0;
     for (const schedule of schedules) {
-      const slots = schedule.slots as unknown as ScheduleSlot[];
-      const created = await this.materializeWindow(schedule.id, slots, ROLLING_WINDOW_DAYS);
+      const created = await this.materializeWindow(schedule, ROLLING_WINDOW_DAYS);
       dosesCreated += created;
     }
     return { schedulesExtended: schedules.length, dosesCreated };
@@ -117,8 +132,21 @@ export class SchedulingService {
     return { missed: result.count };
   }
 
-  /** Idempotently creates ScheduledDose rows for [today, today+days), skipping ones that exist. */
-  private async materializeWindow(scheduleId: string, slots: ScheduleSlot[], days: number): Promise<number> {
+  /**
+   * Idempotently creates ScheduledDose rows for [today, today+days),
+   * skipping ones that exist. For daily recurrence every day in the window
+   * gets a dose; for weekly/fortnightly/monthly only the days that match
+   * the schedule's anchorDate do (docs/09 §6) — so a monthly schedule may
+   * materialize zero rows on a given call and pick up its next occurrence
+   * once the sliding window (extended one day further by the daily
+   * extend-scheduled-doses cron) reaches it.
+   */
+  private async materializeWindow(
+    schedule: Pick<MedicationSchedule, "id" | "slots" | "recurrence" | "anchorDate">,
+    days: number,
+  ): Promise<number> {
+    const slots = schedule.slots as unknown as ScheduleSlot[];
+    const anchorDateStr = schedule.anchorDate ? schedule.anchorDate.toISOString().slice(0, 10) : null;
     const rows: Array<{ medicationScheduleId: string; dueAt: Date; slotLabel: string; quantity: number }> = [];
     // IST-shifted "now" so the calendar date is the IST date, not the UTC
     // date — otherwise the ~5.5h/day window where they differ (UTC evening
@@ -128,9 +156,10 @@ export class SchedulingService {
       const day = new Date(istNow);
       day.setUTCDate(day.getUTCDate() + d);
       const dateStr = day.toISOString().slice(0, 10);
+      if (!isDueOnDate(schedule.recurrence, anchorDateStr, dateStr)) continue;
       for (const slot of slots) {
         rows.push({
-          medicationScheduleId: scheduleId,
+          medicationScheduleId: schedule.id,
           dueAt: new Date(`${dateStr}T${slot.time}:00${SCHEDULE_TIMEZONE_OFFSET}`),
           slotLabel: slot.slot,
           quantity: slot.quantity,

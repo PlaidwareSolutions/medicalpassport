@@ -141,6 +141,8 @@ export const en = {
   "frequency.pattern": "Custom pattern (e.g. 1-0-1)",
   "frequency.alternate_day": "Every other day",
   "frequency.weekly": "Weekly",
+  "frequency.fortnightly": "Once in 2 weeks",
+  "frequency.monthly": "Once a month",
   "frequency.custom": "Custom",
 
   "food.before": "Before food",

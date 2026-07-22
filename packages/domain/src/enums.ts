@@ -31,9 +31,28 @@ export const FREQUENCY_CODES = [
   "PATTERN",
   "ALTERNATE_DAY",
   "WEEKLY",
+  "FORTNIGHTLY",
+  "MONTHLY",
   "CUSTOM",
 ] as const;
 export type FrequencyCode = (typeof FREQUENCY_CODES)[number];
+
+/**
+ * Frequency codes that can be auto-scheduled without extra patient setup
+ * (docs/09 §6) — single source of truth shared by SchedulingService (which
+ * derives the schedule) and the schedule-conflict safety rule (which flags
+ * a missing one), so the two can never drift apart.
+ */
+export const AUTO_SCHEDULABLE_FREQUENCY_CODES: readonly FrequencyCode[] = [
+  "OD",
+  "BD",
+  "TDS",
+  "HS",
+  "PATTERN",
+  "WEEKLY",
+  "FORTNIGHTLY",
+  "MONTHLY",
+];
 
 export const FOOD_INSTRUCTIONS = ["before", "with", "after", "any", "bedtime"] as const;
 export type FoodInstruction = (typeof FOOD_INSTRUCTIONS)[number];

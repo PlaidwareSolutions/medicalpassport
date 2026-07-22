@@ -153,6 +153,7 @@ export class MedicationsService {
         where: { id, rowVersion: input.rowVersion },
         data: {
           ...(input.patientReason !== undefined ? { patientReason: input.patientReason } : {}),
+          ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
           ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
           ...(input.quantityOnHand !== undefined ? { quantityOnHand: input.quantityOnHand } : {}),
           ...(input.criticalEscalation !== undefined ? { criticalEscalation: input.criticalEscalation } : {}),
@@ -211,8 +212,10 @@ export class MedicationsService {
       });
     });
 
-    if (input.instruction) {
-      // A new confirmed instruction supersedes any existing schedule.
+    if (input.instruction || input.startDate !== undefined) {
+      // A new confirmed instruction supersedes any existing schedule; a
+      // changed startDate alone still needs regeneration too, since it's
+      // the weekly/fortnightly/monthly anchor (SchedulingService).
       await this.scheduling.regenerateForMedication(id);
       // "Medication changes" is itself a safety re-evaluation trigger
       // (docs/09) — a changed dose/frequency is exactly what

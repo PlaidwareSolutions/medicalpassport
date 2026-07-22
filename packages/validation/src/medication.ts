@@ -73,6 +73,10 @@ export const updateMedicationSchema = z.object({
   rowVersion: z.number().int().nonnegative(),
   patientReason: z.string().trim().max(500).optional(),
   prescriberName: z.string().trim().max(120).optional(),
+  /** Anchor date for weekly/fortnightly/monthly frequencies (day-of-week /
+   * day-of-month comes from it) — editable so switching an existing
+   * medicine onto one of those frequencies can set/move the anchor. */
+  startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().nullable().optional(),
   quantityOnHand: quantityOnHandSchema.nullable().optional(),
   criticalEscalation: z.boolean().optional(),

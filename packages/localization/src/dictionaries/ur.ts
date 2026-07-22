@@ -140,6 +140,8 @@ export const ur: Record<keyof typeof en, string> = {
   "frequency.pattern": "اپنا پیٹرن (مثلاً 1-0-1)",
   "frequency.alternate_day": "ایک دن چھوڑ کر",
   "frequency.weekly": "ہفتہ وار",
+  "frequency.fortnightly": "پندرہ روزہ",
+  "frequency.monthly": "ماہانہ",
   "frequency.custom": "حسبِ ضرورت",
 
   "food.before": "کھانے سے پہلے",

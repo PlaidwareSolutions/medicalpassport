@@ -35,6 +35,13 @@ describe("proposeSlots", () => {
     expect(proposeSlots("SOS")).toBeNull();
     expect(proposeSlots("QID")).toBeNull();
     expect(proposeSlots("ALTERNATE_DAY")).toBeNull();
+    expect(proposeSlots("CUSTOM")).toBeNull();
+  });
+
+  it("maps WEEKLY/FORTNIGHTLY/MONTHLY to a single morning dose (day pattern comes from the schedule's anchor date)", () => {
+    expect(proposeSlots("WEEKLY")).toEqual([{ slot: "morning", quantity: 1 }]);
+    expect(proposeSlots("FORTNIGHTLY")).toEqual([{ slot: "morning", quantity: 1 }]);
+    expect(proposeSlots("MONTHLY")).toEqual([{ slot: "morning", quantity: 1 }]);
   });
 });
 

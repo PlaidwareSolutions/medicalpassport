@@ -140,6 +140,8 @@ export const hi: Record<keyof typeof en, string> = {
   "frequency.pattern": "अपना पैटर्न (जैसे 1-0-1)",
   "frequency.alternate_day": "एक दिन छोड़कर",
   "frequency.weekly": "साप्ताहिक",
+  "frequency.fortnightly": "पाक्षिक",
+  "frequency.monthly": "मासिक",
   "frequency.custom": "कस्टम",
 
   "food.before": "खाने से पहले",

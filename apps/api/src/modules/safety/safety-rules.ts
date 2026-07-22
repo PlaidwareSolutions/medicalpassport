@@ -21,7 +21,9 @@
  * confirmation only — never a recommendation to act (docs/02).
  */
 
-const AUTO_SCHEDULABLE_FREQUENCIES = new Set(["OD", "BD", "TDS", "HS", "PATTERN"]);
+import { AUTO_SCHEDULABLE_FREQUENCY_CODES } from "@medpass/domain";
+
+const AUTO_SCHEDULABLE_FREQUENCIES = new Set<string>(AUTO_SCHEDULABLE_FREQUENCY_CODES);
 
 export interface InstructionSnapshot {
   doseQuantity: number;

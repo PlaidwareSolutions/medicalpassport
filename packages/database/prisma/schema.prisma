@@ -549,6 +549,8 @@ enum FrequencyCode {
   PATTERN
   ALTERNATE_DAY
   WEEKLY
+  FORTNIGHTLY
+  MONTHLY
   CUSTOM
 }
 
@@ -603,8 +605,12 @@ model MedicationChange {
 
 enum ScheduleRecurrence {
   daily
-  // alternate_day, weekly, taper, custom deferred to a later pass —
-  // frequency codes that need them are never auto-scheduled (docs/09 §6).
+  weekly
+  fortnightly
+  monthly
+  // alternate_day, taper, custom deferred to a later pass — frequency
+  // codes that need them (ALTERNATE_DAY, QID, CUSTOM) are never
+  // auto-scheduled (docs/09 §6).
 }
 
 enum ScheduleStatus {
@@ -615,8 +621,8 @@ enum ScheduleStatus {
 
 /// Executable schedule derived from a confirmed instruction (docs/13).
 /// One per medication; only created for auto-schedulable frequency codes
-/// (OD/BD/TDS/HS/PATTERN) — QID/SOS/ALTERNATE_DAY/WEEKLY/CUSTOM require
-/// explicit patient setup and are never silently scheduled.
+/// (OD/BD/TDS/HS/PATTERN/WEEKLY/FORTNIGHTLY/MONTHLY) — QID/SOS/ALTERNATE_DAY/
+/// CUSTOM require explicit patient setup and are never silently scheduled.
 model MedicationSchedule {
   id                  String            @id @default(uuid()) @db.Uuid
   patientMedicationId String            @unique @map("patient_medication_id") @db.Uuid
@@ -628,6 +634,10 @@ model MedicationSchedule {
   /// [{ slot: "morning"|"midday"|"night", time: "08:00", quantity: 1 }, ...]
   slots      Json
   recurrence ScheduleRecurrence @default(daily)
+  /// Reference date for weekly/fortnightly/monthly recurrence — the
+  /// medication's own startDate (day-of-week for weekly/fortnightly,
+  /// day-of-month for monthly, clamped at month end). Null for daily.
+  anchorDate DateTime?          @map("anchor_date") @db.Date
   status     ScheduleStatus     @default(active)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

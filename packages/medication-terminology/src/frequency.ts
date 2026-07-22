@@ -32,12 +32,20 @@ export function proposeSlots(code: FrequencyCode, pattern?: string): SlotDose[] 
       return [{ slot: "night", quantity: 1 }];
     case "PATTERN":
       return pattern ? parsePattern(pattern) : null;
+    // A single dose, same simplification as OD (docs/16: fixed default
+    // times, no per-profile time-of-day picker yet). The scheduler derives
+    // *which* days these are due from the medication's start date
+    // (SchedulingService's anchorDate) — this only proposes the time slot.
+    case "WEEKLY":
+    case "FORTNIGHTLY":
+    case "MONTHLY":
+      return [{ slot: "morning", quantity: 1 }];
     // QID needs a fourth, patient-specific time; SOS is as-needed;
-    // alternate-day/weekly/custom need dates. All require explicit setup.
+    // alternate-day/custom need dates or a per-dose picker not built yet.
+    // All require explicit setup.
     case "QID":
     case "SOS":
     case "ALTERNATE_DAY":
-    case "WEEKLY":
     case "CUSTOM":
       return null;
   }
