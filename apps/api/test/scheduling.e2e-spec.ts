@@ -274,19 +274,28 @@ describe("Scheduling e2e", () => {
   });
 
   it("editing a medicine's startDate moves a WEEKLY schedule's anchor", async () => {
-    const today = istDateString();
+    // Anchored to tomorrow, not today: cancelFutureUpcomingDoses only ever
+    // clears doses with dueAt in the future (by design — a dose whose time
+    // already passed is left for missed-dose reconciliation, never silently
+    // deleted). Anchoring at "today" would materialize a dose at today's
+    // slot time, which is already in the past whenever this suite happens
+    // to run after that time of day, and it would survive the anchor-move
+    // regeneration below as a stale extra row — a real flake, not a bug in
+    // the app. Anchoring at tomorrow keeps every date in this test safely
+    // in the future regardless of what time of day the suite runs.
+    const startAnchor = istDateString(1);
     const res = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
       .send({
         enteredName: "Test Weekly Anchor Move",
         source: "manual",
-        startDate: today,
+        startDate: startAnchor,
         instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "WEEKLY" },
       })
       .expect(201);
     const medicationId = res.body.id;
     const medBefore = await prisma.patientMedication.findUniqueOrThrow({ where: { id: medicationId } });
 
-    const newAnchor = istDateString(2);
+    const newAnchor = istDateString(3);
     await auth(token, profileId)(request(app.getHttpServer()).patch(`/v1/medications/${medicationId}`))
       .send({ rowVersion: medBefore.rowVersion, startDate: newAnchor })
       .expect(200);
@@ -299,11 +308,11 @@ describe("Scheduling e2e", () => {
       where: { medicationScheduleId: schedule.id },
       orderBy: { dueAt: "asc" },
     });
-    // New anchor (today+2) and new anchor+7 (today+9) both still fall
+    // New anchor (today+3) and new anchor+7 (today+10) both still fall
     // inside the [today, today+14) window.
     expect(doses).toHaveLength(2);
     expect(doses[0]!.dueAt.toISOString().slice(0, 10)).toBe(newAnchor);
-    expect(doses[1]!.dueAt.toISOString().slice(0, 10)).toBe(istDateString(9));
+    expect(doses[1]!.dueAt.toISOString().slice(0, 10)).toBe(istDateString(10));
   });
 
   it("clears future doses on pause and regenerates them on resume", async () => {

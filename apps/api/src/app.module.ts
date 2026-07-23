@@ -18,6 +18,7 @@ import { AuthController } from "./modules/auth/auth.controller";
 import { AuthService } from "./modules/auth/auth.service";
 import { ProfilesController } from "./modules/profiles/profiles.controller";
 import { CaregiversController } from "./modules/caregivers/caregivers.controller";
+import { ClaimsController } from "./modules/claims/claims.controller";
 import { ConsentsController } from "./modules/consents/consents.controller";
 import { CatalogController } from "./modules/catalog/catalog.controller";
 import { MedicationsController } from "./modules/medications/medications.controller";
@@ -54,6 +55,7 @@ const OTP_SENDER = "OTP_SENDER";
     AuthController,
     ProfilesController,
     CaregiversController,
+    ClaimsController,
     ConsentsController,
     CatalogController,
     MedicationsController,

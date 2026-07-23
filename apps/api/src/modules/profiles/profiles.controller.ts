@@ -11,6 +11,7 @@ import {
 import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
+import { computeProfileRelationships } from "../../common/profile-relationship";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
@@ -37,14 +38,15 @@ export class ProfilesController {
       },
       orderBy: { createdAt: "asc" },
     });
+    const relationships = computeProfileRelationships(profiles, userId);
     return {
       items: profiles.map((p) => ({
         id: p.id,
         displayName: p.displayName,
         yearOfBirth: p.yearOfBirth,
         preferredLocale: p.preferredLocale,
-        relationship:
-          (p.claimedByUserId ?? p.ownerUserId) === userId ? "self" : p.ownerUserId === userId ? "dependent" : "caregiver",
+        relationship: relationships.get(p.id)!,
+        claimInvited: !!p.claimInvitedPhoneDigest,
         rowVersion: p.rowVersion,
       })),
     };
@@ -108,6 +110,11 @@ export class ProfilesController {
           yearOfBirth: input.yearOfBirth,
           sex: input.sex,
           preferredLocale: input.preferredLocale,
+          // Stored as a real column (not just the consent purpose string
+          // below) so it can be correctly inverted into the reciprocal
+          // caregiver relationship's own `relationship` value if this
+          // profile is later claimed (apps/api/.../claims/claims.controller.ts).
+          dependentRelationship: input.relationship,
         },
       });
       const consent = await tx.consent.create({

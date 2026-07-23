@@ -7,6 +7,7 @@ import { ProfileSwitcher } from "./ProfileSwitcher";
 import { useCaregiverInvitations } from "../lib/caregivers";
 import { useI18n } from "../lib/i18n";
 import { useSyncEngine } from "../lib/offline";
+import { useClaimInvitations } from "../lib/profiles";
 import { useServiceWorkerUpdate } from "../lib/sw-update";
 import { useSession } from "../lib/session";
 
@@ -33,6 +34,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const swUpdate = useServiceWorkerUpdate();
   const invitations = useCaregiverInvitations();
   const pendingInvitations = invitations.items?.length ?? 0;
+  const claimInvitations = useClaimInvitations();
+  const pendingClaimInvitations = claimInvitations.items?.length ?? 0;
 
   useEffect(() => {
     if (status === "signed_out") router.replace("/welcome");
@@ -67,6 +70,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-sm)" }}>
               <span>{t("caregiver.pending_invitations_banner", { count: pendingInvitations })}</span>
               <Link href="/caregivers/invitations" style={{ color: "inherit", textDecoration: "underline" }}>
+                {t("caregiver.pending_invitations_link")}
+              </Link>
+            </div>
+          </Banner>
+        </div>
+      ) : null}
+      {pendingClaimInvitations > 0 ? (
+        <div style={{ padding: "var(--space-sm) var(--space-md) 0" }}>
+          <Banner tone="info">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-sm)" }}>
+              <span>{t("caregiver.pending_claim_invitations_banner", { count: pendingClaimInvitations })}</span>
+              <Link href="/profile/claim-invitations" style={{ color: "inherit", textDecoration: "underline" }}>
                 {t("caregiver.pending_invitations_link")}
               </Link>
             </div>

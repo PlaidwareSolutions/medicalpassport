@@ -105,7 +105,15 @@ export interface ProfileSummary {
   id: string;
   displayName: string;
   relationship: "self" | "dependent" | "caregiver";
+  /** True when this (unclaimed) dependent profile has a pending claim invite. */
+  claimInvited?: boolean;
   rowVersion: number;
+}
+
+export interface ClaimInvitationDto {
+  profileId: string;
+  displayName: string;
+  yearOfBirth: number | null;
 }
 
 export type CaregiverRelationshipKind = "parent" | "child" | "spouse" | "sibling" | "other";

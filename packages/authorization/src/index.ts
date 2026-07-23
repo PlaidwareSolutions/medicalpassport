@@ -29,7 +29,8 @@ export type ProfileAction =
   | "review_concerns"
   | "share_records"
   | "manage_caregivers"
-  | "manage_consents";
+  | "manage_consents"
+  | "manage_claim";
 
 const SCOPE_GRANTS: Record<ProfileAction, CaregiverScope[]> = {
   view_profile: ["view_medications", "view_schedule", "manage_profile", "full_management"],
@@ -42,9 +43,11 @@ const SCOPE_GRANTS: Record<ProfileAction, CaregiverScope[]> = {
   manage_reminders: ["manage_reminders", "full_management"],
   review_concerns: ["review_concerns", "full_management"],
   share_records: ["share_records", "full_management"],
-  // Only the patient themself may manage caregivers and consents.
+  // Only the patient themself may manage caregivers, consents, and
+  // invite/cancel a claim on the profile — no scope ever grants these.
   manage_caregivers: [],
   manage_consents: [],
+  manage_claim: [],
 };
 
 export interface AccessDecision {

@@ -139,6 +139,18 @@ model PatientProfile {
   preferredLocale String @default("en") @map("preferred_locale")
   emergencyCard   Json?  @map("emergency_card")
 
+  /// Relationship of the creating caregiver TO this dependent (e.g. "child"
+  /// meaning the profile subject is the caregiver's child) — captured at
+  /// dependent creation, used to set the reciprocal CaregiverRelationship's
+  /// own `relationship` value (inverted) if this profile is later claimed.
+  dependentRelationship String? @map("dependent_relationship")
+  /// Pending claim invitation (docs/07 screen 5 secondary action) — set when
+  /// the current owner invites the actual profile subject to take over as
+  /// its real owner. Null once claimed, cancelled, or never invited.
+  claimInvitedPhoneDigest String?   @map("claim_invited_phone_digest")
+  claimInvitedAt          DateTime? @map("claim_invited_at") @db.Timestamptz(6)
+  claimInviteExpiresAt    DateTime? @map("claim_invite_expires_at") @db.Timestamptz(6)
+
   rowVersion Int       @default(0) @map("row_version")
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)

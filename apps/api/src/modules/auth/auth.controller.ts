@@ -9,6 +9,7 @@ import { Public, SESSION_COOKIE } from "../../common/auth.guard";
 import { RateLimit } from "../../common/rate-limit.guard";
 import { verifyTurnstile } from "../../common/turnstile";
 import type { ApiRequest } from "../../common/http";
+import { computeProfileRelationships } from "../../common/profile-relationship";
 import { AuthService, type IssuedSession } from "./auth.service";
 import { PrismaService } from "../../common/prisma.service";
 
@@ -123,7 +124,9 @@ export class AuthController {
           },
         ],
       },
+      orderBy: { createdAt: "asc" },
     });
+    const relationships = computeProfileRelationships(profiles, session.userId);
     return {
       user: { id: user.id, preferredLocale: user.preferredLocale },
       // Native clients read the bearer token; web relies on the cookie.
@@ -131,12 +134,7 @@ export class AuthController {
       profiles: profiles.map((p) => ({
         id: p.id,
         displayName: p.displayName,
-        relationship:
-          (p.claimedByUserId ?? p.ownerUserId) === session.userId
-            ? "self"
-            : p.ownerUserId === session.userId
-              ? "dependent"
-              : "caregiver",
+        relationship: relationships.get(p.id)!,
         rowVersion: p.rowVersion,
       })),
     };

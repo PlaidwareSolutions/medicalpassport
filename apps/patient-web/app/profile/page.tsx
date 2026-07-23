@@ -2,12 +2,110 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
-import { Button, Card, SectionTitle } from "@medpass/ui-web";
+import { Banner, Button, Card, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { ReminderSettings } from "../../components/ReminderSettings";
 import { api } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
+import { cancelClaimInvite, inviteToClaimProfile } from "../../lib/profiles";
 import { useSession } from "../../lib/session";
+
+const CLAIM_EXPIRY_OPTIONS = [
+  { hours: undefined, key: "caregiver.expiry.none" },
+  { hours: 24 * 30, key: "caregiver.expiry.30d" },
+  { hours: 24 * 90, key: "caregiver.expiry.90d" },
+  { hours: 24 * 365, key: "caregiver.expiry.1y" },
+] as const;
+
+/** The "invite them to claim" section (docs/07 screen 5's secondary action,
+ * reachable any time, not just at creation) — visible only when the active
+ * profile is one the caregiver directly owns and unclaimed. */
+function ClaimInviteSection() {
+  const { t } = useI18n();
+  const { refresh } = useSession();
+  const [phone, setPhone] = useState("+91");
+  const [expiryHours, setExpiryHours] = useState<number | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+
+  async function send() {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await inviteToClaimProfile(phone, expiryHours ? new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString() : undefined);
+      await refresh();
+    } catch {
+      setError(t("common.error_generic"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancel() {
+    setBusy(true);
+    try {
+      await cancelClaimInvite();
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <strong>{t("caregiver.claim_invite_section_title")}</strong>
+      {error ? <Banner tone="danger">{error}</Banner> : null}
+      <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{t("caregiver.claim_invite_section_intro")}</span>
+      <div style={{ marginTop: "var(--space-sm)" }}>
+        <TextInput
+          label={t("caregiver.phone_label")}
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
+      <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap", margin: "var(--space-sm) 0" }}>
+        {CLAIM_EXPIRY_OPTIONS.map((opt) => (
+          <Button key={opt.key} variant={expiryHours === opt.hours ? "primary" : "secondary"} onClick={() => setExpiryHours(opt.hours)}>
+            {t(opt.key as never)}
+          </Button>
+        ))}
+      </div>
+      <Button fullWidth disabled={busy || phone.replace(/\D/g, "").length < 8} onClick={() => void send()}>
+        {t("caregiver.send_invite")}
+      </Button>
+    </Card>
+  );
+}
+
+function ClaimInvitePendingSection() {
+  const { t } = useI18n();
+  const { refresh } = useSession();
+  const [busy, setBusy] = useState(false);
+
+  async function cancel() {
+    setBusy(true);
+    try {
+      await cancelClaimInvite();
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card tone="info">
+      <strong>{t("caregiver.claim_invite_pending_title")}</strong>
+      <div style={{ marginTop: "var(--space-sm)" }}>
+        <Button variant="danger" disabled={busy} onClick={() => void cancel()}>
+          {t("caregiver.claim_invite_cancel")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 interface SessionItem {
   id: string;
@@ -58,6 +156,10 @@ export default function ProfilePage() {
           <strong>{t("profile.add_dependent")}</strong>
         </Card>
       </Link>
+
+      {activeProfile?.relationship === "dependent" ? (
+        activeProfile.claimInvited ? <ClaimInvitePendingSection /> : <ClaimInviteSection />
+      ) : null}
 
       <ReminderSettings />
 
