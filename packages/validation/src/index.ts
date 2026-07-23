@@ -11,3 +11,8 @@ export * from "./sharing.js";
 export * from "./documents.js";
 export * from "./notifications.js";
 export * from "./sync.js";
+export * from "./admin-auth.js";
+export * from "./admin-catalog.js";
+export * from "./admin-audit.js";
+export * from "./admin-findings.js";
+export * from "./admin-incidents.js";

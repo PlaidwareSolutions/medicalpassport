@@ -105,6 +105,30 @@ export class SharingService {
     return { id: link.id, revokedAt: new Date().toISOString() };
   }
 
+  /** Incident-response revoke (docs/30 R9 "Share-link abuse") — unlike
+   * revoke() above, not scoped to the owner's own profile: an admin acting
+   * on a report may have no patient-side relationship to this share at all. */
+  async revokeAsAdmin(shareLinkId: string, adminUserId: string, correlationId?: string, reason?: string) {
+    const link = await this.prisma.shareLink.findUnique({ where: { id: shareLinkId }, include: { sharePackage: true } });
+    if (!link) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Share not found", 404);
+    if (link.revokedAt) return { id: link.id, revokedAt: link.revokedAt.toISOString() };
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.shareLink.update({ where: { id: shareLinkId }, data: { revokedAt: new Date(), revokedByUserId: adminUserId } });
+      await writeAudit(tx, {
+        action: "admin.share_revoked",
+        actorUserId: adminUserId,
+        actorType: "admin",
+        entityType: "share_link",
+        entityId: shareLinkId,
+        patientProfileId: link.sharePackage.patientProfileId,
+        correlationId,
+        context: reason ? { reason } : undefined,
+      });
+    });
+    return { id: link.id, revokedAt: new Date().toISOString() };
+  }
+
   /**
    * Public access path (docs/14): no auth, token-hash lookup, expiry and
    * revocation enforced, every attempt recorded (not just successes) —

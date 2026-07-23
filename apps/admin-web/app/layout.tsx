@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cssVariables } from "@medpass/design-tokens";
+import { AdminSessionProvider } from "../lib/session";
 
 export const metadata = {
   title: "Medicine Passport — Clinical Administration",
@@ -12,7 +13,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <style dangerouslySetInnerHTML={{ __html: cssVariables() }} />
       </head>
-      <body style={{ fontFamily: "var(--font-family)", margin: 0, background: "var(--color-surface)" }}>{children}</body>
+      <body style={{ fontFamily: "var(--font-family)", margin: 0, background: "var(--color-surface)" }}>
+        <AdminSessionProvider>{children}</AdminSessionProvider>
+      </body>
     </html>
   );
 }

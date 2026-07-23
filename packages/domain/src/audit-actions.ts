@@ -57,6 +57,17 @@ export const AUDIT_ACTIONS = [
   "data.export_requested",
   "data.deletion_requested",
   "admin.audit_searched",
+  "admin.login_succeeded",
+  "admin.login_failed",
+  "admin.mfa_enrolled",
+  "admin.session_revoked",
+  "admin.duties_changed",
+  "admin.catalog_change_proposed",
+  "admin.catalog_change_approved",
+  "admin.catalog_change_rejected",
+  "admin.job_replayed",
+  "admin.share_revoked",
+  "admin.findings_viewed",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

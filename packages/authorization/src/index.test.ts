@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideProfileAccess } from "./index.js";
+import { decideAdminAccess, decideProfileAccess } from "./index.js";
 
 const owner = "owner-1";
 const caregiver = "cg-1";
@@ -39,5 +39,35 @@ describe("decideProfileAccess", () => {
     expect(decideProfileAccess({ userId: "stranger", profileOwnerUserId: owner }, "view_medications").allowed).toBe(
       false,
     );
+  });
+});
+
+describe("decideAdminAccess", () => {
+  it("super_admin grants every action, including ones with no other duty", () => {
+    for (const action of ["read_catalog", "propose_catalog_change", "decide_catalog_change", "search_audit", "replay_job", "revoke_share", "view_operations", "view_rules"] as const) {
+      expect(decideAdminAccess(["super_admin"], action)).toBe(true);
+    }
+  });
+
+  it("read_catalog requires no specific duty — any authenticated admin", () => {
+    expect(decideAdminAccess([], "read_catalog")).toBe(true);
+    expect(decideAdminAccess(["audit_search"], "read_catalog")).toBe(true);
+  });
+
+  it("a duty grants exactly its matching action, not others", () => {
+    expect(decideAdminAccess(["catalog_write"], "propose_catalog_change")).toBe(true);
+    expect(decideAdminAccess(["catalog_write"], "decide_catalog_change")).toBe(false);
+    expect(decideAdminAccess(["audit_search"], "search_audit")).toBe(true);
+    expect(decideAdminAccess(["audit_search"], "replay_job")).toBe(false);
+  });
+
+  it("incident_response grants both job replay and share revoke", () => {
+    expect(decideAdminAccess(["incident_response"], "replay_job")).toBe(true);
+    expect(decideAdminAccess(["incident_response"], "revoke_share")).toBe(true);
+  });
+
+  it("no duties means no gated access", () => {
+    expect(decideAdminAccess([], "search_audit")).toBe(false);
+    expect(decideAdminAccess([], "view_operations")).toBe(false);
   });
 });

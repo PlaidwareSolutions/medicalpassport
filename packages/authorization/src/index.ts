@@ -67,3 +67,46 @@ export function decideProfileAccess(ctx: ProfileAccessContext, action: ProfileAc
   }
   return { allowed: false, actorRole: "none" };
 }
+
+/**
+ * Admin-portal authorization (docs/13/14 "admin duty") — a parallel,
+ * separate decision from decideProfileAccess rather than an extension of
+ * ProfileAction: most admin operations (catalog CRUD, job replay, audit
+ * search) aren't scoped to one PatientProfile at all, so they don't fit the
+ * ProfileAccessContext shape.
+ */
+export type AdminDuty =
+  | "catalog_write"
+  | "catalog_approve"
+  | "audit_search"
+  | "incident_response"
+  | "operations_view"
+  | "rules_view"
+  | "super_admin";
+
+export type AdminAction =
+  | "read_catalog"
+  | "propose_catalog_change"
+  | "decide_catalog_change"
+  | "search_audit"
+  | "replay_job"
+  | "revoke_share"
+  | "view_operations"
+  | "view_rules";
+
+const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
+  read_catalog: [], // any authenticated admin — non-PHI reference data
+  propose_catalog_change: ["catalog_write"],
+  decide_catalog_change: ["catalog_approve"],
+  search_audit: ["audit_search"],
+  replay_job: ["incident_response"],
+  revoke_share: ["incident_response"],
+  view_operations: ["operations_view"],
+  view_rules: ["rules_view"],
+};
+
+export function decideAdminAccess(duties: readonly AdminDuty[], action: AdminAction): boolean {
+  if (duties.includes("super_admin")) return true;
+  const required = ADMIN_DUTY_GRANTS[action];
+  return required.length === 0 || required.some((d) => duties.includes(d));
+}

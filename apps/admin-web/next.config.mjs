@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@medpass/design-tokens"],
+  transpilePackages: ["@medpass/design-tokens", "@medpass/ui-web"],
   headers: async () => [
     {
       source: "/:path*",

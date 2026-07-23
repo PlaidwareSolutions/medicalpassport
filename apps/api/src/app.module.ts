@@ -8,6 +8,7 @@ import { CorrelationMiddleware } from "./common/correlation.middleware";
 import { LoggingInterceptor } from "./common/logging.interceptor";
 import { ProblemDetailsFilter } from "./common/problem.filter";
 import { AuthGuard } from "./common/auth.guard";
+import { AdminAuthGuard } from "./common/admin-auth.guard";
 import { RateLimitGuard } from "./common/rate-limit.guard";
 import { RateLimitService } from "./common/rate-limit.service";
 import { ProfileAccessService } from "./common/profile-access.service";
@@ -16,6 +17,16 @@ import { HealthController } from "./modules/health/health.controller";
 import { MetaController } from "./modules/meta/meta.controller";
 import { AuthController } from "./modules/auth/auth.controller";
 import { AuthService } from "./modules/auth/auth.service";
+import { AdminAuthController } from "./modules/admin-auth/admin-auth.controller";
+import { AdminAuthService } from "./modules/admin-auth/admin-auth.service";
+import { AdminCatalogController } from "./modules/admin-catalog/admin-catalog.controller";
+import { AdminCatalogChangesController } from "./modules/admin-catalog/admin-catalog-changes.controller";
+import { AdminCatalogChangesService } from "./modules/admin-catalog/admin-catalog-changes.service";
+import { AdminAuditController } from "./modules/admin-audit/admin-audit.controller";
+import { AdminIncidentsController } from "./modules/admin-incidents/admin-incidents.controller";
+import { AdminIncidentsService } from "./modules/admin-incidents/admin-incidents.service";
+import { AdminOperationsController } from "./modules/admin-operations/admin-operations.controller";
+import { AdminRulesController } from "./modules/admin-rules/admin-rules.controller";
 import { ProfilesController } from "./modules/profiles/profiles.controller";
 import { CaregiversController } from "./modules/caregivers/caregivers.controller";
 import { ClaimsController } from "./modules/claims/claims.controller";
@@ -53,6 +64,13 @@ const OTP_SENDER = "OTP_SENDER";
     HealthController,
     MetaController,
     AuthController,
+    AdminAuthController,
+    AdminCatalogController,
+    AdminCatalogChangesController,
+    AdminAuditController,
+    AdminIncidentsController,
+    AdminOperationsController,
+    AdminRulesController,
     ProfilesController,
     CaregiversController,
     ClaimsController,
@@ -75,6 +93,10 @@ const OTP_SENDER = "OTP_SENDER";
     ProfileAccessService,
     RateLimitService,
     IdempotencyService,
+    AdminAuthGuard,
+    AdminAuthService,
+    AdminCatalogChangesService,
+    AdminIncidentsService,
     MedicationsService,
     SchedulingService,
     TimelineService,

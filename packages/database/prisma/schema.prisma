@@ -1396,7 +1396,7 @@ model RestoreTest {
 /// Append-only, hash-chained audit log (docs/21). Rows are never updated.
 model AuditEvent {
   id               String         @id @default(uuid()) @db.Uuid
-  seq              BigInt         @default(autoincrement())
+  seq              BigInt         @default(autoincrement()) @unique
   actorUserId      String?        @map("actor_user_id") @db.Uuid
   actorType        AuditActorType @map("actor_type")
   action           String
@@ -1414,4 +1414,125 @@ model AuditEvent {
   @@index([entityType, entityId])
   @@index([seq])
   @@map("audit_events")
+}
+
+// ---- Admin portal (docs/06 admin IA) ----
+
+enum AdminUserStatus {
+  active
+  suspended
+}
+
+enum AdminDuty {
+  catalog_write
+  catalog_approve
+  audit_search
+  incident_response
+  operations_view
+  rules_view
+  super_admin
+}
+
+model AdminUser {
+  id           String          @id @default(uuid()) @db.Uuid
+  email        String          @unique
+  passwordHash String          @map("password_hash")
+  status       AdminUserStatus @default(active)
+  /// Plain enum array rather than a grant/revoke join table: duties are
+  /// checked on every admin request (one row fetch, no join), and for a
+  /// small admin team "who granted what, when" belongs in the audit log
+  /// (admin.duties_changed), not a live relational table.
+  duties       AdminDuty[]     @default([])
+
+  /// AES ciphertext (encryptField/FIELD_ENCRYPTION_KEY) — must be
+  /// decryptable to verify TOTP codes, unlike password/OTP hashes.
+  mfaSecretCiphertext String?   @map("mfa_secret_ciphertext")
+  mfaEnrolledAt       DateTime? @map("mfa_enrolled_at") @db.Timestamptz(6)
+
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions        AdminSession[]
+  proposedChanges CatalogChangeRequest[] @relation("ProposedBy")
+  decidedChanges  CatalogChangeRequest[] @relation("DecidedBy")
+
+  @@map("admin_users")
+}
+
+/// mfaVerifiedAt NULL = password verified, MFA pending (short-lived bridge
+/// row, ~10min TTL); non-null = a real session. One table serves both the
+/// login->MFA step and the final session, mirroring the OTP
+/// request->verify precedent rather than a separate challenge-token model.
+model AdminSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  adminUserId      String    @map("admin_user_id") @db.Uuid
+  adminUser        AdminUser @relation(fields: [adminUserId], references: [id])
+  tokenHash        String    @unique @map("token_hash")
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  mfaVerifiedAt    DateTime? @map("mfa_verified_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  refreshExpiresAt DateTime  @map("refresh_expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokeReason     String?   @map("revoke_reason")
+  userAgentDigest  String?   @map("user_agent_digest")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([adminUserId, revokedAt])
+  @@map("admin_sessions")
+}
+
+enum CatalogEntityType {
+  ingredient
+  manufacturer
+  brand
+  dosage_form
+  route
+  product
+  classification
+}
+
+enum CatalogChangeOperation {
+  create
+  update
+  deprecate
+}
+
+enum CatalogChangeStatus {
+  pending
+  approved
+  rejected
+}
+
+/// Maker-checker workflow for the 7 catalog entity tables (docs/06, docs/14
+/// admin approvals endpoint, docs/23 E10.1). Polymorphic over entityType —
+/// no FK on entityId, same convention as AuditEvent.entityType/entityId.
+model CatalogChangeRequest {
+  id           String                  @id @default(uuid()) @db.Uuid
+  entityType   CatalogEntityType       @map("entity_type")
+  /// Null for a "create" operation.
+  entityId     String?                 @map("entity_id") @db.Uuid
+  operation    CatalogChangeOperation
+  proposedData Json                    @map("proposed_data")
+  status       CatalogChangeStatus     @default(pending)
+
+  requestedByAdminUserId String     @map("requested_by_admin_user_id") @db.Uuid
+  requestedByAdminUser   AdminUser  @relation("ProposedBy", fields: [requestedByAdminUserId], references: [id])
+  decidedByAdminUserId   String?    @map("decided_by_admin_user_id") @db.Uuid
+  decidedByAdminUser     AdminUser? @relation("DecidedBy", fields: [decidedByAdminUserId], references: [id])
+  decidedAt              DateTime?  @map("decided_at") @db.Timestamptz(6)
+  rejectionReason        String?    @map("rejection_reason")
+  /// True when the requester and approver were necessarily the same admin
+  /// (only one active admin account existed at decide-time) — durably
+  /// flagged so a solo self-approval is never silently indistinguishable
+  /// from a real second-reviewer approval.
+  isSoloApproval         Boolean    @default(false) @map("is_solo_approval")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, entityType])
+  @@map("catalog_change_requests")
 }

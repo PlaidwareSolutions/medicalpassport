@@ -20,6 +20,10 @@ export const ERROR_CODES = {
   TURNSTILE_FAILED: "turnstile_failed",
   INVALID_STATUS_TRANSITION: "invalid_status_transition",
   CONSENT_REQUIRED: "consent_required",
+  ADMIN_CREDENTIALS_INVALID: "admin_credentials_invalid",
+  MFA_INVALID: "mfa_invalid",
+  ADMIN_LOCKED: "admin_locked",
+  MAKER_CHECKER_CONFLICT: "maker_checker_conflict",
   INTERNAL: "internal_error",
 } as const;
 

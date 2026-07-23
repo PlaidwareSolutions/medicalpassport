@@ -1,43 +1,63 @@
-/**
- * Clinical & administrative portal shell (docs/12 §8.3).
- *
- * Stage 2 status: authenticated admin features (catalog maker-checker,
- * content review, rule management, audit review) land in Stages 2b–8.
- * Admin authentication is intentionally stronger than patient auth
- * (email + password + TOTP MFA, optional Cloudflare Access) — docs/18.
- */
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Card } from "@medpass/ui-web";
+import { AdminShell } from "../components/AdminShell";
+import { api } from "../lib/api";
+
+interface SummaryCounts {
+  pendingCatalogChanges?: number;
+  dlqOutstanding?: number;
+  recentAuditCount?: number;
+}
+
+/** Admin dashboard home (docs/06, docs/12 §8.3) — summary of the 5 working
+ * feature areas; Translations stays a disabled nav item (no content data
+ * model exists yet, and OD-6 blocks approving real clinical content anyway). */
 export default function AdminHome() {
-  const areas = [
-    ["Medication catalog", "Brands, ingredients, combinations — maker-checker approval"],
-    ["Clinical content", "Patient education, missed-dose guidance, warning symptoms"],
-    ["Translations", "hi / te / ur review queues with clinical sign-off"],
-    ["Safety rules", "Rule versions, review status, re-evaluation triggers"],
-    ["Incidents & audit", "Audit search (itself audited), incident review"],
-    ["Operations", "Job replay, DLQ, reports"],
-  ] as const;
+  const [counts, setCounts] = useState<SummaryCounts>({});
+
+  useEffect(() => {
+    api
+      .get<{ items: unknown[] }>("/admin/catalog-changes?status=pending")
+      .then((res) => setCounts((c) => ({ ...c, pendingCatalogChanges: res.items.length })))
+      .catch(() => undefined);
+    api
+      .get<{ items: unknown[] }>("/admin/incidents/dlq?replayed=false")
+      .then((res) => setCounts((c) => ({ ...c, dlqOutstanding: res.items.length })))
+      .catch(() => undefined);
+    api
+      .get<{ items: unknown[] }>("/admin/audit?limit=5")
+      .then((res) => setCounts((c) => ({ ...c, recentAuditCount: res.items.length })))
+      .catch(() => undefined);
+  }, []);
+
+  const areas: Array<{ href: string; title: string; desc: string; count?: number; countLabel?: string }> = [
+    { href: "/catalog", title: "Medication catalog", desc: "Brands, ingredients, combinations — maker-checker approval", count: counts.pendingCatalogChanges, countLabel: "pending change(s)" },
+    { href: "/audit", title: "Audit search", desc: "Search the append-only audit log — itself audited on every use", count: counts.recentAuditCount, countLabel: "recent event(s)" },
+    { href: "/incidents", title: "Incidents", desc: "Dead-letter job replay, admin share revocation", count: counts.dlqOutstanding, countLabel: "job(s) awaiting replay" },
+    { href: "/operations", title: "Operations", desc: "Live job/DLQ/reminder/backup summary" },
+    { href: "/rules", title: "Rules & findings", desc: "Rule versions (read-only) and cross-profile safety findings" },
+  ];
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "var(--space-xl) var(--space-md)" }}>
-      <h1 style={{ color: "var(--color-text)" }}>Clinical Administration</h1>
-      <p style={{ color: "var(--color-text-muted)" }}>
-        Internal portal — requires administrator sign-in (coming with the catalog workflows).
-      </p>
-      <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: "var(--space-sm)" }}>
-        {areas.map(([title, desc]) => (
-          <li
-            key={title}
-            style={{
-              background: "var(--color-bg)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius)",
-              padding: "var(--space-md)",
-            }}
-          >
-            <strong style={{ color: "var(--color-text)" }}>{title}</strong>
-            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{desc}</div>
-          </li>
+    <AdminShell>
+      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-md)" }}>Dashboard</h1>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+        {areas.map((area) => (
+          <Link key={area.href} href={area.href} style={{ textDecoration: "none" }}>
+            <Card>
+              <strong>{area.title}</strong>
+              <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{area.desc}</span>
+              {area.count !== undefined ? (
+                <span style={{ fontSize: "var(--font-small)", fontWeight: 600 }}>
+                  {area.count} {area.countLabel}
+                </span>
+              ) : null}
+            </Card>
+          </Link>
         ))}
-      </ul>
-    </main>
+      </div>
+    </AdminShell>
   );
 }

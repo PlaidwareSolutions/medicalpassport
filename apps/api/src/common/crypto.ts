@@ -61,6 +61,21 @@ export function verifyOtp(code: string, stored: string): boolean {
   return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
+/** Admin passwords are hashed with scrypt + a dedicated pepper (docs/18); never stored or logged in plaintext. */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  const hash = scryptSync(env().ADMIN_PASSWORD_PEPPER + password, salt, 32);
+  return `${salt.toString("hex")}:${hash.toString("hex")}`;
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [saltHex, hashHex] = stored.split(":");
+  if (!saltHex || !hashHex) return false;
+  const candidate = scryptSync(env().ADMIN_PASSWORD_PEPPER + password, Buffer.from(saltHex, "hex"), 32);
+  const expected = Buffer.from(hashHex, "hex");
+  return candidate.length === expected.length && timingSafeEqual(candidate, expected);
+}
+
 export function newOpaqueToken(): string {
   return randomBytes(32).toString("base64url");
 }

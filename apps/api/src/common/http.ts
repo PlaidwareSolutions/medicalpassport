@@ -1,5 +1,6 @@
 import type { Request } from "express";
 import type { CaregiverScope } from "@medpass/domain";
+import type { AdminDuty } from "@medpass/authorization";
 
 /** Request augmented by our middleware/guards. */
 export interface ApiRequest extends Request {
@@ -13,5 +14,10 @@ export interface ApiRequest extends Request {
     profileId: string;
     actorRole: "patient" | "caregiver";
     caregiverScopes: CaregiverScope[];
+  };
+  adminAuth?: {
+    adminUserId: string;
+    sessionId: string;
+    duties: AdminDuty[];
   };
 }

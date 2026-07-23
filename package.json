@@ -13,7 +13,8 @@
     "test": "turbo run test",
     "db:generate": "pnpm --filter @medpass/database generate",
     "db:migrate": "pnpm --filter @medpass/database migrate:dev",
-    "db:seed": "pnpm --filter @medpass/database seed"
+    "db:seed": "pnpm --filter @medpass/database seed",
+    "db:seed-admin": "pnpm --filter @medpass/database seed:admin"
   },
   "devDependencies": {
     "railway": "3.5.9",

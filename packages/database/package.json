@@ -10,7 +10,8 @@
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "seed": "node dist/seed.js"
+    "seed": "node dist/seed.js",
+    "seed:admin": "node dist/seed-admin.js"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

@@ -29,6 +29,8 @@ export const apiEnvShape = {
   OTP_HASH_PEPPER: z.string().min(16),
   /** Pepper mixed into session token hashes. */
   SESSION_TOKEN_PEPPER: z.string().min(16),
+  /** Pepper mixed into admin password hashes (docs/18 admin auth) — its own dedicated pepper, matching the one-pepper-per-hashed-secret-type convention OTP/session tokens already use. */
+  ADMIN_PASSWORD_PEPPER: z.string().min(16),
   /** AES-256 key (base64, 32 bytes) for application-level field encryption. */
   FIELD_ENCRYPTION_KEY: z.string().min(32),
   /**
