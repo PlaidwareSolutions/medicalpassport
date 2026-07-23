@@ -4,6 +4,10 @@ RUN corepack enable || npm i -g pnpm@9
 WORKDIR /repo
 
 FROM base AS build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY packages ./packages
 COPY apps/admin-web ./apps/admin-web
