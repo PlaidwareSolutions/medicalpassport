@@ -67,11 +67,14 @@ export default defineRailway(() => {
       DATABASE_URL: db.env.DATABASE_URL,
       OTP_TRANSPORT: "log",
       OTP_DEV_FIXED_CODE: "000000",
-      CORS_ORIGINS: "https://staging-app.medidocs.app,https://patient-web-production-6da0.up.railway.app",
+      CORS_ORIGINS:
+        "https://staging-app.medidocs.app,https://staging-admin.medidocs.app,https://patient-web-production-6da0.up.railway.app",
       // Set out-of-band via `railway variable set --stdin` (docs/28: secrets
       // only in Railway variables) — preserve() tells apply not to touch them.
       OTP_HASH_PEPPER: preserve(),
       SESSION_TOKEN_PEPPER: preserve(),
+      // Admin auth (docs/18, admin-portal follow-up) — its own dedicated pepper.
+      ADMIN_PASSWORD_PEPPER: preserve(),
       FIELD_ENCRYPTION_KEY: preserve(),
       VAPID_PUBLIC_KEY: preserve(),
       VAPID_PRIVATE_KEY: preserve(),
@@ -135,7 +138,15 @@ export default defineRailway(() => {
     healthcheck: "/",
     replicas: { [region]: 1 },
     // See patient-web's PORT comment — same reason, different hardcoded port.
-    env: { NODE_ENV: "production", PORT: "3001" },
+    env: {
+      NODE_ENV: "production",
+      PORT: "3001",
+      NEXT_PUBLIC_API_URL: preserve(),
+      // Same physical widget as patient-web's — its Cloudflare-side hostname
+      // allowlist was extended to include staging-admin.medidocs.app
+      // (admin-portal follow-up) rather than provisioning a second widget.
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "0x4AAAAAAD6vGglnBMbvP_EJ",
+    },
   });
 
   // Cron jobs (docs/25 schedule table) — one service per job, all sharing

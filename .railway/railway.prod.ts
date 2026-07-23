@@ -51,7 +51,12 @@ export default defineRailway(() => {
   const repo = github("PlaidwareSolutions/medicalpassport", { branch: "foundation", checkSuites: false });
   const region = "asia-southeast1-eqsg3a"; // Singapore (docs/25 §Region, OD-5 assumption) — same as medpass-dev
 
-  const db = postgres("postgres", { region });
+  // The actual deployed instance lives in "sfo" — a pre-existing drift from
+  // this file's declared region, discovered while deploying the admin
+  // portal (via the real service manifest, not assumed). Declared to match
+  // reality rather than moving a live production database, which
+  // `railway config apply` correctly flags as destructive.
+  const db = postgres("postgres", { region: "sfo" });
 
   // Real R2 (docs/26 §13) — 5 buckets provisioned
   // (medpass-prod-{patient-docs,derived,ocr-tmp,backups,public-assets}), a
@@ -75,11 +80,13 @@ export default defineRailway(() => {
       PORT: "4000",
       DATABASE_URL: db.env.DATABASE_URL,
       OTP_TRANSPORT: "voice",
-      CORS_ORIGINS: "https://app.medidocs.app",
+      CORS_ORIGINS: "https://app.medidocs.app,https://admin.medidocs.app",
       // Set out-of-band via `railway variable set --stdin` (docs/28: secrets
       // only in Railway variables) — preserve() tells apply not to touch them.
       OTP_HASH_PEPPER: preserve(),
       SESSION_TOKEN_PEPPER: preserve(),
+      // Admin auth (docs/18, admin-portal follow-up) — its own dedicated pepper.
+      ADMIN_PASSWORD_PEPPER: preserve(),
       FIELD_ENCRYPTION_KEY: preserve(),
       VAPID_PUBLIC_KEY: preserve(),
       VAPID_PRIVATE_KEY: preserve(),
@@ -134,7 +141,15 @@ export default defineRailway(() => {
     healthcheck: "/",
     replicas: { [region]: 1 },
     // See patient-web's PORT comment — same reason, different hardcoded port.
-    env: { NODE_ENV: "production", PORT: "3001" },
+    env: {
+      NODE_ENV: "production",
+      PORT: "3001",
+      NEXT_PUBLIC_API_URL: "https://api.medidocs.app",
+      // Same physical widget as patient-web's — its Cloudflare-side hostname
+      // allowlist was extended to include admin.medidocs.app (admin-portal
+      // follow-up) rather than provisioning a second widget.
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "0x4AAAAAAD7CYz9zDT2RqibR",
+    },
   });
 
   // Cron jobs (docs/25 schedule table) — one service per job, all sharing
