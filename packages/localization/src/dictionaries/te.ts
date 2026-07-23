@@ -86,6 +86,8 @@ export const te: Record<keyof typeof en, string> = {
   "dose.action.unavailable": "మందు అందుబాటులో లేదు",
   "dose.action.problem": "సమస్య ఎదురవుతోంది",
   "dose.action.taken_other_time": "వేరే సమయంలో తీసుకున్నారు",
+  "dose.action.mark_taken": "తీసుకున్నట్లు గుర్తించండి",
+  "dose.correct.time_label": "మీరు దీన్ని నిజంగా ఎప్పుడు తీసుకున్నారు?",
   "dose.recorded": "నమోదు చేయబడింది",
   "dose.queued_offline": "ఈ పరికరంలో సేవ్ చేయబడింది — ఆన్‌లైన్‌కు వచ్చిన వెంటనే సింక్ అవుతుంది.",
 

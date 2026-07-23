@@ -1,7 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import type { TimelineItemDto } from "@medpass/api-client";
-import { Button, Card, Chip } from "@medpass/ui-web";
+import { Button, Card, Chip, TextInput } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
 import { recordDoseEvent } from "../lib/timeline";
 
@@ -33,6 +33,12 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+/** Local "YYYY-MM-DDTHH:mm" for an `<input type="datetime-local">`, in the browser's own timezone. */
+function toDatetimeLocalValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 /** Screen 24: record dose (docs/07). One-tap primary actions, "more options" folds the rest. */
 export function DoseCard({
   item,
@@ -46,14 +52,17 @@ export function DoseCard({
   const [busy, setBusy] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
+  const [showCorrection, setShowCorrection] = useState(false);
+  const [correctionTime, setCorrectionTime] = useState("");
   const moreOptionsId = useId();
 
   const resolved = RESOLVED_STATUSES.has(item.status);
+  const isMissed = item.status === "missed";
 
-  async function act(action: string, snoozeMinutes?: number) {
+  async function act(action: string, snoozeMinutes?: number, effectiveAt?: string) {
     setBusy(true);
     try {
-      const result = await recordDoseEvent(item.scheduledDoseId, action, snoozeMinutes ? { snoozeMinutes } : undefined);
+      const result = await recordDoseEvent(item.scheduledDoseId, action, { snoozeMinutes, effectiveAt });
       setJustQueued(result.queuedOffline);
       const patch: Partial<TimelineItemDto> = { status: result.status, isDueNow: false };
       if (action === "snoozed") {
@@ -63,6 +72,7 @@ export function DoseCard({
     } finally {
       setBusy(false);
       setShowMore(false);
+      setShowCorrection(false);
     }
   }
 
@@ -129,6 +139,41 @@ export function DoseCard({
               </Button>
             </div>
           ) : null}
+        </div>
+      ) : isMissed ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          {showCorrection ? (
+            <>
+              <TextInput
+                type="datetime-local"
+                label={t("dose.correct.time_label")}
+                value={correctionTime}
+                onChange={(e) => setCorrectionTime(e.target.value)}
+              />
+              <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
+                <Button
+                  disabled={busy || !correctionTime}
+                  onClick={() => void act("taken_other_time", undefined, new Date(correctionTime).toISOString())}
+                >
+                  {t("common.save")}
+                </Button>
+                <Button variant="ghost" disabled={busy} onClick={() => setShowCorrection(false)}>
+                  {t("common.cancel")}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setCorrectionTime(toDatetimeLocalValue(new Date()));
+                setShowCorrection(true);
+              }}
+            >
+              {t("dose.action.mark_taken")}
+            </Button>
+          )}
         </div>
       ) : null}
     </Card>

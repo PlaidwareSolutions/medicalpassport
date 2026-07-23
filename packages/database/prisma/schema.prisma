@@ -795,6 +795,10 @@ enum NotificationKind {
   missed_dose
   safety_finding
   caregiver_escalation
+  /// Sent to caregivers who already received a `caregiver_escalation` for a
+  /// dose the patient later corrected to "taken at another time" — a
+  /// false-alarm follow-up, not a new escalation.
+  dose_correction
   system
 }
 

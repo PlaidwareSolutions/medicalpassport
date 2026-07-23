@@ -119,7 +119,11 @@ export class TimelineService {
         id: scheduledDoseId,
         medicationSchedule: { patientMedication: { patientProfileId: profileId, deletedAt: null } },
       },
-      include: { medicationSchedule: true },
+      include: {
+        medicationSchedule: {
+          include: { patientMedication: { include: { patientProfile: { include: { notificationPreference: true } } } } },
+        },
+      },
     });
     if (!scheduledDose) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Scheduled dose not found", 404);
 
@@ -165,14 +169,54 @@ export class TimelineService {
       // tied to this dose (docs/16) — a plain dose_reminder and a
       // caregiver_escalation can both exist for the same scheduledDoseId, so
       // this must resolve all of them, not just the first found.
-      const notifications = await tx.notification.findMany({ where: { scheduledDoseId } });
+      const notifications = await tx.notification.findMany({ where: { scheduledDoseId }, include: { attempts: true } });
+      let escalationAlreadySent = false;
       for (const notification of notifications) {
+        if (notification.kind === "caregiver_escalation" && notification.attempts.some((a) => a.status !== "queued" && a.status !== "failed")) {
+          escalationAlreadySent = true;
+        }
         await tx.notificationAttempt.updateMany({
           where: { notificationId: notification.id, status: "sent" },
           data: { status: "acknowledged", statusAt: new Date() },
         });
         await tx.notification.update({ where: { id: notification.id }, data: { status: "done" } });
       }
+
+      // A patient correcting a dose that had already been reported missed —
+      // and for which a caregiver escalation had genuinely gone out — means
+      // that escalation was a false alarm. Tell the same caregivers so they
+      // don't keep worrying about a dose that was, in fact, taken (docs/16).
+      // Scoped tightly to taken_other_time on a previously-missed dose: a
+      // plain "taken" on a still-upcoming dose is the normal happy path and
+      // never had an escalation to correct in the first place.
+      if (scheduledDose.status === "missed" && input.action === "taken_other_time" && escalationAlreadySent) {
+        const dedupeKey = `${scheduledDoseId}:correction`;
+        const existingCorrection = await tx.notification.findUnique({ where: { dedupeKey } });
+        if (!existingCorrection) {
+          const patientMedication = scheduledDose.medicationSchedule.patientMedication;
+          await tx.notification.create({
+            data: {
+              patientProfileId: profileId,
+              kind: "dose_correction",
+              scheduledDoseId,
+              patientMedicationId: patientMedication.id,
+              privacyMode: patientMedication.patientProfile.notificationPreference?.privacyMode ?? "generic",
+              dedupeKey,
+              status: "pending",
+            },
+          });
+          await writeAudit(tx, {
+            action: "dose.correction_notice_created",
+            actorUserId: actor.userId,
+            actorType: actor.actorRole,
+            entityType: "scheduled_dose",
+            entityId: scheduledDoseId,
+            patientProfileId: profileId,
+            correlationId: actor.correlationId,
+          });
+        }
+      }
+
       await this.decrementQuantityOnHand(tx, scheduledDose.medicationSchedule.patientMedicationId, input.action);
       return created;
     });

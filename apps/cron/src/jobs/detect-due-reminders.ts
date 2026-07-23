@@ -24,6 +24,12 @@
  * (docs/16 "opt-in policy": never an inferred clinical judgement of
  * severity, only ever a choice the patient made for that specific medicine).
  *
+ * `dose_correction` notifications (created by TimelineService.recordDoseEvent
+ * when a patient marks a previously-missed dose "taken at another time" and
+ * an escalation for it had already gone out) go to the same escalation-only
+ * recipient set — a false-alarm follow-up, not a new emergency, so unlike
+ * `caregiver_escalation` it never bypasses quiet hours.
+ *
  * SMS is gated purely by an active `sms` NotificationChannel existing at
  * all — which only ever exists because the consents cascade
  * (ConsentsController) created it when the patient granted `sms_reminders`
@@ -158,6 +164,10 @@ function buildPushPayload(notification: PendingNotification, medicationName: str
       return fullName
         ? { title: medicationName!, body: "A scheduled dose may have been missed. Please check in.", url: "/timeline" }
         : { title: "Missed dose", body: "A scheduled dose may have been missed. Please check in.", url: "/timeline" };
+    case "dose_correction":
+      return fullName
+        ? { title: medicationName!, body: "Actually taken — the earlier missed-dose alert was a false alarm.", url: "/timeline" }
+        : { title: "Missed-dose update", body: "A medicine reported as missed was actually taken. No action needed.", url: "/timeline" };
     default:
       throw new Error(`unexpected notification kind: ${notification.kind}`);
   }
@@ -273,7 +283,7 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
   // refill/completion queued by generate-refill-reminders.ts, which never
   // dispatches anything itself. ---
   const pending = await prisma.notification.findMany({
-    where: { status: "pending", kind: { in: ["dose_reminder", "refill", "completion", "caregiver_escalation"] } },
+    where: { status: "pending", kind: { in: ["dose_reminder", "refill", "completion", "caregiver_escalation", "dose_correction"] } },
     include: {
       patientProfile: { include: { notificationPreference: true } },
       scheduledDose: { include: { medicationSchedule: { include: { patientMedication: true } } } },
@@ -292,20 +302,20 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
     }
 
     const recipients =
-      notification.kind === "caregiver_escalation"
+      notification.kind === "caregiver_escalation" || notification.kind === "dose_correction"
         ? await resolveEscalationRecipients(prisma, notification.patientProfileId)
         : await resolveRecipients(prisma, notification.patientProfileId, notification.patientProfile.ownerUserId, pref);
     if (recipients.length === 0) {
       // dose_reminder has no value beyond the send itself (the Timeline
       // already shows the due dose), so nothing left to do — cancel it.
-      // caregiver_escalation has no in-app surface of its own either (unlike
-      // refill/completion's standing list), so an empty caregiver set is
-      // equally final — cancel. refill/completion are a standing in-app
-      // list (docs/07 screen 27): with no channel there's nothing to send,
-      // but the reminder itself is still real and must stay visible, so
-      // it's left `pending` rather than cancelled — a channel added later
-      // still gets a send on the very next tick.
-      if (notification.kind === "dose_reminder" || notification.kind === "caregiver_escalation") {
+      // caregiver_escalation/dose_correction have no in-app surface of their
+      // own either (unlike refill/completion's standing list), so an empty
+      // caregiver set is equally final — cancel. refill/completion are a
+      // standing in-app list (docs/07 screen 27): with no channel there's
+      // nothing to send, but the reminder itself is still real and must stay
+      // visible, so it's left `pending` rather than cancelled — a channel
+      // added later still gets a send on the very next tick.
+      if (notification.kind === "dose_reminder" || notification.kind === "caregiver_escalation" || notification.kind === "dose_correction") {
         await prisma.notification.update({ where: { id: notification.id }, data: { status: "cancelled" } });
       }
       continue;
@@ -385,14 +395,18 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
         });
       }
     }
-    // dose_reminder and caregiver_escalation have nothing left to do after a
-    // failed send (neither has a standing in-app surface) — cancelled.
-    // refill/completion's in-app list (docs/07 screen 27) is the real source
-    // of truth regardless of send outcome, so a failed send leaves it
-    // pending rather than making a still-true condition (low supply, course
-    // ended) vanish from view; only an explicit patient action (mark
-    // refilled, dismiss, status change) ever cancels one of these.
-    const failureStatus = notification.kind === "dose_reminder" || notification.kind === "caregiver_escalation" ? "cancelled" : "pending";
+    // dose_reminder, caregiver_escalation and dose_correction have nothing
+    // left to do after a failed send (none has a standing in-app surface) —
+    // cancelled. refill/completion's in-app list (docs/07 screen 27) is the
+    // real source of truth regardless of send outcome, so a failed send
+    // leaves it pending rather than making a still-true condition (low
+    // supply, course ended) vanish from view; only an explicit patient
+    // action (mark refilled, dismiss, status change) ever cancels one of
+    // these.
+    const failureStatus =
+      notification.kind === "dose_reminder" || notification.kind === "caregiver_escalation" || notification.kind === "dose_correction"
+        ? "cancelled"
+        : "pending";
     await prisma.notification.update({ where: { id: notification.id }, data: { status: anySent ? "done" : failureStatus } });
     if (anySent) sent++;
   }
