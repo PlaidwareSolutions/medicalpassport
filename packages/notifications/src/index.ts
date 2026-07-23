@@ -181,10 +181,40 @@ export function verifyTelnyxWebhookSignature(
   }
 }
 
+/**
+ * Telnyx messaging error codes confirmed, via Telnyx's own error-code
+ * reference (support.telnyx.com/en/articles/6505121), to mean the
+ * *destination number itself* can never receive an SMS again — as opposed
+ * to an account/sender-configuration problem that would look superficially
+ * similar but would wrongly revoke every recipient's channel at once if
+ * treated the same way. The obvious trap (docs/22 flagged this before this
+ * was built): 40329 ("toll-free number not yet verified") is the one real
+ * failure code seen in this account so far, and it is an account-level
+ * block, not evidence any particular destination is unreachable — it is
+ * deliberately excluded. 40003 ("blocked as spam — permanent") is also
+ * excluded despite the name, because Telnyx's own text says it permanently
+ * blocks the *originating* (sending) number, not the destination.
+ *
+ * Deliberately a narrow allowlist, not "everything except a known-safe
+ * list" — a false positive here silently stops reminding someone who is
+ * still reachable, which is a worse failure mode than under-reacting to a
+ * genuinely dead number for a bit longer.
+ */
+const PERMANENT_DESTINATION_FAILURE_CODES = new Set([
+  "40001", // Not routable — landline or non-routable wireless number
+  "40012", // Invalid messaging destination number — unowned/deactivated/no credit
+  "40300", // Recipient sent STOP — continuing to send would also violate consent
+  "40310", // Invalid 'to' address — malformed number
+]);
+
 export interface TelnyxDeliveryOutcome {
   messageId: string;
   outcome: "delivered" | "failed";
   errorDigest?: string;
+  /** Only meaningful when outcome === "failed". True means the destination
+   * number itself is confirmed permanently unreachable (see
+   * PERMANENT_DESTINATION_FAILURE_CODES) — safe to stop sending to it. */
+  permanentDestinationFailure?: boolean;
 }
 
 interface TelnyxCallResponse {
@@ -315,7 +345,12 @@ export function parseTelnyxDeliveryOutcome(body: unknown): TelnyxDeliveryOutcome
   if (status === "delivered") return { messageId, outcome: "delivered" };
   if (status === "delivery_failed" || status === "sending_failed") {
     const err = payload?.errors?.[0];
-    return { messageId, outcome: "failed", errorDigest: err ? `telnyx_${err.code}: ${err.detail}` : "delivery_failed" };
+    return {
+      messageId,
+      outcome: "failed",
+      errorDigest: err ? `telnyx_${err.code}: ${err.detail}` : "delivery_failed",
+      permanentDestinationFailure: err?.code ? PERMANENT_DESTINATION_FAILURE_CODES.has(err.code) : false,
+    };
   }
   return null; // delivery_unconfirmed etc. — no confident outcome to record
 }

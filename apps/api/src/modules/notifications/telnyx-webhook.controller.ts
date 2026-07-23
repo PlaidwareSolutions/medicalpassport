@@ -43,7 +43,12 @@ export class TelnyxWebhookController {
 
     const outcome = parseTelnyxDeliveryOutcome(req.body);
     if (outcome) {
-      await this.notifications.recordTelnyxDeliveryOutcome(outcome.messageId, outcome.outcome, outcome.errorDigest);
+      await this.notifications.recordTelnyxDeliveryOutcome(
+        outcome.messageId,
+        outcome.outcome,
+        outcome.errorDigest,
+        outcome.permanentDestinationFailure,
+      );
     }
     return { ok: true };
   }

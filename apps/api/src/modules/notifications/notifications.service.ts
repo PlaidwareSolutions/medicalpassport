@@ -169,13 +169,50 @@ export class NotificationsService {
    * matching attempt is expected and fine to ignore silently: OTP sends
    * never create a `NotificationAttempt` row, so their webhooks have
    * nothing to correlate against.
+   *
+   * A confirmed permanent-destination failure (see
+   * `PERMANENT_DESTINATION_FAILURE_CODES` in `@medpass/notifications`) also
+   * revokes the SMS channel it was sent through, the same way a web-push
+   * subscription is revoked on a 404/410 — this is the one signal narrow
+   * and unambiguous enough to act on automatically (docs/22's prior "not
+   * done" note: most Telnyx failure codes are account/config-level, not
+   * proof a specific number is dead, so acting on them generally would
+   * risk silently stopping reminders for someone still reachable).
    */
-  async recordTelnyxDeliveryOutcome(messageId: string, outcome: "delivered" | "failed", errorDigest?: string): Promise<void> {
+  async recordTelnyxDeliveryOutcome(
+    messageId: string,
+    outcome: "delivered" | "failed",
+    errorDigest?: string,
+    permanentDestinationFailure?: boolean,
+  ): Promise<void> {
     const attempt = await this.prisma.notificationAttempt.findFirst({ where: { providerMessageId: messageId } });
     if (!attempt) return;
-    await this.prisma.notificationAttempt.update({
-      where: { id: attempt.id },
-      data: { status: outcome, statusAt: new Date(), ...(errorDigest ? { errorDigest } : {}) },
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.notificationAttempt.update({
+        where: { id: attempt.id },
+        data: { status: outcome, statusAt: new Date(), ...(errorDigest ? { errorDigest } : {}) },
+      });
+
+      if (!permanentDestinationFailure || attempt.channel !== "sms" || !attempt.notificationChannelId) return;
+
+      // Guarded update so a retried/duplicate webhook delivery can't write a
+      // second audit event for a channel that's already revoked.
+      const revoked = await tx.notificationChannel.updateMany({
+        where: { id: attempt.notificationChannelId, status: { not: "revoked" } },
+        data: { status: "revoked" },
+      });
+      if (revoked.count === 0) return;
+
+      const channel = await tx.notificationChannel.findUniqueOrThrow({ where: { id: attempt.notificationChannelId } });
+      await writeAudit(tx, {
+        action: "notification.channel_revoked",
+        actorType: "system",
+        actorUserId: channel.userId,
+        entityType: "notification_channel",
+        entityId: channel.id,
+        context: { channel: "sms", reason: errorDigest ?? "permanent_destination_failure" },
+      });
     });
   }
 }

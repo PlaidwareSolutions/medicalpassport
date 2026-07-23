@@ -53,6 +53,7 @@ export const AUDIT_ACTIONS = [
   "share.revoked",
   "notification.preferences_updated",
   "notification.dismissed",
+  "notification.channel_revoked",
   "data.export_requested",
   "data.deletion_requested",
   "admin.audit_searched",

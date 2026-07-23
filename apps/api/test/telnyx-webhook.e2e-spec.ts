@@ -62,6 +62,7 @@ describe("Telnyx delivery-status webhook e2e", () => {
   };
 
   let profileId: string;
+  let userId: string;
 
   it("signs in and creates a profile", async () => {
     await request(app.getHttpServer()).post("/v1/auth/otp/request").send({ phone: PHONE }).expect(202);
@@ -70,6 +71,7 @@ describe("Telnyx delivery-status webhook e2e", () => {
       .send({ phone: PHONE, code: CODE, device: { kind: "browser" } })
       .expect(201);
     const token = verify.body.token;
+    userId = verify.body.user.id;
 
     const profile = await auth(token)(request(app.getHttpServer()).post("/v1/profiles"))
       .send({ displayName: "Telnyx Webhook Test", preferredLocale: "en" })
@@ -96,6 +98,32 @@ describe("Telnyx delivery-status webhook e2e", () => {
       data: { notificationId: notification.id, channel: "sms", status: "sent", providerMessageId },
     });
     return attempt.id;
+  }
+
+  /** Like seedAttempt, but the attempt is tied to a real SMS NotificationChannel row, needed to exercise the permanent-failure auto-revoke path. */
+  async function seedAttemptWithChannel(providerMessageId: string, endpointDigest: string): Promise<{ attemptId: string; channelId: string }> {
+    const notification = await prisma.notification.create({
+      data: {
+        patientProfileId: profileId,
+        kind: "dose_reminder",
+        privacyMode: "generic",
+        dedupeKey: `webhook-test:${providerMessageId}`,
+        status: "done",
+      },
+    });
+    const channel = await prisma.notificationChannel.create({
+      data: { userId, channel: "sms", addressCiphertext: "test-ciphertext", endpointDigest, status: "active" },
+    });
+    const attempt = await prisma.notificationAttempt.create({
+      data: {
+        notificationId: notification.id,
+        notificationChannelId: channel.id,
+        channel: "sms",
+        status: "sent",
+        providerMessageId,
+      },
+    });
+    return { attemptId: attempt.id, channelId: channel.id };
   }
 
   it("rejects a request with no signature headers at all", async () => {
@@ -201,5 +229,99 @@ describe("Telnyx delivery-status webhook e2e", () => {
 
     const attempt = await prisma.notificationAttempt.findUniqueOrThrow({ where: { id: attemptId } });
     expect(attempt.status).toBe("sent");
+  });
+
+  it("revokes the SMS channel and writes an audit event on a confirmed permanent destination failure (recipient sent STOP)", async () => {
+    const { attemptId, channelId } = await seedAttemptWithChannel("msg-stop-1", "webhook-test-digest-stop-1");
+    const body = JSON.stringify({
+      data: {
+        event_type: "message.finalized",
+        payload: {
+          id: "msg-stop-1",
+          to: [{ status: "delivery_failed" }],
+          errors: [{ code: "40300", detail: "Destination has sent a stop message" }],
+        },
+      },
+    });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = sign(timestamp, body);
+
+    await request(app.getHttpServer())
+      .post("/v1/webhooks/telnyx/sms")
+      .set("content-type", "application/json")
+      .set("telnyx-signature-ed25519", signature)
+      .set("telnyx-timestamp", timestamp)
+      .send(body)
+      .expect(200);
+
+    const attempt = await prisma.notificationAttempt.findUniqueOrThrow({ where: { id: attemptId } });
+    expect(attempt.status).toBe("failed");
+    const channel = await prisma.notificationChannel.findUniqueOrThrow({ where: { id: channelId } });
+    expect(channel.status).toBe("revoked");
+
+    const auditEvent = await prisma.auditEvent.findFirst({ where: { entityId: channelId, action: "notification.channel_revoked" } });
+    expect(auditEvent).not.toBeNull();
+    expect(auditEvent?.actorType).toBe("system");
+    expect(auditEvent?.actorUserId).toBe(userId);
+  });
+
+  it("does NOT revoke the SMS channel on an account/sender-level failure (unverified toll-free number)", async () => {
+    const { attemptId, channelId } = await seedAttemptWithChannel("msg-tollfree-1", "webhook-test-digest-tollfree-1");
+    const body = JSON.stringify({
+      data: {
+        event_type: "message.finalized",
+        payload: {
+          id: "msg-tollfree-1",
+          to: [{ status: "delivery_failed" }],
+          errors: [{ code: "40329", detail: "Tollfree number is not verified" }],
+        },
+      },
+    });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = sign(timestamp, body);
+
+    await request(app.getHttpServer())
+      .post("/v1/webhooks/telnyx/sms")
+      .set("content-type", "application/json")
+      .set("telnyx-signature-ed25519", signature)
+      .set("telnyx-timestamp", timestamp)
+      .send(body)
+      .expect(200);
+
+    const attempt = await prisma.notificationAttempt.findUniqueOrThrow({ where: { id: attemptId } });
+    expect(attempt.status).toBe("failed");
+    const channel = await prisma.notificationChannel.findUniqueOrThrow({ where: { id: channelId } });
+    expect(channel.status).toBe("active"); // an account-level block must never look like this destination is dead
+  });
+
+  it("does not write a duplicate audit event when the same permanent-failure webhook is delivered twice (retry safety)", async () => {
+    const { channelId } = await seedAttemptWithChannel("msg-stop-2", "webhook-test-digest-stop-2");
+    const body = JSON.stringify({
+      data: {
+        event_type: "message.finalized",
+        payload: {
+          id: "msg-stop-2",
+          to: [{ status: "delivery_failed" }],
+          errors: [{ code: "40300", detail: "Destination has sent a stop message" }],
+        },
+      },
+    });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = sign(timestamp, body);
+
+    for (let i = 0; i < 2; i++) {
+      await request(app.getHttpServer())
+        .post("/v1/webhooks/telnyx/sms")
+        .set("content-type", "application/json")
+        .set("telnyx-signature-ed25519", signature)
+        .set("telnyx-timestamp", timestamp)
+        .send(body)
+        .expect(200);
+    }
+
+    const channel = await prisma.notificationChannel.findUniqueOrThrow({ where: { id: channelId } });
+    expect(channel.status).toBe("revoked");
+    const auditEvents = await prisma.auditEvent.findMany({ where: { entityId: channelId, action: "notification.channel_revoked" } });
+    expect(auditEvents).toHaveLength(1);
   });
 });

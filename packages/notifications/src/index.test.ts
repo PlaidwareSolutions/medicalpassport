@@ -144,7 +144,44 @@ describe("parseTelnyxDeliveryOutcome", () => {
         },
       },
     });
-    expect(outcome).toEqual({ messageId: "msg-2", outcome: "failed", errorDigest: "telnyx_40329: Tollfree number is not verified" });
+    // 40329 is an account/sender-configuration problem (our own toll-free
+    // number isn't verified), not proof this specific destination is dead —
+    // must NOT be flagged as a permanent destination failure, or every
+    // recipient's channel would be wrongly revoked on the very first send.
+    expect(outcome).toEqual({
+      messageId: "msg-2",
+      outcome: "failed",
+      errorDigest: "telnyx_40329: Tollfree number is not verified",
+      permanentDestinationFailure: false,
+    });
+  });
+
+  it("flags a confirmed permanent destination failure (recipient sent STOP)", () => {
+    const outcome = parseTelnyxDeliveryOutcome({
+      data: {
+        event_type: "message.finalized",
+        payload: {
+          id: "msg-5",
+          to: [{ status: "delivery_failed" }],
+          errors: [{ code: "40300", detail: "Destination has sent a stop message" }],
+        },
+      },
+    });
+    expect(outcome?.permanentDestinationFailure).toBe(true);
+  });
+
+  it("does not flag a sending-number-level spam block as a destination failure", () => {
+    const outcome = parseTelnyxDeliveryOutcome({
+      data: {
+        event_type: "message.finalized",
+        payload: {
+          id: "msg-6",
+          to: [{ status: "delivery_failed" }],
+          errors: [{ code: "40003", detail: "Blocked as spam, permanently blocking the originating number" }],
+        },
+      },
+    });
+    expect(outcome?.permanentDestinationFailure).toBe(false);
   });
 
   it("ignores message.sent — already captured synchronously at send time", () => {
