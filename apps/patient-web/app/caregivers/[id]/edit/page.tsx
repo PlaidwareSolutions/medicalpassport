@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CAREGIVER_SCOPES, type CaregiverScope } from "@medpass/domain";
-import { Banner, Button, Card } from "@medpass/ui-web";
+import { Banner, Button, Card, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
 import { useI18n } from "../../../../lib/i18n";
 import { updateCaregiverScopes, useCaregivers } from "../../../../lib/caregivers";
@@ -19,6 +19,7 @@ export default function EditCaregiverPage() {
   const { profiles, activeProfileId } = useSession();
   const { items, error } = useCaregivers();
   const [scopes, setScopes] = useState<Record<CaregiverScope, boolean> | undefined>();
+  const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>();
 
@@ -30,7 +31,10 @@ export default function EditCaregiverPage() {
   }, [activeProfile, router]);
 
   useEffect(() => {
-    if (item) setScopes(Object.fromEntries(CAREGIVER_SCOPES.map((s) => [s, item.scopes.includes(s)])) as Record<CaregiverScope, boolean>);
+    if (item) {
+      setScopes(Object.fromEntries(CAREGIVER_SCOPES.map((s) => [s, item.scopes.includes(s)])) as Record<CaregiverScope, boolean>);
+      setLabel(item.label ?? "");
+    }
   }, [item]);
 
   async function save() {
@@ -40,7 +44,7 @@ export default function EditCaregiverPage() {
     setBusy(true);
     setSaveError(undefined);
     try {
-      await updateCaregiverScopes(params.id, selected);
+      await updateCaregiverScopes(params.id, selected, label.trim() ? label.trim() : undefined);
       router.replace("/caregivers");
     } catch {
       setSaveError(t("common.error_generic"));
@@ -69,6 +73,14 @@ export default function EditCaregiverPage() {
 
       {scopes ? (
         <>
+          <TextInput
+            label={t("caregiver.label_field")}
+            help={t("caregiver.label_help")}
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+          />
+
           <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{t("caregiver.scopes_help")}</span>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", marginTop: "var(--space-sm)" }}>
             {CAREGIVER_SCOPES.map((scope) => (

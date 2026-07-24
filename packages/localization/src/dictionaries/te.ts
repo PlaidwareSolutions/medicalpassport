@@ -289,6 +289,8 @@ export const te: Record<keyof typeof en, string> = {
   "caregiver.phone_label": "వారి మొబైల్ నంబర్",
   "caregiver.phone_help": "మేము వారికి ఆహ్వానం పంపుతాము. అంగీకరించడానికి వారు తమ సొంత నంబర్‌తో ధృవీకరించుకోవాలి.",
   "caregiver.relationship_label": "మీతో వారి సంబంధం",
+  "caregiver.label_field": "పేరు (ఐచ్ఛికం)",
+  "caregiver.label_help": "ఒకే సంబంధం ఉన్న ఒకటి కంటే ఎక్కువ మంది కేర్‌గివర్‌లు ఉన్నప్పుడు వారిని వేరుగా గుర్తించడంలో సహాయపడుతుంది — ఉదాహరణకు వారి పేరు.",
   "caregiver.scopes_label": "వారు ఏమి చేయగలరు?",
   "caregiver.scopes_help": "ఈ వ్యక్తికి అవసరమైనవి మాత్రమే ఎంచుకోండి — మీరు దీన్ని ఎప్పుడైనా మార్చుకోవచ్చు.",
   "caregiver.expiry_label": "యాక్సెస్ గడువు (ఐచ్ఛికం)",

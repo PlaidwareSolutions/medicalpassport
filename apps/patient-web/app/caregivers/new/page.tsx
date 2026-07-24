@@ -30,6 +30,7 @@ export default function InviteCaregiverPage() {
   }, [activeProfile, router]);
 
   const [phone, setPhone] = useState("+91");
+  const [label, setLabel] = useState("");
   const [relationship, setRelationship] = useState<CaregiverRelationshipKind | undefined>();
   const [scopes, setScopes] = useState<Record<CaregiverScope, boolean>>(
     Object.fromEntries(CAREGIVER_SCOPES.map((s) => [s, false])) as Record<CaregiverScope, boolean>,
@@ -51,6 +52,7 @@ export default function InviteCaregiverPage() {
         phone,
         scopes: selectedScopes,
         relationship,
+        ...(label.trim() ? { label: label.trim() } : {}),
         ...(expiryHours ? { expiresAt: new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString() } : {}),
       });
       setSent(true);
@@ -88,6 +90,14 @@ export default function InviteCaregiverPage() {
         autoComplete="tel"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
+      />
+
+      <TextInput
+        label={t("caregiver.label_field")}
+        help={t("caregiver.label_help")}
+        type="text"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
       />
 
       <SectionTitle>{t("caregiver.relationship_label")}</SectionTitle>

@@ -79,6 +79,7 @@ export async function inviteCaregiver(input: {
   phone: string;
   scopes: CaregiverScope[];
   relationship: CaregiverRelationshipKind;
+  label?: string;
   expiresAt?: string;
 }) {
   return api.post<{ id: string; status: string }>("/profiles/current/caregivers", input, {
@@ -91,10 +92,10 @@ export async function acceptInvitation(invitationId: string) {
   return api.post<{ id: string; status: string; patientProfileId: string }>("/caregivers/accept", { invitationId });
 }
 
-export async function updateCaregiverScopes(relationshipId: string, scopes: CaregiverScope[]) {
+export async function updateCaregiverScopes(relationshipId: string, scopes: CaregiverScope[], label?: string) {
   return api.patch<{ id: string; scopes: CaregiverScope[] }>(
     `/caregivers/${relationshipId}/scopes`,
-    { scopes },
+    { scopes, ...(label !== undefined ? { label } : {}) },
     { profileId: getActiveProfileId() },
   );
 }

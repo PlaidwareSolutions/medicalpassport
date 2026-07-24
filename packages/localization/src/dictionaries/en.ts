@@ -292,6 +292,8 @@ export const en = {
   "caregiver.phone_label": "Their mobile number",
   "caregiver.phone_help": "We'll text them an invitation. They'll need to verify with their own number to accept.",
   "caregiver.relationship_label": "Relationship to you",
+  "caregiver.label_field": "Name (optional)",
+  "caregiver.label_help": "Helps you tell caregivers apart when you have more than one with the same relationship, e.g. their name.",
   "caregiver.scopes_label": "What can they do?",
   "caregiver.scopes_help": "Choose only what this person needs — you can change this anytime.",
   "caregiver.expiry_label": "Access expires (optional)",

@@ -212,10 +212,16 @@ describe("API e2e", () => {
     await prisma.otpAttempt.deleteMany({});
     ({ token: tokenB } = await signIn(PHONE_B));
 
-    // A invites B with view-only scope.
+    // A invites B with view-only scope, labelled to distinguish B from any
+    // other caregiver sharing the same relationship (e.g. a second child).
     const invite = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/caregivers"))
-      .send({ phone: PHONE_B, scopes: ["view_medications"], relationship: "child" })
+      .send({ phone: PHONE_B, scopes: ["view_medications"], relationship: "child", label: "Big Sister Aisha" })
       .expect(201);
+
+    const listBeforeAccept = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/caregivers")).expect(200);
+    const seenBeforeAccept = listBeforeAccept.body.items.find((i: { id: string }) => i.id === invite.body.id);
+    expect(seenBeforeAccept.label).toBe("Big Sister Aisha");
+    expect(seenBeforeAccept.status).toBe("invited");
 
     // B sees and accepts the invitation — the offered scopes must be visible
     // before accepting (informed consent, docs/23 E3.2), not accepted blind.
@@ -251,6 +257,16 @@ describe("API e2e", () => {
     ).expect(200);
     expect(accessLog.body.items.length).toBeGreaterThan(0);
     expect(accessLog.body.items[0].accessedAt).toBeTruthy();
+
+    // A can rename B later — e.g. realizing two caregivers share a
+    // relationship and need distinct labels — without touching scopes.
+    await auth(tokenA, profileA)(request(app.getHttpServer()).patch(`/v1/caregivers/${invite.body.id}/scopes`))
+      .send({ scopes: ["view_medications"], label: "Aisha (eldest)" })
+      .expect(200);
+    const listAfterRelabel = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/caregivers")).expect(200);
+    const seenAfterRelabel = listAfterRelabel.body.items.find((i: { id: string }) => i.id === invite.body.id);
+    expect(seenAfterRelabel.label).toBe("Aisha (eldest)");
+    expect(seenAfterRelabel.status).toBe("active");
 
     // A revokes; B's next request fails immediately.
     await auth(tokenA, profileA)(request(app.getHttpServer()).delete(`/v1/caregivers/${invite.body.id}`)).expect(204);

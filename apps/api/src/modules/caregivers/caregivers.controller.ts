@@ -29,6 +29,7 @@ export class CaregiversController {
       items: items.map((r) => ({
         id: r.id,
         relationship: r.relationship,
+        label: r.label,
         status: r.status,
         scopes: r.permissions.map((p) => p.scope),
         acceptedAt: r.acceptedAt,
@@ -50,6 +51,7 @@ export class CaregiversController {
           patientProfileId: profileId,
           invitedPhoneDigest: phoneDigest(input.phone),
           relationship: input.relationship,
+          label: input.label,
           expiresAt: input.expiresAt,
           permissions: {
             create: input.scopes.map((scope) => ({ scope, grantedByUserId: userId })),
@@ -137,6 +139,9 @@ export class CaregiversController {
           await tx.caregiverPermission.update({ where: { id: existing.id }, data: { revokedAt: null, grantedAt: new Date() } });
         }
       }
+      if (input.label !== undefined) {
+        await tx.caregiverRelationship.update({ where: { id: relationship.id }, data: { label: input.label } });
+      }
       await writeAudit(tx, {
         action: "caregiver.scope_changed",
         actorUserId: req.auth!.userId,
@@ -147,7 +152,7 @@ export class CaregiversController {
         correlationId: req.correlationId,
         context: { scopes: input.scopes },
       });
-      return { id: relationship.id, scopes: input.scopes };
+      return { id: relationship.id, scopes: input.scopes, label: input.label ?? relationship.label };
     });
   }
 

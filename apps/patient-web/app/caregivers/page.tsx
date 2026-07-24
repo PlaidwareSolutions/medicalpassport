@@ -67,11 +67,21 @@ export default function CaregiversPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
           {items.map((c) => {
             const active = isCaregiverActive(c);
-            const statusKey = !active ? "expired" : c.status === "invited" ? "invited" : "active";
+            // "invited" is its own state, checked first — it must never fall
+            // through to the time-based expiry check below, which only
+            // makes sense once a relationship has actually gone "active".
+            const statusKey = c.status === "invited" ? "invited" : active ? "active" : "expired";
             return (
               <Card key={c.id}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <strong>{t(`caregiver.relationship.${c.relationship}` as never)}</strong>
+                  <div>
+                    <strong>{c.label || t(`caregiver.relationship.${c.relationship}` as never)}</strong>
+                    {c.label ? (
+                      <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+                        {t(`caregiver.relationship.${c.relationship}` as never)}
+                      </div>
+                    ) : null}
+                  </div>
                   <Chip tone={statusKey === "active" ? "success" : statusKey === "invited" ? "default" : "danger"}>
                     {t(`caregiver.status.${statusKey}` as never)}
                   </Chip>

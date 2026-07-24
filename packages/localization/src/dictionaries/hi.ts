@@ -289,6 +289,8 @@ export const hi: Record<keyof typeof en, string> = {
   "caregiver.phone_label": "उनका मोबाइल नंबर",
   "caregiver.phone_help": "हम उन्हें एक आमंत्रण भेजेंगे। स्वीकार करने के लिए उन्हें अपने ही नंबर से सत्यापन करना होगा।",
   "caregiver.relationship_label": "आपसे उनका रिश्ता",
+  "caregiver.label_field": "नाम (वैकल्पिक)",
+  "caregiver.label_help": "जब एक ही रिश्ते के एक से ज़्यादा केयरगिवर हों, तो उन्हें अलग पहचानने में मदद करता है — जैसे उनका नाम।",
   "caregiver.scopes_label": "वे क्या कर सकते हैं?",
   "caregiver.scopes_help": "केवल वही चुनें जिसकी इस व्यक्ति को ज़रूरत है — आप इसे कभी भी बदल सकते हैं।",
   "caregiver.expiry_label": "पहुँच की समाप्ति (वैकल्पिक)",

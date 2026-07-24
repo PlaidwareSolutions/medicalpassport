@@ -189,6 +189,11 @@ model CaregiverRelationship {
 
   invitedPhoneDigest String             @map("invited_phone_digest")
   relationship       String
+  /// Patient-entered label distinguishing this caregiver from another with
+  /// the same relationship (e.g. two "child" caregivers) — never derived
+  /// from the caregiver's own account, since caregiverUserId is null until
+  /// they accept.
+  label              String?
   status             RelationshipStatus @default(invited)
   acceptedAt         DateTime?          @map("accepted_at") @db.Timestamptz(6)
   expiresAt          DateTime?          @map("expires_at") @db.Timestamptz(6)

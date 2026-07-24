@@ -121,6 +121,8 @@ export type CaregiverRelationshipKind = "parent" | "child" | "spouse" | "sibling
 export interface CaregiverRelationshipDto {
   id: string;
   relationship: CaregiverRelationshipKind;
+  /** Patient-entered, distinguishes this caregiver from another with the same relationship. */
+  label: string | null;
   /** The API only ever returns "invited" | "active" today (revoked/expired
    * rows are filtered out server-side) — typed against the full enum for
    * accuracy, not against what's currently reachable. */

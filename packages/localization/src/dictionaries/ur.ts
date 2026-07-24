@@ -289,6 +289,8 @@ export const ur: Record<keyof typeof en, string> = {
   "caregiver.phone_label": "ان کا موبائل نمبر",
   "caregiver.phone_help": "ہم انہیں ایک دعوت بھیجیں گے۔ قبول کرنے کے لیے انہیں اپنے نمبر سے تصدیق کرنی ہوگی۔",
   "caregiver.relationship_label": "آپ سے ان کا رشتہ",
+  "caregiver.label_field": "نام (اختیاری)",
+  "caregiver.label_help": "جب ایک ہی رشتے کے ایک سے زیادہ نگہداشت کار ہوں تو انہیں الگ پہچاننے میں مدد کرتا ہے — جیسے ان کا نام۔",
   "caregiver.scopes_label": "وہ کیا کر سکتے ہیں؟",
   "caregiver.scopes_help": "صرف وہی منتخب کریں جس کی اس فرد کو ضرورت ہے — آپ اسے کبھی بھی تبدیل کر سکتے ہیں۔",
   "caregiver.expiry_label": "رسائی کی میعاد (اختیاری)",
