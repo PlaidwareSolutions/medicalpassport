@@ -170,6 +170,44 @@ describe("API e2e", () => {
     expect(mismatch.status).toBe(409);
   });
 
+  it("creates and edits a non-tablet medicine (e.g. a syrup dosed in ml)", async () => {
+    const created = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Test Syrup",
+        source: "manual",
+        instruction: { doseQuantity: 5, doseUnit: "ml", frequencyCode: "OD" },
+      })
+      .expect(201);
+    expect(created.body.instruction.doseUnit).toBe("ml");
+    expect(created.body.instruction.doseQuantity).toBe("5");
+
+    const fetched = await auth(tokenA, profileA)(
+      request(app.getHttpServer()).get(`/v1/medications/${created.body.id}`),
+    ).expect(200);
+    expect(fetched.body.instruction.doseUnit).toBe("ml");
+    expect(fetched.body.instruction.doseQuantity).toBe("5");
+
+    // Editing an unrelated field must not silently revert the unit back to
+    // tablet (the exact bug this feature fixed on the frontend) — the
+    // instruction is copy-on-write, so confirm the backend contract holds:
+    // sending the same non-tablet unit through the update path persists it.
+    const updated = await auth(tokenA, profileA)(
+      request(app.getHttpServer()).patch(`/v1/medications/${created.body.id}`),
+    )
+      .send({
+        rowVersion: created.body.rowVersion,
+        instruction: { doseQuantity: 7.5, doseUnit: "ml", frequencyCode: "OD" },
+      })
+      .expect(200);
+
+    const afterUpdate = await auth(tokenA, profileA)(
+      request(app.getHttpServer()).get(`/v1/medications/${created.body.id}`),
+    ).expect(200);
+    expect(afterUpdate.body.instruction.doseUnit).toBe("ml");
+    expect(afterUpdate.body.instruction.doseQuantity).toBe("7.5");
+    expect(afterUpdate.body.rowVersion).toBe(updated.body.rowVersion);
+  });
+
   it("rejects ambiguous SOS + pattern combinations (never silently interpret)", async () => {
     const res = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
       .send({

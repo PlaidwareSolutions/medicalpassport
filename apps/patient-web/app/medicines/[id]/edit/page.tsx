@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
+import { DOSE_UNITS, type DoseUnit } from "@medpass/domain";
 import { Banner, Button, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
 import { PageHeader } from "../../../../components/PageHeader";
@@ -24,7 +25,8 @@ export default function EditMedicationPage() {
   const params = useParams<{ id: string }>();
   const { medication, error: loadError, fromCache } = useMedication(params.id);
 
-  const [doseQuantity, setDoseQuantity] = useState<"0.5" | "1" | "2" | undefined>();
+  const [doseUnit, setDoseUnit] = useState<DoseUnit>("tablet");
+  const [doseQuantity, setDoseQuantity] = useState<string | undefined>();
   const [frequency, setFrequency] = useState<Frequency | undefined>();
   const [pattern, setPattern] = useState<"1-0-0" | "1-0-1" | "1-1-1" | "0-0-1" | undefined>();
   const [food, setFood] = useState<Food | undefined>();
@@ -50,7 +52,8 @@ export default function EditMedicationPage() {
     setQuantityOnHand(medication.quantityOnHand ?? "");
     setCriticalEscalation(medication.criticalEscalation);
     if (medication.instruction) {
-      setDoseQuantity(medication.instruction.doseQuantity as "0.5" | "1" | "2");
+      setDoseUnit(medication.instruction.doseUnit as DoseUnit);
+      setDoseQuantity(medication.instruction.doseQuantity);
       setFrequency(medication.instruction.frequencyCode as Frequency);
       if (medication.instruction.pattern) setPattern(medication.instruction.pattern as never);
       setFood(medication.instruction.foodInstruction as Food);
@@ -72,7 +75,7 @@ export default function EditMedicationPage() {
         criticalEscalation,
         instruction: {
           doseQuantity: Number(doseQuantity),
-          doseUnit: "tablet",
+          doseUnit,
           frequencyCode: frequency,
           ...(frequency === "PATTERN" ? { pattern } : {}),
           foodInstruction: food,
@@ -123,18 +126,40 @@ export default function EditMedicationPage() {
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
-      <SectionTitle>{t("add.dose_label")}</SectionTitle>
+      <SectionTitle>{t("add.dose_unit_label")}</SectionTitle>
       <ChoiceGrid
-        label={t("add.dose_label")}
-        columns={3}
-        choices={[
-          { value: "0.5", label: "½" },
-          { value: "1", label: "1" },
-          { value: "2", label: "2" },
-        ]}
-        value={doseQuantity}
-        onChange={setDoseQuantity}
+        label={t("add.dose_unit_label")}
+        columns={2}
+        choices={DOSE_UNITS.map((u) => ({ value: u, label: t(`medicineType.${u}` as never) }))}
+        value={doseUnit}
+        onChange={setDoseUnit}
       />
+
+      <SectionTitle>{t("add.dose_label")}</SectionTitle>
+      {doseUnit === "tablet" || doseUnit === "capsule" ? (
+        <ChoiceGrid
+          label={t("add.dose_label")}
+          columns={3}
+          choices={[
+            { value: "0.5", label: "½" },
+            { value: "1", label: "1" },
+            { value: "2", label: "2" },
+          ]}
+          value={doseQuantity}
+          onChange={setDoseQuantity}
+        />
+      ) : (
+        <TextInput
+          label={t("add.dose_label")}
+          help={t(`unit.${doseUnit}` as never)}
+          type="number"
+          inputMode="decimal"
+          step="0.5"
+          min="0.1"
+          value={doseQuantity ?? ""}
+          onChange={(e) => setDoseQuantity(e.target.value)}
+        />
+      )}
 
       <SectionTitle>{t("add.frequency_label")}</SectionTitle>
       <ChoiceGrid

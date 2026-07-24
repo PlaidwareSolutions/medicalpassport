@@ -151,8 +151,9 @@ export function instructionSummary(
   if (!i) return "";
   const freq = t(`frequency.${i.frequencyCode.toLowerCase()}` as never);
   const food = t(`food.${i.foodInstruction}` as never);
+  const unit = t(`unit.${i.doseUnit}` as never);
   const pattern = i.pattern ? ` ${i.pattern}` : "";
-  return `${i.doseQuantity} ${i.doseUnit} · ${freq}${pattern} · ${food}`;
+  return `${i.doseQuantity} ${unit} · ${freq}${pattern} · ${food}`;
 }
 
 async function patchCachedMedication(profileId: string, id: string, patch: EditMedicationPatch): Promise<void> {

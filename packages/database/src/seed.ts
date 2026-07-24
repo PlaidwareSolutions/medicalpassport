@@ -119,6 +119,48 @@ const PRODUCTS: SeedProduct[] = [
     ingredients: [{ name: "Amoxicillin", strength: 500, unit: "mg" }],
     classes: ["Penicillin antibiotic"],
   },
+  // Non-tablet dosage forms (docs/22 Stage 4 follow-up), so the search path
+  // — not just manual entry — demonstrates unit-aware dosing (ml/drop/puff/etc.).
+  {
+    brand: "Crocin Syrup",
+    manufacturer: "GSK",
+    generic: "Paracetamol",
+    form: "syrup",
+    route: "oral",
+    strengthLabel: "125 mg/5 ml",
+    ingredients: [{ name: "Paracetamol", strength: 125, unit: "mg" }],
+    classes: ["Analgesic-antipyretic"],
+  },
+  {
+    brand: "Otrivin",
+    manufacturer: "GSK",
+    generic: "Xylometazoline",
+    form: "drops",
+    route: "nasal",
+    strengthLabel: "0.1%",
+    ingredients: [{ name: "Xylometazoline", strength: 0.1, unit: "%" }],
+    classes: ["Nasal decongestant"],
+  },
+  {
+    brand: "Asthalin",
+    manufacturer: "Cipla",
+    generic: "Salbutamol",
+    form: "inhaler",
+    route: "inhalation",
+    strengthLabel: "100 mcg/puff",
+    ingredients: [{ name: "Salbutamol", strength: 100, unit: "mcg" }],
+    classes: ["Bronchodilator"],
+  },
+  {
+    brand: "Voveran",
+    manufacturer: "Novartis",
+    generic: "Diclofenac",
+    form: "injection",
+    route: "intramuscular",
+    strengthLabel: "75 mg/3 ml",
+    ingredients: [{ name: "Diclofenac", strength: 75, unit: "mg" }],
+    classes: ["NSAID"],
+  },
 ];
 
 async function main() {

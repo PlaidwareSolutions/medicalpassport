@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ApiError, type CatalogProduct } from "@medpass/api-client";
+import { DOSE_UNITS, type DoseUnit } from "@medpass/domain";
+import { defaultDoseUnitForForm } from "@medpass/medication-terminology";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
@@ -27,7 +29,8 @@ export default function AddMedicationPage() {
   const [manualName, setManualName] = useState("");
   const [manualMode, setManualMode] = useState(false);
 
-  const [doseQuantity, setDoseQuantity] = useState<"0.5" | "1" | "2" | undefined>("1");
+  const [doseUnit, setDoseUnit] = useState<DoseUnit>("tablet");
+  const [doseQuantity, setDoseQuantity] = useState<string | undefined>("1");
   const [frequency, setFrequency] = useState<Frequency | undefined>();
   const [pattern, setPattern] = useState<"1-0-0" | "1-0-1" | "1-1-1" | "0-0-1" | undefined>();
   const [food, setFood] = useState<Food | undefined>("any");
@@ -58,6 +61,14 @@ export default function AddMedicationPage() {
     return () => clearTimeout(timer);
   }, [query, manualMode]);
 
+  // Proposes a default dose unit from the selected product's dosage form
+  // (e.g. "syrup" -> ml) — a proposal only, the picker below still lets the
+  // patient see and change it.
+  useEffect(() => {
+    const proposed = defaultDoseUnitForForm(selected?.form);
+    if (proposed) setDoseUnit(proposed);
+  }, [selected]);
+
   const nameChosen = Boolean(selected) || (manualMode && manualName.trim().length > 0);
   const instructionReady = doseQuantity && frequency && (frequency !== "PATTERN" || pattern) && food;
 
@@ -75,7 +86,7 @@ export default function AddMedicationPage() {
         criticalEscalation,
         instruction: {
           doseQuantity: Number(doseQuantity),
-          doseUnit: "tablet",
+          doseUnit,
           frequencyCode: frequency,
           ...(frequency === "PATTERN" ? { pattern } : {}),
           foodInstruction: food,
@@ -182,18 +193,40 @@ export default function AddMedicationPage() {
             </Button>
           </Card>
 
-          <SectionTitle>{t("add.dose_label")}</SectionTitle>
+          <SectionTitle>{t("add.dose_unit_label")}</SectionTitle>
           <ChoiceGrid
-            label={t("add.dose_label")}
-            columns={3}
-            choices={[
-              { value: "0.5", label: "½" },
-              { value: "1", label: "1" },
-              { value: "2", label: "2" },
-            ]}
-            value={doseQuantity}
-            onChange={setDoseQuantity}
+            label={t("add.dose_unit_label")}
+            columns={2}
+            choices={DOSE_UNITS.map((u) => ({ value: u, label: t(`medicineType.${u}` as never) }))}
+            value={doseUnit}
+            onChange={setDoseUnit}
           />
+
+          <SectionTitle>{t("add.dose_label")}</SectionTitle>
+          {doseUnit === "tablet" || doseUnit === "capsule" ? (
+            <ChoiceGrid
+              label={t("add.dose_label")}
+              columns={3}
+              choices={[
+                { value: "0.5", label: "½" },
+                { value: "1", label: "1" },
+                { value: "2", label: "2" },
+              ]}
+              value={doseQuantity}
+              onChange={setDoseQuantity}
+            />
+          ) : (
+            <TextInput
+              label={t("add.dose_label")}
+              help={t(`unit.${doseUnit}` as never)}
+              type="number"
+              inputMode="decimal"
+              step="0.5"
+              min="0.1"
+              value={doseQuantity ?? ""}
+              onChange={(e) => setDoseQuantity(e.target.value)}
+            />
+          )}
 
           <SectionTitle>{t("add.frequency_label")}</SectionTitle>
           <ChoiceGrid
