@@ -44,14 +44,28 @@ describe("decideProfileAccess", () => {
 
 describe("decideAdminAccess", () => {
   it("super_admin grants every action, including ones with no other duty", () => {
-    for (const action of ["read_catalog", "propose_catalog_change", "decide_catalog_change", "search_audit", "replay_job", "revoke_share", "view_operations", "view_rules"] as const) {
+    for (const action of [
+      "read_catalog",
+      "propose_catalog_change",
+      "decide_catalog_change",
+      "read_content",
+      "propose_content_change",
+      "decide_content_change",
+      "search_audit",
+      "replay_job",
+      "revoke_share",
+      "view_operations",
+      "view_rules",
+    ] as const) {
       expect(decideAdminAccess(["super_admin"], action)).toBe(true);
     }
   });
 
-  it("read_catalog requires no specific duty — any authenticated admin", () => {
+  it("read_catalog and read_content require no specific duty — any authenticated admin", () => {
     expect(decideAdminAccess([], "read_catalog")).toBe(true);
     expect(decideAdminAccess(["audit_search"], "read_catalog")).toBe(true);
+    expect(decideAdminAccess([], "read_content")).toBe(true);
+    expect(decideAdminAccess(["audit_search"], "read_content")).toBe(true);
   });
 
   it("a duty grants exactly its matching action, not others", () => {
@@ -59,6 +73,14 @@ describe("decideAdminAccess", () => {
     expect(decideAdminAccess(["catalog_write"], "decide_catalog_change")).toBe(false);
     expect(decideAdminAccess(["audit_search"], "search_audit")).toBe(true);
     expect(decideAdminAccess(["audit_search"], "replay_job")).toBe(false);
+  });
+
+  it("content_write/content_approve are distinct from catalog_write/catalog_approve", () => {
+    expect(decideAdminAccess(["catalog_write"], "propose_content_change")).toBe(false);
+    expect(decideAdminAccess(["catalog_approve"], "decide_content_change")).toBe(false);
+    expect(decideAdminAccess(["content_write"], "propose_content_change")).toBe(true);
+    expect(decideAdminAccess(["content_write"], "decide_content_change")).toBe(false);
+    expect(decideAdminAccess(["content_approve"], "decide_content_change")).toBe(true);
   });
 
   it("incident_response grants both job replay and share revoke", () => {

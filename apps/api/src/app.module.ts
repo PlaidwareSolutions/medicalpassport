@@ -22,6 +22,8 @@ import { AdminAuthService } from "./modules/admin-auth/admin-auth.service";
 import { AdminCatalogController } from "./modules/admin-catalog/admin-catalog.controller";
 import { AdminCatalogChangesController } from "./modules/admin-catalog/admin-catalog-changes.controller";
 import { AdminCatalogChangesService } from "./modules/admin-catalog/admin-catalog-changes.service";
+import { AdminContentController } from "./modules/admin-content/admin-content.controller";
+import { AdminContentService } from "./modules/admin-content/admin-content.service";
 import { AdminAuditController } from "./modules/admin-audit/admin-audit.controller";
 import { AdminIncidentsController } from "./modules/admin-incidents/admin-incidents.controller";
 import { AdminIncidentsService } from "./modules/admin-incidents/admin-incidents.service";
@@ -67,6 +69,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminAuthController,
     AdminCatalogController,
     AdminCatalogChangesController,
+    AdminContentController,
     AdminAuditController,
     AdminIncidentsController,
     AdminOperationsController,
@@ -96,6 +99,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminAuthGuard,
     AdminAuthService,
     AdminCatalogChangesService,
+    AdminContentService,
     AdminIncidentsService,
     MedicationsService,
     SchedulingService,

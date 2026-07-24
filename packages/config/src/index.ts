@@ -132,6 +132,14 @@ export const workerEnvShape = {
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_BUCKET_PREFIX: z.string().optional(),
+  /**
+   * Clinical content enrichment (docs/13, docs/34 Gate 6/OD-6) — self-serve
+   * free key for openFDA/DailyMed, raising the daily rate limit from 1,000
+   * to 120,000 requests. Optional: enrichment still works unauthenticated
+   * at the low steady-state volume this feature actually needs (one lookup
+   * per distinct ingredient, ever), just with a lower ceiling.
+   */
+  OPENFDA_API_KEY: z.string().optional(),
 } as const;
 
 export const cronEnvShape = {

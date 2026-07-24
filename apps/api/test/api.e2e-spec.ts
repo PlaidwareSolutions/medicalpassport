@@ -36,6 +36,19 @@ describe("API e2e", () => {
         caregiver_permissions, caregiver_relationships, sessions,
         user_devices, otp_attempts, patient_profiles, users CASCADE
     `);
+
+    // This suite's content-enrichment tests use the shared, seeded
+    // "Metformin" ingredient (not a per-run-synthetic row, so it isn't
+    // covered by the TRUNCATE above) — reset any clinical content/jobs a
+    // previous run of this same file left behind, so the suite stays
+    // rerunnable rather than only passing once.
+    const metformin = await prisma.medicationIngredient.findFirst({ where: { name: "Metformin" } });
+    if (metformin) {
+      await prisma.clinicalContent.updateMany({ where: { ingredientId: metformin.id }, data: { currentVersionId: null } });
+      await prisma.clinicalContentVersion.deleteMany({ where: { content: { ingredientId: metformin.id } } });
+      await prisma.clinicalContent.deleteMany({ where: { ingredientId: metformin.id } });
+      await prisma.backgroundJob.deleteMany({ where: { jobKey: `content-enrichment:education:${metformin.id}` } });
+    }
   });
 
   afterAll(async () => {
@@ -168,6 +181,59 @@ describe("API e2e", () => {
       .set("idempotency-key", idempotencyKey)
       .send({ ...body, patientReason: "Different" });
     expect(mismatch.status).toBe(409);
+  });
+
+  it("enqueues exactly one content-enrichment job per ingredient, regardless of how many medications/patients reference it", async () => {
+    const ingredient = await prisma.medicationIngredient.findFirstOrThrow({ where: { name: "Metformin" } });
+    const jobKey = `content-enrichment:education:${ingredient.id}`;
+
+    const firstJob = await prisma.backgroundJob.findUnique({ where: { jobKey } });
+    expect(firstJob).not.toBeNull();
+    expect(firstJob?.queue).toBe("content_enrichment");
+    expect((firstJob?.payload as { ingredientId: string }).ingredientId).toBe(ingredient.id);
+
+    // A second, unrelated medication referencing a different Metformin
+    // product must not enqueue a duplicate job for the same ingredient —
+    // enrichment is cached per-ingredient, not per-medication/patient.
+    const search = await auth(tokenA)(request(app.getHttpServer()).get("/v1/catalog/products?q=Glyciphage")).expect(200);
+    const productId = search.body.items[0].id;
+    await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({ productId, source: "search", instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" } })
+      .expect(201);
+
+    const jobCount = await prisma.backgroundJob.count({ where: { jobKey } });
+    expect(jobCount).toBe(1);
+  });
+
+  it("shows commonUses only once a reviewer has approved content for a single-ingredient medicine, never for an unreviewed one", async () => {
+    // Before any content is approved, the Metformin-based medicine (created
+    // above) must show no commonUses — never fabricate.
+    const before = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(before.body.commonUses).toBeNull();
+
+    const ingredient = await prisma.medicationIngredient.findFirstOrThrow({ where: { name: "Metformin" } });
+    const content = await prisma.clinicalContent.upsert({
+      where: { kind_ingredientId: { kind: "education", ingredientId: ingredient.id } },
+      create: { kind: "education", ingredientId: ingredient.id },
+      update: {},
+    });
+    const version = await prisma.clinicalContentVersion.create({
+      data: {
+        contentId: content.id,
+        body: "Metformin is commonly used to help control blood sugar in type 2 diabetes.",
+        sourceKind: "daily_med",
+        sourceCitation: "openFDA/DailyMed structured product label, set id e2e-test-set, fetched 2026-01-01",
+        reviewStatus: "approved",
+        decidedAt: new Date("2026-01-02"),
+      },
+    });
+    await prisma.clinicalContent.update({ where: { id: content.id }, data: { currentVersionId: version.id } });
+
+    const after = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(after.body.commonUses).not.toBeNull();
+    expect(after.body.commonUses.text).toContain("blood sugar");
+    expect(after.body.commonUses.sourceCitation).toContain("e2e-test-set");
+    expect(after.body.commonUses.lastReviewedAt).toContain("2026-01-02");
   });
 
   it("creates and edits a non-tablet medicine (e.g. a syrup dosed in ml)", async () => {

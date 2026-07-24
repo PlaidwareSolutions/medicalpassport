@@ -107,6 +107,8 @@ export const ur: Record<keyof typeof en, string> = {
   "meds.instruction": "کیسے لیں",
   "meds.no_content":
     "اس دوا کے لیے قابلِ اعتماد حفاظتی معلومات دستیاب نہیں۔ براہ کرم ڈاکٹر یا فارماسسٹ سے تصدیق کریں۔",
+  "meds.common_uses_source": "ماخذ: {source}",
+  "meds.common_uses_reviewed": "آخری بار جائزہ لیا گیا {date}",
   "meds.history": "تاریخ",
   "meds.pause_confirm": "دوا روکنے یا بند کرنے سے پہلے ڈاکٹر یا فارماسسٹ سے بات کریں۔",
   "meds.saved_offline": "اس ڈیوائس پر محفوظ ہو گیا — آن لائن آنے پر یہ سنک ہو جائے گا۔",

@@ -164,10 +164,24 @@ export interface MedicationInstructionDto {
   durationDays: number | null;
 }
 
+/**
+ * Clinical-reviewer-approved "commonly used for" text (docs/13, docs/34
+ * Gate 6/OD-6) — only ever present once a human reviewer has approved it;
+ * always carries source/review provenance alongside the text (docs/07
+ * screen 19), never a bare claim.
+ */
+export interface CommonUsesDto {
+  text: string;
+  sourceCitation: string;
+  sourceUrl: string | null;
+  lastReviewedAt: string | null;
+}
+
 export interface PatientMedicationDto {
   id: string;
   enteredName: string;
   product: CatalogProduct | null;
+  commonUses: CommonUsesDto | null;
   patientReason: string | null;
   prescriberName: string | null;
   status: string;

@@ -8,6 +8,7 @@ import { useAdminSession } from "../lib/session";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/catalog", label: "Catalog" },
+  { href: "/content", label: "Content" },
   { href: "/audit", label: "Audit" },
   { href: "/incidents", label: "Incidents" },
   { href: "/operations", label: "Operations" },
@@ -59,9 +60,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
               {item.label}
             </Link>
           ))}
-          <span aria-disabled style={{ color: "var(--color-text-muted)", cursor: "not-allowed" }} title="Not yet built — no content data model exists">
-            Translations (coming soon)
-          </span>
         </nav>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)" }}>
           <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{admin?.email}</span>

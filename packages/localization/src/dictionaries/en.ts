@@ -108,6 +108,8 @@ export const en = {
   "meds.instruction": "How to take it",
   "meds.no_content":
     "Reliable medication-safety information is not available for this medicine. Please confirm with a doctor or pharmacist.",
+  "meds.common_uses_source": "Source: {source}",
+  "meds.common_uses_reviewed": "Last reviewed {date}",
   "meds.history": "History",
   "meds.pause_confirm": "Talk to your doctor or pharmacist before pausing or stopping a medicine.",
   "meds.saved_offline": "Saved on this device — it'll sync when you're back online.",

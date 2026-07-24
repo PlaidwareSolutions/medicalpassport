@@ -107,6 +107,8 @@ export const te: Record<keyof typeof en, string> = {
   "meds.instruction": "ఎలా తీసుకోవాలి",
   "meds.no_content":
     "ఈ మందుకు నమ్మదగిన భద్రతా సమాచారం అందుబాటులో లేదు. దయచేసి డాక్టర్ లేదా ఫార్మసిస్ట్‌తో నిర్ధారించుకోండి.",
+  "meds.common_uses_source": "మూలం: {source}",
+  "meds.common_uses_reviewed": "చివరిసారి సమీక్షించినది {date}",
   "meds.history": "చరిత్ర",
   "meds.pause_confirm": "మందు ఆపే ముందు లేదా నిలిపే ముందు డాక్టర్ లేదా ఫార్మసిస్ట్‌తో మాట్లాడండి.",
   "meds.saved_offline": "ఈ పరికరంలో సేవ్ చేయబడింది — మీరు తిరిగి ఆన్‌లైన్‌లోకి వచ్చినప్పుడు సింక్ అవుతుంది.",

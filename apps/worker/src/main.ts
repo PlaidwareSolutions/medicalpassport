@@ -19,6 +19,7 @@ import { processOcrExtraction, type OcrExtractionPayload } from "./processors/oc
 import { terminateOcrWorker } from "./processors/ocr";
 import { closeBrowser, renderPdf } from "./processors/pdf-render";
 import type { VisitSummaryDto } from "./processors/visit-summary-html";
+import { processContentEnrichment, type ContentEnrichmentPayload } from "./processors/content-enrichment";
 
 const logger = createLogger("worker");
 const env = loadEnv(workerEnvShape);
@@ -47,7 +48,7 @@ const objectStorage = createObjectStorage({
 });
 
 const POLL_INTERVAL_MS = 500;
-const QUEUES = ["ocr_extraction", "pdf_render"] as const;
+const QUEUES = ["ocr_extraction", "pdf_render", "content_enrichment"] as const;
 
 let shuttingDown = false;
 
@@ -61,9 +62,12 @@ async function pollQueue(queue: (typeof QUEUES)[number]): Promise<boolean> {
     if (queue === "ocr_extraction") {
       await processOcrExtraction(prisma, objectStorage, job.payload as OcrExtractionPayload);
       result = { ok: true };
-    } else {
+    } else if (queue === "pdf_render") {
       const pdf = await renderPdf((job.payload as { summary: VisitSummaryDto }).summary);
       result = { pdfBase64: pdf.toString("base64") };
+    } else {
+      await processContentEnrichment(prisma, job.payload as ContentEnrichmentPayload, env.OPENFDA_API_KEY);
+      result = { ok: true };
     }
     await completeJob(prisma, job.id, result);
     logger.info({ jobId: job.id, queue }, "job succeeded");

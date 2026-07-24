@@ -107,6 +107,8 @@ export const hi: Record<keyof typeof en, string> = {
   "meds.instruction": "कैसे लें",
   "meds.no_content":
     "इस दवा के लिए विश्वसनीय सुरक्षा जानकारी उपलब्ध नहीं है। कृपया डॉक्टर या फ़ार्मासिस्ट से पुष्टि करें।",
+  "meds.common_uses_source": "स्रोत: {source}",
+  "meds.common_uses_reviewed": "अंतिम बार समीक्षा {date}",
   "meds.history": "इतिहास",
   "meds.pause_confirm": "दवा रोकने या बंद करने से पहले डॉक्टर या फ़ार्मासिस्ट से बात करें।",
   "meds.saved_offline": "यह डिवाइस पर सहेजा गया — ऑनलाइन आने पर यह सिंक हो जाएगा।",

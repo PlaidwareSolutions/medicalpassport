@@ -45,7 +45,8 @@ export class MedicationsService {
       include: MEDICATION_INCLUDE,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     });
-    return medications.map((m) => this.toDto(m));
+    const commonUsesByIngredientId = await this.loadCommonUses(medications);
+    return medications.map((m) => this.toDto(m, commonUsesByIngredientId));
   }
 
   async byId(profileId: string, id: string) {
@@ -53,20 +54,61 @@ export class MedicationsService {
       where: { id, patientProfileId: profileId, deletedAt: null },
       include: MEDICATION_INCLUDE,
     });
-    return medication ? this.toDto(medication) : null;
+    if (!medication) return null;
+    const commonUsesByIngredientId = await this.loadCommonUses([medication]);
+    return this.toDto(medication, commonUsesByIngredientId);
+  }
+
+  /**
+   * Batches a single lookup of approved "commonly used for" content across
+   * every distinct ingredient in the given medications — one extra query
+   * per list()/byId() call, never one per medication (no N+1). Only
+   * single-ingredient products are looked up: joining two independently
+   * reviewed single-ingredient texts for a combination product could imply
+   * something never actually reviewed for that combination (docs/34).
+   */
+  private async loadCommonUses(
+    medications: Array<{ product: { isCombination: boolean; ingredients: Array<{ ingredient: { id: string } }> } | null }>,
+  ): Promise<Map<string, { text: string; sourceCitation: string; sourceUrl: string | null; lastReviewedAt: string | null }>> {
+    const ingredientIds = [
+      ...new Set(
+        medications
+          .filter((m) => m.product && !m.product.isCombination)
+          .flatMap((m) => m.product!.ingredients.map((i) => i.ingredient.id)),
+      ),
+    ];
+    if (ingredientIds.length === 0) return new Map();
+
+    const rows = await this.prisma.clinicalContent.findMany({
+      where: { kind: "education", ingredientId: { in: ingredientIds }, currentVersionId: { not: null } },
+      include: { currentVersion: true },
+    });
+    const map = new Map<string, { text: string; sourceCitation: string; sourceUrl: string | null; lastReviewedAt: string | null }>();
+    for (const row of rows) {
+      if (!row.currentVersion) continue;
+      map.set(row.ingredientId, {
+        text: row.currentVersion.body,
+        sourceCitation: row.currentVersion.sourceCitation,
+        sourceUrl: row.currentVersion.sourceUrl,
+        lastReviewedAt: row.currentVersion.decidedAt?.toISOString() ?? null,
+      });
+    }
+    return map;
   }
 
   async create(profileId: string, input: CreateMedicationInput, actor: Actor) {
     // Normalization: a catalog selection is a confirmed match; free text stays
     // unmatched until the (Stage 6) normalization pipeline proposes a match.
     let enteredName = input.enteredName ?? "";
+    let ingredientIds: string[] = [];
     if (input.productId) {
       const product = await this.prisma.medicationProduct.findFirst({
         where: { id: input.productId, status: "active" },
-        include: { brand: true },
+        include: { brand: true, ingredients: true },
       });
       if (!product) throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown medicine selected", 400);
       enteredName = input.enteredName ?? product.brand?.name ?? product.genericName;
+      ingredientIds = [...new Set(product.ingredients.map((i) => i.ingredientId))];
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -139,7 +181,29 @@ export class MedicationsService {
     await this.scheduling.regenerateForMedication(created.id);
     // Safety review runs on every medication add (docs/09).
     await this.safety.evaluate(profileId, "medication_added");
+    // Clinical content enrichment (docs/13, docs/34 Gate 6/OD-6) — one job
+    // per distinct ingredient, cached forever via jobKey regardless of how
+    // many patients later add a medicine containing it. Only ever produces
+    // a draft; nothing reaches a patient without a human reviewer's
+    // approval. Trigger lives on create() only — a medication's catalog
+    // link never changes on update().
+    await this.enqueueContentEnrichment(ingredientIds);
     return (await this.byId(profileId, created.id))!;
+  }
+
+  private async enqueueContentEnrichment(ingredientIds: string[]): Promise<void> {
+    for (const ingredientId of ingredientIds) {
+      const jobKey = `content-enrichment:education:${ingredientId}`;
+      const existingJob = await this.prisma.backgroundJob.findUnique({ where: { jobKey } });
+      if (existingJob) continue;
+      const existingContent = await this.prisma.clinicalContent.findUnique({
+        where: { kind_ingredientId: { kind: "education", ingredientId } },
+      });
+      if (existingContent) continue;
+      await this.prisma.backgroundJob.create({
+        data: { queue: "content_enrichment", jobKey, payload: { ingredientId, kind: "education" } },
+      });
+    }
   }
 
   async update(profileId: string, id: string, input: UpdateMedicationInput, actor: Actor) {
@@ -268,41 +332,46 @@ export class MedicationsService {
     return (await this.byId(profileId, id))!;
   }
 
-  private toDto(m: {
-    id: string;
-    enteredName: string;
-    patientReason: string | null;
-    status: string;
-    isPrn: boolean;
-    startDate: Date | null;
-    endDate: Date | null;
-    quantityOnHand: unknown;
-    criticalEscalation: boolean;
-    rowVersion: number;
-    normalizationStatus: string;
-    createdAt: Date;
-    practitioner: { displayName: string } | null;
-    product:
-      | ({
-          id: string;
-          genericName: string;
-          strengthLabel: string | null;
-          isCombination: boolean;
-          brand: { name: string } | null;
-          dosageForm: { name: string } | null;
-          ingredients: Array<{ ingredient: { name: string }; strengthValue: unknown; strengthUnit: string | null }>;
-        })
-      | null;
-    instructions: Array<{
-      doseQuantity: unknown;
-      doseUnit: string;
-      frequencyCode: string;
-      pattern: string | null;
-      foodInstruction: string;
-      durationDays: number | null;
-    }>;
-  }) {
+  private toDto(
+    m: {
+      id: string;
+      enteredName: string;
+      patientReason: string | null;
+      status: string;
+      isPrn: boolean;
+      startDate: Date | null;
+      endDate: Date | null;
+      quantityOnHand: unknown;
+      criticalEscalation: boolean;
+      rowVersion: number;
+      normalizationStatus: string;
+      createdAt: Date;
+      practitioner: { displayName: string } | null;
+      product:
+        | ({
+            id: string;
+            genericName: string;
+            strengthLabel: string | null;
+            isCombination: boolean;
+            brand: { name: string } | null;
+            dosageForm: { name: string } | null;
+            ingredients: Array<{ ingredient: { id: string; name: string }; strengthValue: unknown; strengthUnit: string | null }>;
+          })
+        | null;
+      instructions: Array<{
+        doseQuantity: unknown;
+        doseUnit: string;
+        frequencyCode: string;
+        pattern: string | null;
+        foodInstruction: string;
+        durationDays: number | null;
+      }>;
+    },
+    commonUsesByIngredientId: Map<string, { text: string; sourceCitation: string; sourceUrl: string | null; lastReviewedAt: string | null }> = new Map(),
+  ) {
     const instruction = m.instructions[0];
+    const singleIngredientId = m.product && !m.product.isCombination ? m.product.ingredients[0]?.ingredient.id : undefined;
+    const commonUses = singleIngredientId ? (commonUsesByIngredientId.get(singleIngredientId) ?? null) : null;
     return {
       id: m.id,
       enteredName: m.enteredName,
@@ -321,6 +390,7 @@ export class MedicationsService {
             })),
           }
         : null,
+      commonUses,
       patientReason: m.patientReason,
       prescriberName: m.practitioner?.displayName ?? null,
       status: m.status,

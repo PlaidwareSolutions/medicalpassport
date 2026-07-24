@@ -128,8 +128,20 @@ export default function MedicineDetailPage() {
 
       <SectionTitle>{t("meds.common_uses")}</SectionTitle>
       <Card tone="info">
-        {/* Approved clinical content ships with Stage 6; never fabricate. */}
-        <span>{t("meds.no_content")}</span>
+        {medication.commonUses ? (
+          <>
+            <span>{medication.commonUses.text}</span>
+            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+              {t("meds.common_uses_source", { source: medication.commonUses.sourceCitation })}
+              {medication.commonUses.lastReviewedAt
+                ? ` — ${t("meds.common_uses_reviewed", { date: new Date(medication.commonUses.lastReviewedAt).toLocaleDateString() })}`
+                : ""}
+            </div>
+          </>
+        ) : (
+          // No clinical reviewer has approved content for this medicine yet — never fabricate.
+          <span>{t("meds.no_content")}</span>
+        )}
       </Card>
 
       <SectionTitle>{t("meds.history")}</SectionTitle>

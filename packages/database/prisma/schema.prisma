@@ -143,7 +143,7 @@ model PatientProfile {
   /// meaning the profile subject is the caregiver's child) — captured at
   /// dependent creation, used to set the reciprocal CaregiverRelationship's
   /// own `relationship` value (inverted) if this profile is later claimed.
-  dependentRelationship String? @map("dependent_relationship")
+  dependentRelationship   String?   @map("dependent_relationship")
   /// Pending claim invitation (docs/07 screen 5 secondary action) — set when
   /// the current owner invites the actual profile subject to take over as
   /// its real owner. Null once claimed, cancelled, or never invited.
@@ -365,6 +365,7 @@ model MedicationIngredient {
 
   productIngredients MedicationProductIngredient[]
   allergies          PatientAllergy[]
+  clinicalContent    ClinicalContent[]
 
   @@map("medication_ingredients")
 }
@@ -524,22 +525,22 @@ model PatientMedication {
   practitionerId String?       @map("practitioner_id") @db.Uuid
   practitioner   Practitioner? @relation(fields: [practitionerId], references: [id])
 
-  source          MedicationSource
-  status          MedicationStatus @default(current)
-  statusChangedAt DateTime         @default(now()) @map("status_changed_at") @db.Timestamptz(6)
-  statusReason    String?          @map("status_reason")
-  startDate       DateTime?        @map("start_date") @db.Date
-  endDate         DateTime?        @map("end_date") @db.Date
-  isPrn           Boolean          @default(false) @map("is_prn")
+  source             MedicationSource
+  status             MedicationStatus @default(current)
+  statusChangedAt    DateTime         @default(now()) @map("status_changed_at") @db.Timestamptz(6)
+  statusReason       String?          @map("status_reason")
+  startDate          DateTime?        @map("start_date") @db.Date
+  endDate            DateTime?        @map("end_date") @db.Date
+  isPrn              Boolean          @default(false) @map("is_prn")
   /// Patient-entered snapshot, auto-decremented on each "taken" dose event
   /// (docs/07 screen 27) — null means the patient hasn't opted into refill
   /// tracking for this medicine. Never inferred; only ever set by the
   /// patient (add/edit) or the mark-refilled action.
-  quantityOnHand  Decimal?         @map("quantity_on_hand") @db.Decimal(8, 2)
+  quantityOnHand     Decimal?         @map("quantity_on_hand") @db.Decimal(8, 2)
   /// Patient opt-in only (docs/16 "opt-in policy") — never an inferred
   /// clinical judgement of severity. When true, a missed dose of this
   /// medicine escalates to caregivers immediately, bypassing quiet hours.
-  criticalEscalation Boolean       @default(false) @map("critical_escalation")
+  criticalEscalation Boolean          @default(false) @map("critical_escalation")
 
   rowVersion Int       @default(0) @map("row_version")
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
@@ -702,7 +703,7 @@ model ScheduledDose {
   /// reconciliation, snooze expiry) that carry no DoseEvent of their own —
   /// so incremental sync (docs/15) can detect "this dose changed" even when
   /// no explicit patient/caregiver action caused it.
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   doseEvents    DoseEvent[]
   notifications Notification[]
@@ -1268,6 +1269,7 @@ model ExtractionCandidate {
 enum BackgroundJobQueue {
   ocr_extraction
   pdf_render
+  content_enrichment
 }
 
 enum BackgroundJobStatus {
@@ -1409,7 +1411,7 @@ model RestoreTest {
 /// Append-only, hash-chained audit log (docs/21). Rows are never updated.
 model AuditEvent {
   id               String         @id @default(uuid()) @db.Uuid
-  seq              BigInt         @default(autoincrement()) @unique
+  seq              BigInt         @unique @default(autoincrement())
   actorUserId      String?        @map("actor_user_id") @db.Uuid
   actorType        AuditActorType @map("actor_type")
   action           String
@@ -1439,6 +1441,8 @@ enum AdminUserStatus {
 enum AdminDuty {
   catalog_write
   catalog_approve
+  content_write
+  content_approve
   audit_search
   incident_response
   operations_view
@@ -1468,9 +1472,11 @@ model AdminUser {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  sessions        AdminSession[]
-  proposedChanges CatalogChangeRequest[] @relation("ProposedBy")
-  decidedChanges  CatalogChangeRequest[] @relation("DecidedBy")
+  sessions                AdminSession[]
+  proposedChanges         CatalogChangeRequest[]   @relation("ProposedBy")
+  decidedChanges          CatalogChangeRequest[]   @relation("DecidedBy")
+  proposedContentVersions ClinicalContentVersion[] @relation("ContentProposedBy")
+  decidedContentVersions  ClinicalContentVersion[] @relation("ContentDecidedBy")
 
   @@map("admin_users")
 }
@@ -1523,13 +1529,13 @@ enum CatalogChangeStatus {
 /// admin approvals endpoint, docs/23 E10.1). Polymorphic over entityType —
 /// no FK on entityId, same convention as AuditEvent.entityType/entityId.
 model CatalogChangeRequest {
-  id           String                  @id @default(uuid()) @db.Uuid
-  entityType   CatalogEntityType       @map("entity_type")
+  id           String                 @id @default(uuid()) @db.Uuid
+  entityType   CatalogEntityType      @map("entity_type")
   /// Null for a "create" operation.
-  entityId     String?                 @map("entity_id") @db.Uuid
+  entityId     String?                @map("entity_id") @db.Uuid
   operation    CatalogChangeOperation
-  proposedData Json                    @map("proposed_data")
-  status       CatalogChangeStatus     @default(pending)
+  proposedData Json                   @map("proposed_data")
+  status       CatalogChangeStatus    @default(pending)
 
   requestedByAdminUserId String     @map("requested_by_admin_user_id") @db.Uuid
   requestedByAdminUser   AdminUser  @relation("ProposedBy", fields: [requestedByAdminUserId], references: [id])
@@ -1548,4 +1554,94 @@ model CatalogChangeRequest {
 
   @@index([status, entityType])
   @@map("catalog_change_requests")
+}
+
+// ---- Clinical content enrichment (docs/13, docs/34 Gate 6/OD-6) ----
+//
+// Only the `education` ("commonly used for") kind is built so far; docs/13
+// also sketches missed_dose/warning_symptoms/food_alcohol/storage kinds for
+// later. English only for now — translations are out of scope until at
+// least one piece of English content has actually been through review.
+//
+// `content_approve` is a distinct duty from `catalog_approve`: docs/34 ties
+// clinical content sign-off specifically to a qualified clinical lead
+// (OD-6), not general catalog stewardship. OD-6 itself is enforced
+// procedurally, not in code — nobody should hold `content_approve` until a
+// clinical lead is actually appointed and granted it.
+
+enum ClinicalContentKind {
+  education
+}
+
+enum ContentReviewStatus {
+  draft
+  approved
+  rejected
+  retired
+}
+
+enum ContentSourceKind {
+  daily_med
+  manual
+}
+
+/// Current-pointer row per (kind, ingredient) — `currentVersionId` is the
+/// one approved version currently shown to patients, if any. A brand-new
+/// draft never becomes current just by being newest; only an explicit
+/// approval decision moves the pointer.
+model ClinicalContent {
+  id           String               @id @default(uuid()) @db.Uuid
+  kind         ClinicalContentKind
+  ingredientId String               @map("ingredient_id") @db.Uuid
+  ingredient   MedicationIngredient @relation(fields: [ingredientId], references: [id])
+
+  currentVersionId String?                 @unique @map("current_version_id") @db.Uuid
+  currentVersion   ClinicalContentVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  versions ClinicalContentVersion[] @relation("ContentVersions")
+
+  @@unique([kind, ingredientId])
+  @@map("clinical_content")
+}
+
+/// Immutable once created. `proposedByAdminUserId` NULL means the draft was
+/// system-authored (the worker fetched it from an external source) — there
+/// is no human "maker" to conflict with, so any reviewer with
+/// `content_approve` may decide it. Non-null means a human authored it
+/// manually (`sourceKind: manual`), and maker != checker is enforced the
+/// same way as `CatalogChangeRequest`. A rejected version is never retried
+/// automatically — a human must manually propose a fresh one.
+model ClinicalContentVersion {
+  id        String          @id @default(uuid()) @db.Uuid
+  contentId String          @map("content_id") @db.Uuid
+  content   ClinicalContent @relation("ContentVersions", fields: [contentId], references: [id])
+
+  body           String
+  sourceKind     ContentSourceKind @map("source_kind")
+  /// Always required — e.g. "openFDA/DailyMed SPL set id abc123, fetched
+  /// 2026-07-25" — full provenance, never a bare claim.
+  sourceCitation String            @map("source_citation")
+  sourceUrl      String?           @map("source_url")
+
+  reviewStatus ContentReviewStatus @default(draft) @map("review_status")
+
+  proposedByAdminUserId String?    @map("proposed_by_admin_user_id") @db.Uuid
+  proposedByAdminUser   AdminUser? @relation("ContentProposedBy", fields: [proposedByAdminUserId], references: [id])
+  decidedByAdminUserId  String?    @map("decided_by_admin_user_id") @db.Uuid
+  decidedByAdminUser    AdminUser? @relation("ContentDecidedBy", fields: [decidedByAdminUserId], references: [id])
+  decidedAt             DateTime?  @map("decided_at") @db.Timestamptz(6)
+  rejectionReason       String?    @map("rejection_reason")
+  /// Same meaning as `CatalogChangeRequest.isSoloApproval` — only relevant
+  /// when `proposedByAdminUserId` is set (a manual proposal).
+  isSoloApproval        Boolean    @default(false) @map("is_solo_approval")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  currentFor ClinicalContent? @relation("CurrentVersion")
+
+  @@index([contentId, reviewStatus])
+  @@map("clinical_content_versions")
 }

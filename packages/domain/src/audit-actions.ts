@@ -66,9 +66,13 @@ export const AUDIT_ACTIONS = [
   "admin.catalog_change_proposed",
   "admin.catalog_change_approved",
   "admin.catalog_change_rejected",
+  "admin.content_change_proposed",
+  "admin.content_change_approved",
+  "admin.content_change_rejected",
   "admin.job_replayed",
   "admin.share_revoked",
   "admin.findings_viewed",
+  "content.enrichment_drafted",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

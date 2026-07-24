@@ -78,6 +78,13 @@ export function decideProfileAccess(ctx: ProfileAccessContext, action: ProfileAc
 export type AdminDuty =
   | "catalog_write"
   | "catalog_approve"
+  // Distinct from catalog_write/catalog_approve: docs/34 ties clinical
+  // content sign-off specifically to a qualified clinical lead (OD-6), a
+  // narrower authority than general catalog stewardship. OD-6 itself is
+  // enforced procedurally, not here — nobody should hold content_approve
+  // until a clinical lead is actually appointed and granted it.
+  | "content_write"
+  | "content_approve"
   | "audit_search"
   | "incident_response"
   | "operations_view"
@@ -88,6 +95,9 @@ export type AdminAction =
   | "read_catalog"
   | "propose_catalog_change"
   | "decide_catalog_change"
+  | "read_content"
+  | "propose_content_change"
+  | "decide_content_change"
   | "search_audit"
   | "replay_job"
   | "revoke_share"
@@ -98,6 +108,9 @@ const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   read_catalog: [], // any authenticated admin — non-PHI reference data
   propose_catalog_change: ["catalog_write"],
   decide_catalog_change: ["catalog_approve"],
+  read_content: [], // any authenticated admin — non-PHI reference data
+  propose_content_change: ["content_write"],
+  decide_content_change: ["content_approve"],
   search_audit: ["audit_search"],
   replay_job: ["incident_response"],
   revoke_share: ["incident_response"],
