@@ -31,6 +31,11 @@ describe("proposeSlots", () => {
     expect(proposeSlots("HS")).toEqual([{ slot: "night", quantity: 1 }]);
   });
 
+  it("maps OD_AFTERNOON to a single midday dose, distinct from OD's morning slot", () => {
+    expect(proposeSlots("OD_AFTERNOON")).toEqual([{ slot: "midday", quantity: 1 }]);
+    expect(proposeSlots("OD")).toEqual([{ slot: "morning", quantity: 1 }]);
+  });
+
   it("returns null for ambiguous codes that need explicit patient setup", () => {
     expect(proposeSlots("SOS")).toBeNull();
     expect(proposeSlots("QID")).toBeNull();

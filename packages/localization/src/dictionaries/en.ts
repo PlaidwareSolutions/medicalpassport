@@ -138,11 +138,12 @@ export const en = {
   "add.saved": "Medicine saved",
 
   "frequency.od": "Once a day (morning)",
+  "frequency.od_afternoon": "Once a day (afternoon)",
   "frequency.bd": "Twice a day (morning and night)",
   "frequency.tds": "Three times a day",
   "frequency.qid": "Four times a day",
   "frequency.sos": "Only when needed",
-  "frequency.hs": "At bedtime",
+  "frequency.hs": "Once a day (night)",
   "frequency.pattern": "Custom pattern (e.g. 1-0-1)",
   "frequency.alternate_day": "Every other day",
   "frequency.weekly": "Weekly",

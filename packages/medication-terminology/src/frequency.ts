@@ -17,6 +17,8 @@ export function proposeSlots(code: FrequencyCode, pattern?: string): SlotDose[] 
   switch (code) {
     case "OD":
       return [{ slot: "morning", quantity: 1 }];
+    case "OD_AFTERNOON":
+      return [{ slot: "midday", quantity: 1 }];
     case "BD":
       return [
         { slot: "morning", quantity: 1 },

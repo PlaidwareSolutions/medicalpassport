@@ -137,11 +137,12 @@ export const ur: Record<keyof typeof en, string> = {
   "add.saved": "دوا محفوظ ہو گئی",
 
   "frequency.od": "دن میں ایک بار (صبح)",
+  "frequency.od_afternoon": "دن میں ایک بار (دوپہر)",
   "frequency.bd": "دن میں دو بار (صبح اور رات)",
   "frequency.tds": "دن میں تین بار",
   "frequency.qid": "دن میں چار بار",
   "frequency.sos": "صرف ضرورت پر",
-  "frequency.hs": "سوتے وقت",
+  "frequency.hs": "دن میں ایک بار (رات)",
   "frequency.pattern": "اپنا پیٹرن (مثلاً 1-0-1)",
   "frequency.alternate_day": "ایک دن چھوڑ کر",
   "frequency.weekly": "ہفتہ وار",

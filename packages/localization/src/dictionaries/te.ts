@@ -137,11 +137,12 @@ export const te: Record<keyof typeof en, string> = {
   "add.saved": "మందు సేవ్ అయింది",
 
   "frequency.od": "రోజుకు ఒకసారి (ఉదయం)",
+  "frequency.od_afternoon": "రోజుకు ఒకసారి (మధ్యాహ్నం)",
   "frequency.bd": "రోజుకు రెండుసార్లు (ఉదయం, రాత్రి)",
   "frequency.tds": "రోజుకు మూడుసార్లు",
   "frequency.qid": "రోజుకు నాలుగుసార్లు",
   "frequency.sos": "అవసరమైనప్పుడు మాత్రమే",
-  "frequency.hs": "పడుకునే ముందు",
+  "frequency.hs": "రోజుకు ఒకసారి (రాత్రి)",
   "frequency.pattern": "సొంత నమూనా (ఉదా. 1-0-1)",
   "frequency.alternate_day": "రోజు విడిచి రోజు",
   "frequency.weekly": "వారానికి ఒకసారి",

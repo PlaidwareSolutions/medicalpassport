@@ -558,6 +558,10 @@ model PatientMedication {
 
 enum FrequencyCode {
   OD
+  /// Once daily, afternoon slot — a sibling of OD (morning) and HS (night),
+  /// not a real prescription abbreviation (docs/16: fixed default times,
+  /// no per-profile time-of-day picker yet).
+  OD_AFTERNOON
   BD
   TDS
   QID

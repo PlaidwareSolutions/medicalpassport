@@ -23,6 +23,7 @@ export const MEDICATION_STATUS_TRANSITIONS: Record<MedicationStatus, MedicationS
 
 export const FREQUENCY_CODES = [
   "OD",
+  "OD_AFTERNOON",
   "BD",
   "TDS",
   "QID",
@@ -45,6 +46,7 @@ export type FrequencyCode = (typeof FREQUENCY_CODES)[number];
  */
 export const AUTO_SCHEDULABLE_FREQUENCY_CODES: readonly FrequencyCode[] = [
   "OD",
+  "OD_AFTERNOON",
   "BD",
   "TDS",
   "HS",

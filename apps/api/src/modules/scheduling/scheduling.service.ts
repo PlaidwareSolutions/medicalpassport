@@ -23,6 +23,7 @@ const ROLLING_WINDOW_DAYS = 14;
 /** Which ScheduleRecurrence a given frequency code derives (docs/09 §6). */
 const FREQUENCY_RECURRENCE: Partial<Record<FrequencyCode, ScheduleRecurrence>> = {
   OD: "daily",
+  OD_AFTERNOON: "daily",
   BD: "daily",
   TDS: "daily",
   HS: "daily",

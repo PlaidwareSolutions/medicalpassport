@@ -7,7 +7,7 @@ import { AppShell } from "../../../../components/AppShell";
 import { updateMedication, useMedication } from "../../../../lib/medications";
 import { useI18n } from "../../../../lib/i18n";
 
-type Frequency = "OD" | "BD" | "TDS" | "SOS" | "HS" | "PATTERN" | "WEEKLY" | "FORTNIGHTLY" | "MONTHLY";
+type Frequency = "OD" | "OD_AFTERNOON" | "BD" | "TDS" | "SOS" | "HS" | "PATTERN" | "WEEKLY" | "FORTNIGHTLY" | "MONTHLY";
 type Food = "before" | "with" | "after" | "any";
 
 /**
@@ -140,6 +140,7 @@ export default function EditMedicationPage() {
         label={t("add.frequency_label")}
         choices={[
           { value: "OD", label: t("frequency.od") },
+          { value: "OD_AFTERNOON", label: t("frequency.od_afternoon") },
           { value: "BD", label: t("frequency.bd") },
           { value: "TDS", label: t("frequency.tds") },
           { value: "HS", label: t("frequency.hs") },

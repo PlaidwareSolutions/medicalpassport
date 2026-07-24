@@ -343,4 +343,28 @@ describe("Scheduling e2e", () => {
     expect(afterResume.body.items).toHaveLength(2);
     expect(afterResume.body.items.every((i: { status: string }) => i.status === "upcoming")).toBe(true);
   });
+
+  // Last in the file deliberately: every earlier test's fixed timeline-item-
+  // count assertions assume only the BD medicine's doses exist on a given
+  // date, so a new always-scheduled medicine must never be created before them.
+  it("auto-schedules an OD_AFTERNOON medicine to the midday slot, distinct from OD's morning slot", async () => {
+    const res = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Test OD Afternoon Medicine",
+        source: "manual",
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD_AFTERNOON" },
+      })
+      .expect(201);
+
+    const timeline = await auth(token, profileId)(
+      request(app.getHttpServer()).get(`/v1/profiles/current/timeline?date=${istDateString()}`),
+    ).expect(200);
+    const item = timeline.body.items.find((i: { medication: { name: string } }) => i.medication.name === "Test OD Afternoon Medicine");
+    expect(item.slotLabel).toBe("midday");
+
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({ where: { patientMedicationId: res.body.id } });
+    const doses = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id } });
+    expect(doses).toHaveLength(14); // 14-day rolling window × 1 slot/day
+    expect(doses.every((d) => d.slotLabel === "midday")).toBe(true);
+  });
 });

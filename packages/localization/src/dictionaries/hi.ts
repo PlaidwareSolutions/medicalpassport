@@ -137,11 +137,12 @@ export const hi: Record<keyof typeof en, string> = {
   "add.saved": "दवा सहेज ली गई",
 
   "frequency.od": "दिन में एक बार (सुबह)",
+  "frequency.od_afternoon": "दिन में एक बार (दोपहर)",
   "frequency.bd": "दिन में दो बार (सुबह और रात)",
   "frequency.tds": "दिन में तीन बार",
   "frequency.qid": "दिन में चार बार",
   "frequency.sos": "ज़रूरत पड़ने पर ही",
-  "frequency.hs": "सोते समय",
+  "frequency.hs": "दिन में एक बार (रात)",
   "frequency.pattern": "अपना पैटर्न (जैसे 1-0-1)",
   "frequency.alternate_day": "एक दिन छोड़कर",
   "frequency.weekly": "साप्ताहिक",
