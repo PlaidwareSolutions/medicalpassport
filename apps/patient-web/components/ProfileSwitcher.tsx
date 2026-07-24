@@ -27,17 +27,29 @@ export function ProfileSwitcher() {
         padding: "var(--space-sm) var(--space-md) 0",
       }}
     >
-      {profiles.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          aria-current={p.id === activeProfileId ? "true" : undefined}
-          onClick={() => selectProfile(p.id)}
-          style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}
-        >
-          <Chip tone={p.id === activeProfileId ? "success" : "default"}>{p.displayName}</Chip>
-        </button>
-      ))}
+      {profiles.map((p) => {
+        const active = p.id === activeProfileId;
+        return (
+          <button
+            key={p.id}
+            type="button"
+            aria-current={active ? "true" : undefined}
+            onClick={() => selectProfile(p.id)}
+            style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}
+          >
+            {/* A color-only tone difference isn't a reliable distinction
+                (WCAG 1.4.1 — never color alone); the checkmark plus bold
+                weight makes the active profile unambiguous regardless of
+                color perception. */}
+            <Chip tone={active ? "success" : "default"}>
+              <span style={{ fontWeight: active ? 700 : 600 }}>
+                {active ? "✓ " : ""}
+                {p.displayName}
+              </span>
+            </Chip>
+          </button>
+        );
+      })}
     </nav>
   );
 }

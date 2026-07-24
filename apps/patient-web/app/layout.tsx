@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import { cssVariables } from "@medpass/design-tokens";
+import { ProfileKeyedContent } from "../components/ProfileKeyedContent";
 import { I18nProvider } from "../lib/i18n";
 import { SessionProvider } from "../lib/session";
 
@@ -36,7 +37,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <I18nProvider>
-          <SessionProvider>{children}</SessionProvider>
+          <SessionProvider>
+            <ProfileKeyedContent>{children}</ProfileKeyedContent>
+          </SessionProvider>
         </I18nProvider>
       </body>
     </html>

@@ -134,13 +134,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           ) : null}
         </div>
       ) : null}
-      {/* Keyed on the active profile: forces every page underneath to fully
-          remount and refetch on a profile switch, rather than risking any
-          hook silently going on showing the previous profile's data
-          (docs/10 H-13 — wrong-patient data in a caregiver account). */}
-      <main key={activeProfileId} style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-md)" }}>
-        {children}
-      </main>
+      {/* The actual profile-switch remount boundary is ProfileKeyedContent,
+          above the page component in app/layout.tsx — a key here would only
+          reset what this component receives as `children`, never the page
+          component's own data hooks (useMedications, useTimeline, ...),
+          which are called before the page ever renders AppShell at all. */}
+      <main style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-md)" }}>{children}</main>
       <BottomNav
         items={items}
         renderLink={(item, children) => (

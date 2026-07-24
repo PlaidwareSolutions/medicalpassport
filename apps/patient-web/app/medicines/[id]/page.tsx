@@ -81,7 +81,7 @@ export default function MedicineDetailPage() {
         <Chip tone={statusTone}>{t(`meds.status.${medication.status}` as never)}</Chip>
       </div>
       <Link href={`/medicines/${medication.id}/edit`}>
-        <Button variant="ghost" fullWidth>
+        <Button variant="secondary" fullWidth>
           {t("meds.edit")}
         </Button>
       </Link>

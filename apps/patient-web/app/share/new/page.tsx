@@ -139,6 +139,7 @@ export default function CreateSharePage() {
         ))}
       </div>
 
+      <div style={{ height: "var(--space-md)" }} />
       <Button fullWidth disabled={busy} onClick={() => void create()}>
         {t("share.create")}
       </Button>
