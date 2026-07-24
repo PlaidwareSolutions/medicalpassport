@@ -28,6 +28,12 @@ export default function EditMedicationPage() {
   const [pattern, setPattern] = useState<"1-0-0" | "1-0-1" | "1-1-1" | "0-0-1" | undefined>();
   const [food, setFood] = useState<Food | undefined>();
   const [reason, setReason] = useState("");
+  const [prescriber, setPrescriber] = useState("");
+  // The API creates a fresh Practitioner record whenever prescriberName is
+  // sent at all (docs/13 "patient-scoped prescriber records" — there's no
+  // dedup/reuse by name) — only send it when it actually changed, so saving
+  // an unrelated field (dose, reason, etc.) doesn't spawn a duplicate row.
+  const [initialPrescriber, setInitialPrescriber] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [quantityOnHand, setQuantityOnHand] = useState("");
   const [criticalEscalation, setCriticalEscalation] = useState(false);
@@ -38,6 +44,8 @@ export default function EditMedicationPage() {
   useEffect(() => {
     if (!medication) return;
     setReason(medication.patientReason ?? "");
+    setPrescriber(medication.prescriberName ?? "");
+    setInitialPrescriber(medication.prescriberName ?? "");
     setQuantityOnHand(medication.quantityOnHand ?? "");
     setCriticalEscalation(medication.criticalEscalation);
     if (medication.instruction) {
@@ -58,6 +66,7 @@ export default function EditMedicationPage() {
     try {
       const { queuedOffline } = await updateMedication(medication, {
         patientReason: reason.trim(),
+        ...(prescriber.trim() !== initialPrescriber ? { prescriberName: prescriber.trim() } : {}),
         quantityOnHand: quantityOnHand.trim() ? Number(quantityOnHand) : null,
         criticalEscalation,
         instruction: {
@@ -174,6 +183,8 @@ export default function EditMedicationPage() {
 
       <SectionTitle>{t("add.reason_label")}</SectionTitle>
       <TextInput label={t("add.reason_label")} value={reason} onChange={(e) => setReason(e.target.value)} />
+      <div style={{ height: "var(--space-sm)" }} />
+      <TextInput label={t("add.prescriber_label")} value={prescriber} onChange={(e) => setPrescriber(e.target.value)} />
       <div style={{ height: "var(--space-sm)" }} />
       <TextInput
         label={t("add.duration_label")}

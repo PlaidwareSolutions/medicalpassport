@@ -193,6 +193,26 @@ describe("API e2e", () => {
     medicationRowVersion = ok.body.rowVersion;
   });
 
+  it("lets a patient add a doctor's name later if they forgot it when adding the medicine", async () => {
+    const created = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Forgot The Doctor Tablet",
+        source: "manual",
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" },
+      })
+      .expect(201);
+    expect(created.body.prescriberName).toBeNull();
+
+    const updated = await auth(tokenA, profileA)(request(app.getHttpServer()).patch(`/v1/medications/${created.body.id}`))
+      .send({ rowVersion: created.body.rowVersion, prescriberName: "Dr. Iyer" })
+      .expect(200);
+    expect(updated.body.prescriberName).toBe("Dr. Iyer");
+
+    const list = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/medications")).expect(200);
+    const seen = list.body.items.find((m: { id: string }) => m.id === created.body.id);
+    expect(seen.prescriberName).toBe("Dr. Iyer");
+  });
+
   it("validates status transitions", async () => {
     const bad = await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/medications/${medicationId}/status`))
       .send({ rowVersion: medicationRowVersion, status: "current" });

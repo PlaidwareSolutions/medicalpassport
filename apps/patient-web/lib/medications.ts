@@ -10,6 +10,7 @@ const CACHED_VARIANTS = ["current", "all"];
 
 export interface EditMedicationPatch {
   patientReason?: string;
+  prescriberName?: string;
   quantityOnHand?: number | null;
   criticalEscalation?: boolean;
   instruction?: {
@@ -163,6 +164,7 @@ async function patchCachedMedication(profileId: string, id: string, patch: EditM
         ? {
             ...m,
             ...(patch.patientReason !== undefined ? { patientReason: patch.patientReason } : {}),
+            ...(patch.prescriberName !== undefined ? { prescriberName: patch.prescriberName } : {}),
             ...(patch.quantityOnHand !== undefined
               ? { quantityOnHand: patch.quantityOnHand != null ? String(patch.quantityOnHand) : null }
               : {}),
