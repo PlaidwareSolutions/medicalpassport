@@ -72,4 +72,53 @@ describe("Admin operations e2e", () => {
     const res = await request(app.getHttpServer()).get("/v1/admin/operations/summary?windowHours=9999").set("Cookie", cookies).expect(200);
     expect(res.body.windowHours).toBe(168);
   });
+
+  it("without operations_view duty, medication-stats is forbidden (403)", async () => {
+    const cookies = await createAdminWithSession("medstats-noduty@test.com", []);
+    await request(app.getHttpServer()).get("/v1/admin/operations/medication-stats").set("Cookie", cookies).expect(403);
+  });
+
+  it("reports de-identified, aggregate-only medicine counts — never a patient name or medicine name", async () => {
+    const cookies = await createAdminWithSession("medstats-viewer@test.com", ["operations_view"]);
+
+    const before = await request(app.getHttpServer())
+      .get("/v1/admin/operations/medication-stats")
+      .set("Cookie", cookies)
+      .expect(200);
+
+    // Seeded directly (not through the patient-facing HTTP flow, matching
+    // this file's existing convention for BackgroundJob/DeadLetterJob) —
+    // this admin endpoint's own correctness is what's under test, not the
+    // medication-creation flow itself (already covered in api.e2e-spec.ts).
+    const user = await prisma.user.create({
+      data: { phoneDigest: `e2e-ops-medstats-${Date.now()}`, phoneCiphertext: "unused" },
+    });
+    const profile = await prisma.patientProfile.create({
+      data: { ownerUserId: user.id, displayName: "E2E Ops Test Patient" },
+    });
+    const medication = await prisma.patientMedication.create({
+      data: { patientProfileId: profile.id, enteredName: "E2E Ops Test Syrup", source: "manual", status: "current", criticalEscalation: true },
+    });
+    await prisma.medicationInstruction.create({
+      data: { patientMedicationId: medication.id, doseQuantity: 5, doseUnit: "ml", frequencyCode: "OD", confirmedByUserId: user.id },
+    });
+
+    const after = await request(app.getHttpServer())
+      .get("/v1/admin/operations/medication-stats")
+      .set("Cookie", cookies)
+      .expect(200);
+
+    expect(after.body.totalMedicationsAllTime).toBe(before.body.totalMedicationsAllTime + 1);
+    expect(after.body.totalActiveMedications).toBe(before.body.totalActiveMedications + 1);
+    expect(after.body.byStatus.current).toBe((before.body.byStatus.current ?? 0) + 1);
+    expect(after.body.bySource.manual).toBe((before.body.bySource.manual ?? 0) + 1);
+    expect(after.body.byDoseUnit.ml).toBe((before.body.byDoseUnit.ml ?? 0) + 1);
+    expect(after.body.criticalEscalationCount).toBe(before.body.criticalEscalationCount + 1);
+
+    // The response must never leak the patient's name, the profile id, or the medicine's own name.
+    const bodyText = JSON.stringify(after.body);
+    expect(bodyText).not.toContain("E2E Ops Test Patient");
+    expect(bodyText).not.toContain("E2E Ops Test Syrup");
+    expect(bodyText).not.toContain(profile.id);
+  });
 });

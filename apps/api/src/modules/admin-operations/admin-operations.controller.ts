@@ -53,4 +53,66 @@ export class AdminOperationsController {
         : null,
     };
   }
+
+  /**
+   * De-identified, aggregate-only view of medicine data across all patients
+   * (docs/06) — counts and breakdowns only, never a patient name, profile
+   * id, or medicine name. This is deliberately the *only* admin-visible
+   * information about patient-added medicines: the authorization model
+   * throughout this app treats a patient's medicine list as PHI visible
+   * only to the patient and their authorized caregivers, never generally to
+   * admin staff, and this endpoint must stay that way — add a new field
+   * here only if it stays a count/breakdown, never row-level detail. Not
+   * audited, same reasoning as `summary()` above (aggregate counts only, no
+   * PHI, same as /healthz`/`readyz`).
+   */
+  @Get("medication-stats")
+  async medicationStats(@Req() req: ApiRequest) {
+    requireAdminDuty(req, "view_operations");
+
+    const notDeleted = { deletedAt: null } as const;
+    const [
+      totalMedicationsAllTime,
+      totalActiveMedications,
+      byStatus,
+      bySource,
+      byNormalizationStatus,
+      byDoseUnit,
+      prnCount,
+      criticalEscalationCount,
+      refillTrackedCount,
+    ] = await Promise.all([
+      this.prisma.patientMedication.count({ where: notDeleted }),
+      this.prisma.patientMedication.count({ where: { ...notDeleted, status: "current" } }),
+      this.prisma.patientMedication.groupBy({ by: ["status"], where: notDeleted, _count: true }),
+      this.prisma.patientMedication.groupBy({ by: ["source"], where: notDeleted, _count: true }),
+      this.prisma.patientMedication.groupBy({ by: ["normalizationStatus"], where: notDeleted, _count: true }),
+      this.prisma.medicationInstruction.groupBy({
+        by: ["doseUnit"],
+        where: { supersededAt: null, patientMedication: notDeleted },
+        _count: true,
+      }),
+      this.prisma.patientMedication.count({ where: { ...notDeleted, isPrn: true } }),
+      this.prisma.patientMedication.count({ where: { ...notDeleted, criticalEscalation: true } }),
+      this.prisma.patientMedication.count({ where: { ...notDeleted, quantityOnHand: { not: null } } }),
+    ]);
+
+    const toRecord = (rows: Array<Record<string, unknown>>, key: string) =>
+      rows.reduce<Record<string, number>>((acc, row) => {
+        acc[String(row[key])] = row._count as number;
+        return acc;
+      }, {});
+
+    return {
+      totalMedicationsAllTime,
+      totalActiveMedications,
+      byStatus: toRecord(byStatus, "status"),
+      bySource: toRecord(bySource, "source"),
+      byNormalizationStatus: toRecord(byNormalizationStatus, "normalizationStatus"),
+      byDoseUnit: toRecord(byDoseUnit, "doseUnit"),
+      prnCount,
+      criticalEscalationCount,
+      refillTrackedCount,
+    };
+  }
 }
