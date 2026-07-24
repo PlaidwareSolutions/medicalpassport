@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ApiError, type AuthorizeUploadResponseDto } from "@medpass/api-client";
 import { Banner, Button, Card, ChoiceGrid } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 
@@ -89,7 +90,7 @@ export default function ScanDocumentPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("scan.title")}</h1>
+      <PageHeader title={t("scan.title")} />
       <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-md)" }}>{t("scan.intro")}</p>
 
       {error ? <Banner tone="danger">{error}</Banner> : null}

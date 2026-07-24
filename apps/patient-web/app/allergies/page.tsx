@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Banner, Button, Card, Chip, TextInput } from "@medpass/ui-web";
 import { ChoiceGrid } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { PageHeader } from "../../components/PageHeader";
 import { addAllergy, useAllergies } from "../../lib/allergies";
 import { useI18n } from "../../lib/i18n";
 
@@ -40,7 +41,7 @@ export default function AllergiesPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("allergy.title")}</h1>
+      <PageHeader title={t("allergy.title")} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       {items && items.length === 0 && !showForm ? (

@@ -249,6 +249,8 @@ export const ur: Record<keyof typeof en, string> = {
   "home.concerns_count": "{count} جائزہ لینا باقی",
 
   "profile.title": "پروفائل",
+  "profile.details_title": "پروفائل کی تفصیلات",
+  "profile.details_saved": "محفوظ ہو گیا",
   "profile.allergies": "الرجیاں",
   "profile.conditions": "بیماریاں",
   "profile.caregivers": "نگہداشت کنندگان",

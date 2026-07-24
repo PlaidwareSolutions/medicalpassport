@@ -4,6 +4,7 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { createShare, shareUrl, shareVisitSummaryViaWhatsApp } from "../../../lib/sharing";
 
@@ -66,7 +67,7 @@ export default function CreateSharePage() {
   if (result) {
     return (
       <AppShell>
-        <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("share.ready_title")}</h1>
+        <PageHeader title={t("share.ready_title")} />
         <Card>
           <div style={{ display: "flex", justifyContent: "center" }}>
             <canvas ref={canvasRef} role="img" aria-label={t("share.qr_code_alt")} />
@@ -97,7 +98,7 @@ export default function CreateSharePage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("share.new_title")}</h1>
+      <PageHeader title={t("share.new_title")} />
 
       <SectionTitle>{t("share.sections_label")}</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>

@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { CAREGIVER_SCOPES, type CaregiverScope } from "@medpass/domain";
 import { Banner, Button, Card, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
+import { PageHeader } from "../../../../components/PageHeader";
 import { useI18n } from "../../../../lib/i18n";
 import { updateCaregiverScopes, useCaregivers } from "../../../../lib/caregivers";
 import { useSession } from "../../../../lib/session";
@@ -56,7 +57,7 @@ export default function EditCaregiverPage() {
   if (items && !item) {
     return (
       <AppShell>
-        <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.not_found_title")}</h1>
+        <PageHeader title={t("caregiver.not_found_title")} />
         <Card>
           <span style={{ color: "var(--color-text-muted)" }}>{t("caregiver.not_found_body")}</span>
         </Card>
@@ -68,7 +69,7 @@ export default function EditCaregiverPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.edit_title")}</h1>
+      <PageHeader title={t("caregiver.edit_title")} />
       {error || saveError ? <Banner tone="danger">{saveError ?? t("common.error_generic")}</Banner> : null}
 
       {scopes ? (

@@ -249,6 +249,8 @@ export const te: Record<keyof typeof en, string> = {
   "home.concerns_count": "{count} సమీక్షించాలి",
 
   "profile.title": "ప్రొఫైల్",
+  "profile.details_title": "ప్రొఫైల్ వివరాలు",
+  "profile.details_saved": "సేవ్ చేయబడింది",
   "profile.allergies": "అలర్జీలు",
   "profile.conditions": "వ్యాధులు",
   "profile.caregivers": "సంరక్షకులు",

@@ -104,6 +104,7 @@ export interface SessionResponse {
 export interface ProfileSummary {
   id: string;
   displayName: string;
+  yearOfBirth: number | null;
   relationship: "self" | "dependent" | "caregiver";
   /** True when this (unclaimed) dependent profile has a pending claim invite. */
   claimInvited?: boolean;

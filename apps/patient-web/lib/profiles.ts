@@ -12,6 +12,14 @@ export async function createDependent(input: {
   return api.post<{ id: string; displayName: string; rowVersion: number }>("/profiles/dependents", input);
 }
 
+export async function updateProfile(rowVersion: number, patch: { displayName?: string; yearOfBirth?: number }) {
+  return api.patch<{ id: string; rowVersion: number }>(
+    "/profiles/current",
+    { rowVersion, ...patch },
+    { profileId: getActiveProfileId() },
+  );
+}
+
 /** Owner-only — invites the profile's actual subject to claim it (docs/07 screen 5). */
 export async function inviteToClaimProfile(phone: string, expiresAt?: string) {
   return api.post<{ id: string; status: string }>(

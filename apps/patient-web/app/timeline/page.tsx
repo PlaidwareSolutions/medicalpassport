@@ -2,6 +2,7 @@
 import { Banner, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { DoseCard } from "../../components/DoseCard";
+import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
 import { useTimeline } from "../../lib/timeline";
 
@@ -14,7 +15,7 @@ export default function TimelinePage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("timeline.title")}</h1>
+      <PageHeader title={t("timeline.title")} />
 
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}

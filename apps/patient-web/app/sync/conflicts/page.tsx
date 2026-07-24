@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Banner, Button, Card } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { resolveConflict, useConflicts } from "../../../lib/conflicts";
 
@@ -32,7 +33,7 @@ export default function SyncConflictsPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("sync.conflicts_title")}</h1>
+      <PageHeader title={t("sync.conflicts_title")} />
 
       {items.length === 0 ? (
         <Banner tone="info">{t("sync.conflicts_empty")}</Banner>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button, Card, Chip } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
 import { instructionSummary, useMedications } from "../../lib/medications";
 
@@ -21,7 +22,7 @@ export default function MedicinesPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("nav.medicines")}</h1>
+      <PageHeader title={t("nav.medicines")} />
       <div role="tablist" style={{ display: "flex", gap: "var(--size-touch-gap)", marginBottom: "var(--space-md)" }}>
         {(["current", "previous"] as const).map((k) => (
           <button

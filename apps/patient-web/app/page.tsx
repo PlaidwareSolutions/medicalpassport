@@ -4,6 +4,7 @@ import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../components/AppShell";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
+import { PageHeader } from "../components/PageHeader";
 import { RefillReminderCard } from "../components/RefillReminderCard";
 import { useI18n } from "../lib/i18n";
 import { useMedications } from "../lib/medications";
@@ -31,7 +32,7 @@ export default function HomePage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("nav.home")}</h1>
+      <PageHeader title={t("nav.home")} />
 
       {medError || timelineError ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}

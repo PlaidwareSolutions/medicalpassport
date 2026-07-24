@@ -6,6 +6,7 @@ import { CAREGIVER_SCOPES, type CaregiverScope } from "@medpass/domain";
 import type { CaregiverRelationshipKind } from "@medpass/api-client";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { inviteCaregiver } from "../../../lib/caregivers";
 import { useSession } from "../../../lib/session";
@@ -66,7 +67,7 @@ export default function InviteCaregiverPage() {
   if (sent) {
     return (
       <AppShell>
-        <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.invite_sent_title")}</h1>
+        <PageHeader title={t("caregiver.invite_sent_title")} />
         <Card>
           <span style={{ color: "var(--color-text-muted)" }}>{t("caregiver.invite_sent_body")}</span>
         </Card>
@@ -79,7 +80,7 @@ export default function InviteCaregiverPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.invite_title")}</h1>
+      <PageHeader title={t("caregiver.invite_title")} />
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       <TextInput

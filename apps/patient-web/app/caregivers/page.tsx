@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { CaregiverAccessEventDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { PageHeader } from "../../components/PageHeader";
 import { fetchCaregiverAccessLog, isCaregiverActive, revokeCaregiver, useCaregivers } from "../../lib/caregivers";
 import { useI18n } from "../../lib/i18n";
 import { useSession } from "../../lib/session";
@@ -50,7 +51,7 @@ export default function CaregiversPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.list_title")}</h1>
+      <PageHeader title={t("caregiver.list_title")} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       <Link href="/caregivers/new">

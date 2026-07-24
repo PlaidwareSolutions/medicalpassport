@@ -249,6 +249,8 @@ export const hi: Record<keyof typeof en, string> = {
   "home.concerns_count": "{count} समीक्षा बाकी",
 
   "profile.title": "प्रोफ़ाइल",
+  "profile.details_title": "प्रोफ़ाइल विवरण",
+  "profile.details_saved": "सहेजा गया",
   "profile.allergies": "एलर्जी",
   "profile.conditions": "बीमारियाँ",
   "profile.caregivers": "देखभालकर्ता",

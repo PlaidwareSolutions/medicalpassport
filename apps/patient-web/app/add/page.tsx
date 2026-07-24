@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ApiError, type CatalogProduct } from "@medpass/api-client";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { PageHeader } from "../../components/PageHeader";
 import { api } from "../../lib/api";
 import { createMedication } from "../../lib/medications";
 import { useI18n } from "../../lib/i18n";
@@ -112,7 +113,7 @@ export default function AddMedicationPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("add.title")}</h1>
+      <PageHeader title={t("add.title")} />
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       {!selected && !manualMode ? (

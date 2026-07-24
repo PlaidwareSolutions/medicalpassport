@@ -6,6 +6,7 @@ import type { MessageKey } from "@medpass/localization";
 import { ApiError, type DocumentExtractionDto, type ExtractionCandidateDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, ChoiceGrid } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
+import { PageHeader } from "../../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../../lib/api";
 import { useI18n } from "../../../../lib/i18n";
 
@@ -183,7 +184,7 @@ export default function ReviewExtractionPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-xs)" }}>{t("review.title")}</h1>
+      <PageHeader title={t("review.title")} style={{ margin: "0 0 var(--space-xs)" }} />
       <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-md)" }}>{t("review.subtitle")}</p>
 
       {submitError ? <Banner tone="danger">{submitError}</Banner> : null}

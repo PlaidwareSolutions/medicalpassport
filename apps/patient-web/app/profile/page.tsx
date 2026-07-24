@@ -4,6 +4,8 @@ import Link from "next/link";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
 import { Banner, Button, Card, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { PageHeader } from "../../components/PageHeader";
+import { ProfileDetailsSettings } from "../../components/ProfileDetailsSettings";
 import { ReminderSettings } from "../../components/ReminderSettings";
 import { api } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
@@ -135,7 +137,9 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("profile.title")}</h1>
+      <PageHeader title={t("profile.title")} />
+
+      <ProfileDetailsSettings />
 
       <Link href="/allergies">
         <Card>

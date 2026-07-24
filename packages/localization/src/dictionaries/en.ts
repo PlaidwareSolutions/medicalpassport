@@ -252,6 +252,8 @@ export const en = {
   "home.concerns_count": "{count} to review",
 
   "profile.title": "Profile",
+  "profile.details_title": "Profile details",
+  "profile.details_saved": "Saved",
   "profile.allergies": "Allergies",
   "profile.conditions": "Conditions",
   "profile.caregivers": "Caregivers",

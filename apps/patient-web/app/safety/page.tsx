@@ -2,6 +2,7 @@
 import { Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { FindingCard } from "../../components/FindingCard";
+import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
 import { isOpenFinding, useSafetyFindings } from "../../lib/safety";
 
@@ -19,7 +20,7 @@ export default function SafetyPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("safety.title")}</h1>
+      <PageHeader title={t("safety.title")} />
 
       {error ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
       {!items && !error ? <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p> : null}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ShareAccessEventDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
 import { fetchAccessLog, revokeShare, useShares } from "../../lib/sharing";
 
@@ -40,7 +41,7 @@ export default function SharesPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("share.view_all")}</h1>
+      <PageHeader title={t("share.view_all")} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       <Link href="/share/new">

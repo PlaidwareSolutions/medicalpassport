@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { instructionSummary, useMedication } from "../../../lib/medications";
@@ -74,12 +75,10 @@ export default function MedicineDetailPage() {
     <AppShell>
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "var(--space-sm)" }}>
-        <h1 style={{ fontSize: "var(--font-title)", margin: 0 }}>
-          {medication.product?.brandName ?? medication.enteredName}
-        </h1>
-        <Chip tone={statusTone}>{t(`meds.status.${medication.status}` as never)}</Chip>
-      </div>
+      <PageHeader
+        title={medication.product?.brandName ?? medication.enteredName}
+        right={<Chip tone={statusTone}>{t(`meds.status.${medication.status}` as never)}</Chip>}
+      />
       <Link href={`/medicines/${medication.id}/edit`}>
         <Button variant="secondary" fullWidth>
           {t("meds.edit")}
