@@ -454,6 +454,7 @@ model MedicationProduct {
   ingredients     MedicationProductIngredient[]
   classifications ProductClassification[]
   medications     PatientMedication[]
+  clinicalContent ClinicalContent[]
 
   @@index([genericName])
   @@map("medication_products")
@@ -1443,6 +1444,13 @@ enum AdminDuty {
   catalog_approve
   content_write
   content_approve
+  /// Proposing a translation of already-approved clinical content — kept
+  /// distinct from content_write since translating existing approved text
+  /// is a different authority than authoring new clinical facts from
+  /// scratch; a pure linguist could hold this without ever being trusted to
+  /// author original content. Deciding a translation reuses content_approve
+  /// (same clinical-vetting authority as an English original).
+  content_translate
   audit_search
   incident_response
   operations_view
@@ -1473,10 +1481,12 @@ model AdminUser {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   sessions                AdminSession[]
-  proposedChanges         CatalogChangeRequest[]   @relation("ProposedBy")
-  decidedChanges          CatalogChangeRequest[]   @relation("DecidedBy")
-  proposedContentVersions ClinicalContentVersion[] @relation("ContentProposedBy")
-  decidedContentVersions  ClinicalContentVersion[] @relation("ContentDecidedBy")
+  proposedChanges         CatalogChangeRequest[]       @relation("ProposedBy")
+  decidedChanges          CatalogChangeRequest[]       @relation("DecidedBy")
+  proposedContentVersions ClinicalContentVersion[]     @relation("ContentProposedBy")
+  decidedContentVersions  ClinicalContentVersion[]     @relation("ContentDecidedBy")
+  translatedContent       ClinicalContentTranslation[] @relation("TranslationProposedBy")
+  decidedTranslations     ClinicalContentTranslation[] @relation("TranslationDecidedBy")
 
   @@map("admin_users")
 }
@@ -1558,10 +1568,10 @@ model CatalogChangeRequest {
 
 // ---- Clinical content enrichment (docs/13, docs/34 Gate 6/OD-6) ----
 //
-// Only the `education` ("commonly used for") kind is built so far; docs/13
-// also sketches missed_dose/warning_symptoms/food_alcohol/storage kinds for
-// later. English only for now — translations are out of scope until at
-// least one piece of English content has actually been through review.
+// Keyed by ingredient (single-ingredient products) or product (combination
+// products, exactly 2 ingredients — see ClinicalContent below); never both.
+// Translations live in ClinicalContentTranslation, one row per (version,
+// locale), always human-authored (no "system-translated" concept).
 //
 // `content_approve` is a distinct duty from `catalog_approve`: docs/34 ties
 // clinical content sign-off specifically to a qualified clinical lead
@@ -1589,15 +1599,21 @@ enum ContentSourceKind {
   manual
 }
 
-/// Current-pointer row per (kind, ingredient) — `currentVersionId` is the
-/// one approved version currently shown to patients, if any. A brand-new
-/// draft never becomes current just by being newest; only an explicit
-/// approval decision moves the pointer.
+/// Current-pointer row per (kind, ingredient) or (kind, product) —
+/// `currentVersionId` is the one approved version currently shown to
+/// patients, if any. A brand-new draft never becomes current just by being
+/// newest; only an explicit approval decision moves the pointer. Exactly
+/// one of ingredientId/productId is ever set (DB CHECK constraint, see
+/// migration) — product-keyed rows exist only for combination products,
+/// since joining independently-reviewed single-ingredient texts could
+/// imply something never actually reviewed for that specific combination.
 model ClinicalContent {
-  id           String               @id @default(uuid()) @db.Uuid
+  id           String                @id @default(uuid()) @db.Uuid
   kind         ClinicalContentKind
-  ingredientId String               @map("ingredient_id") @db.Uuid
-  ingredient   MedicationIngredient @relation(fields: [ingredientId], references: [id])
+  ingredientId String?               @map("ingredient_id") @db.Uuid
+  ingredient   MedicationIngredient? @relation(fields: [ingredientId], references: [id])
+  productId    String?               @map("product_id") @db.Uuid
+  product      MedicationProduct?    @relation(fields: [productId], references: [id])
 
   currentVersionId String?                 @unique @map("current_version_id") @db.Uuid
   currentVersion   ClinicalContentVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id])
@@ -1608,6 +1624,7 @@ model ClinicalContent {
   versions ClinicalContentVersion[] @relation("ContentVersions")
 
   @@unique([kind, ingredientId])
+  @@unique([kind, productId])
   @@map("clinical_content")
 }
 
@@ -1650,8 +1667,40 @@ model ClinicalContentVersion {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  currentFor ClinicalContent? @relation("CurrentVersion")
+  currentFor   ClinicalContent?             @relation("CurrentVersion")
+  translations ClinicalContentTranslation[]
 
   @@index([contentId, reviewStatus])
   @@map("clinical_content_versions")
+}
+
+/// One row per (version, locale) — always human-authored, unlike
+/// ClinicalContentVersion.proposedByAdminUserId (no "system-translated"
+/// concept, so translatedByAdminUserId is never null). Can only be proposed
+/// once the source version is itself `approved` (enforced in the service,
+/// not here — Prisma has no cross-row check). Maker != checker always
+/// applies (translator != clinical approver), same mechanics as
+/// ClinicalContentVersion but without the system-draft exception.
+model ClinicalContentTranslation {
+  id        String                 @id @default(uuid()) @db.Uuid
+  versionId String                 @map("version_id") @db.Uuid
+  version   ClinicalContentVersion @relation(fields: [versionId], references: [id])
+  locale    String
+
+  body String
+
+  reviewStatus ContentReviewStatus @default(draft) @map("review_status")
+
+  translatedByAdminUserId String     @map("translated_by_admin_user_id") @db.Uuid
+  translatedByAdminUser   AdminUser  @relation("TranslationProposedBy", fields: [translatedByAdminUserId], references: [id])
+  decidedByAdminUserId    String?    @map("decided_by_admin_user_id") @db.Uuid
+  decidedByAdminUser      AdminUser? @relation("TranslationDecidedBy", fields: [decidedByAdminUserId], references: [id])
+  decidedAt               DateTime?  @map("decided_at") @db.Timestamptz(6)
+  rejectionReason         String?    @map("rejection_reason")
+  isSoloApproval          Boolean    @default(false) @map("is_solo_approval")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([versionId, locale])
+  @@map("clinical_content_translations")
 }

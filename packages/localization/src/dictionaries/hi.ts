@@ -90,6 +90,7 @@ export const hi: Record<keyof typeof en, string> = {
   "dose.correct.time_label": "आपने इसे वास्तव में कब लिया था?",
   "dose.recorded": "दर्ज कर लिया गया",
   "dose.queued_offline": "इस डिवाइस पर सहेजा गया — ऑनलाइन आते ही सिंक होगा।",
+  "dose.missed_guidance.contact_reminder": "यदि आप निश्चित नहीं हैं कि क्या करें, तो अपने डॉक्टर या फ़ार्मासिस्ट से संपर्क करें।",
 
   "meds.current": "मौजूदा दवाइयाँ",
   "meds.previous": "पुरानी दवाइयाँ",

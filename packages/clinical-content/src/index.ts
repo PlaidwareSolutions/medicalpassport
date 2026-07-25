@@ -224,3 +224,90 @@ export async function fetchClinicalContent(
   }
   return null;
 }
+
+/**
+ * Combination-product matching (docs/24 combination-content gap). A naive
+ * "join the ingredient names into one query string" approach doesn't work:
+ * openFDA's search is a tokenized phrase match, so a salt-form suffix
+ * landing between two joined names (e.g. "AMLODIPINE BESYLATE AND
+ * TELMISARTAN") breaks contiguity regardless of which order is tried.
+ * Instead, this reuses the existing per-ingredient name+synonym query loop
+ * unchanged (a combination label surfaces on a plain single-ingredient-name
+ * search too — confirmed live for the real Telmisartan+Amlodipine label),
+ * and validates every candidate against the *exact* ingredient set with a
+ * bijective prefix match — not existential, which could pass ambiguously
+ * if two product ingredient names could each match the same substance
+ * entry.
+ */
+function hasBijectivePrefixMatch(names: string[], substances: string[], usedMask = 0): boolean {
+  if (names.length === 0) return true;
+  const [first, ...rest] = names;
+  for (let i = 0; i < substances.length; i++) {
+    if (usedMask & (1 << i)) continue;
+    if (substances[i]!.startsWith(first!) && hasBijectivePrefixMatch(rest, substances, usedMask | (1 << i))) return true;
+  }
+  return false;
+}
+
+/** Pure — true only if `label`'s full substance set exactly (bijectively) matches `productIngredientNames`, no more, no fewer. */
+export function matchesCombination(label: OpenFdaLabelResult, productIngredientNames: string[]): boolean {
+  if (!label.openfda) return false;
+  const substances = (label.openfda.substance_name?.length ? label.openfda.substance_name : (label.openfda.generic_name ?? [])).map((s) =>
+    s.toUpperCase(),
+  );
+  if (substances.length !== productIngredientNames.length) return false;
+  return hasBijectivePrefixMatch(
+    productIngredientNames.map((n) => n.toUpperCase()),
+    substances,
+  );
+}
+
+/** Pure — like `pickBestLabel`, but validates against a specific combination instead of rejecting every multi-substance label. */
+export function pickBestCombinationLabel(response: OpenFdaResponse, productIngredientNames: string[]): OpenFdaLabelResult | null {
+  const seen = new Set<string>();
+  const candidates = (response.results ?? []).filter((r) => {
+    if (!matchesCombination(r, productIngredientNames)) return false;
+    const key = r.set_id ?? r.id;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => (b.effective_time ?? "").localeCompare(a.effective_time ?? ""));
+  return candidates[0]!;
+}
+
+/**
+ * Fetches a candidate for the given content kind for a combination
+ * product. Hard-capped at exactly 2 ingredients (also enforced by the
+ * trigger and the worker, independently — a 3-ingredient combination
+ * silently gets no draft, the correct, safe outcome, never a wrong guess).
+ * `extractForKind` is reused completely unchanged once a validated
+ * combination label is found — extraction is orthogonal to which label was
+ * picked.
+ */
+export async function fetchCombinationClinicalContent(
+  kind: ClinicalContentKind,
+  productIngredients: Array<{ name: string; synonyms: string[] }>,
+  apiKey?: string,
+): Promise<ClinicalContentResult | null> {
+  if (productIngredients.length !== 2) return null;
+  const productIngredientNames = productIngredients.map((i) => i.name);
+
+  for (const ingredient of productIngredients) {
+    for (const candidate of [ingredient.name, ...ingredient.synonyms]) {
+      const response = await queryOpenFda(candidate, apiKey);
+      const label = pickBestCombinationLabel(response, productIngredientNames);
+      if (!label) continue;
+      const extraction = extractForKind(label, kind);
+      if (!extraction) continue;
+      return {
+        text: extraction.text,
+        sourceCitation: buildCitation(label, productIngredientNames.join(" + "), extraction.section),
+        sourceUrl: buildSourceUrl(label),
+        lowConfidence: extraction.lowConfidence,
+      };
+    }
+  }
+  return null;
+}

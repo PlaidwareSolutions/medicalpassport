@@ -90,6 +90,7 @@ export const te: Record<keyof typeof en, string> = {
   "dose.correct.time_label": "మీరు దీన్ని నిజంగా ఎప్పుడు తీసుకున్నారు?",
   "dose.recorded": "నమోదు చేయబడింది",
   "dose.queued_offline": "ఈ పరికరంలో సేవ్ చేయబడింది — ఆన్‌లైన్‌కు వచ్చిన వెంటనే సింక్ అవుతుంది.",
+  "dose.missed_guidance.contact_reminder": "ఏమి చేయాలో తెలియకపోతే, మీ డాక్టర్ లేదా ఫార్మసిస్ట్‌ను సంప్రదించండి.",
 
   "meds.current": "ప్రస్తుత మందులు",
   "meds.previous": "గత మందులు",

@@ -14,6 +14,19 @@ const KIND_LABELS: Record<string, string> = {
   missed_dose: "Missed dose",
 };
 
+const LOCALE_LABELS: Record<string, string> = { hi: "Hindi", te: "Telugu", ur: "Urdu" };
+
+interface TranslationDetail {
+  id: string;
+  locale: string;
+  body: string;
+  reviewStatus: string;
+  isSoloApproval: boolean;
+  rejectionReason: string | null;
+  translatedByAdminUser: { email: string };
+  decidedByAdminUser: { email: string } | null;
+}
+
 interface VersionDetail {
   id: string;
   body: string;
@@ -28,14 +41,126 @@ interface VersionDetail {
   proposedByAdminUser: { email: string } | null;
   decidedByAdminUser: { email: string } | null;
   decidedAt: string | null;
+  translations: TranslationDetail[];
+}
+
+/** Propose/review translations for one already-approved version — its own local state, kept out of the parent's. */
+function TranslationsPanel({ version, onChanged }: { version: VersionDetail; onChanged: () => void }) {
+  const [locale, setLocale] = useState<"hi" | "te" | "ur">("hi");
+  const [body, setBody] = useState("");
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | undefined>();
+  const [error, setError] = useState<string | undefined>();
+
+  async function proposeTranslation() {
+    setBusyId("new");
+    setError(undefined);
+    try {
+      await api.post(`/admin/content/versions/${version.id}/translations`, { locale, body });
+      setBody("");
+      onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? (err.problem.errors?.[0]?.message ?? err.problem.title) : "Something went wrong.");
+    } finally {
+      setBusyId(undefined);
+    }
+  }
+
+  async function decideTranslation(translationId: string, decision: "approve" | "reject") {
+    setBusyId(translationId);
+    setError(undefined);
+    try {
+      await api.post(`/admin/content/translations/${translationId}/decide`, {
+        decision,
+        rejectionReason: decision === "reject" ? rejectionReasons[translationId] : undefined,
+      });
+      onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? (err.problem.errors?.[0]?.message ?? err.problem.title) : "Something went wrong.");
+    } finally {
+      setBusyId(undefined);
+    }
+  }
+
+  return (
+    <div style={{ borderTop: "1px solid var(--color-border)", marginTop: "var(--space-sm)", paddingTop: "var(--space-sm)" }}>
+      <strong style={{ fontSize: "var(--font-small)" }}>Translations</strong>
+      {error ? <Banner tone="danger">{error}</Banner> : null}
+      {version.translations.length === 0 ? (
+        <p style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>No translations proposed yet.</p>
+      ) : (
+        version.translations.map((t) => (
+          <Card key={t.id} tone={t.reviewStatus === "approved" ? "default" : t.reviewStatus === "rejected" ? "danger" : "warning"} style={{ marginTop: "var(--space-xs)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <strong>
+                {LOCALE_LABELS[t.locale] ?? t.locale} — {t.reviewStatus}
+              </strong>
+            </div>
+            <p>{t.body}</p>
+            <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>Translated by {t.translatedByAdminUser.email}</span>
+            {t.decidedByAdminUser ? (
+              <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+                Decided by {t.decidedByAdminUser.email}
+                {t.isSoloApproval ? " (solo — only one admin existed)" : ""}
+              </div>
+            ) : null}
+            {t.rejectionReason ? <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>Reason: {t.rejectionReason}</div> : null}
+            {t.reviewStatus === "draft" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)", marginTop: "var(--space-xs)" }}>
+                <Button disabled={busyId === t.id} onClick={() => void decideTranslation(t.id, "approve")}>
+                  Approve translation
+                </Button>
+                <TextInput
+                  label="Rejection reason (optional)"
+                  value={rejectionReasons[t.id] ?? ""}
+                  onChange={(e) => setRejectionReasons((r) => ({ ...r, [t.id]: e.target.value }))}
+                />
+                <Button variant="danger" disabled={busyId === t.id} onClick={() => void decideTranslation(t.id, "reject")}>
+                  Reject translation
+                </Button>
+              </div>
+            ) : null}
+          </Card>
+        ))
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)", marginTop: "var(--space-sm)" }}>
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as "hi" | "te" | "ur")}
+          style={{ padding: "var(--space-xs)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", color: "var(--color-text)" }}
+        >
+          <option value="hi">Hindi</option>
+          <option value="te">Telugu</option>
+          <option value="ur">Urdu</option>
+        </select>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={3}
+          placeholder="Translated text"
+          style={{ padding: "var(--space-sm)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", color: "var(--color-text)", font: "inherit" }}
+        />
+        <Button disabled={busyId === "new" || !body} onClick={() => void proposeTranslation()}>
+          Propose translation
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 interface ContentDetail {
   id: string;
   kind: string;
-  ingredient: { id: string; name: string };
+  ingredient: { id: string; name: string } | null;
+  product: { id: string; genericName: string; brand: { name: string } | null } | null;
   currentVersion: VersionDetail | null;
   versions: VersionDetail[];
+}
+
+function subjectName(content: ContentDetail): string {
+  if (content.ingredient) return content.ingredient.name;
+  if (content.product) return `${content.product.brand?.name ?? content.product.genericName} (combination)`;
+  return "Unknown";
 }
 
 export default function ContentDetailPage() {
@@ -84,7 +209,7 @@ export default function ContentDetailPage() {
     <AdminShell>
       <Button variant="ghost" onClick={() => router.replace("/content")}>← Back to content</Button>
       <h1 style={{ fontSize: "var(--font-title)" }}>
-        {content.ingredient.name} — {KIND_LABELS[content.kind] ?? content.kind}
+        {subjectName(content)} — {KIND_LABELS[content.kind] ?? content.kind}
       </h1>
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
@@ -99,7 +224,7 @@ export default function ContentDetailPage() {
         </Card>
       ) : (
         <Card tone="warning">
-          <span style={{ color: "var(--color-text-muted)" }}>Nothing approved yet — patients see the standard "not available" fallback for this ingredient.</span>
+          <span style={{ color: "var(--color-text-muted)" }}>Nothing approved yet — patients see the standard "not available" fallback for this {content.ingredient ? "ingredient" : "combination product"}.</span>
         </Card>
       )}
 
@@ -146,6 +271,8 @@ export default function ContentDetailPage() {
               </Button>
             </div>
           ) : null}
+
+          {v.reviewStatus === "approved" ? <TranslationsPanel version={v} onChanged={load} /> : null}
         </Card>
       ))}
     </AdminShell>

@@ -1,27 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
-import { CLINICAL_CONTENT_KINDS, ERROR_CODES, type ClinicalContentKind } from "@medpass/domain";
+import { CLINICAL_CONTENT_KINDS, ERROR_CODES, type ClinicalContentKind, type Locale } from "@medpass/domain";
 import type { CreateMedicationInput, RecordRefillInput, UpdateMedicationInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
-
-interface ClinicalContentEntry {
-  text: string;
-  sourceCitation: string;
-  sourceUrl: string | null;
-  lastReviewedAt: string | null;
-}
-
-/** docs/07 screen 19's separate labeled blocks — API DTO uses camelCase, kind enum values are snake_case. */
-const CLINICAL_CONTENT_DTO_KEYS: Record<ClinicalContentKind, string> = {
-  education: "education",
-  storage: "storage",
-  warning_symptoms: "warningSymptoms",
-  food_alcohol: "foodAlcohol",
-  missed_dose: "missedDose",
-};
+import { ClinicalContentLookupService, CLINICAL_CONTENT_DTO_KEYS, type ClinicalContentEntry } from "../clinical-content/clinical-content-lookup.service";
 
 interface Actor {
   userId: string;
@@ -47,6 +32,7 @@ export class MedicationsService {
     private readonly prisma: PrismaService,
     private readonly scheduling: SchedulingService,
     private readonly safety: SafetyEvaluationService,
+    private readonly clinicalContent: ClinicalContentLookupService,
   ) {}
 
   async list(profileId: string, status?: string) {
@@ -61,8 +47,8 @@ export class MedicationsService {
       include: MEDICATION_INCLUDE,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     });
-    const clinicalContentByIngredientId = await this.loadClinicalContent(medications);
-    return medications.map((m) => this.toDto(m, clinicalContentByIngredientId));
+    const content = await this.loadClinicalContent(profileId, medications);
+    return medications.map((m) => this.toDto(m, content));
   }
 
   async byId(profileId: string, id: string) {
@@ -71,22 +57,31 @@ export class MedicationsService {
       include: MEDICATION_INCLUDE,
     });
     if (!medication) return null;
-    const clinicalContentByIngredientId = await this.loadClinicalContent([medication]);
-    return this.toDto(medication, clinicalContentByIngredientId);
+    const content = await this.loadClinicalContent(profileId, [medication]);
+    return this.toDto(medication, content);
   }
 
   /**
-   * Batches a single lookup of every approved clinical-content kind
-   * (docs/07 screen 19's separate labeled blocks) across every distinct
-   * ingredient in the given medications — one extra query per list()/byId()
-   * call, never one per medication (no N+1). Only single-ingredient
-   * products are looked up: joining independently reviewed single-
-   * ingredient texts for a combination product could imply something never
-   * actually reviewed for that combination (docs/34).
+   * Batches lookups of every approved clinical-content kind (docs/07 screen
+   * 19's separate labeled blocks) across every distinct ingredient/product
+   * in the given medications — at most two extra queries per list()/byId()
+   * call (via `ClinicalContentLookupService`), never one per medication (no
+   * N+1). Single-ingredient products are looked up by ingredient;
+   * combination products are looked up by product — never the union of
+   * their ingredients' individual content, since that could imply something
+   * never actually reviewed for that specific combination (docs/34). The
+   * profile's own `preferredLocale` (not the viewing user's — a caregiver's
+   * own UI language shouldn't determine what language the *patient's*
+   * medical content shows in) prefers an approved translation when one
+   * exists, always falling back to English otherwise.
    */
   private async loadClinicalContent(
-    medications: Array<{ product: { isCombination: boolean; ingredients: Array<{ ingredient: { id: string } }> } | null }>,
-  ): Promise<Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>> {
+    profileId: string,
+    medications: Array<{ product: { id: string; isCombination: boolean; ingredients: Array<{ ingredient: { id: string } }> } | null }>,
+  ): Promise<{
+    byIngredientId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>;
+    byProductId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>;
+  }> {
     const ingredientIds = [
       ...new Set(
         medications
@@ -94,25 +89,14 @@ export class MedicationsService {
           .flatMap((m) => m.product!.ingredients.map((i) => i.ingredient.id)),
       ),
     ];
-    const map = new Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>();
-    if (ingredientIds.length === 0) return map;
-
-    const rows = await this.prisma.clinicalContent.findMany({
-      where: { ingredientId: { in: ingredientIds }, currentVersionId: { not: null } },
-      include: { currentVersion: true },
-    });
-    for (const row of rows) {
-      if (!row.currentVersion) continue;
-      const byKind = map.get(row.ingredientId) ?? {};
-      byKind[row.kind] = {
-        text: row.currentVersion.body,
-        sourceCitation: row.currentVersion.sourceCitation,
-        sourceUrl: row.currentVersion.sourceUrl,
-        lastReviewedAt: row.currentVersion.decidedAt?.toISOString() ?? null,
-      };
-      map.set(row.ingredientId, byKind);
-    }
-    return map;
+    const productIds = [...new Set(medications.filter((m) => m.product?.isCombination).map((m) => m.product!.id))];
+    const profile = await this.prisma.patientProfile.findUniqueOrThrow({ where: { id: profileId }, select: { preferredLocale: true } });
+    const locale = profile.preferredLocale as Locale;
+    const [byIngredientId, byProductId] = await Promise.all([
+      this.clinicalContent.forIngredients(ingredientIds, CLINICAL_CONTENT_KINDS, locale),
+      this.clinicalContent.forProducts(productIds, CLINICAL_CONTENT_KINDS, locale),
+    ]);
+    return { byIngredientId, byProductId };
   }
 
   async create(profileId: string, input: CreateMedicationInput, actor: Actor) {
@@ -120,6 +104,7 @@ export class MedicationsService {
     // unmatched until the (Stage 6) normalization pipeline proposes a match.
     let enteredName = input.enteredName ?? "";
     let ingredientIds: string[] = [];
+    let combinationProductId: string | undefined;
     if (input.productId) {
       const product = await this.prisma.medicationProduct.findFirst({
         where: { id: input.productId, status: "active" },
@@ -128,6 +113,11 @@ export class MedicationsService {
       if (!product) throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown medicine selected", 400);
       enteredName = input.enteredName ?? product.brand?.name ?? product.genericName;
       ingredientIds = [...new Set(product.ingredients.map((i) => i.ingredientId))];
+      // Product-keyed enrichment is capped at exactly 2 ingredients — a
+      // 3-ingredient combination silently gets no product-level draft, the
+      // correct, safe outcome (never a wrong guess). Its own ingredients'
+      // individual content still gets enriched via the loop below either way.
+      if (product.isCombination && ingredientIds.length === 2) combinationProductId = product.id;
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -206,11 +196,11 @@ export class MedicationsService {
     // a draft; nothing reaches a patient without a human reviewer's
     // approval. Trigger lives on create() only — a medication's catalog
     // link never changes on update().
-    await this.enqueueContentEnrichment(ingredientIds);
+    await this.enqueueContentEnrichment(ingredientIds, combinationProductId);
     return (await this.byId(profileId, created.id))!;
   }
 
-  private async enqueueContentEnrichment(ingredientIds: string[]): Promise<void> {
+  private async enqueueContentEnrichment(ingredientIds: string[], combinationProductId?: string): Promise<void> {
     for (const ingredientId of ingredientIds) {
       for (const kind of CLINICAL_CONTENT_KINDS) {
         const jobKey = `content-enrichment:${kind}:${ingredientId}`;
@@ -224,6 +214,19 @@ export class MedicationsService {
           data: { queue: "content_enrichment", jobKey, payload: { ingredientId, kind } },
         });
       }
+    }
+    if (!combinationProductId) return;
+    for (const kind of CLINICAL_CONTENT_KINDS) {
+      const jobKey = `content-enrichment:${kind}:product:${combinationProductId}`;
+      const existingJob = await this.prisma.backgroundJob.findUnique({ where: { jobKey } });
+      if (existingJob) continue;
+      const existingContent = await this.prisma.clinicalContent.findUnique({
+        where: { kind_productId: { kind, productId: combinationProductId } },
+      });
+      if (existingContent) continue;
+      await this.prisma.backgroundJob.create({
+        data: { queue: "content_enrichment", jobKey, payload: { productId: combinationProductId, kind } },
+      });
     }
   }
 
@@ -388,11 +391,17 @@ export class MedicationsService {
         durationDays: number | null;
       }>;
     },
-    clinicalContentByIngredientId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>> = new Map(),
+    content: {
+      byIngredientId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>;
+      byProductId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>;
+    } = { byIngredientId: new Map(), byProductId: new Map() },
   ) {
     const instruction = m.instructions[0];
-    const singleIngredientId = m.product && !m.product.isCombination ? m.product.ingredients[0]?.ingredient.id : undefined;
-    const byKind = singleIngredientId ? clinicalContentByIngredientId.get(singleIngredientId) : undefined;
+    const byKind = m.product
+      ? m.product.isCombination
+        ? content.byProductId.get(m.product.id)
+        : content.byIngredientId.get(m.product.ingredients[0]?.ingredient.id ?? "")
+      : undefined;
     const clinicalContent: Partial<Record<string, ClinicalContentEntry>> = {};
     if (byKind) {
       for (const kind of CLINICAL_CONTENT_KINDS) {

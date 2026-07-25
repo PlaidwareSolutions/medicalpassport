@@ -91,6 +91,7 @@ export const en = {
   "dose.correct.time_label": "When did you actually take it?",
   "dose.recorded": "Recorded",
   "dose.queued_offline": "Saved on this device — will sync once you're back online.",
+  "dose.missed_guidance.contact_reminder": "If you're unsure what to do, contact your doctor or pharmacist.",
 
   "meds.current": "Current medicines",
   "meds.previous": "Previous medicines",

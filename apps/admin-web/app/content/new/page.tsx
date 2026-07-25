@@ -23,7 +23,9 @@ const KIND_OPTIONS = [
  */
 export default function NewContentPage() {
   const router = useRouter();
+  const [subjectKind, setSubjectKind] = useState<"ingredient" | "product">("ingredient");
   const [ingredientId, setIngredientId] = useState("");
+  const [productId, setProductId] = useState("");
   const [kind, setKind] = useState<(typeof KIND_OPTIONS)[number]["value"]>("education");
   const [body, setBody] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -35,7 +37,8 @@ export default function NewContentPage() {
     setError(undefined);
     try {
       const res = await api.post<{ contentId: string }>("/admin/content", {
-        ingredientId,
+        ingredientId: subjectKind === "ingredient" ? ingredientId : undefined,
+        productId: subjectKind === "product" ? productId : undefined,
         kind,
         body,
         sourceUrl: sourceUrl || undefined,
@@ -55,7 +58,29 @@ export default function NewContentPage() {
       <Banner tone="info">Use this only when the automated pipeline found no reliable match. This still requires a second reviewer's approval before anything reaches a patient.</Banner>
 
       <SectionTitle>Fields</SectionTitle>
-      <TextInput label="Ingredient ID" value={ingredientId} onChange={(e) => setIngredientId(e.target.value)} />
+      <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+        <span>Applies to</span>
+        <select
+          value={subjectKind}
+          onChange={(e) => setSubjectKind(e.target.value as "ingredient" | "product")}
+          style={{
+            padding: "var(--space-sm)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-sm)",
+            background: "var(--color-surface)",
+            color: "var(--color-text)",
+            font: "inherit",
+          }}
+        >
+          <option value="ingredient">A single ingredient</option>
+          <option value="product">A combination product (exactly 2 ingredients)</option>
+        </select>
+      </label>
+      {subjectKind === "ingredient" ? (
+        <TextInput label="Ingredient ID" value={ingredientId} onChange={(e) => setIngredientId(e.target.value)} />
+      ) : (
+        <TextInput label="Product ID" value={productId} onChange={(e) => setProductId(e.target.value)} />
+      )}
       <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
         <span>Kind</span>
         <select
@@ -96,7 +121,11 @@ export default function NewContentPage() {
       <TextInput label="Source URL (optional)" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
 
       <div style={{ marginTop: "var(--space-lg)" }}>
-        <Button fullWidth disabled={busy || !ingredientId || !body} onClick={() => void submit()}>
+        <Button
+          fullWidth
+          disabled={busy || (subjectKind === "ingredient" ? !ingredientId : !productId) || !body}
+          onClick={() => void submit()}
+        >
           Submit proposal
         </Button>
       </div>

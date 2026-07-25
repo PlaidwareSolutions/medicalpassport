@@ -46,15 +46,38 @@ describe("API e2e", () => {
     const metformin = await prisma.medicationIngredient.findFirst({ where: { name: "Metformin" } });
     if (metformin) {
       await prisma.clinicalContent.updateMany({ where: { ingredientId: metformin.id }, data: { currentVersionId: null } });
+      await prisma.clinicalContentTranslation.deleteMany({ where: { version: { content: { ingredientId: metformin.id } } } });
       await prisma.clinicalContentVersion.deleteMany({ where: { content: { ingredientId: metformin.id } } });
       await prisma.clinicalContent.deleteMany({ where: { ingredientId: metformin.id } });
       await prisma.backgroundJob.deleteMany({
         where: { jobKey: { in: CLINICAL_CONTENT_KINDS.map((kind) => `content-enrichment:${kind}:${metformin.id}`) } },
       });
     }
+
+    // Same reset for the seed catalog's one real combination product
+    // (Telma-AM = Telmisartan + Amlodipine), this time product-keyed.
+    const telmaAm = await prisma.medicationBrand.findFirst({ where: { name: "Telma-AM" }, include: { products: true } });
+    const telmaAmProduct = telmaAm?.products[0];
+    if (telmaAmProduct) {
+      await prisma.clinicalContent.updateMany({ where: { productId: telmaAmProduct.id }, data: { currentVersionId: null } });
+      await prisma.clinicalContentTranslation.deleteMany({ where: { version: { content: { productId: telmaAmProduct.id } } } });
+      await prisma.clinicalContentVersion.deleteMany({ where: { content: { productId: telmaAmProduct.id } } });
+      await prisma.clinicalContent.deleteMany({ where: { productId: telmaAmProduct.id } });
+      await prisma.backgroundJob.deleteMany({
+        where: { jobKey: { in: CLINICAL_CONTENT_KINDS.map((kind) => `content-enrichment:${kind}:product:${telmaAmProduct.id}`) } },
+      });
+    }
   });
 
   afterAll(async () => {
+    // This suite creates one real, per-run-uniquely-emailed AdminUser to
+    // exercise the locale-translation-fallback test above (never covered by
+    // the TRUNCATE above, which doesn't touch admin_users/PHI-adjacent
+    // tables at all in this file) — clean it up so it doesn't accumulate.
+    const translators = await prisma.adminUser.findMany({ where: { email: { startsWith: "e2e-locale-translator-" } }, select: { id: true } });
+    const translatorIds = translators.map((t) => t.id);
+    await prisma.clinicalContentTranslation.deleteMany({ where: { translatedByAdminUserId: { in: translatorIds } } });
+    await prisma.adminUser.deleteMany({ where: { id: { in: translatorIds } } });
     await app.close();
   });
 
@@ -242,6 +265,96 @@ describe("API e2e", () => {
     expect(after.body.clinicalContent.warningSymptoms).toBeUndefined();
     expect(after.body.clinicalContent.foodAlcohol).toBeUndefined();
     expect(after.body.clinicalContent.missedDose).toBeUndefined();
+  });
+
+  it("prefers an approved translation for the profile's own locale over the English body, and still falls back to English when no translation exists", async () => {
+    // profileA was created above with preferredLocale: "te" (Telugu).
+    const beforeTranslation = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(beforeTranslation.body.clinicalContent.education.text).toContain("blood sugar");
+    expect(beforeTranslation.body.clinicalContent.education.locale).toBeUndefined();
+
+    const ingredient = await prisma.medicationIngredient.findFirstOrThrow({ where: { name: "Metformin" } });
+    const content = await prisma.clinicalContent.findUniqueOrThrow({ where: { kind_ingredientId: { kind: "education", ingredientId: ingredient.id } } });
+    const version = await prisma.clinicalContentVersion.findUniqueOrThrow({ where: { id: content.currentVersionId! } });
+    const translator = await prisma.adminUser.create({
+      data: { email: `e2e-locale-translator-${Date.now()}@test.com`, passwordHash: "unused", duties: ["content_translate"] },
+    });
+    const translation = await prisma.clinicalContentTranslation.create({
+      data: {
+        versionId: version.id,
+        locale: "te",
+        body: "మధుమేహంలో రక్తంలో చక్కెరను నియంత్రించడానికి మెట్‌ఫార్మిన్ ఉపయోగించబడుతుంది.",
+        translatedByAdminUserId: translator.id,
+        reviewStatus: "approved",
+        decidedByAdminUserId: translator.id,
+        decidedAt: new Date(),
+      },
+    });
+
+    const afterTranslation = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(afterTranslation.body.clinicalContent.education.text).toBe(translation.body);
+    expect(afterTranslation.body.clinicalContent.education.locale).toBe("te");
+    // Provenance (citation/reviewed date) still reflects the underlying English version, not the translation.
+    expect(afterTranslation.body.clinicalContent.education.sourceCitation).toContain("e2e-test-set");
+  });
+
+  it("a combination-product medicine enqueues product-keyed jobs (not just per-ingredient ones), and only shows product-keyed approved content, never its ingredients' individual content", async () => {
+    const search = await auth(tokenA)(request(app.getHttpServer()).get("/v1/catalog/products?q=Telma-AM")).expect(200);
+    expect(search.body.items[0].isCombination).toBe(true);
+    const productId = search.body.items[0].id;
+
+    const med = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({ productId, source: "search", instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" } })
+      .expect(201);
+    expect(med.body.clinicalContent).toEqual({});
+
+    const productJobs = await prisma.backgroundJob.findMany({
+      where: { jobKey: { in: CLINICAL_CONTENT_KINDS.map((kind) => `content-enrichment:${kind}:product:${productId}`) } },
+    });
+    expect(productJobs).toHaveLength(CLINICAL_CONTENT_KINDS.length);
+    expect(productJobs.every((j) => (j.payload as { productId: string }).productId === productId)).toBe(true);
+
+    // Approve product-keyed content...
+    const content = await prisma.clinicalContent.upsert({
+      where: { kind_productId: { kind: "education", productId } },
+      create: { kind: "education", productId },
+      update: {},
+    });
+    const version = await prisma.clinicalContentVersion.create({
+      data: {
+        contentId: content.id,
+        body: "This fixed-dose combination is used to treat high blood pressure.",
+        sourceKind: "daily_med",
+        sourceCitation: "openFDA/DailyMed structured product label, set id e2e-combo-test, fetched 2026-01-01",
+        reviewStatus: "approved",
+        decidedAt: new Date("2026-01-02"),
+      },
+    });
+    await prisma.clinicalContent.update({ where: { id: content.id }, data: { currentVersionId: version.id } });
+
+    // ...and also approve one of its ingredients' own individual content, to
+    // prove the medicine detail response never leaks that in instead.
+    const telmisartan = await prisma.medicationIngredient.findFirstOrThrow({ where: { name: "Telmisartan" } });
+    const ingredientContent = await prisma.clinicalContent.upsert({
+      where: { kind_ingredientId: { kind: "education", ingredientId: telmisartan.id } },
+      create: { kind: "education", ingredientId: telmisartan.id },
+      update: {},
+    });
+    const ingredientVersion = await prisma.clinicalContentVersion.create({
+      data: {
+        contentId: ingredientContent.id,
+        body: "Telmisartan-only text that must never leak into the combination product's response.",
+        sourceKind: "daily_med",
+        sourceCitation: "openFDA/DailyMed structured product label, set id e2e-telmisartan-only-2, fetched 2026-01-01",
+        reviewStatus: "approved",
+        decidedAt: new Date("2026-01-02"),
+      },
+    });
+    await prisma.clinicalContent.update({ where: { id: ingredientContent.id }, data: { currentVersionId: ingredientVersion.id } });
+
+    const after = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${med.body.id}`)).expect(200);
+    expect(after.body.clinicalContent.education.text).toContain("high blood pressure");
+    expect(after.body.clinicalContent.education.sourceCitation).toContain("e2e-combo-test");
   });
 
   it("creates and edits a non-tablet medicine (e.g. a syrup dosed in ml)", async () => {

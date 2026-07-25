@@ -51,6 +51,8 @@ describe("decideAdminAccess", () => {
       "read_content",
       "propose_content_change",
       "decide_content_change",
+      "propose_content_translation",
+      "decide_content_translation",
       "search_audit",
       "replay_job",
       "revoke_share",
@@ -81,6 +83,13 @@ describe("decideAdminAccess", () => {
     expect(decideAdminAccess(["content_write"], "propose_content_change")).toBe(true);
     expect(decideAdminAccess(["content_write"], "decide_content_change")).toBe(false);
     expect(decideAdminAccess(["content_approve"], "decide_content_change")).toBe(true);
+  });
+
+  it("content_translate proposes translations; deciding a translation reuses content_approve, not a separate duty", () => {
+    expect(decideAdminAccess(["content_write"], "propose_content_translation")).toBe(false);
+    expect(decideAdminAccess(["content_translate"], "propose_content_translation")).toBe(true);
+    expect(decideAdminAccess(["content_translate"], "decide_content_translation")).toBe(false);
+    expect(decideAdminAccess(["content_approve"], "decide_content_translation")).toBe(true);
   });
 
   it("incident_response grants both job replay and share revoke", () => {

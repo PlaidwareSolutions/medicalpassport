@@ -13,6 +13,17 @@ const KIND_LABELS: Record<string, string> = {
   missed_dose: "Missed dose",
 };
 
+interface Subject {
+  ingredient: { name: string } | null;
+  product: { genericName: string; brand: { name: string } | null } | null;
+}
+
+function subjectLabel(s: Subject): string {
+  if (s.ingredient) return `Ingredient: ${s.ingredient.name}`;
+  if (s.product) return `Product: ${s.product.brand?.name ?? s.product.genericName} (combination)`;
+  return "Unknown";
+}
+
 interface VersionRow {
   id: string;
   body: string;
@@ -20,13 +31,12 @@ interface VersionRow {
   lowConfidence: boolean;
   reviewStatus: string;
   createdAt: string;
-  content: { id: string; kind: string; ingredient: { name: string } };
+  content: { id: string; kind: string } & Subject;
 }
 
-interface ContentRow {
+interface ContentRow extends Subject {
   id: string;
   kind: string;
-  ingredient: { name: string };
   currentVersion: { body: string; decidedAt: string | null } | null;
   _count: { versions: number };
 }
@@ -55,7 +65,7 @@ export default function ContentPage() {
   }, []);
 
   const queueColumns: TableColumn<VersionRow>[] = [
-    { key: "ingredient", header: "Ingredient", render: (r) => r.content.ingredient.name },
+    { key: "subject", header: "Subject", render: (r) => subjectLabel(r.content) },
     { key: "kind", header: "Kind", render: (r) => KIND_LABELS[r.content.kind] ?? r.content.kind },
     {
       key: "source",
@@ -76,7 +86,7 @@ export default function ContentPage() {
   ];
 
   const allColumns: TableColumn<ContentRow>[] = [
-    { key: "ingredient", header: "Ingredient", render: (r) => r.ingredient.name },
+    { key: "subject", header: "Subject", render: (r) => subjectLabel(r) },
     { key: "kind", header: "Kind", render: (r) => KIND_LABELS[r.kind] ?? r.kind },
     { key: "status", header: "Live content", render: (r) => (r.currentVersion ? "Approved — shown to patients" : "None approved yet") },
     { key: "pending", header: "Drafts awaiting review", render: (r) => String(r._count.versions) },
@@ -110,7 +120,7 @@ export default function ContentPage() {
               cursor: "pointer",
             }}
           >
-            {t === "queue" ? "Review queue" : "All ingredients"}
+            {t === "queue" ? "Review queue" : "All content"}
           </button>
         ))}
       </div>

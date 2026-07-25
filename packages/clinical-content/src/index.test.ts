@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { extractForKind, fetchClinicalContent, pickBestLabel } from "./index.js";
+import { extractForKind, fetchClinicalContent, fetchCombinationClinicalContent, matchesCombination, pickBestCombinationLabel, pickBestLabel } from "./index.js";
 
 function mockFetchOnce(status: number, body: unknown) {
   const fetchMock = vi.fn().mockResolvedValue({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -163,5 +163,120 @@ describe("fetchClinicalContent", () => {
   it("throws on a 5xx/429 response instead of returning null, so job-queue retry can distinguish it from 'no data'", async () => {
     mockFetchOnce(429, { error: "rate limited" });
     await expect(fetchClinicalContent("education", "Metformin")).rejects.toThrow(/openfda_http_429/);
+  });
+});
+
+// Real, live-confirmed shape: openFDA has an actual "TELMISARTAN AND
+// AMLODIPINE" combination label with substance_name ["TELMISARTAN",
+// "AMLODIPINE BESYLATE"] — the seed catalog's one real combination product
+// (Telma-AM) is exactly this pair.
+const TELMA_AM_LABEL = {
+  id: "combo-label-1",
+  set_id: "set-telma-am-1",
+  effective_time: "20240601",
+  indications_and_usage: ["Telmisartan and amlodipine tablets are indicated for the treatment of hypertension."],
+  openfda: { generic_name: ["TELMISARTAN AND AMLODIPINE"], substance_name: ["TELMISARTAN", "AMLODIPINE BESYLATE"] },
+};
+
+describe("matchesCombination / pickBestCombinationLabel (pure, no network)", () => {
+  it("matches the real Telma-AM label against its own two ingredient names, salt-form suffix and all", () => {
+    expect(matchesCombination(TELMA_AM_LABEL, ["Telmisartan", "Amlodipine"])).toBe(true);
+  });
+
+  it("rejects a label whose substance count doesn't match the product's ingredient count", () => {
+    expect(matchesCombination(TELMA_AM_LABEL, ["Telmisartan", "Amlodipine", "Hydrochlorothiazide"])).toBe(false);
+    expect(matchesCombination(SINGLE_INGREDIENT_LABEL, ["Telmisartan", "Amlodipine"])).toBe(false);
+  });
+
+  it("rejects an ambiguous existential-only match that has no valid one-to-one pairing", () => {
+    // "A" and "AB" each prefix-match "ABC" individually, but neither
+    // prefix-matches "XYZ" — an existential check ("each name matches
+    // something") would wrongly pass; a true bijection correctly can't
+    // pair both names to two distinct substances, so it must fail.
+    const ambiguousLabel = { ...TELMA_AM_LABEL, openfda: { substance_name: ["ABC", "XYZ"] } };
+    expect(matchesCombination(ambiguousLabel, ["A", "AB"])).toBe(false);
+  });
+
+  it("rejects a label with no openfda block", () => {
+    expect(matchesCombination({ ...TELMA_AM_LABEL, openfda: undefined }, ["Telmisartan", "Amlodipine"])).toBe(false);
+  });
+
+  it("pickBestCombinationLabel filters a mixed response down to only the matching combination, ignoring unrelated single-ingredient and other-combination labels", () => {
+    const wrongCombo = { ...TELMA_AM_LABEL, id: "wrong", set_id: "set-wrong", openfda: { substance_name: ["TELMISARTAN", "HYDROCHLOROTHIAZIDE"] } };
+    const result = pickBestCombinationLabel({ results: [SINGLE_INGREDIENT_LABEL, wrongCombo, TELMA_AM_LABEL] }, ["Telmisartan", "Amlodipine"]);
+    expect(result?.set_id).toBe("set-telma-am-1");
+  });
+
+  it("prefers the most recently effective matching label", () => {
+    const older = { ...TELMA_AM_LABEL, set_id: "set-older", effective_time: "20100101" };
+    const newer = { ...TELMA_AM_LABEL, set_id: "set-newer", effective_time: "20250601" };
+    const result = pickBestCombinationLabel({ results: [older, newer] }, ["Telmisartan", "Amlodipine"]);
+    expect(result?.set_id).toBe("set-newer");
+  });
+});
+
+describe("fetchCombinationClinicalContent", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns null (hard cap) for anything other than exactly 2 ingredients", async () => {
+    const three = await fetchCombinationClinicalContent("education", [
+      { name: "Telmisartan", synonyms: [] },
+      { name: "Amlodipine", synonyms: [] },
+      { name: "Hydrochlorothiazide", synonyms: [] },
+    ]);
+    expect(three).toBeNull();
+    const one = await fetchCombinationClinicalContent("education", [{ name: "Telmisartan", synonyms: [] }]);
+    expect(one).toBeNull();
+  });
+
+  it("finds the combination label via the first ingredient's own name search, reusing the same per-name query loop", async () => {
+    mockFetchOnce(200, { results: [TELMA_AM_LABEL] });
+    const result = await fetchCombinationClinicalContent("education", [
+      { name: "Telmisartan", synonyms: [] },
+      { name: "Amlodipine", synonyms: [] },
+    ]);
+    expect(result).not.toBeNull();
+    expect(result!.text).toContain("hypertension");
+    expect(result!.sourceCitation).toContain("set-telma-am-1");
+  });
+
+  it("falls back to the second ingredient's name, and then to synonyms, when the first ingredient's own searches find nothing", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      if (url.toLowerCase().includes("telmisartan")) return { ok: true, status: 200, json: async () => ({ results: [] }) };
+      if (url.toLowerCase().includes("amlodipine-synonym")) return { ok: true, status: 200, json: async () => ({ results: [TELMA_AM_LABEL] }) };
+      return { ok: true, status: 200, json: async () => ({ results: [] }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchCombinationClinicalContent("education", [
+      { name: "Telmisartan", synonyms: [] },
+      { name: "Amlodipine", synonyms: ["Amlodipine-Synonym"] },
+    ]);
+    expect(result).not.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns null when no query surfaces a validated match for this exact pair", async () => {
+    mockFetchOnce(200, { results: [SINGLE_INGREDIENT_LABEL] });
+    const result = await fetchCombinationClinicalContent("education", [
+      { name: "Telmisartan", synonyms: [] },
+      { name: "Amlodipine", synonyms: [] },
+    ]);
+    expect(result).toBeNull();
+  });
+
+  it("marks food_alcohol/missed_dose extraction from a combination label lowConfidence too, same as single-ingredient", async () => {
+    const comboWithPatientInfo = {
+      ...TELMA_AM_LABEL,
+      information_for_patients: ["Avoid excessive alcohol intake while taking this combination."],
+    };
+    mockFetchOnce(200, { results: [comboWithPatientInfo] });
+    const result = await fetchCombinationClinicalContent("food_alcohol", [
+      { name: "Telmisartan", synonyms: [] },
+      { name: "Amlodipine", synonyms: [] },
+    ]);
+    expect(result!.lowConfidence).toBe(true);
   });
 });

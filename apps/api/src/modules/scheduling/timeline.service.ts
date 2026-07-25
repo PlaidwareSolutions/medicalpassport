@@ -1,10 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { Prisma } from "@medpass/database";
-import { ERROR_CODES, type AuditActorType } from "@medpass/domain";
+import { ERROR_CODES, type AuditActorType, type Locale } from "@medpass/domain";
 import type { RecordDoseEventInput, RecordPrnDoseEventInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
+import { ClinicalContentLookupService, type ClinicalContentEntry } from "../clinical-content/clinical-content-lookup.service";
 
 const SCHEDULE_TIMEZONE_OFFSET = "+05:30"; // matches SchedulingService (docs/16 simplification)
 
@@ -21,12 +22,22 @@ export interface TimelineItem {
     name: string;
     doseUnit: string;
     foodInstruction: string;
+    /**
+     * Approved missed-dose guidance (docs/07 screen 26) — only populated for
+     * `status === "missed"` items on single-ingredient products, and only
+     * once a clinical reviewer has approved content for that ingredient.
+     * Never a generic "double the next dose"-style default.
+     */
+    missedDoseGuidance?: ClinicalContentEntry | null;
   };
 }
 
 @Injectable()
 export class TimelineService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly clinicalContent: ClinicalContentLookupService,
+  ) {}
 
   /**
    * Auto-decrements the patient-entered supply snapshot when a dose is
@@ -59,28 +70,48 @@ export class TimelineService {
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
     const now = new Date();
 
-    const doses = await this.prisma.scheduledDose.findMany({
-      where: {
-        dueAt: { gte: dayStart, lt: dayEnd },
-        medicationSchedule: {
-          status: "active",
-          patientMedication: { patientProfileId: profileId, deletedAt: null },
+    const [doses, profile] = await Promise.all([
+      this.prisma.scheduledDose.findMany({
+        where: {
+          dueAt: { gte: dayStart, lt: dayEnd },
+          medicationSchedule: {
+            status: "active",
+            patientMedication: { patientProfileId: profileId, deletedAt: null },
+          },
         },
-      },
-      include: {
-        medicationSchedule: {
-          include: {
-            patientMedication: {
-              include: {
-                product: { include: { brand: true } },
-                instructions: { where: { supersededAt: null }, take: 1 },
+        include: {
+          medicationSchedule: {
+            include: {
+              patientMedication: {
+                include: {
+                  product: { include: { brand: true, ingredients: { include: { ingredient: true } } } },
+                  instructions: { where: { supersededAt: null }, take: 1 },
+                },
               },
             },
           },
         },
-      },
-      orderBy: { dueAt: "asc" },
-    });
+        orderBy: { dueAt: "asc" },
+      }),
+      this.prisma.patientProfile.findUniqueOrThrow({ where: { id: profileId }, select: { preferredLocale: true } }),
+    ]);
+
+    // Missed-dose guidance (docs/07 screen 26) — only for single-ingredient
+    // products (ingredient-keyed) and exactly-2-ingredient combinations
+    // (product-keyed); never the union of a combination's own ingredients'
+    // individual content (docs/34).
+    const missedMeds = doses.filter((d) => d.status === "missed").map((d) => d.medicationSchedule.patientMedication);
+    const singleIngredientIds = [
+      ...new Set(
+        missedMeds.filter((m) => m.product && !m.product.isCombination).flatMap((m) => m.product!.ingredients.map((i) => i.ingredient.id)),
+      ),
+    ];
+    const combinationProductIds = [...new Set(missedMeds.filter((m) => m.product?.isCombination).map((m) => m.product!.id))];
+    const locale = profile.preferredLocale as Locale;
+    const [missedDoseByIngredientId, missedDoseByProductId] = await Promise.all([
+      this.clinicalContent.forIngredients(singleIngredientIds, ["missed_dose"], locale),
+      this.clinicalContent.forProducts(combinationProductIds, ["missed_dose"], locale),
+    ]);
 
     const items: TimelineItem[] = doses.map((d) => {
       const med = d.medicationSchedule.patientMedication;
@@ -88,6 +119,13 @@ export class TimelineService {
       const dueNow =
         (d.status === "upcoming" && d.dueAt <= now) ||
         (d.status === "snoozed" && !!d.snoozedUntil && d.snoozedUntil <= now);
+      let missedDoseGuidance: ClinicalContentEntry | null | undefined;
+      if (d.status === "missed" && med.product) {
+        const byKind = med.product.isCombination
+          ? missedDoseByProductId.get(med.product.id)
+          : missedDoseByIngredientId.get(med.product.ingredients[0]?.ingredient.id ?? "");
+        missedDoseGuidance = byKind?.missed_dose ?? null;
+      }
       return {
         scheduledDoseId: d.id,
         dueAt: d.dueAt.toISOString(),
@@ -101,6 +139,7 @@ export class TimelineService {
           name: med.product?.brand?.name ?? med.enteredName,
           doseUnit: instruction?.doseUnit ?? "",
           foodInstruction: instruction?.foodInstruction ?? "any",
+          ...(d.status === "missed" ? { missedDoseGuidance } : {}),
         },
       };
     });

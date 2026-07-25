@@ -40,15 +40,27 @@ describe("Admin content e2e", () => {
   afterAll(async () => {
     const ingredients = await prisma.medicationIngredient.findMany({ where: { name: { startsWith: PREFIX } }, select: { id: true } });
     const ingredientIds = ingredients.map((i) => i.id);
+    const products = await prisma.medicationProduct.findMany({ where: { genericName: { startsWith: PREFIX } }, select: { id: true } });
+    const productIds = products.map((p) => p.id);
     await prisma.clinicalContent.updateMany({ where: { ingredientId: { in: ingredientIds } }, data: { currentVersionId: null } });
+    await prisma.clinicalContent.updateMany({ where: { productId: { in: productIds } }, data: { currentVersionId: null } });
+    await prisma.clinicalContentTranslation.deleteMany({ where: { version: { content: { ingredientId: { in: ingredientIds } } } } });
+    await prisma.clinicalContentTranslation.deleteMany({ where: { version: { content: { productId: { in: productIds } } } } });
     await prisma.clinicalContentVersion.deleteMany({ where: { content: { ingredientId: { in: ingredientIds } } } });
+    await prisma.clinicalContentVersion.deleteMany({ where: { content: { productId: { in: productIds } } } });
     await prisma.clinicalContent.deleteMany({ where: { ingredientId: { in: ingredientIds } } });
+    await prisma.clinicalContent.deleteMany({ where: { productId: { in: productIds } } });
+    await prisma.medicationProduct.deleteMany({ where: { genericName: { startsWith: PREFIX } } });
     await prisma.medicationIngredient.deleteMany({ where: { name: { startsWith: PREFIX } } });
     await app.close();
   });
 
   async function createIngredient(suffix: string) {
     return prisma.medicationIngredient.create({ data: { name: `${PREFIX}${suffix}` } });
+  }
+
+  async function createProduct(suffix: string) {
+    return prisma.medicationProduct.create({ data: { genericName: `${PREFIX}${suffix}` } });
   }
 
   async function createAdmin(email: string, duties: string[] = ["content_write", "content_approve"]) {
@@ -263,6 +275,150 @@ describe("Admin content e2e", () => {
       .set("Cookie", noApproveCookies)
       .set("x-requested-with", "medpass")
       .send({ decision: "approve" })
+      .expect(403);
+  });
+
+  it("propose -> approve works keyed by productId too (combination-product content), and rejects both/neither of ingredientId+productId", async () => {
+    await prisma.$executeRawUnsafe(`TRUNCATE TABLE admin_sessions, admin_users CASCADE`);
+    const product = await createProduct("ComboProduct");
+    const admin = await createAdmin("content-product-solo@test.com");
+    const cookies = await fullSessionCookies(admin.id);
+
+    const neither = await request(app.getHttpServer())
+      .post("/v1/admin/content")
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ kind: "education", body: "Missing both keys." });
+    expect(neither.status).toBe(400);
+
+    const both = await request(app.getHttpServer())
+      .post("/v1/admin/content")
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ ingredientId: product.id, productId: product.id, kind: "education", body: "Both keys set." });
+    expect(both.status).toBe(400);
+
+    const propose = await request(app.getHttpServer())
+      .post("/v1/admin/content")
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ productId: product.id, kind: "education", body: "This fixed-dose combination is used to treat hypertension." })
+      .expect(201);
+
+    const decide = await request(app.getHttpServer())
+      .post(`/v1/admin/content/versions/${propose.body.id}/decide`)
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ decision: "approve" })
+      .expect(201);
+    expect(decide.body.reviewStatus).toBe("approved");
+
+    const content = await prisma.clinicalContent.findUnique({ where: { kind_productId: { kind: "education", productId: product.id } } });
+    expect(content?.currentVersionId).toBe(propose.body.id);
+
+    const detail = await request(app.getHttpServer())
+      .get(`/v1/admin/content/${content!.id}`)
+      .set("Cookie", cookies)
+      .expect(200);
+    expect(detail.body.product.id).toBe(product.id);
+    expect(detail.body.ingredient).toBeNull();
+  });
+
+  it("a translation can only be proposed for an already-approved version, not a draft", async () => {
+    const ingredient = await createIngredient("DraftForTranslation");
+    const admin = await createAdmin("content-translate-draft@test.com", ["content_write", "content_translate"]);
+    const cookies = await fullSessionCookies(admin.id);
+
+    const propose = await request(app.getHttpServer())
+      .post("/v1/admin/content")
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ ingredientId: ingredient.id, kind: "education", body: "Still a draft." })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/v1/admin/content/versions/${propose.body.id}/translations`)
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ locale: "hi", body: "अनुवाद" })
+      .expect(400);
+  });
+
+  it("propose -> approve a translation of an approved version; translator != approver enforced same as content itself", async () => {
+    const ingredient = await createIngredient("TranslatedMed");
+    const author = await createAdmin("content-translate-author@test.com");
+    const authorCookies = await fullSessionCookies(author.id);
+    const contentApprover = await createAdmin("content-translate-content-approver@test.com");
+    const contentApproverCookies = await fullSessionCookies(contentApprover.id);
+
+    const propose = await request(app.getHttpServer())
+      .post("/v1/admin/content")
+      .set("Cookie", authorCookies)
+      .set("x-requested-with", "medpass")
+      .send({ ingredientId: ingredient.id, kind: "education", body: "Used to treat high blood pressure." })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/v1/admin/content/versions/${propose.body.id}/decide`)
+      .set("Cookie", contentApproverCookies)
+      .set("x-requested-with", "medpass")
+      .send({ decision: "approve" })
+      .expect(201);
+
+    const translator = await createAdmin("content-translator@test.com", ["content_translate"]);
+    const translatorCookies = await fullSessionCookies(translator.id);
+    const translate = await request(app.getHttpServer())
+      .post(`/v1/admin/content/versions/${propose.body.id}/translations`)
+      .set("Cookie", translatorCookies)
+      .set("x-requested-with", "medpass")
+      .send({ locale: "hi", body: "उच्च रक्तचाप के इलाज के लिए उपयोग किया जाता है।" })
+      .expect(201);
+    expect(translate.body.reviewStatus).toBe("draft");
+
+    // The translator themself cannot approve their own translation (2+ active admins exist).
+    await request(app.getHttpServer())
+      .post(`/v1/admin/content/translations/${translate.body.id}/decide`)
+      .set("Cookie", translatorCookies)
+      .set("x-requested-with", "medpass")
+      .send({ decision: "approve" })
+      .expect(403);
+
+    const approver = await createAdmin("content-translation-approver@test.com");
+    const approverCookies = await fullSessionCookies(approver.id);
+    const decide = await request(app.getHttpServer())
+      .post(`/v1/admin/content/translations/${translate.body.id}/decide`)
+      .set("Cookie", approverCookies)
+      .set("x-requested-with", "medpass")
+      .send({ decision: "approve" })
+      .expect(201);
+    expect(decide.body.reviewStatus).toBe("approved");
+    expect(decide.body.isSoloApproval).toBe(false);
+  });
+
+  it("content_write alone cannot propose a translation — content_translate is a genuinely distinct duty", async () => {
+    const ingredient = await createIngredient("NoTranslateDuty");
+    const admin = await createAdmin("content-notranslate@test.com", ["content_write", "content_approve"]);
+    const cookies = await fullSessionCookies(admin.id);
+    const approver = await createAdmin("content-notranslate-approver@test.com");
+    const approverCookies = await fullSessionCookies(approver.id);
+
+    const propose = await request(app.getHttpServer())
+      .post("/v1/admin/content")
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ ingredientId: ingredient.id, kind: "education", body: "Some approved text." })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/v1/admin/content/versions/${propose.body.id}/decide`)
+      .set("Cookie", approverCookies)
+      .set("x-requested-with", "medpass")
+      .send({ decision: "approve" })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/v1/admin/content/versions/${propose.body.id}/translations`)
+      .set("Cookie", cookies)
+      .set("x-requested-with", "medpass")
+      .send({ locale: "hi", body: "अनुवाद" })
       .expect(403);
   });
 });

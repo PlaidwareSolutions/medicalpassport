@@ -2,50 +2,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ApiError, type ClinicalContentEntryDto } from "@medpass/api-client";
+import { ApiError } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
 import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { instructionSummary, useMedication } from "../../../lib/medications";
-
-/**
- * One docs/07 screen 19 labeled block — approved clinical content or the
- * mandated no-data fallback; source/last-reviewed provenance shown
- * alongside, never a bare claim.
- */
-function ClinicalContentBlock({
-  title,
-  entry,
-  emptyMessage,
-  t,
-}: {
-  title: string;
-  entry?: ClinicalContentEntryDto;
-  emptyMessage: string;
-  t: (key: string, params?: Record<string, string | number>) => string;
-}) {
-  return (
-    <>
-      <SectionTitle>{title}</SectionTitle>
-      <Card tone="info">
-        {entry ? (
-          <>
-            <span>{entry.text}</span>
-            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-              {t("meds.common_uses_source", { source: entry.sourceCitation })}
-              {entry.lastReviewedAt ? ` — ${t("meds.common_uses_reviewed", { date: new Date(entry.lastReviewedAt).toLocaleDateString() })}` : ""}
-            </div>
-          </>
-        ) : (
-          // No clinical reviewer has approved content for this medicine/kind yet — never fabricate.
-          <span>{emptyMessage}</span>
-        )}
-      </Card>
-    </>
-  );
-}
 
 /**
  * Screen 19: medication detail (docs/07). Each clinical-content kind is its

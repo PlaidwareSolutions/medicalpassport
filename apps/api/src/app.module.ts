@@ -34,6 +34,7 @@ import { CaregiversController } from "./modules/caregivers/caregivers.controller
 import { ClaimsController } from "./modules/claims/claims.controller";
 import { ConsentsController } from "./modules/consents/consents.controller";
 import { CatalogController } from "./modules/catalog/catalog.controller";
+import { ClinicalContentLookupService } from "./modules/clinical-content/clinical-content-lookup.service";
 import { MedicationsController } from "./modules/medications/medications.controller";
 import { MedicationsService } from "./modules/medications/medications.service";
 import { SchedulingController } from "./modules/scheduling/scheduling.controller";
@@ -101,6 +102,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminCatalogChangesService,
     AdminContentService,
     AdminIncidentsService,
+    ClinicalContentLookupService,
     MedicationsService,
     SchedulingService,
     TimelineService,

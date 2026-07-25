@@ -85,6 +85,11 @@ export type AdminDuty =
   // until a clinical lead is actually appointed and granted it.
   | "content_write"
   | "content_approve"
+  // Proposing a translation of already-approved content — distinct from
+  // content_write (translating existing approved text is a different
+  // authority than authoring new clinical facts). Deciding a translation
+  // reuses content_approve, not a separate duty.
+  | "content_translate"
   | "audit_search"
   | "incident_response"
   | "operations_view"
@@ -98,6 +103,8 @@ export type AdminAction =
   | "read_content"
   | "propose_content_change"
   | "decide_content_change"
+  | "propose_content_translation"
+  | "decide_content_translation"
   | "search_audit"
   | "replay_job"
   | "revoke_share"
@@ -111,6 +118,8 @@ const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   read_content: [], // any authenticated admin — non-PHI reference data
   propose_content_change: ["content_write"],
   decide_content_change: ["content_approve"],
+  propose_content_translation: ["content_translate"],
+  decide_content_translation: ["content_approve"],
   search_audit: ["audit_search"],
   replay_job: ["incident_response"],
   revoke_share: ["incident_response"],

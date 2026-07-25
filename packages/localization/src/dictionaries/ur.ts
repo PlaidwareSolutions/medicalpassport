@@ -90,6 +90,7 @@ export const ur: Record<keyof typeof en, string> = {
   "dose.correct.time_label": "آپ نے یہ اصل میں کب لی؟",
   "dose.recorded": "درج ہو گیا",
   "dose.queued_offline": "اس ڈیوائس پر محفوظ ہو گیا — آن لائن آتے ہی سنک ہو جائے گا۔",
+  "dose.missed_guidance.contact_reminder": "اگر آپ کو یقین نہیں کہ کیا کریں تو اپنے ڈاکٹر یا فارماسسٹ سے رابطہ کریں۔",
 
   "meds.current": "موجودہ دوائیں",
   "meds.previous": "پرانی دوائیں",

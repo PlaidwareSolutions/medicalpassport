@@ -2,6 +2,7 @@
 import { useId, useState } from "react";
 import type { TimelineItemDto } from "@medpass/api-client";
 import { Button, Card, Chip, TextInput } from "@medpass/ui-web";
+import { ClinicalContentBlock } from "./ClinicalContentBlock";
 import { useI18n } from "../lib/i18n";
 import { recordDoseEvent } from "../lib/timeline";
 
@@ -142,6 +143,14 @@ export function DoseCard({
         </div>
       ) : isMissed ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          <ClinicalContentBlock
+            title={t("meds.missed_dose")}
+            entry={item.medication.missedDoseGuidance}
+            emptyMessage={t("meds.missed_dose_empty")}
+            t={t as never}
+          />
+          {/* docs/07 screen 26: shown regardless of whether guidance exists — never just the empty-case wording. */}
+          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{t("dose.missed_guidance.contact_reminder")}</span>
           {showCorrection ? (
             <>
               <TextInput

@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
-import { decideContentChangeSchema, proposeContentChangeSchema } from "@medpass/validation";
+import {
+  decideContentChangeSchema,
+  proposeContentChangeSchema,
+  decideContentTranslationSchema,
+  proposeContentTranslationSchema,
+} from "@medpass/validation";
 import { Public } from "../../common/auth.guard";
 import { AdminAuthGuard } from "../../common/admin-auth.guard";
 import { requireAdminDuty } from "../../common/admin-access";
@@ -46,5 +51,19 @@ export class AdminContentController {
     requireAdminDuty(req, "decide_content_change");
     const input = parseWith(decideContentChangeSchema, body);
     return this.content.decide(id, input, req.adminAuth!.adminUserId, req.correlationId);
+  }
+
+  @Post("versions/:id/translations")
+  async proposeTranslation(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+    requireAdminDuty(req, "propose_content_translation");
+    const input = parseWith(proposeContentTranslationSchema, body);
+    return this.content.proposeTranslation(id, input, req.adminAuth!.adminUserId, req.correlationId);
+  }
+
+  @Post("translations/:id/decide")
+  async decideTranslation(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+    requireAdminDuty(req, "decide_content_translation");
+    const input = parseWith(decideContentTranslationSchema, body);
+    return this.content.decideTranslation(id, input, req.adminAuth!.adminUserId, req.correlationId);
   }
 }

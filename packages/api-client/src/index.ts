@@ -174,6 +174,8 @@ export interface ClinicalContentEntryDto {
   sourceCitation: string;
   sourceUrl: string | null;
   lastReviewedAt: string | null;
+  /** Set only when an approved translation for the patient's own locale is shown instead of the English body. */
+  locale?: string;
 }
 
 /** Each key present only when a reviewer has approved that kind for this medicine's (single) ingredient. */
@@ -228,6 +230,8 @@ export interface TimelineItemDto {
     name: string;
     doseUnit: string;
     foodInstruction: string;
+    /** Approved missed-dose guidance (docs/07 screen 26) — present only when status is "missed". */
+    missedDoseGuidance?: ClinicalContentEntryDto | null;
   };
 }
 
