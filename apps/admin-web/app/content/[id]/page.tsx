@@ -6,12 +6,21 @@ import { Banner, Button, Card, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AdminShell } from "../../../components/AdminShell";
 import { api } from "../../../lib/api";
 
+const KIND_LABELS: Record<string, string> = {
+  education: "Commonly used for",
+  storage: "Storage",
+  warning_symptoms: "Warning symptoms",
+  food_alcohol: "Food & alcohol",
+  missed_dose: "Missed dose",
+};
+
 interface VersionDetail {
   id: string;
   body: string;
   sourceKind: string;
   sourceCitation: string;
   sourceUrl: string | null;
+  lowConfidence: boolean;
   reviewStatus: string;
   isSoloApproval: boolean;
   rejectionReason: string | null;
@@ -74,7 +83,9 @@ export default function ContentDetailPage() {
   return (
     <AdminShell>
       <Button variant="ghost" onClick={() => router.replace("/content")}>← Back to content</Button>
-      <h1 style={{ fontSize: "var(--font-title)" }}>{content.ingredient.name}</h1>
+      <h1 style={{ fontSize: "var(--font-title)" }}>
+        {content.ingredient.name} — {KIND_LABELS[content.kind] ?? content.kind}
+      </h1>
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       <SectionTitle>Currently shown to patients</SectionTitle>
@@ -96,7 +107,14 @@ export default function ContentDetailPage() {
       {content.versions.map((v) => (
         <Card key={v.id} tone={v.reviewStatus === "approved" ? "default" : v.reviewStatus === "rejected" ? "danger" : "warning"}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <strong>{v.reviewStatus}</strong>
+            <strong>
+              {v.reviewStatus}
+              {v.lowConfidence ? (
+                <span style={{ color: "var(--color-warning)", marginLeft: "var(--space-sm)", fontWeight: 400 }}>
+                  ⚠ Low confidence — keyword-extracted, not a clean section grab
+                </span>
+              ) : null}
+            </strong>
             <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{new Date(v.createdAt).toLocaleString()}</span>
           </div>
           <p>{v.body}</p>

@@ -6,15 +6,25 @@ import { Banner, Button, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AdminShell } from "../../../components/AdminShell";
 import { api } from "../../../lib/api";
 
+const KIND_OPTIONS = [
+  { value: "education", label: "Commonly used for" },
+  { value: "storage", label: "Storage" },
+  { value: "warning_symptoms", label: "Warning symptoms" },
+  { value: "food_alcohol", label: "Food & alcohol" },
+  { value: "missed_dose", label: "Missed dose" },
+] as const;
+
 /**
- * Manual authoring path — for ingredients the automated openFDA pipeline
- * had no reliable match for. Still goes through the same review gate as a
- * system-drafted version, except maker != checker is enforced here (a human
- * proposed it, unlike a system draft with no "maker" to conflict with).
+ * Manual authoring path — for (ingredient, kind) pairs the automated
+ * openFDA pipeline had no reliable match for. Still goes through the same
+ * review gate as a system-drafted version, except maker != checker is
+ * enforced here (a human proposed it, unlike a system draft with no
+ * "maker" to conflict with).
  */
 export default function NewContentPage() {
   const router = useRouter();
   const [ingredientId, setIngredientId] = useState("");
+  const [kind, setKind] = useState<(typeof KIND_OPTIONS)[number]["value"]>("education");
   const [body, setBody] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,7 +36,7 @@ export default function NewContentPage() {
     try {
       const res = await api.post<{ contentId: string }>("/admin/content", {
         ingredientId,
-        kind: "education",
+        kind,
         body,
         sourceUrl: sourceUrl || undefined,
       });
@@ -47,7 +57,28 @@ export default function NewContentPage() {
       <SectionTitle>Fields</SectionTitle>
       <TextInput label="Ingredient ID" value={ingredientId} onChange={(e) => setIngredientId(e.target.value)} />
       <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
-        <span>Commonly used for</span>
+        <span>Kind</span>
+        <select
+          value={kind}
+          onChange={(e) => setKind(e.target.value as (typeof KIND_OPTIONS)[number]["value"])}
+          style={{
+            padding: "var(--space-sm)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-sm)",
+            background: "var(--color-surface)",
+            color: "var(--color-text)",
+            font: "inherit",
+          }}
+        >
+          {KIND_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+        <span>Content text</span>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}

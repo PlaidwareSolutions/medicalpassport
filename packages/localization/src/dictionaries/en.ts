@@ -110,6 +110,18 @@ export const en = {
     "Reliable medication-safety information is not available for this medicine. Please confirm with a doctor or pharmacist.",
   "meds.common_uses_source": "Source: {source}",
   "meds.common_uses_reviewed": "Last reviewed {date}",
+  "meds.warning_symptoms": "Warning symptoms to watch for",
+  "meds.warning_symptoms_empty":
+    "Reliable warning-symptom information is not available for this medicine. Please confirm with a doctor or pharmacist.",
+  "meds.food_alcohol": "Food & alcohol",
+  "meds.food_alcohol_empty":
+    "Reliable food/alcohol interaction information is not available for this medicine. Please confirm with a doctor or pharmacist.",
+  "meds.missed_dose": "If you miss a dose",
+  "meds.missed_dose_empty":
+    "Reliable missed-dose guidance is not available for this medicine. Please confirm with a doctor or pharmacist.",
+  "meds.storage": "Storage",
+  "meds.storage_empty":
+    "Reliable storage information is not available for this medicine. Please confirm with a doctor or pharmacist.",
   "meds.history": "History",
   "meds.pause_confirm": "Talk to your doctor or pharmacist before pausing or stopping a medicine.",
   "meds.saved_offline": "Saved on this device — it'll sync when you're back online.",

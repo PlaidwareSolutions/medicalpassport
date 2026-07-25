@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ApiError } from "@medpass/api-client";
+import { ApiError, type ClinicalContentEntryDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
@@ -11,9 +11,47 @@ import { useI18n } from "../../../lib/i18n";
 import { instructionSummary, useMedication } from "../../../lib/medications";
 
 /**
- * Screen 19: medication detail (docs/07). "Commonly used for" and "Your
- * recorded reason" are separate labeled blocks; approved clinical content
- * arrives with Stage 6 — until then the mandated no-data fallback is shown.
+ * One docs/07 screen 19 labeled block — approved clinical content or the
+ * mandated no-data fallback; source/last-reviewed provenance shown
+ * alongside, never a bare claim.
+ */
+function ClinicalContentBlock({
+  title,
+  entry,
+  emptyMessage,
+  t,
+}: {
+  title: string;
+  entry?: ClinicalContentEntryDto;
+  emptyMessage: string;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
+  return (
+    <>
+      <SectionTitle>{title}</SectionTitle>
+      <Card tone="info">
+        {entry ? (
+          <>
+            <span>{entry.text}</span>
+            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+              {t("meds.common_uses_source", { source: entry.sourceCitation })}
+              {entry.lastReviewedAt ? ` — ${t("meds.common_uses_reviewed", { date: new Date(entry.lastReviewedAt).toLocaleDateString() })}` : ""}
+            </div>
+          </>
+        ) : (
+          // No clinical reviewer has approved content for this medicine/kind yet — never fabricate.
+          <span>{emptyMessage}</span>
+        )}
+      </Card>
+    </>
+  );
+}
+
+/**
+ * Screen 19: medication detail (docs/07). Each clinical-content kind is its
+ * own separate labeled block ("Commonly used for", "Your recorded reason",
+ * warning symptoms, food/alcohol, missed dose, storage) — approved-only,
+ * the mandated no-data fallback shown otherwise.
  */
 export default function MedicineDetailPage() {
   const { t } = useI18n();
@@ -126,23 +164,11 @@ export default function MedicineDetailPage() {
         )}
       </Card>
 
-      <SectionTitle>{t("meds.common_uses")}</SectionTitle>
-      <Card tone="info">
-        {medication.commonUses ? (
-          <>
-            <span>{medication.commonUses.text}</span>
-            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-              {t("meds.common_uses_source", { source: medication.commonUses.sourceCitation })}
-              {medication.commonUses.lastReviewedAt
-                ? ` — ${t("meds.common_uses_reviewed", { date: new Date(medication.commonUses.lastReviewedAt).toLocaleDateString() })}`
-                : ""}
-            </div>
-          </>
-        ) : (
-          // No clinical reviewer has approved content for this medicine yet — never fabricate.
-          <span>{t("meds.no_content")}</span>
-        )}
-      </Card>
+      <ClinicalContentBlock title={t("meds.common_uses")} entry={medication.clinicalContent.education} emptyMessage={t("meds.no_content")} t={t as never} />
+      <ClinicalContentBlock title={t("meds.warning_symptoms")} entry={medication.clinicalContent.warningSymptoms} emptyMessage={t("meds.warning_symptoms_empty")} t={t as never} />
+      <ClinicalContentBlock title={t("meds.food_alcohol")} entry={medication.clinicalContent.foodAlcohol} emptyMessage={t("meds.food_alcohol_empty")} t={t as never} />
+      <ClinicalContentBlock title={t("meds.missed_dose")} entry={medication.clinicalContent.missedDose} emptyMessage={t("meds.missed_dose_empty")} t={t as never} />
+      <ClinicalContentBlock title={t("meds.storage")} entry={medication.clinicalContent.storage} emptyMessage={t("meds.storage_empty")} t={t as never} />
 
       <SectionTitle>{t("meds.history")}</SectionTitle>
       <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>

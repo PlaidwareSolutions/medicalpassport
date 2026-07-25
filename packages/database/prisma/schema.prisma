@@ -1571,6 +1571,10 @@ model CatalogChangeRequest {
 
 enum ClinicalContentKind {
   education
+  storage
+  warning_symptoms
+  food_alcohol
+  missed_dose
 }
 
 enum ContentReviewStatus {
@@ -1626,7 +1630,13 @@ model ClinicalContentVersion {
   sourceCitation String            @map("source_citation")
   sourceUrl      String?           @map("source_url")
 
-  reviewStatus ContentReviewStatus @default(draft) @map("review_status")
+  reviewStatus  ContentReviewStatus @default(draft) @map("review_status")
+  /// True for kinds extracted via a fragile keyword/paragraph search (e.g.
+  /// food_alcohol, missed_dose — openFDA has no dedicated field for these,
+  /// unlike education/storage/warning_symptoms' clean whole-section grabs)
+  /// — surfaced to reviewers as a signal to scrutinize harder, never shown
+  /// to patients (an approved version is already human-vetted regardless).
+  lowConfidence Boolean             @default(false) @map("low_confidence")
 
   proposedByAdminUserId String?    @map("proposed_by_admin_user_id") @db.Uuid
   proposedByAdminUser   AdminUser? @relation("ContentProposedBy", fields: [proposedByAdminUserId], references: [id])

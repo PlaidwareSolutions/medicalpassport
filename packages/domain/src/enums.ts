@@ -62,6 +62,10 @@ export type FoodInstruction = (typeof FOOD_INSTRUCTIONS)[number];
 export const DOSE_UNITS = ["tablet", "capsule", "ml", "drop", "puff", "sachet", "unit", "application"] as const;
 export type DoseUnit = (typeof DOSE_UNITS)[number];
 
+/** docs/13, docs/07 screen 19 — each a separate labeled block, approved-only, never fabricated. */
+export const CLINICAL_CONTENT_KINDS = ["education", "storage", "warning_symptoms", "food_alcohol", "missed_dose"] as const;
+export type ClinicalContentKind = (typeof CLINICAL_CONTENT_KINDS)[number];
+
 export const CAREGIVER_SCOPES = [
   "view_medications",
   "view_schedule",

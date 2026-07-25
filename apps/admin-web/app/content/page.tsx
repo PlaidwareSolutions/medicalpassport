@@ -5,13 +5,22 @@ import { Button, Table, type TableColumn } from "@medpass/ui-web";
 import { AdminShell } from "../../components/AdminShell";
 import { api } from "../../lib/api";
 
+const KIND_LABELS: Record<string, string> = {
+  education: "Commonly used for",
+  storage: "Storage",
+  warning_symptoms: "Warning symptoms",
+  food_alcohol: "Food & alcohol",
+  missed_dose: "Missed dose",
+};
+
 interface VersionRow {
   id: string;
   body: string;
   sourceKind: string;
+  lowConfidence: boolean;
   reviewStatus: string;
   createdAt: string;
-  content: { id: string; ingredient: { name: string } };
+  content: { id: string; kind: string; ingredient: { name: string } };
 }
 
 interface ContentRow {
@@ -24,10 +33,10 @@ interface ContentRow {
 
 /**
  * Two views on the same underlying data: the reviewer queue (draft versions
- * awaiting a decision — the actionable list) and all ingredients that have
- * ever had content proposed (docs/06, docs/13, docs/34 Gate 6/OD-6). Nothing
- * shown here is ever patient-visible until a `content_approve` reviewer
- * approves it.
+ * awaiting a decision — the actionable list) and all (ingredient, kind)
+ * pairs that have ever had content proposed (docs/06, docs/13, docs/34 Gate
+ * 6/OD-6). Nothing shown here is ever patient-visible until a
+ * `content_approve` reviewer approves it.
  */
 export default function ContentPage() {
   const [tab, setTab] = useState<"queue" | "all">("queue");
@@ -47,13 +56,28 @@ export default function ContentPage() {
 
   const queueColumns: TableColumn<VersionRow>[] = [
     { key: "ingredient", header: "Ingredient", render: (r) => r.content.ingredient.name },
-    { key: "source", header: "Source", render: (r) => (r.sourceKind === "daily_med" ? "openFDA/DailyMed (system-drafted)" : "Manually authored") },
+    { key: "kind", header: "Kind", render: (r) => KIND_LABELS[r.content.kind] ?? r.content.kind },
+    {
+      key: "source",
+      header: "Source",
+      render: (r) => (
+        <>
+          {r.sourceKind === "daily_med" ? "openFDA/DailyMed (system-drafted)" : "Manually authored"}
+          {r.lowConfidence ? (
+            <span style={{ color: "var(--color-warning)", marginLeft: "var(--space-xs)" }} title="Extracted via keyword search, not a clean section grab — scrutinize the excerpt carefully">
+              ⚠ Low confidence
+            </span>
+          ) : null}
+        </>
+      ),
+    },
     { key: "body", header: "Proposed text", render: (r) => (r.body.length > 120 ? `${r.body.slice(0, 120)}…` : r.body) },
     { key: "createdAt", header: "Drafted", render: (r) => new Date(r.createdAt).toLocaleString() },
   ];
 
   const allColumns: TableColumn<ContentRow>[] = [
     { key: "ingredient", header: "Ingredient", render: (r) => r.ingredient.name },
+    { key: "kind", header: "Kind", render: (r) => KIND_LABELS[r.kind] ?? r.kind },
     { key: "status", header: "Live content", render: (r) => (r.currentVersion ? "Approved — shown to patients" : "None approved yet") },
     { key: "pending", header: "Drafts awaiting review", render: (r) => String(r._count.versions) },
   ];
@@ -67,7 +91,9 @@ export default function ContentPage() {
         </Link>
       </div>
       <p style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-        Nothing here reaches a patient until a qualified clinical reviewer approves it (docs/34 Gate 6/OD-6).
+        Nothing here reaches a patient until a qualified clinical reviewer approves it (docs/34 Gate 6/OD-6). Rows marked{" "}
+        <span style={{ color: "var(--color-warning)" }}>⚠ Low confidence</span> were extracted via keyword search rather than a clean source
+        section — scrutinize those excerpts more carefully.
       </p>
 
       <div style={{ display: "flex", gap: "var(--space-sm)", margin: "var(--space-md) 0" }}>

@@ -165,23 +165,31 @@ export interface MedicationInstructionDto {
 }
 
 /**
- * Clinical-reviewer-approved "commonly used for" text (docs/13, docs/34
- * Gate 6/OD-6) — only ever present once a human reviewer has approved it;
- * always carries source/review provenance alongside the text (docs/07
- * screen 19), never a bare claim.
+ * Clinical-reviewer-approved content for one docs/07 screen 19 block —
+ * only ever present once a human reviewer has approved it; always carries
+ * source/review provenance alongside the text, never a bare claim.
  */
-export interface CommonUsesDto {
+export interface ClinicalContentEntryDto {
   text: string;
   sourceCitation: string;
   sourceUrl: string | null;
   lastReviewedAt: string | null;
 }
 
+/** Each key present only when a reviewer has approved that kind for this medicine's (single) ingredient. */
+export interface ClinicalContentDto {
+  education?: ClinicalContentEntryDto;
+  storage?: ClinicalContentEntryDto;
+  warningSymptoms?: ClinicalContentEntryDto;
+  foodAlcohol?: ClinicalContentEntryDto;
+  missedDose?: ClinicalContentEntryDto;
+}
+
 export interface PatientMedicationDto {
   id: string;
   enteredName: string;
   product: CatalogProduct | null;
-  commonUses: CommonUsesDto | null;
+  clinicalContent: ClinicalContentDto;
   patientReason: string | null;
   prescriberName: string | null;
   status: string;

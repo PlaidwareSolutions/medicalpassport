@@ -1,11 +1,27 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
-import { ERROR_CODES } from "@medpass/domain";
+import { CLINICAL_CONTENT_KINDS, ERROR_CODES, type ClinicalContentKind } from "@medpass/domain";
 import type { CreateMedicationInput, RecordRefillInput, UpdateMedicationInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
+
+interface ClinicalContentEntry {
+  text: string;
+  sourceCitation: string;
+  sourceUrl: string | null;
+  lastReviewedAt: string | null;
+}
+
+/** docs/07 screen 19's separate labeled blocks — API DTO uses camelCase, kind enum values are snake_case. */
+const CLINICAL_CONTENT_DTO_KEYS: Record<ClinicalContentKind, string> = {
+  education: "education",
+  storage: "storage",
+  warning_symptoms: "warningSymptoms",
+  food_alcohol: "foodAlcohol",
+  missed_dose: "missedDose",
+};
 
 interface Actor {
   userId: string;
@@ -45,8 +61,8 @@ export class MedicationsService {
       include: MEDICATION_INCLUDE,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     });
-    const commonUsesByIngredientId = await this.loadCommonUses(medications);
-    return medications.map((m) => this.toDto(m, commonUsesByIngredientId));
+    const clinicalContentByIngredientId = await this.loadClinicalContent(medications);
+    return medications.map((m) => this.toDto(m, clinicalContentByIngredientId));
   }
 
   async byId(profileId: string, id: string) {
@@ -55,21 +71,22 @@ export class MedicationsService {
       include: MEDICATION_INCLUDE,
     });
     if (!medication) return null;
-    const commonUsesByIngredientId = await this.loadCommonUses([medication]);
-    return this.toDto(medication, commonUsesByIngredientId);
+    const clinicalContentByIngredientId = await this.loadClinicalContent([medication]);
+    return this.toDto(medication, clinicalContentByIngredientId);
   }
 
   /**
-   * Batches a single lookup of approved "commonly used for" content across
-   * every distinct ingredient in the given medications — one extra query
-   * per list()/byId() call, never one per medication (no N+1). Only
-   * single-ingredient products are looked up: joining two independently
-   * reviewed single-ingredient texts for a combination product could imply
-   * something never actually reviewed for that combination (docs/34).
+   * Batches a single lookup of every approved clinical-content kind
+   * (docs/07 screen 19's separate labeled blocks) across every distinct
+   * ingredient in the given medications — one extra query per list()/byId()
+   * call, never one per medication (no N+1). Only single-ingredient
+   * products are looked up: joining independently reviewed single-
+   * ingredient texts for a combination product could imply something never
+   * actually reviewed for that combination (docs/34).
    */
-  private async loadCommonUses(
+  private async loadClinicalContent(
     medications: Array<{ product: { isCombination: boolean; ingredients: Array<{ ingredient: { id: string } }> } | null }>,
-  ): Promise<Map<string, { text: string; sourceCitation: string; sourceUrl: string | null; lastReviewedAt: string | null }>> {
+  ): Promise<Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>> {
     const ingredientIds = [
       ...new Set(
         medications
@@ -77,21 +94,23 @@ export class MedicationsService {
           .flatMap((m) => m.product!.ingredients.map((i) => i.ingredient.id)),
       ),
     ];
-    if (ingredientIds.length === 0) return new Map();
+    const map = new Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>();
+    if (ingredientIds.length === 0) return map;
 
     const rows = await this.prisma.clinicalContent.findMany({
-      where: { kind: "education", ingredientId: { in: ingredientIds }, currentVersionId: { not: null } },
+      where: { ingredientId: { in: ingredientIds }, currentVersionId: { not: null } },
       include: { currentVersion: true },
     });
-    const map = new Map<string, { text: string; sourceCitation: string; sourceUrl: string | null; lastReviewedAt: string | null }>();
     for (const row of rows) {
       if (!row.currentVersion) continue;
-      map.set(row.ingredientId, {
+      const byKind = map.get(row.ingredientId) ?? {};
+      byKind[row.kind] = {
         text: row.currentVersion.body,
         sourceCitation: row.currentVersion.sourceCitation,
         sourceUrl: row.currentVersion.sourceUrl,
         lastReviewedAt: row.currentVersion.decidedAt?.toISOString() ?? null,
-      });
+      };
+      map.set(row.ingredientId, byKind);
     }
     return map;
   }
@@ -193,16 +212,18 @@ export class MedicationsService {
 
   private async enqueueContentEnrichment(ingredientIds: string[]): Promise<void> {
     for (const ingredientId of ingredientIds) {
-      const jobKey = `content-enrichment:education:${ingredientId}`;
-      const existingJob = await this.prisma.backgroundJob.findUnique({ where: { jobKey } });
-      if (existingJob) continue;
-      const existingContent = await this.prisma.clinicalContent.findUnique({
-        where: { kind_ingredientId: { kind: "education", ingredientId } },
-      });
-      if (existingContent) continue;
-      await this.prisma.backgroundJob.create({
-        data: { queue: "content_enrichment", jobKey, payload: { ingredientId, kind: "education" } },
-      });
+      for (const kind of CLINICAL_CONTENT_KINDS) {
+        const jobKey = `content-enrichment:${kind}:${ingredientId}`;
+        const existingJob = await this.prisma.backgroundJob.findUnique({ where: { jobKey } });
+        if (existingJob) continue;
+        const existingContent = await this.prisma.clinicalContent.findUnique({
+          where: { kind_ingredientId: { kind, ingredientId } },
+        });
+        if (existingContent) continue;
+        await this.prisma.backgroundJob.create({
+          data: { queue: "content_enrichment", jobKey, payload: { ingredientId, kind } },
+        });
+      }
     }
   }
 
@@ -367,11 +388,18 @@ export class MedicationsService {
         durationDays: number | null;
       }>;
     },
-    commonUsesByIngredientId: Map<string, { text: string; sourceCitation: string; sourceUrl: string | null; lastReviewedAt: string | null }> = new Map(),
+    clinicalContentByIngredientId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>> = new Map(),
   ) {
     const instruction = m.instructions[0];
     const singleIngredientId = m.product && !m.product.isCombination ? m.product.ingredients[0]?.ingredient.id : undefined;
-    const commonUses = singleIngredientId ? (commonUsesByIngredientId.get(singleIngredientId) ?? null) : null;
+    const byKind = singleIngredientId ? clinicalContentByIngredientId.get(singleIngredientId) : undefined;
+    const clinicalContent: Partial<Record<string, ClinicalContentEntry>> = {};
+    if (byKind) {
+      for (const kind of CLINICAL_CONTENT_KINDS) {
+        const entry = byKind[kind];
+        if (entry) clinicalContent[CLINICAL_CONTENT_DTO_KEYS[kind]] = entry;
+      }
+    }
     return {
       id: m.id,
       enteredName: m.enteredName,
@@ -390,7 +418,7 @@ export class MedicationsService {
             })),
           }
         : null,
-      commonUses,
+      clinicalContent,
       patientReason: m.patientReason,
       prescriberName: m.practitioner?.displayName ?? null,
       status: m.status,

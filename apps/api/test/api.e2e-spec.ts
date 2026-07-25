@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { CLINICAL_CONTENT_KINDS } from "@medpass/domain";
 
 /**
  * End-to-end flow against a real PostgreSQL (DATABASE_URL):
@@ -47,7 +48,9 @@ describe("API e2e", () => {
       await prisma.clinicalContent.updateMany({ where: { ingredientId: metformin.id }, data: { currentVersionId: null } });
       await prisma.clinicalContentVersion.deleteMany({ where: { content: { ingredientId: metformin.id } } });
       await prisma.clinicalContent.deleteMany({ where: { ingredientId: metformin.id } });
-      await prisma.backgroundJob.deleteMany({ where: { jobKey: `content-enrichment:education:${metformin.id}` } });
+      await prisma.backgroundJob.deleteMany({
+        where: { jobKey: { in: CLINICAL_CONTENT_KINDS.map((kind) => `content-enrichment:${kind}:${metformin.id}`) } },
+      });
     }
   });
 
@@ -183,33 +186,33 @@ describe("API e2e", () => {
     expect(mismatch.status).toBe(409);
   });
 
-  it("enqueues exactly one content-enrichment job per ingredient, regardless of how many medications/patients reference it", async () => {
+  it("enqueues exactly one content-enrichment job per (ingredient, kind) pair, regardless of how many medications/patients reference it", async () => {
     const ingredient = await prisma.medicationIngredient.findFirstOrThrow({ where: { name: "Metformin" } });
-    const jobKey = `content-enrichment:education:${ingredient.id}`;
+    const jobKeys = CLINICAL_CONTENT_KINDS.map((kind) => `content-enrichment:${kind}:${ingredient.id}`);
 
-    const firstJob = await prisma.backgroundJob.findUnique({ where: { jobKey } });
-    expect(firstJob).not.toBeNull();
-    expect(firstJob?.queue).toBe("content_enrichment");
-    expect((firstJob?.payload as { ingredientId: string }).ingredientId).toBe(ingredient.id);
+    const firstJobs = await prisma.backgroundJob.findMany({ where: { jobKey: { in: jobKeys } } });
+    expect(firstJobs).toHaveLength(CLINICAL_CONTENT_KINDS.length);
+    expect(firstJobs.every((j) => j.queue === "content_enrichment")).toBe(true);
+    expect(firstJobs.every((j) => (j.payload as { ingredientId: string }).ingredientId === ingredient.id)).toBe(true);
 
     // A second, unrelated medication referencing a different Metformin
-    // product must not enqueue a duplicate job for the same ingredient —
-    // enrichment is cached per-ingredient, not per-medication/patient.
+    // product must not enqueue duplicate jobs for the same ingredient —
+    // enrichment is cached per-(ingredient, kind), not per-medication/patient.
     const search = await auth(tokenA)(request(app.getHttpServer()).get("/v1/catalog/products?q=Glyciphage")).expect(200);
     const productId = search.body.items[0].id;
     await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
       .send({ productId, source: "search", instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" } })
       .expect(201);
 
-    const jobCount = await prisma.backgroundJob.count({ where: { jobKey } });
-    expect(jobCount).toBe(1);
+    const jobCount = await prisma.backgroundJob.count({ where: { jobKey: { in: jobKeys } } });
+    expect(jobCount).toBe(CLINICAL_CONTENT_KINDS.length);
   });
 
-  it("shows commonUses only once a reviewer has approved content for a single-ingredient medicine, never for an unreviewed one", async () => {
+  it("shows approved clinical content only once a reviewer has approved it for a single-ingredient medicine, never for an unreviewed kind", async () => {
     // Before any content is approved, the Metformin-based medicine (created
-    // above) must show no commonUses — never fabricate.
+    // above) must show no clinical content at all — never fabricate.
     const before = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
-    expect(before.body.commonUses).toBeNull();
+    expect(before.body.clinicalContent).toEqual({});
 
     const ingredient = await prisma.medicationIngredient.findFirstOrThrow({ where: { name: "Metformin" } });
     const content = await prisma.clinicalContent.upsert({
@@ -230,10 +233,15 @@ describe("API e2e", () => {
     await prisma.clinicalContent.update({ where: { id: content.id }, data: { currentVersionId: version.id } });
 
     const after = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
-    expect(after.body.commonUses).not.toBeNull();
-    expect(after.body.commonUses.text).toContain("blood sugar");
-    expect(after.body.commonUses.sourceCitation).toContain("e2e-test-set");
-    expect(after.body.commonUses.lastReviewedAt).toContain("2026-01-02");
+    expect(after.body.clinicalContent.education).toBeDefined();
+    expect(after.body.clinicalContent.education.text).toContain("blood sugar");
+    expect(after.body.clinicalContent.education.sourceCitation).toContain("e2e-test-set");
+    expect(after.body.clinicalContent.education.lastReviewedAt).toContain("2026-01-02");
+    // Only the approved kind (education) appears — the other 4 kinds remain unreviewed.
+    expect(after.body.clinicalContent.storage).toBeUndefined();
+    expect(after.body.clinicalContent.warningSymptoms).toBeUndefined();
+    expect(after.body.clinicalContent.foodAlcohol).toBeUndefined();
+    expect(after.body.clinicalContent.missedDose).toBeUndefined();
   });
 
   it("creates and edits a non-tablet medicine (e.g. a syrup dosed in ml)", async () => {
