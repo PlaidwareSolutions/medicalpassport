@@ -1,5 +1,5 @@
 "use client";
-import { Banner, Card, SectionTitle } from "@medpass/ui-web";
+import { Banner, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { DoseCard } from "../../components/DoseCard";
 import { PageHeader } from "../../components/PageHeader";
@@ -19,7 +19,7 @@ export default function TimelinePage() {
 
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
-      {!data && !error ? <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p> : null}
+      {!data && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {data && data.items.length === 0 ? (
         <Card>

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
+import { Banner, Button, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../components/AppShell";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
@@ -37,7 +37,7 @@ export default function HomePage() {
       {medError || timelineError ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
 
-      {medications === undefined && !medError ? <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p> : null}
+      {medications === undefined && !medError ? <PillSpinner label={t("common.loading")} /> : null}
 
       {noMedicinesAtAll ? (
         <Card>

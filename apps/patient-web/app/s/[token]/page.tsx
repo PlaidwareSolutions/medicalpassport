@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ApiError, type VisitSummaryDto } from "@medpass/api-client";
-import { Card, Chip, SectionTitle } from "@medpass/ui-web";
+import { Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { api } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 
@@ -38,7 +38,7 @@ export default function PublicSharePage() {
   if (!data) {
     return (
       <main style={{ maxWidth: 480, margin: "0 auto", padding: "var(--space-xl) var(--space-md)" }}>
-        <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>
+        <PillSpinner label={t("common.loading")} />
       </main>
     );
   }

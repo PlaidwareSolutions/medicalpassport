@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Banner, Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { useI18n } from "../../lib/i18n";
 import { downloadVisitSummaryPdf, useVisitSummary } from "../../lib/sharing";
@@ -45,7 +45,7 @@ export default function VisitModePage() {
   if (!data) {
     return (
       <AppShell>
-        <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>
+        <PillSpinner label={t("common.loading")} />
       </AppShell>
     );
   }

@@ -1,5 +1,5 @@
 "use client";
-import { Card, SectionTitle } from "@medpass/ui-web";
+import { Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { FindingCard } from "../../components/FindingCard";
 import { PageHeader } from "../../components/PageHeader";
@@ -23,7 +23,7 @@ export default function SafetyPage() {
       <PageHeader title={t("safety.title")} />
 
       {error ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
-      {!items && !error ? <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p> : null}
+      {!items && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && open.length === 0 ? (
         <Card tone="info">

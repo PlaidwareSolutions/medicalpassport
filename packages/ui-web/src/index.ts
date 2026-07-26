@@ -3,6 +3,7 @@ export * from "./components/TextInput";
 export * from "./components/Card";
 export * from "./components/Chip";
 export * from "./components/Banner";
+export * from "./components/PillSpinner";
 export * from "./components/SectionTitle";
 export * from "./components/ChoiceGrid";
 export * from "./components/BottomNav";

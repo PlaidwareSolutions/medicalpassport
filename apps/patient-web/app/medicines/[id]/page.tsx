@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
-import { Banner, Button, Card, Chip, SectionTitle } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
 import { PageHeader } from "../../../components/PageHeader";
@@ -65,7 +65,7 @@ export default function MedicineDetailPage() {
   if (!medication) {
     return (
       <AppShell>
-        <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>
+        <PillSpinner label={t("common.loading")} />
       </AppShell>
     );
   }

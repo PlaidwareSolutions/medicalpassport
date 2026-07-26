@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { MessageKey } from "@medpass/localization";
 import { ApiError, type DocumentExtractionDto, type ExtractionCandidateDto } from "@medpass/api-client";
-import { Banner, Button, Card, Chip, ChoiceGrid } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, ChoiceGrid, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
 import { PageHeader } from "../../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../../lib/api";
@@ -132,7 +132,7 @@ export default function ReviewExtractionPage() {
   if (!data) {
     return (
       <AppShell>
-        <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>
+        <PillSpinner label={t("common.loading")} />
       </AppShell>
     );
   }

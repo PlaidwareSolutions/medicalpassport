@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CAREGIVER_SCOPES, type CaregiverScope } from "@medpass/domain";
-import { Banner, Button, Card, TextInput } from "@medpass/ui-web";
+import { Banner, Button, Card, PillSpinner, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
 import { PageHeader } from "../../../../components/PageHeader";
 import { useI18n } from "../../../../lib/i18n";
@@ -116,7 +116,7 @@ export default function EditCaregiverPage() {
           </div>
         </>
       ) : (
-        <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>
+        <PillSpinner label={t("common.loading")} />
       )}
     </AppShell>
   );
