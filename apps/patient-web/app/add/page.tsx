@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ApiError, type CatalogProduct } from "@medpass/api-client";
 import { DOSE_UNITS, type DoseUnit } from "@medpass/domain";
 import { defaultDoseUnitForForm } from "@medpass/medication-terminology";
-import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
+import { Banner, Button, Card, ChoiceGrid, PillSpinner, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
 import { api } from "../../lib/api";
@@ -25,6 +25,7 @@ export default function AddMedicationPage() {
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CatalogProduct[] | undefined>();
+  const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<CatalogProduct | undefined>();
   const [manualName, setManualName] = useState("");
   const [manualMode, setManualMode] = useState(false);
@@ -49,6 +50,7 @@ export default function AddMedicationPage() {
       return;
     }
     const timer = setTimeout(async () => {
+      setSearching(true);
       try {
         const res = await api.get<{ items: CatalogProduct[] }>(
           `/catalog/products?q=${encodeURIComponent(query.trim())}`,
@@ -56,6 +58,8 @@ export default function AddMedicationPage() {
         setResults(res.items);
       } catch {
         setResults([]);
+      } finally {
+        setSearching(false);
       }
     }, 250);
     return () => clearTimeout(timer);
@@ -135,7 +139,9 @@ export default function AddMedicationPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          {results !== undefined ? (
+          {searching ? (
+            <PillSpinner label={t("common.loading")} />
+          ) : results !== undefined ? (
             results.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", marginTop: "var(--space-sm)" }}>
                 {results.map((p) => (
@@ -312,7 +318,7 @@ export default function AddMedicationPage() {
           />
 
           <div style={{ marginTop: "var(--space-lg)" }}>
-            <Button fullWidth disabled={busy || !nameChosen || !instructionReady} onClick={() => void save()}>
+            <Button fullWidth loading={busy} disabled={busy || !nameChosen || !instructionReady} onClick={() => void save()}>
               {t("add.save")}
             </Button>
           </div>

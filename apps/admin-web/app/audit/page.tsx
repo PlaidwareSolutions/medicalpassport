@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Button, Table, TextInput, type TableColumn } from "@medpass/ui-web";
+import { Button, PillSpinner, Table, TextInput, type TableColumn } from "@medpass/ui-web";
 import { AdminShell } from "../../components/AdminShell";
 import { api } from "../../lib/api";
 
@@ -20,14 +20,15 @@ export default function AuditSearchPage() {
   const [filters, setFilters] = useState({ action: "", actorType: "", entityType: "", entityId: "", patientProfileId: "", correlationId: "" });
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<"search" | "more" | undefined>();
+  const loading = pending !== undefined;
 
   function setFilter(key: keyof typeof filters, value: string) {
     setFilters((f) => ({ ...f, [key]: value }));
   }
 
   async function search(nextCursor?: string) {
-    setLoading(true);
+    setPending(nextCursor ? "more" : "search");
     try {
       const query = new URLSearchParams();
       Object.entries(filters).forEach(([k, v]) => {
@@ -38,7 +39,7 @@ export default function AuditSearchPage() {
       setRows((prev) => (nextCursor ? [...prev, ...res.items] : res.items));
       setCursor(res.nextCursor);
     } finally {
-      setLoading(false);
+      setPending(undefined);
     }
   }
 
@@ -61,16 +62,16 @@ export default function AuditSearchPage() {
         <TextInput label="Profile ID" value={filters.patientProfileId} onChange={(e) => setFilter("patientProfileId", e.target.value)} />
         <TextInput label="Correlation ID" value={filters.correlationId} onChange={(e) => setFilter("correlationId", e.target.value)} />
       </div>
-      <Button disabled={loading} onClick={() => void search()}>
+      <Button loading={pending === "search"} disabled={loading} onClick={() => void search()}>
         Search
       </Button>
 
       <div style={{ marginTop: "var(--space-md)" }}>
-        <Table columns={columns} rows={rows} rowKey={(r) => r.id} emptyLabel={loading ? "Loading…" : "No matching audit events"} />
+        <Table columns={columns} rows={rows} rowKey={(r) => r.id} emptyLabel={loading ? <PillSpinner label="Loading…" /> : "No matching audit events"} />
       </div>
       {cursor ? (
         <div style={{ marginTop: "var(--space-sm)" }}>
-          <Button variant="secondary" disabled={loading} onClick={() => void search(cursor)}>
+          <Button variant="secondary" loading={pending === "more"} disabled={loading} onClick={() => void search(cursor)}>
             Load more
           </Button>
         </div>

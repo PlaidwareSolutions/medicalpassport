@@ -120,7 +120,7 @@ export default function AddDependentPage() {
         </div>
 
         <div style={{ marginTop: "var(--space-lg)", display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-          <Button fullWidth disabled={busy || phone.replace(/\D/g, "").length < 8} onClick={() => void sendInviteAndFinish()}>
+          <Button fullWidth loading={busy} disabled={busy || phone.replace(/\D/g, "").length < 8} onClick={() => void sendInviteAndFinish()}>
             {t("caregiver.send_invite")}
           </Button>
           <Button variant="ghost" fullWidth disabled={busy} onClick={() => void finish()}>
@@ -161,7 +161,7 @@ export default function AddDependentPage() {
       />
 
       <div style={{ marginTop: "var(--space-lg)" }}>
-        <Button fullWidth disabled={busy || name.trim().length === 0 || !relationship} onClick={() => void create()}>
+        <Button fullWidth loading={busy} disabled={busy || name.trim().length === 0 || !relationship} onClick={() => void create()}>
           {t("caregiver.dependent_create")}
         </Button>
       </div>

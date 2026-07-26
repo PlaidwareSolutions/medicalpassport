@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Button, Table, TextInput, type TableColumn } from "@medpass/ui-web";
+import { Button, PillSpinner, Table, TextInput, type TableColumn } from "@medpass/ui-web";
 import { AdminShell } from "../../../components/AdminShell";
 import { api } from "../../../lib/api";
 
@@ -55,13 +55,13 @@ export default function FindingsPage() {
         <TextInput label="Rule key" value={filters.ruleKey} onChange={(e) => setFilter("ruleKey", e.target.value)} />
         <TextInput label="Profile ID" value={filters.patientProfileId} onChange={(e) => setFilter("patientProfileId", e.target.value)} />
       </div>
-      <Button disabled={loading} onClick={() => void search()}>Search</Button>
+      <Button loading={loading} disabled={loading} onClick={() => void search()}>Search</Button>
       <div style={{ marginTop: "var(--space-md)" }}>
         <Table
           columns={columns}
           rows={rows}
           rowKey={(r) => r.id}
-          emptyLabel={loading ? "Loading…" : "No matching findings"}
+          emptyLabel={loading ? <PillSpinner label="Loading…" /> : "No matching findings"}
           onRowClick={(r) => {
             window.location.href = `/rules/findings/${r.id}`;
           }}

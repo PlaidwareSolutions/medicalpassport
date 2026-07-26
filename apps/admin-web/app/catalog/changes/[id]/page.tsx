@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
-import { Banner, Button, TextInput } from "@medpass/ui-web";
+import { Banner, Button, PillSpinner, TextInput } from "@medpass/ui-web";
 import { AdminShell } from "../../../../components/AdminShell";
 import { api } from "../../../../lib/api";
 
@@ -24,7 +24,7 @@ export default function CatalogChangeDetailPage() {
   const router = useRouter();
   const [change, setChange] = useState<ChangeDetail | undefined>();
   const [rejectionReason, setRejectionReason] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busyDecision, setBusyDecision] = useState<"approve" | "reject" | undefined>();
   const [error, setError] = useState<string | undefined>();
 
   async function load() {
@@ -38,7 +38,7 @@ export default function CatalogChangeDetailPage() {
   }, [params.id]);
 
   async function decide(decision: "approve" | "reject") {
-    setBusy(true);
+    setBusyDecision(decision);
     setError(undefined);
     try {
       await api.post(`/admin/catalog-changes/${params.id}/decide`, { decision, rejectionReason: decision === "reject" ? rejectionReason : undefined });
@@ -46,14 +46,14 @@ export default function CatalogChangeDetailPage() {
     } catch (err) {
       setError(err instanceof ApiError ? (err.problem.errors?.[0]?.message ?? err.problem.title) : "Something went wrong.");
     } finally {
-      setBusy(false);
+      setBusyDecision(undefined);
     }
   }
 
   if (!change) {
     return (
       <AdminShell>
-        <p>Loading…</p>
+        <PillSpinner label="Loading…" />
       </AdminShell>
     );
   }
@@ -92,11 +92,11 @@ export default function CatalogChangeDetailPage() {
 
       {change.status === "pending" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", marginTop: "var(--space-lg)" }}>
-          <Button disabled={busy} onClick={() => void decide("approve")}>
+          <Button loading={busyDecision === "approve"} disabled={busyDecision !== undefined} onClick={() => void decide("approve")}>
             Approve
           </Button>
           <TextInput label="Rejection reason (optional)" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} />
-          <Button variant="danger" disabled={busy} onClick={() => void decide("reject")}>
+          <Button variant="danger" loading={busyDecision === "reject"} disabled={busyDecision !== undefined} onClick={() => void decide("reject")}>
             Reject
           </Button>
         </div>

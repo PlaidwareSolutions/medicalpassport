@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card } from "@medpass/ui-web";
+import { Banner, Button, Card, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { useI18n } from "../../../lib/i18n";
 import { claimProfile, useClaimInvitations } from "../../../lib/profiles";
@@ -40,6 +40,8 @@ export default function ClaimInvitationsPage() {
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.claim_invitations_title")}</h1>
       {error || claimError ? <Banner tone="danger">{claimError ?? t("common.error_generic")}</Banner> : null}
 
+      {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
+
       {items && items.length === 0 ? (
         <Card>
           <span style={{ color: "var(--color-text-muted)" }}>{t("caregiver.claim_invitations_empty")}</span>
@@ -54,7 +56,7 @@ export default function ClaimInvitationsPage() {
               {i.yearOfBirth ? (
                 <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{i.yearOfBirth}</span>
               ) : null}
-              <Button fullWidth disabled={busyId === i.profileId} onClick={() => void claim(i.profileId)}>
+              <Button fullWidth loading={busyId === i.profileId} disabled={busyId === i.profileId} onClick={() => void claim(i.profileId)}>
                 {t("caregiver.claim_action")}
               </Button>
             </Card>

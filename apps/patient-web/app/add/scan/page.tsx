@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ApiError, type AuthorizeUploadResponseDto } from "@medpass/api-client";
-import { Banner, Button, Card, ChoiceGrid } from "@medpass/ui-web";
+import { Banner, Button, Card, ChoiceGrid, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../lib/api";
@@ -99,7 +99,7 @@ export default function ScanDocumentPage() {
 
       {busy ? (
         <Card>
-          <strong>{stage === "uploading" ? t("scan.uploading") : t("scan.processing")}</strong>
+          <PillSpinner label={stage === "uploading" ? t("scan.uploading") : t("scan.processing")} />
           <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
             {t("scan.processing_hint")}
           </span>

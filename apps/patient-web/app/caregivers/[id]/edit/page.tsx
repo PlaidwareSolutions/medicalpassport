@@ -110,7 +110,7 @@ export default function EditCaregiverPage() {
           </div>
 
           <div style={{ marginTop: "var(--space-lg)" }}>
-            <Button fullWidth disabled={busy || selectedCount === 0} onClick={() => void save()}>
+            <Button fullWidth loading={busy} disabled={busy || selectedCount === 0} onClick={() => void save()}>
               {t("caregiver.edit_save")}
             </Button>
           </div>

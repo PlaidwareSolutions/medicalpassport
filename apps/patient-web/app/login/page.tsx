@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("+91");
   const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"request" | "verify" | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | undefined>();
   const [resendIn, setResendIn] = useState(0);
@@ -43,7 +43,7 @@ export default function LoginPage() {
   }, []);
 
   async function requestCode() {
-    setBusy(true);
+    setBusyAction("request");
     setError(undefined);
     try {
       await api.post("/auth/otp/request", { phone, turnstileToken });
@@ -53,12 +53,12 @@ export default function LoginPage() {
     } catch (err) {
       setError(err instanceof ApiError ? mapAuthError(err) : t("common.error_generic"));
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   }
 
   async function verify() {
-    setBusy(true);
+    setBusyAction("verify");
     setError(undefined);
     try {
       await api.post("/auth/otp/verify", { phone, code, device: { kind: "browser" }, locale });
@@ -67,7 +67,7 @@ export default function LoginPage() {
     } catch (err) {
       setError(err instanceof ApiError ? mapAuthError(err) : t("common.error_generic"));
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   }
 
@@ -108,8 +108,9 @@ export default function LoginPage() {
           <TurnstileWidget siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} onToken={setTurnstileToken} />
           <Button
             fullWidth
+            loading={busyAction === "request"}
             disabled={
-              busy ||
+              busyAction !== undefined ||
               phone.replace(/\D/g, "").length < 8 ||
               // Only wait on a token when a widget actually exists (dev/local
               // with no site key renders nothing and never calls onToken).
@@ -137,13 +138,14 @@ export default function LoginPage() {
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             style={{ letterSpacing: "0.5em", textAlign: "center" }}
           />
-          <Button fullWidth disabled={busy || code.length !== 6} onClick={() => void verify()}>
+          <Button fullWidth loading={busyAction === "verify"} disabled={busyAction !== undefined || code.length !== 6} onClick={() => void verify()}>
             {t("auth.verify")}
           </Button>
           <Button
             variant="ghost"
             fullWidth
-            disabled={busy || resendIn > 0}
+            loading={busyAction === "request"}
+            disabled={busyAction !== undefined || resendIn > 0}
             onClick={() => void requestCode()}
           >
             {resendIn > 0 ? t("auth.resend_wait", { seconds: resendIn }) : t("auth.resend")}

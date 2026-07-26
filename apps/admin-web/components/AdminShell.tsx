@@ -2,7 +2,7 @@
 import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Button } from "@medpass/ui-web";
+import { Button, PillSpinner } from "@medpass/ui-web";
 import { useAdminSession } from "../lib/session";
 
 const NAV_ITEMS = [
@@ -28,7 +28,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   if (status !== "ready") {
     return (
       <main style={{ padding: "var(--space-xl)", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading…
+        <PillSpinner label="Loading…" />
       </main>
     );
   }

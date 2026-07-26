@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { CaregiverAccessEventDto } from "@medpass/api-client";
-import { Banner, Button, Card, Chip } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
 import { fetchCaregiverAccessLog, isCaregiverActive, revokeCaregiver, useCaregivers } from "../../lib/caregivers";
@@ -57,6 +57,8 @@ export default function CaregiversPage() {
       <Link href="/caregivers/new">
         <Button fullWidth>{t("caregiver.invite_button")}</Button>
       </Link>
+
+      {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
         <Card>
@@ -123,6 +125,7 @@ export default function CaregiversPage() {
                   ) : null}
                   <Button
                     variant="danger"
+                    loading={busyId === c.id}
                     disabled={busyId === c.id}
                     onClick={() => void revoke(c.id, active)}
                     style={{ flex: 1 }}

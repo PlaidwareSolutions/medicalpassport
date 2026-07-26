@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, SectionTitle, Table, TextInput, type TableColumn } from "@medpass/ui-web";
+import { Button, PillSpinner, SectionTitle, Table, TextInput, type TableColumn } from "@medpass/ui-web";
 import { AdminShell } from "../../components/AdminShell";
 import { api } from "../../lib/api";
 
@@ -82,11 +82,11 @@ export default function CatalogPage() {
       <div style={{ display: "flex", gap: "var(--space-sm)", margin: "var(--space-md) 0" }}>
         <TextInput label="Search" value={q} onChange={(e) => setQ(e.target.value)} />
         <div style={{ alignSelf: "flex-end" }}>
-          <Button variant="secondary" onClick={() => void load()} disabled={loading}>Search</Button>
+          <Button variant="secondary" loading={loading} onClick={() => void load()} disabled={loading}>Search</Button>
         </div>
       </div>
 
-      <Table columns={columns} rows={rows} rowKey={(r) => r.id} emptyLabel={loading ? "Loading…" : "No entries found"} />
+      <Table columns={columns} rows={rows} rowKey={(r) => r.id} emptyLabel={loading ? <PillSpinner label="Loading…" /> : "No entries found"} />
     </AdminShell>
   );
 }

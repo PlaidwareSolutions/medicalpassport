@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
+import { Banner, Button, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AdminShell } from "../../components/AdminShell";
 import { api } from "../../lib/api";
 
@@ -77,7 +77,7 @@ export default function OperationsPage() {
       </div>
 
       {!summary ? (
-        <p>Loading…</p>
+        <PillSpinner label="Loading…" />
       ) : (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-sm)" }}>
@@ -135,7 +135,7 @@ export default function OperationsPage() {
             admin-visible information about patients&apos; medicine lists.
           </span>
           {!medStats ? (
-            <p>Loading…</p>
+            <PillSpinner label="Loading…" />
           ) : (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-sm)", marginTop: "var(--space-sm)" }}>

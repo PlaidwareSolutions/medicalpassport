@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Button, Card, Chip } from "@medpass/ui-web";
+import { Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
@@ -16,6 +16,7 @@ export default function MedicinesPage() {
 
   const previous = (all.items ?? []).filter((m) => m.status !== "current");
   const shown = tab === "current" ? (current.items ?? []) : previous;
+  const stillLoading = tab === "current" ? current.items === undefined : all.items === undefined;
 
   const statusTone = (status: string) =>
     status === "current" ? "success" : status === "paused" ? "warning" : "default";
@@ -47,7 +48,9 @@ export default function MedicinesPage() {
         ))}
       </div>
 
-      {shown.length === 0 ? (
+      {stillLoading ? (
+        <PillSpinner label={t("common.loading")} />
+      ) : shown.length === 0 ? (
         <Card>
           <p style={{ margin: 0, color: "var(--color-text-muted)" }}>{t("meds.empty")}</p>
           {tab === "current" ? (

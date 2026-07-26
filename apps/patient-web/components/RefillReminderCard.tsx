@@ -72,7 +72,7 @@ export function RefillReminderCard({ reminder, onChanged }: { reminder: RefillRe
             onChange={(e) => setNewQuantity(e.target.value)}
           />
           <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
-            <Button disabled={busy || newQuantity.trim() === ""} onClick={() => void confirmRefill()}>
+            <Button loading={busy} disabled={busy || newQuantity.trim() === ""} onClick={() => void confirmRefill()}>
               {t("reminders.save")}
             </Button>
             <Button variant="ghost" disabled={busy} onClick={() => setRefillMode(false)}>
@@ -88,7 +88,7 @@ export function RefillReminderCard({ reminder, onChanged }: { reminder: RefillRe
           <Button variant="secondary" disabled={busy} onClick={() => setRefillMode(true)}>
             {t("reminders.adjust_quantity")}
           </Button>
-          <Button variant="ghost" disabled={busy} onClick={() => void dismiss()}>
+          <Button variant="ghost" loading={busy} disabled={busy} onClick={() => void dismiss()}>
             {t("reminders.dismiss")}
           </Button>
         </div>

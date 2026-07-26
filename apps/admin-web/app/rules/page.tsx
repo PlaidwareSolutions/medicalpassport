@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Table, type TableColumn } from "@medpass/ui-web";
+import { Button, PillSpinner, Table, type TableColumn } from "@medpass/ui-web";
 import { AdminShell } from "../../components/AdminShell";
 import { api } from "../../lib/api";
 
@@ -14,7 +14,7 @@ interface RuleRow {
 /** Read-only rule versions (docs/06 "review") — editing stays blocked on
  * OD-6 (no clinical lead appointed to be the maker-checker's checker). */
 export default function RulesPage() {
-  const [rows, setRows] = useState<RuleRow[]>([]);
+  const [rows, setRows] = useState<RuleRow[] | undefined>();
 
   useEffect(() => {
     api.get<{ items: RuleRow[] }>("/admin/rules").then((res) => setRows(res.items));
@@ -36,7 +36,7 @@ export default function RulesPage() {
         Rule versions are code constants, read-only here — editing requires an appointed clinical lead (OD-6) to act as the maker-checker&apos;s
         checker, which doesn&apos;t exist yet.
       </p>
-      <Table columns={columns} rows={rows} rowKey={(r) => r.key} emptyLabel="Loading…" />
+      <Table columns={columns} rows={rows ?? []} rowKey={(r) => r.key} emptyLabel={rows === undefined ? <PillSpinner label="Loading…" /> : "No rule versions found"} />
     </AdminShell>
   );
 }

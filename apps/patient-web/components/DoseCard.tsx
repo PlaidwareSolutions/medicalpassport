@@ -50,7 +50,7 @@ export function DoseCard({
   onAction: (scheduledDoseId: string, patch: Partial<TimelineItemDto>) => void;
 }) {
   const { t } = useI18n();
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | undefined>();
   const [showMore, setShowMore] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
@@ -59,9 +59,10 @@ export function DoseCard({
 
   const resolved = RESOLVED_STATUSES.has(item.status);
   const isMissed = item.status === "missed";
+  const busy = busyAction !== undefined;
 
   async function act(action: string, snoozeMinutes?: number, effectiveAt?: string) {
-    setBusy(true);
+    setBusyAction(action);
     try {
       const result = await recordDoseEvent(item.scheduledDoseId, action, { snoozeMinutes, effectiveAt });
       setJustQueued(result.queuedOffline);
@@ -71,7 +72,7 @@ export function DoseCard({
       }
       onAction(item.scheduledDoseId, patch);
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
       setShowMore(false);
       setShowCorrection(false);
     }
@@ -99,13 +100,13 @@ export function DoseCard({
       {!resolved ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
           <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
-            <Button disabled={busy} onClick={() => void act("taken")}>
+            <Button loading={busyAction === "taken"} disabled={busy} onClick={() => void act("taken")}>
               {t("dose.action.taken")}
             </Button>
-            <Button variant="secondary" disabled={busy} onClick={() => void act("skipped")}>
+            <Button variant="secondary" loading={busyAction === "skipped"} disabled={busy} onClick={() => void act("skipped")}>
               {t("dose.action.skipped")}
             </Button>
-            <Button variant="ghost" disabled={busy} onClick={() => void act("snoozed", 10)}>
+            <Button variant="ghost" loading={busyAction === "snoozed"} disabled={busy} onClick={() => void act("snoozed", 10)}>
               {t("dose.action.snooze_10")}
             </Button>
           </div>
@@ -129,13 +130,13 @@ export function DoseCard({
           </button>
           {showMore ? (
             <div id={moreOptionsId} style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
-              <Button variant="secondary" disabled={busy} onClick={() => void act("could_not_take")}>
+              <Button variant="secondary" loading={busyAction === "could_not_take"} disabled={busy} onClick={() => void act("could_not_take")}>
                 {t("dose.action.could_not_take")}
               </Button>
-              <Button variant="secondary" disabled={busy} onClick={() => void act("unavailable")}>
+              <Button variant="secondary" loading={busyAction === "unavailable"} disabled={busy} onClick={() => void act("unavailable")}>
                 {t("dose.action.unavailable")}
               </Button>
-              <Button variant="danger" disabled={busy} onClick={() => void act("problem")}>
+              <Button variant="danger" loading={busyAction === "problem"} disabled={busy} onClick={() => void act("problem")}>
                 {t("dose.action.problem")}
               </Button>
             </div>
@@ -161,6 +162,7 @@ export function DoseCard({
               />
               <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
                 <Button
+                  loading={busyAction === "taken_other_time"}
                   disabled={busy || !correctionTime}
                   onClick={() => void act("taken_other_time", undefined, new Date(correctionTime).toISOString())}
                 >

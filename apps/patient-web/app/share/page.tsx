@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { ShareAccessEventDto } from "@medpass/api-client";
-import { Banner, Button, Card, Chip } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
@@ -48,6 +48,8 @@ export default function SharesPage() {
         <Button fullWidth>{t("share.new_title")}</Button>
       </Link>
 
+      {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
+
       {items && items.length === 0 ? (
         <Card>
           <span style={{ color: "var(--color-text-muted)" }}>{t("share.empty")}</span>
@@ -90,7 +92,7 @@ export default function SharesPage() {
                   </div>
                 ) : null}
                 {active ? (
-                  <Button variant="danger" disabled={busyId === s.id} onClick={() => void revoke(s.id)}>
+                  <Button variant="danger" loading={busyId === s.id} disabled={busyId === s.id} onClick={() => void revoke(s.id)}>
                     {t("share.revoke")}
                   </Button>
                 ) : null}

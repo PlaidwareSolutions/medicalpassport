@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
-import { Banner, Button, Card, SectionTitle, TextInput } from "@medpass/ui-web";
+import { Banner, Button, Card, PillSpinner, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AdminShell } from "../../../components/AdminShell";
 import { api } from "../../../lib/api";
 
@@ -67,7 +67,7 @@ function TranslationsPanel({ version, onChanged }: { version: VersionDetail; onC
   }
 
   async function decideTranslation(translationId: string, decision: "approve" | "reject") {
-    setBusyId(translationId);
+    setBusyId(`${translationId}:${decision}`);
     setError(undefined);
     try {
       await api.post(`/admin/content/translations/${translationId}/decide`, {
@@ -80,6 +80,11 @@ function TranslationsPanel({ version, onChanged }: { version: VersionDetail; onC
     } finally {
       setBusyId(undefined);
     }
+  }
+
+  /** Either decision for this translation is in flight — disables both buttons; `loading` still keys to the one actually clicked. */
+  function translationRowBusy(translationId: string): boolean {
+    return busyId === `${translationId}:approve` || busyId === `${translationId}:reject`;
   }
 
   return (
@@ -107,7 +112,7 @@ function TranslationsPanel({ version, onChanged }: { version: VersionDetail; onC
             {t.rejectionReason ? <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>Reason: {t.rejectionReason}</div> : null}
             {t.reviewStatus === "draft" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)", marginTop: "var(--space-xs)" }}>
-                <Button disabled={busyId === t.id} onClick={() => void decideTranslation(t.id, "approve")}>
+                <Button loading={busyId === `${t.id}:approve`} disabled={translationRowBusy(t.id)} onClick={() => void decideTranslation(t.id, "approve")}>
                   Approve translation
                 </Button>
                 <TextInput
@@ -115,7 +120,7 @@ function TranslationsPanel({ version, onChanged }: { version: VersionDetail; onC
                   value={rejectionReasons[t.id] ?? ""}
                   onChange={(e) => setRejectionReasons((r) => ({ ...r, [t.id]: e.target.value }))}
                 />
-                <Button variant="danger" disabled={busyId === t.id} onClick={() => void decideTranslation(t.id, "reject")}>
+                <Button variant="danger" loading={busyId === `${t.id}:reject`} disabled={translationRowBusy(t.id)} onClick={() => void decideTranslation(t.id, "reject")}>
                   Reject translation
                 </Button>
               </div>
@@ -140,7 +145,7 @@ function TranslationsPanel({ version, onChanged }: { version: VersionDetail; onC
           placeholder="Translated text"
           style={{ padding: "var(--space-sm)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", color: "var(--color-text)", font: "inherit" }}
         />
-        <Button disabled={busyId === "new" || !body} onClick={() => void proposeTranslation()}>
+        <Button loading={busyId === "new"} disabled={busyId === "new" || !body} onClick={() => void proposeTranslation()}>
           Propose translation
         </Button>
       </div>
@@ -182,7 +187,7 @@ export default function ContentDetailPage() {
   }, [params.id]);
 
   async function decide(versionId: string, decision: "approve" | "reject") {
-    setBusyVersionId(versionId);
+    setBusyVersionId(`${versionId}:${decision}`);
     setError(undefined);
     try {
       await api.post(`/admin/content/versions/${versionId}/decide`, {
@@ -197,10 +202,15 @@ export default function ContentDetailPage() {
     }
   }
 
+  /** Either decision for this version is in flight — disables both buttons; `loading` still keys to the one actually clicked. */
+  function versionRowBusy(versionId: string): boolean {
+    return busyVersionId === `${versionId}:approve` || busyVersionId === `${versionId}:reject`;
+  }
+
   if (!content) {
     return (
       <AdminShell>
-        <p>Loading…</p>
+        <PillSpinner label="Loading…" />
       </AdminShell>
     );
   }
@@ -258,7 +268,7 @@ export default function ContentDetailPage() {
 
           {v.reviewStatus === "draft" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", marginTop: "var(--space-sm)" }}>
-              <Button disabled={busyVersionId === v.id} onClick={() => void decide(v.id, "approve")}>
+              <Button loading={busyVersionId === `${v.id}:approve`} disabled={versionRowBusy(v.id)} onClick={() => void decide(v.id, "approve")}>
                 Approve — show to patients
               </Button>
               <TextInput
@@ -266,7 +276,7 @@ export default function ContentDetailPage() {
                 value={rejectionReasons[v.id] ?? ""}
                 onChange={(e) => setRejectionReasons((r) => ({ ...r, [v.id]: e.target.value }))}
               />
-              <Button variant="danger" disabled={busyVersionId === v.id} onClick={() => void decide(v.id, "reject")}>
+              <Button variant="danger" loading={busyVersionId === `${v.id}:reject`} disabled={versionRowBusy(v.id)} onClick={() => void decide(v.id, "reject")}>
                 Reject
               </Button>
             </div>

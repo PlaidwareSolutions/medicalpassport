@@ -245,7 +245,7 @@ export default function EditMedicationPage() {
       />
 
       <div style={{ marginTop: "var(--space-lg)" }}>
-        <Button fullWidth disabled={busy || !instructionReady} onClick={() => void save()}>
+        <Button fullWidth loading={busy} disabled={busy || !instructionReady} onClick={() => void save()}>
           {t("meds.edit_save")}
         </Button>
       </div>

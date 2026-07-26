@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Banner, Button, Card, Chip, TextInput } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, PillSpinner, TextInput } from "@medpass/ui-web";
 import { ChoiceGrid } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
@@ -44,6 +44,8 @@ export default function AllergiesPage() {
       <PageHeader title={t("allergy.title")} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
+      {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
+
       {items && items.length === 0 && !showForm ? (
         <Card>
           <span style={{ color: "var(--color-text-muted)" }}>{t("allergy.empty")}</span>
@@ -86,7 +88,7 @@ export default function AllergiesPage() {
             value={reactionNote}
             onChange={(e) => setReactionNote(e.target.value)}
           />
-          <Button fullWidth disabled={busy || label.trim().length === 0} onClick={() => void save()}>
+          <Button fullWidth loading={busy} disabled={busy || label.trim().length === 0} onClick={() => void save()}>
             {t("allergy.save")}
           </Button>
         </Card>

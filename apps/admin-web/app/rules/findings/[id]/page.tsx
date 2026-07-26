@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, SectionTitle } from "@medpass/ui-web";
+import { Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AdminShell } from "../../../../components/AdminShell";
 import { api } from "../../../../lib/api";
 
@@ -31,7 +31,7 @@ export default function FindingDetailPage() {
   if (!finding) {
     return (
       <AdminShell>
-        <p>Loading…</p>
+        <PillSpinner label="Loading…" />
       </AdminShell>
     );
   }

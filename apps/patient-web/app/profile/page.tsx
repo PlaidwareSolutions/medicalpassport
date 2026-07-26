@@ -75,7 +75,7 @@ function ClaimInviteSection() {
           </Button>
         ))}
       </div>
-      <Button fullWidth disabled={busy || phone.replace(/\D/g, "").length < 8} onClick={() => void send()}>
+      <Button fullWidth loading={busy} disabled={busy || phone.replace(/\D/g, "").length < 8} onClick={() => void send()}>
         {t("caregiver.send_invite")}
       </Button>
     </Card>
@@ -101,7 +101,7 @@ function ClaimInvitePendingSection() {
     <Card tone="info">
       <strong>{t("caregiver.claim_invite_pending_title")}</strong>
       <div style={{ marginTop: "var(--space-sm)" }}>
-        <Button variant="danger" disabled={busy} onClick={() => void cancel()}>
+        <Button variant="danger" loading={busy} disabled={busy} onClick={() => void cancel()}>
           {t("caregiver.claim_invite_cancel")}
         </Button>
       </div>

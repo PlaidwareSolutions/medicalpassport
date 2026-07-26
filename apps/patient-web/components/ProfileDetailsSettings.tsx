@@ -80,7 +80,7 @@ export function ProfileDetailsSettings() {
           }}
         />
         <div style={{ marginTop: "var(--space-md)" }}>
-          <Button disabled={busy || name.trim().length === 0} onClick={() => void save()}>
+          <Button loading={busy} disabled={busy || name.trim().length === 0} onClick={() => void save()}>
             {saved ? t("profile.details_saved") : t("common.save")}
           </Button>
         </div>

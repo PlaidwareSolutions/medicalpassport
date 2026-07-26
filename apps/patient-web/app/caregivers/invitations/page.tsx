@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card, Chip } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { acceptInvitation, useCaregiverInvitations } from "../../../lib/caregivers";
 import { useI18n } from "../../../lib/i18n";
@@ -41,6 +41,8 @@ export default function CaregiverInvitationsPage() {
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.invitations_title")}</h1>
       {error || acceptError ? <Banner tone="danger">{acceptError ?? t("common.error_generic")}</Banner> : null}
 
+      {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
+
       {items && items.length === 0 ? (
         <Card>
           <span style={{ color: "var(--color-text-muted)" }}>{t("caregiver.invitations_empty")}</span>
@@ -65,7 +67,7 @@ export default function CaregiverInvitationsPage() {
                   ))}
                 </div>
               </div>
-              <Button fullWidth disabled={busyId === i.id} onClick={() => void accept(i.id)}>
+              <Button fullWidth loading={busyId === i.id} disabled={busyId === i.id} onClick={() => void accept(i.id)}>
                 {t("caregiver.accept")}
               </Button>
             </Card>

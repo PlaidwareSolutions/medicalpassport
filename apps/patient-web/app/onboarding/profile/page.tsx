@@ -52,7 +52,7 @@ export default function CreateProfilePage() {
         value={year}
         onChange={(e) => setYear(e.target.value)}
       />
-      <Button fullWidth disabled={busy || name.trim().length === 0} onClick={() => void save()}>
+      <Button fullWidth loading={busy} disabled={busy || name.trim().length === 0} onClick={() => void save()}>
         {t("common.continue")}
       </Button>
     </main>

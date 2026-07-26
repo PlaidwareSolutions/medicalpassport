@@ -11,7 +11,7 @@ export interface TableProps<T> {
   columns: TableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
-  emptyLabel?: string;
+  emptyLabel?: ReactNode;
   onRowClick?: (row: T) => void;
 }
 

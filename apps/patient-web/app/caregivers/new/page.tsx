@@ -157,7 +157,7 @@ export default function InviteCaregiverPage() {
       </div>
 
       <div style={{ marginTop: "var(--space-lg)" }}>
-        <Button fullWidth disabled={busy || !ready} onClick={() => void send()}>
+        <Button fullWidth loading={busy} disabled={busy || !ready} onClick={() => void send()}>
           {t("caregiver.send_invite")}
         </Button>
       </div>
