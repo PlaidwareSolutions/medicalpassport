@@ -90,8 +90,23 @@ async function writeAuditRow(tx: Prisma.TransactionClient, entry: AuditEntry): P
   });
 }
 
-/** Verifies the audit hash chain; returns the seq of the first broken link, or null. */
-export async function verifyAuditChain(prisma: PrismaClient, batchSize = 1000): Promise<bigint | null> {
+/**
+ * Verifies the audit hash chain; returns the seq of the first *unacknowledged*
+ * broken link, or null if intact (or the only break found is the
+ * acknowledged one).
+ *
+ * A break can never be repaired retroactively — the whole point of a hash
+ * chain is that it wasn't rewritten after the fact. So once a specific break
+ * has been investigated and accepted as historical (docs/30 R7), passing its
+ * seq here lets verification treat that one row's mismatch as known and
+ * resume checking from its own rowHash onward, so a genuinely new break
+ * anywhere else — before or after it — still fails loudly.
+ */
+export async function verifyAuditChain(
+  prisma: PrismaClient,
+  batchSize = 1000,
+  acknowledgedBreakAtSeq?: bigint,
+): Promise<bigint | null> {
   let prevHash: string | null = null;
   let after: bigint | undefined;
   for (;;) {
@@ -104,7 +119,13 @@ export async function verifyAuditChain(prisma: PrismaClient, batchSize = 1000): 
       });
     if (rows.length === 0) return null;
     for (const row of rows) {
-      if (row.prevHash !== prevHash) return row.seq;
+      if (row.prevHash !== prevHash) {
+        if (acknowledgedBreakAtSeq !== undefined && row.seq === acknowledgedBreakAtSeq) {
+          prevHash = row.rowHash;
+          continue;
+        }
+        return row.seq;
+      }
       prevHash = row.rowHash;
     }
     after = rows[rows.length - 1]!.seq;

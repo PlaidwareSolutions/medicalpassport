@@ -169,6 +169,14 @@ export const cronEnvShape = {
    * verify-backups/restore-test; other cron jobs don't read it.
    */
   BACKUP_ENCRYPTION_KEY: z.string().min(32).optional(),
+  /**
+   * verify-audit-chain (docs/21/30 R7): a hash chain break can never be
+   * repaired retroactively — only prevented going forward. Once a specific
+   * break has been investigated and confirmed benign (not tampering), set
+   * this to that seq so the nightly check stops re-alerting on the same
+   * known historical fact and only fires on a genuinely new break beyond it.
+   */
+  AUDIT_CHAIN_ACKNOWLEDGED_BREAK_SEQ: z.string().optional(),
 } as const;
 
 export type CronEnv = z.infer<z.ZodObject<typeof cronEnvShape>>;
