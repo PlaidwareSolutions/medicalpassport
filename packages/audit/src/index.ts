@@ -92,22 +92,25 @@ async function writeAuditRow(tx: Prisma.TransactionClient, entry: AuditEntry): P
 
 /**
  * Verifies the audit hash chain; returns the seq of the first *unacknowledged*
- * broken link, or null if intact (or every break found is acknowledged).
+ * broken link, or null if intact (or every break found is at or before the
+ * acknowledged boundary).
  *
  * A break can never be repaired retroactively — the whole point of a hash
  * chain is that it wasn't rewritten after the fact. A single concurrency
- * incident can also misdirect *several* consecutive rows at once (several
- * writers all reading the same stale tail before any of them committed), not
- * just one — so once specific breaks have been investigated and accepted as
- * historical (docs/30 R7), passing their seqs here lets verification treat
- * each of those rows' mismatches as known and resume checking from each
- * row's own rowHash onward, so a genuinely new break anywhere else — before,
- * between, or after them — still fails loudly.
+ * incident can also misdirect a whole scattered range of rows across a long
+ * window (any time several writers race, not just once) — in medpass-prod's
+ * real case, 210 rows across a day and a half, ending abruptly the moment
+ * the underlying race was fixed. Enumerating every individual seq doesn't
+ * scale for that shape, so once everything up to and including a specific
+ * seq has been investigated and accepted as pre-fix historical noise
+ * (docs/30 R7), passing that seq as a boundary here resumes verification
+ * from each acknowledged row's own rowHash in turn, so a genuinely new break
+ * anywhere *after* the boundary still fails loudly.
  */
 export async function verifyAuditChain(
   prisma: PrismaClient,
   batchSize = 1000,
-  acknowledgedBreakSeqs?: ReadonlySet<bigint>,
+  acknowledgedBreaksBeforeSeq?: bigint,
 ): Promise<bigint | null> {
   let prevHash: string | null = null;
   let after: bigint | undefined;
@@ -122,7 +125,7 @@ export async function verifyAuditChain(
     if (rows.length === 0) return null;
     for (const row of rows) {
       if (row.prevHash !== prevHash) {
-        if (acknowledgedBreakSeqs?.has(row.seq)) {
+        if (acknowledgedBreaksBeforeSeq !== undefined && row.seq <= acknowledgedBreaksBeforeSeq) {
           prevHash = row.rowHash;
           continue;
         }

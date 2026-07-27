@@ -3,15 +3,10 @@ import { verifyAuditChain } from "@medpass/audit";
 import { runJob } from "../lib/run-job";
 
 runJob("verify-audit-chain", async ({ prisma, log, config }) => {
-  const acknowledgedBreakSeqs = config.AUDIT_CHAIN_ACKNOWLEDGED_BREAK_SEQS
-    ? new Set(
-        config.AUDIT_CHAIN_ACKNOWLEDGED_BREAK_SEQS.split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((s) => BigInt(s)),
-      )
+  const acknowledgedBreaksBeforeSeq = config.AUDIT_CHAIN_ACKNOWLEDGED_BREAKS_BEFORE_SEQ
+    ? BigInt(config.AUDIT_CHAIN_ACKNOWLEDGED_BREAKS_BEFORE_SEQ)
     : undefined;
-  const brokenAt = await verifyAuditChain(prisma, undefined, acknowledgedBreakSeqs);
+  const brokenAt = await verifyAuditChain(prisma, undefined, acknowledgedBreaksBeforeSeq);
   if (brokenAt !== null) {
     log.error({ brokenAtSeq: brokenAt.toString() }, "AUDIT CHAIN BROKEN — treat as P1 incident (runbook R7)");
     process.exitCode = 1;
@@ -19,8 +14,8 @@ runJob("verify-audit-chain", async ({ prisma, log, config }) => {
   }
   return {
     intact: true,
-    ...(acknowledgedBreakSeqs
-      ? { knownHistoricalBreakSeqs: [...acknowledgedBreakSeqs].map(String) }
+    ...(acknowledgedBreaksBeforeSeq !== undefined
+      ? { knownHistoricalBreaksBeforeSeq: acknowledgedBreaksBeforeSeq.toString() }
       : {}),
   };
 });
