@@ -3,10 +3,15 @@ import { verifyAuditChain } from "@medpass/audit";
 import { runJob } from "../lib/run-job";
 
 runJob("verify-audit-chain", async ({ prisma, log, config }) => {
-  const acknowledgedBreakAtSeq = config.AUDIT_CHAIN_ACKNOWLEDGED_BREAK_SEQ
-    ? BigInt(config.AUDIT_CHAIN_ACKNOWLEDGED_BREAK_SEQ)
+  const acknowledgedBreakSeqs = config.AUDIT_CHAIN_ACKNOWLEDGED_BREAK_SEQS
+    ? new Set(
+        config.AUDIT_CHAIN_ACKNOWLEDGED_BREAK_SEQS.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((s) => BigInt(s)),
+      )
     : undefined;
-  const brokenAt = await verifyAuditChain(prisma, undefined, acknowledgedBreakAtSeq);
+  const brokenAt = await verifyAuditChain(prisma, undefined, acknowledgedBreakSeqs);
   if (brokenAt !== null) {
     log.error({ brokenAtSeq: brokenAt.toString() }, "AUDIT CHAIN BROKEN — treat as P1 incident (runbook R7)");
     process.exitCode = 1;
@@ -14,6 +19,8 @@ runJob("verify-audit-chain", async ({ prisma, log, config }) => {
   }
   return {
     intact: true,
-    ...(acknowledgedBreakAtSeq !== undefined ? { knownHistoricalBreakAtSeq: acknowledgedBreakAtSeq.toString() } : {}),
+    ...(acknowledgedBreakSeqs
+      ? { knownHistoricalBreakSeqs: [...acknowledgedBreakSeqs].map(String) }
+      : {}),
   };
 });

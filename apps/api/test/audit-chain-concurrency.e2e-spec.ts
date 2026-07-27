@@ -61,11 +61,11 @@ describe("Audit chain concurrency e2e", () => {
     expect(brokenAt).toBeNull();
   });
 
-  it("acknowledging a known historical break resumes verification from it, and still catches a genuinely new one beyond it", async () => {
-    // A hash chain break can't be repaired retroactively — this crafts the
-    // same shape production actually hit (a row whose prevHash doesn't
-    // match its true predecessor's rowHash) to test that the acknowledged
-    // seq is accepted while verification still catches anything else wrong.
+  it("acknowledging known historical breaks resumes verification past each of them, and still catches a genuinely new one beyond", async () => {
+    // Reproduces the exact real production shape: one concurrency incident
+    // misdirected THREE consecutive rows (all read the same stale tail
+    // before any of them committed), not just one — acknowledging only the
+    // first of them must still correctly flag the next unacknowledged one.
     async function appendRow(prevHash: string | null): Promise<{ seq: bigint; rowHash: string }> {
       const rowHash = `test-hash-${Math.random().toString(36).slice(2)}`;
       const row = await prisma.auditEvent.create({
@@ -76,18 +76,33 @@ describe("Audit chain concurrency e2e", () => {
     }
 
     const before = await prisma.auditEvent.findFirst({ orderBy: { seq: "desc" }, select: { rowHash: true } });
-    const wrongPrevHash = "not-the-real-predecessor-hash";
-    const brokenRow = await appendRow(wrongPrevHash);
-    expect(before?.rowHash).not.toBe(wrongPrevHash);
+    const staleHash = before!.rowHash;
+    // One writer commits first and is genuinely correct (its predecessor
+    // really is the pre-incident tail) — matching medpass-prod's real seq
+    // 96. Three more writers had all *also* read that same stale tail before
+    // any of the four committed, so each of them incorrectly points to it
+    // too instead of chaining to the row actually before them — matching
+    // medpass-prod's real seq 97/98/99 exactly.
+    await appendRow(staleHash);
+    const brokenRow1 = await appendRow(staleHash);
+    const brokenRow2 = await appendRow(staleHash);
+    const brokenRow3 = await appendRow(staleHash);
 
-    // Unacknowledged: still flagged, exactly as production's cron caught it.
-    expect(await verifyAuditChain(prisma)).toBe(brokenRow.seq);
+    // Unacknowledged: the first broken link is flagged, exactly as production's cron caught it.
+    expect(await verifyAuditChain(prisma)).toBe(brokenRow1.seq);
 
-    // Acknowledged: verification resumes from this row's own rowHash and reports intact.
-    expect(await verifyAuditChain(prisma, undefined, brokenRow.seq)).toBeNull();
+    // Acknowledging only the first of the three still correctly flags the next one.
+    expect(await verifyAuditChain(prisma, undefined, new Set([brokenRow1.seq]))).toBe(brokenRow2.seq);
 
-    // A second, later break must still fail loudly even with the first one acknowledged.
-    const secondBrokenRow = await appendRow("also-not-the-real-predecessor-hash");
-    expect(await verifyAuditChain(prisma, undefined, brokenRow.seq)).toBe(secondBrokenRow.seq);
+    // Acknowledging all three from the same incident reports intact.
+    expect(
+      await verifyAuditChain(prisma, undefined, new Set([brokenRow1.seq, brokenRow2.seq, brokenRow3.seq])),
+    ).toBeNull();
+
+    // A fourth, later break from a separate cause must still fail loudly even with the first three acknowledged.
+    const newBrokenRow = await appendRow("a-completely-unrelated-bad-hash");
+    expect(
+      await verifyAuditChain(prisma, undefined, new Set([brokenRow1.seq, brokenRow2.seq, brokenRow3.seq])),
+    ).toBe(newBrokenRow.seq);
   });
 });
