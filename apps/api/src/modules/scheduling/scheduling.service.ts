@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { proposeSlots, type SlotDose } from "@medpass/medication-terminology";
 import { AUTO_SCHEDULABLE_FREQUENCY_CODES, type FrequencyCode } from "@medpass/domain";
-import type { MedicationSchedule, ScheduleRecurrence } from "@medpass/database";
+import type { MedicationSchedule, ScheduleRecurrence, ScheduleStatus } from "@medpass/database";
 import { PrismaService } from "../../common/prisma.service";
 import { isDueOnDate } from "./recurrence";
 
@@ -90,22 +90,44 @@ export class SchedulingService {
   }
 
   /**
-   * Clears not-yet-happened doses so a stopped/paused medicine stops
-   * nagging. Deletes rather than soft-cancels: a still-"upcoming" row is
-   * guaranteed to have no DoseEvent yet (any recorded action moves it out of
-   * "upcoming" first), so deletion is safe and lets resume cleanly
-   * regenerate the same slots via materializeWindow's unique constraint —
-   * a soft "cancelled" status would otherwise permanently block
-   * regeneration since the (schedule, dueAt) row would already exist.
-   * Snoozed doses (which do have an event) are left for the missed-dose
-   * reconciliation cron rather than force-deleted.
+   * Clears every currently-open dose so a stopped/paused/deleted medicine
+   * stops nagging — not just strictly-future ones: a dose due earlier today
+   * but still "upcoming" (not yet past the 2h missed-grace) was previously
+   * left behind, so it kept showing as due right up until reconcile-missed-
+   * doses flipped it to "missed" hours later, and *that* row was never
+   * touched at all (this method only ever looked at "upcoming"), so it sat
+   * in the Home "Missed" section forever. Upcoming rows are deleted rather
+   * than soft-cancelled: guaranteed to have no DoseEvent yet (any recorded
+   * action moves a dose out of "upcoming" first), so deletion is safe and
+   * lets a later restart regenerate the same slots via materializeWindow's
+   * unique constraint — a soft "cancelled" status would otherwise
+   * permanently block regeneration since the (schedule, dueAt) row would
+   * already exist. Missed/snoozed rows do carry real history (a snoozed
+   * dose has a DoseEvent; a missed one is itself a meaningful fact) worth
+   * keeping, so those are cancelled in place instead of deleted.
    */
   async cancelFutureUpcomingDoses(patientMedicationId: string): Promise<void> {
     const schedule = await this.prisma.medicationSchedule.findUnique({ where: { patientMedicationId } });
     if (!schedule) return;
     await this.prisma.scheduledDose.deleteMany({
-      where: { medicationScheduleId: schedule.id, status: "upcoming", dueAt: { gt: new Date() } },
+      where: { medicationScheduleId: schedule.id, status: "upcoming" },
     });
+    await this.prisma.scheduledDose.updateMany({
+      where: { medicationScheduleId: schedule.id, status: { in: ["missed", "snoozed"] } },
+      data: { status: "cancelled" },
+    });
+  }
+
+  /**
+   * Flips the schedule's own status alongside the medicine's — otherwise
+   * the nightly extend-scheduled-doses cron (which only looks at
+   * `status: "active"` schedules) keeps materializing brand new future
+   * doses for a medicine that's been stopped or paused, forever, since
+   * nothing else ever touches this field. No-op if the medicine has no
+   * schedule (PRN, or never auto-schedulable).
+   */
+  async setScheduleStatus(patientMedicationId: string, status: ScheduleStatus): Promise<void> {
+    await this.prisma.medicationSchedule.updateMany({ where: { patientMedicationId }, data: { status } });
   }
 
   /** Extends every active schedule's window by one day (cron: extend-scheduled-doses). */

@@ -180,6 +180,11 @@ export class MedicationsController {
         await this.safety.evaluate(profileId, "medication_restarted");
       } else {
         await this.scheduling.cancelFutureUpcomingDoses(id);
+        // Otherwise the nightly extend-scheduled-doses cron keeps
+        // materializing new future doses for this schedule forever, since
+        // it only ever looks at whether the *schedule* is "active" — the
+        // medicine's own status alone doesn't stop it.
+        await this.scheduling.setScheduleStatus(id, input.status === "paused" ? "paused" : "ended");
       }
       return result;
     });
@@ -236,5 +241,6 @@ export class MedicationsController {
       });
     });
     await this.scheduling.cancelFutureUpcomingDoses(id);
+    await this.scheduling.setScheduleStatus(id, "ended");
   }
 }

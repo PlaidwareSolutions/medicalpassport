@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { SchedulingService } from "../src/modules/scheduling/scheduling.service";
 
 /**
  * Stage 4 e2e: schedule derivation from a confirmed instruction, the daily
@@ -14,6 +15,7 @@ import { PrismaService } from "../src/common/prisma.service";
 describe("Scheduling e2e", () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let scheduling: SchedulingService;
 
   const PHONE = "+919000000101";
   const CODE = process.env.OTP_DEV_FIXED_CODE ?? "000000";
@@ -25,6 +27,7 @@ describe("Scheduling e2e", () => {
     app.setGlobalPrefix("v1", { exclude: ["healthz", "readyz"] });
     await app.init();
     prisma = moduleRef.get(PrismaService);
+    scheduling = moduleRef.get(SchedulingService);
 
     await prisma.$executeRawUnsafe(`
       TRUNCATE TABLE audit_events, rate_limit_buckets, offline_mutations, medication_changes,
@@ -366,5 +369,100 @@ describe("Scheduling e2e", () => {
     const doses = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id } });
     expect(doses).toHaveLength(14); // 14-day rolling window × 1 slot/day
     expect(doses.every((d) => d.slotLabel === "midday")).toBe(true);
+  });
+
+  // Scoped to their own new medicines and checked via direct Prisma queries
+  // (never the date-based timeline endpoint), so these are safe to run after
+  // the "must be last" OD_AFTERNOON test above without disturbing its
+  // fixed-count assumptions.
+  it("stopping a medicine deletes every open upcoming dose (not just future ones), cancels an already-missed one, and ends the schedule", async () => {
+    const med = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Stop Cleanup Test",
+        source: "manual",
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "BD" },
+      })
+      .expect(201);
+
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({ where: { patientMedicationId: med.body.id } });
+    const doses = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id }, orderBy: { dueAt: "asc" } });
+    expect(doses.length).toBeGreaterThan(2);
+
+    // Simulates the real bug report exactly: one dose already reconciled to
+    // "missed" (due earlier today, past the 2h grace) before the medicine
+    // was stopped, and everything else still "upcoming" as normal.
+    const alreadyMissed = doses[0]!;
+    await prisma.scheduledDose.update({ where: { id: alreadyMissed.id }, data: { status: "missed" } });
+
+    const medRow = await prisma.patientMedication.findUniqueOrThrow({ where: { id: med.body.id } });
+    await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/medications/${med.body.id}/status`))
+      .send({ rowVersion: medRow.rowVersion, status: "stopped", reason: "test stop" })
+      .expect(201);
+
+    const remaining = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id } });
+    // Every previously-"upcoming" row is gone entirely (deleted, not just the future ones).
+    expect(remaining.filter((d) => d.status === "upcoming")).toHaveLength(0);
+    // The previously-missed row survives as a distinct terminal state — no
+    // longer shown as something to act on, but not silently erased either.
+    const missedAfter = remaining.find((d) => d.id === alreadyMissed.id);
+    expect(missedAfter?.status).toBe("cancelled");
+
+    const scheduleAfter = await prisma.medicationSchedule.findUniqueOrThrow({ where: { id: schedule.id } });
+    expect(scheduleAfter.status).toBe("ended");
+  });
+
+  it("a stopped medicine's schedule is excluded from the nightly extend-scheduled-doses cron — it never manufactures new doses again", async () => {
+    const med = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Stop Cron Exclusion Test",
+        source: "manual",
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" },
+      })
+      .expect(201);
+    const medRow = await prisma.patientMedication.findUniqueOrThrow({ where: { id: med.body.id } });
+    await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/medications/${med.body.id}/status`))
+      .send({ rowVersion: medRow.rowVersion, status: "stopped", reason: "test stop" })
+      .expect(201);
+
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({ where: { patientMedicationId: med.body.id } });
+    expect(schedule.status).toBe("ended");
+    const before = await prisma.scheduledDose.count({ where: { medicationScheduleId: schedule.id } });
+    expect(before).toBe(0); // cleared by the stop itself
+
+    await scheduling.extendAllActiveSchedules();
+
+    const after = await prisma.scheduledDose.count({ where: { medicationScheduleId: schedule.id } });
+    expect(after).toBe(0); // still zero — an "ended" schedule is never touched by the extend cron
+  });
+
+  it("pausing sets the schedule to paused (same cron-exclusion effect), and restarting reactivates it", async () => {
+    const med = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Pause Reactivate Test",
+        source: "manual",
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" },
+      })
+      .expect(201);
+    const schedule = await prisma.medicationSchedule.findUniqueOrThrow({ where: { patientMedicationId: med.body.id } });
+
+    const medRow = await prisma.patientMedication.findUniqueOrThrow({ where: { id: med.body.id } });
+    await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/medications/${med.body.id}/status`))
+      .send({ rowVersion: medRow.rowVersion, status: "paused", reason: "test pause" })
+      .expect(201);
+
+    const scheduleAfterPause = await prisma.medicationSchedule.findUniqueOrThrow({ where: { id: schedule.id } });
+    expect(scheduleAfterPause.status).toBe("paused");
+
+    await scheduling.extendAllActiveSchedules();
+    expect(await prisma.scheduledDose.count({ where: { medicationScheduleId: schedule.id } })).toBe(0);
+
+    const medPaused = await prisma.patientMedication.findUniqueOrThrow({ where: { id: med.body.id } });
+    await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/medications/${med.body.id}/status`))
+      .send({ rowVersion: medPaused.rowVersion, status: "current" })
+      .expect(201);
+
+    const scheduleAfterResume = await prisma.medicationSchedule.findUniqueOrThrow({ where: { id: schedule.id } });
+    expect(scheduleAfterResume.status).toBe("active");
+    expect(await prisma.scheduledDose.count({ where: { medicationScheduleId: schedule.id } })).toBeGreaterThan(0);
   });
 });
