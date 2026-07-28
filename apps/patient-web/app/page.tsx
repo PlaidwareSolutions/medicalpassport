@@ -2,10 +2,12 @@
 import Link from "next/link";
 import { Banner, Button, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../components/AppShell";
+import { CaregiverAlertCard } from "../components/CaregiverAlertCard";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
 import { PageHeader } from "../components/PageHeader";
 import { RefillReminderCard } from "../components/RefillReminderCard";
+import { useCaregiverAlerts } from "../lib/caregiver-alerts";
 import { useI18n } from "../lib/i18n";
 import { useMedications } from "../lib/medications";
 import { useRefillReminders } from "../lib/refill-reminders";
@@ -19,6 +21,7 @@ export default function HomePage() {
   const { data: timeline, error: timelineError, fromCache, patchItem } = useTimeline();
   const { items: findings, reload: reloadFindings } = useSafetyFindings();
   const { items: refillReminders, reload: reloadRefillReminders } = useRefillReminders();
+  const { items: caregiverAlerts } = useCaregiverAlerts();
 
   const dueNow = (timeline?.items ?? []).filter((i) => i.isDueNow && i.status !== "missed");
   const missed = (timeline?.items ?? []).filter((i) => i.status === "missed");
@@ -94,6 +97,17 @@ export default function HomePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 {openFindings.map((f) => (
                   <FindingCard key={f.id} finding={f} onChanged={reloadFindings} />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {caregiverAlerts && caregiverAlerts.length > 0 ? (
+            <>
+              <SectionTitle>{t("home.alert_history")}</SectionTitle>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+                {caregiverAlerts.map((a) => (
+                  <CaregiverAlertCard key={a.scheduledDoseId} alert={a} />
                 ))}
               </div>
             </>

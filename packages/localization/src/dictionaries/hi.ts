@@ -55,6 +55,7 @@ export const hi: Record<keyof typeof en, string> = {
   "home.concerns": "जाँच ज़रूरी",
   "home.refills": "खत्म होने वाली",
   "home.refill_reminders": "रिफिल और कोर्स पूरा होने की याद दिलाना",
+  "home.alert_history": "छूटी हुई खुराक की चेतावनी का इतिहास",
   "home.empty_title": "अभी कोई दवा नहीं",
   "home.empty_body": "अपना दवा पासपोर्ट शुरू करने के लिए पहली दवा जोड़ें।",
   "home.add_first": "दवा जोड़ें",
@@ -288,6 +289,7 @@ export const hi: Record<keyof typeof en, string> = {
   "profile.language": "भाषा",
   "profile.help": "मदद",
   "profile.switcher_label": "प्रोफ़ाइल बदलें",
+  "profile.switcher_alert_label": "{name} — छूटी हुई खुराक की चेतावनी है",
 
   "caregiver.list_title": "देखभालकर्ता",
   "caregiver.list_empty": "अभी तक कोई देखभालकर्ता नहीं है। इस प्रोफ़ाइल में मदद के लिए किसी भरोसेमंद व्यक्ति को आमंत्रित करें।",
@@ -404,6 +406,10 @@ export const hi: Record<keyof typeof en, string> = {
   "reminders.sms_enabled": "SMS रिमाइंडर चालू हैं",
   "reminders.sms_enable": "SMS रिमाइंडर चालू करें",
   "reminders.sms_disable": "SMS रिमाइंडर बंद करें",
+
+  "alerts.status_missed": "छूट गई",
+  "alerts.status_resolved": "हल हो गई",
+  "alerts.due_at": "समय {time}",
 
   "sync.online": "ऑनलाइन",
   "sync.offline": "ऑफ़लाइन",

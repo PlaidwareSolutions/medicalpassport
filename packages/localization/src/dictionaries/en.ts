@@ -56,6 +56,7 @@ export const en = {
   "home.concerns": "Needs review",
   "home.refills": "Running low",
   "home.refill_reminders": "Refill & completion reminders",
+  "home.alert_history": "Missed-dose alert history",
   "home.empty_title": "No medicines yet",
   "home.empty_body": "Add your first medicine to start your medicine passport.",
   "home.add_first": "Add a medicine",
@@ -295,6 +296,7 @@ export const en = {
   "profile.language": "Language",
   "profile.help": "Help",
   "profile.switcher_label": "Switch profile",
+  "profile.switcher_alert_label": "{name} — has a missed-dose alert",
 
   "caregiver.list_title": "Caregivers",
   "caregiver.list_empty": "No caregivers yet. Invite someone you trust to help manage this profile.",
@@ -411,6 +413,10 @@ export const en = {
   "reminders.sms_enabled": "SMS reminders are on",
   "reminders.sms_enable": "Turn on SMS reminders",
   "reminders.sms_disable": "Turn off SMS reminders",
+
+  "alerts.status_missed": "Missed",
+  "alerts.status_resolved": "Resolved",
+  "alerts.due_at": "Due {time}",
 
   "sync.online": "Online",
   "sync.offline": "Offline",

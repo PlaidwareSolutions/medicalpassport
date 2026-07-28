@@ -34,16 +34,19 @@ export function ProfileSwitcher() {
             key={p.id}
             type="button"
             aria-current={active ? "true" : undefined}
+            aria-label={p.hasOpenAlerts ? t("profile.switcher_alert_label", { name: p.displayName }) : undefined}
             onClick={() => selectProfile(p.id)}
             style={{ border: "none", background: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}
           >
             {/* A color-only tone difference isn't a reliable distinction
                 (WCAG 1.4.1 — never color alone); the checkmark plus bold
                 weight makes the active profile unambiguous regardless of
-                color perception. */}
-            <Chip tone={active ? "success" : "default"}>
+                color perception, and the same reasoning applies to the
+                missed-dose alert indicator (⚠, not just a danger tone). */}
+            <Chip tone={p.hasOpenAlerts ? "danger" : active ? "success" : "default"}>
               <span style={{ fontWeight: active ? 700 : 600 }}>
                 {active ? "✓ " : ""}
+                {p.hasOpenAlerts ? "⚠ " : ""}
                 {p.displayName}
               </span>
             </Chip>

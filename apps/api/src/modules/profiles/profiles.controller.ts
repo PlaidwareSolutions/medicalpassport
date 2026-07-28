@@ -39,6 +39,37 @@ export class ProfilesController {
       orderBy: { createdAt: "asc" },
     });
     const relationships = computeProfileRelationships(profiles, userId);
+
+    // A profile-switcher badge for "this patient has an open missed-dose
+    // alert" — the same manage_reminders/full_management scope that
+    // actually receives the escalation, so a view-only caregiver doesn't
+    // see a badge for something they have no responsibility for. Self/
+    // dependent profiles always qualify (it's the caller's own data).
+    const caregiverProfileIds = profiles.filter((p) => relationships.get(p.id) === "caregiver").map((p) => p.id);
+    let scopedCaregiverProfileIds = new Set<string>();
+    if (caregiverProfileIds.length > 0) {
+      const scopedRelationships = await this.prisma.caregiverRelationship.findMany({
+        where: {
+          patientProfileId: { in: caregiverProfileIds },
+          caregiverUserId: userId,
+          status: "active",
+          permissions: { some: { scope: { in: ["manage_reminders", "full_management"] }, revokedAt: null } },
+        },
+        select: { patientProfileId: true },
+      });
+      scopedCaregiverProfileIds = new Set(scopedRelationships.map((r) => r.patientProfileId));
+    }
+    const visibleProfileIds = profiles
+      .filter((p) => relationships.get(p.id) !== "caregiver" || scopedCaregiverProfileIds.has(p.id))
+      .map((p) => p.id);
+
+    const missedDoses = await this.prisma.scheduledDose.findMany({
+      where: { status: "missed", medicationSchedule: { patientMedication: { patientProfileId: { in: visibleProfileIds }, deletedAt: null } } },
+      select: { medicationSchedule: { select: { patientMedication: { select: { patientProfileId: true } } } } },
+      distinct: ["medicationScheduleId"],
+    });
+    const profilesWithOpenAlerts = new Set(missedDoses.map((d) => d.medicationSchedule.patientMedication.patientProfileId));
+
     return {
       items: profiles.map((p) => ({
         id: p.id,
@@ -48,6 +79,7 @@ export class ProfilesController {
         relationship: relationships.get(p.id)!,
         claimInvited: !!p.claimInvitedPhoneDigest,
         rowVersion: p.rowVersion,
+        hasOpenAlerts: profilesWithOpenAlerts.has(p.id),
       })),
     };
   }

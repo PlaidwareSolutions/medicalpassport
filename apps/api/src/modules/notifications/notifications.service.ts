@@ -164,6 +164,44 @@ export class NotificationsService {
   }
 
   /**
+   * Caregiver-visible missed-dose alert history — a persistent in-app
+   * record, unlike the push/SMS `caregiver_escalation` notification it
+   * accompanies. Deliberately reads the dose's own live status rather than
+   * the Notification row: a missed dose with nobody to escalate to (no
+   * caregiver channel active) still gets its Notification cancelled with
+   * nothing sent (detect-due-reminders.ts), which would otherwise make this
+   * list just as blind as the push it's meant to back up. "Open" means
+   * still missed; "recently resolved" is a bounded trailing window (docs/16
+   * never specified a retention period, and an ever-growing list of
+   * long-past corrections has no ongoing value) so the list stays a live
+   * "what needs attention / just got resolved" view, not a full history.
+   */
+  async listCaregiverAlerts(profileId: string) {
+    const RESOLVED_WINDOW_DAYS = 7;
+    const resolvedSince = new Date(Date.now() - RESOLVED_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+    const doses = await this.prisma.scheduledDose.findMany({
+      where: {
+        medicationSchedule: { patientMedication: { patientProfileId: profileId, deletedAt: null } },
+        OR: [{ status: "missed" }, { status: "taken_other_time", updatedAt: { gte: resolvedSince } }],
+      },
+      include: { medicationSchedule: { include: { patientMedication: true } } },
+      orderBy: { dueAt: "desc" },
+    });
+
+    return {
+      items: doses.map((d) => ({
+        scheduledDoseId: d.id,
+        medicationName: d.medicationSchedule.patientMedication.enteredName,
+        dueAt: d.dueAt.toISOString(),
+        quantity: String(d.quantity),
+        status: d.status as "missed" | "taken_other_time",
+        updatedAt: d.updatedAt.toISOString(),
+      })),
+    };
+  }
+
+  /**
    * Applies a Telnyx delivery-status webhook to the attempt it belongs to
    * (docs/16 follow-up — signature already verified by the caller). No
    * matching attempt is expected and fine to ignore silently: OTP sends

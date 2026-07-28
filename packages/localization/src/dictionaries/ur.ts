@@ -55,6 +55,7 @@ export const ur: Record<keyof typeof en, string> = {
   "home.concerns": "جائزہ درکار",
   "home.refills": "ختم ہونے والی",
   "home.refill_reminders": "ری فل اور کورس مکمل ہونے کی یاد دہانیاں",
+  "home.alert_history": "چھوٹی ہوئی خوراک کی وارننگ کی تاریخ",
   "home.empty_title": "ابھی کوئی دوا نہیں",
   "home.empty_body": "اپنا دوا پاسپورٹ شروع کرنے کے لیے پہلی دوا شامل کریں۔",
   "home.add_first": "دوا شامل کریں",
@@ -288,6 +289,7 @@ export const ur: Record<keyof typeof en, string> = {
   "profile.language": "زبان",
   "profile.help": "مدد",
   "profile.switcher_label": "پروفائل تبدیل کریں",
+  "profile.switcher_alert_label": "{name} — چھوٹی ہوئی خوراک کی وارننگ موجود ہے",
 
   "caregiver.list_title": "نگہداشت کنندگان",
   "caregiver.list_empty": "ابھی تک کوئی نگہداشت کنندہ نہیں۔ اس پروفائل کے انتظام میں مدد کے لیے کسی قابلِ اعتماد فرد کو مدعو کریں۔",
@@ -404,6 +406,10 @@ export const ur: Record<keyof typeof en, string> = {
   "reminders.sms_enabled": "SMS یاد دہانیاں آن ہیں",
   "reminders.sms_enable": "SMS یاد دہانیاں آن کریں",
   "reminders.sms_disable": "SMS یاد دہانیاں آف کریں",
+
+  "alerts.status_missed": "چھوٹ گئی",
+  "alerts.status_resolved": "حل ہو گئی",
+  "alerts.due_at": "وقت {time}",
 
   "sync.online": "آن لائن",
   "sync.offline": "آف لائن",

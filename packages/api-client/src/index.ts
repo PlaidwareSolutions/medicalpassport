@@ -109,6 +109,8 @@ export interface ProfileSummary {
   /** True when this (unclaimed) dependent profile has a pending claim invite. */
   claimInvited?: boolean;
   rowVersion: number;
+  /** True when this profile has a currently-missed dose — omitted from the login response, only present via GET /profiles. */
+  hasOpenAlerts?: boolean;
 }
 
 export interface ClaimInvitationDto {
@@ -215,6 +217,22 @@ export interface RefillReminderDto {
   rowVersion: number;
   daysRemainingEstimate: number | null;
   estimatedDate: string | null;
+}
+
+/**
+ * Persistent in-app record of a missed-dose caregiver escalation — the
+ * push/SMS notification is a one-shot alert; this is the durable list a
+ * caregiver (or the patient) can check regardless of whether that delivery
+ * succeeded. "missed" means still open; "taken_other_time" means the
+ * patient corrected it (shown for a trailing window, not forever).
+ */
+export interface CaregiverAlertDto {
+  scheduledDoseId: string;
+  medicationName: string;
+  dueAt: string;
+  quantity: string;
+  status: "missed" | "taken_other_time";
+  updatedAt: string;
 }
 
 export interface TimelineItemDto {

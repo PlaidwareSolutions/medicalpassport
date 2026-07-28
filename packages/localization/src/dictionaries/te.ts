@@ -55,6 +55,7 @@ export const te: Record<keyof typeof en, string> = {
   "home.concerns": "సమీక్ష అవసరం",
   "home.refills": "అయిపోతున్నాయి",
   "home.refill_reminders": "రీఫిల్ & కోర్సు పూర్తి రిమైండర్‌లు",
+  "home.alert_history": "మిస్సైన మోతాదు హెచ్చరిక చరిత్ర",
   "home.empty_title": "ఇంకా మందులు లేవు",
   "home.empty_body": "మీ మందుల పాస్‌పోర్ట్ ప్రారంభించడానికి మొదటి మందు జోడించండి.",
   "home.add_first": "మందు జోడించండి",
@@ -288,6 +289,7 @@ export const te: Record<keyof typeof en, string> = {
   "profile.language": "భాష",
   "profile.help": "సహాయం",
   "profile.switcher_label": "ప్రొఫైల్ మార్చండి",
+  "profile.switcher_alert_label": "{name} — మిస్సైన మోతాదు హెచ్చరిక ఉంది",
 
   "caregiver.list_title": "సంరక్షకులు",
   "caregiver.list_empty": "ఇంకా సంరక్షకులు లేరు. ఈ ప్రొఫైల్‌ను నిర్వహించడంలో సహాయం చేయడానికి మీరు నమ్మే వ్యక్తిని ఆహ్వానించండి.",
@@ -404,6 +406,10 @@ export const te: Record<keyof typeof en, string> = {
   "reminders.sms_enabled": "SMS రిమైండర్‌లు ఆన్‌లో ఉన్నాయి",
   "reminders.sms_enable": "SMS రిమైండర్‌లను ఆన్ చేయండి",
   "reminders.sms_disable": "SMS రిమైండర్‌లను ఆఫ్ చేయండి",
+
+  "alerts.status_missed": "మిస్సైంది",
+  "alerts.status_resolved": "పరిష్కరించబడింది",
+  "alerts.due_at": "సమయం {time}",
 
   "sync.online": "ఆన్‌లైన్",
   "sync.offline": "ఆఫ్‌లైన్",

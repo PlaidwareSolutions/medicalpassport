@@ -63,4 +63,11 @@ export class NotificationsController {
       correlationId: req.correlationId,
     });
   }
+
+  /** Same scope as who a missed dose actually escalates to (manage_reminders/full_management) — the persistent in-app record for that same audience. */
+  @Get("profiles/current/caregiver-alerts")
+  async listCaregiverAlerts(@Req() req: ApiRequest) {
+    const { profileId } = await this.access.require(req, "manage_reminders");
+    return this.notifications.listCaregiverAlerts(profileId);
+  }
 }
