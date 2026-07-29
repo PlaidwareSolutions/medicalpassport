@@ -56,6 +56,7 @@ export const ur: Record<keyof typeof en, string> = {
   "home.refills": "ختم ہونے والی",
   "home.refill_reminders": "ری فل اور کورس مکمل ہونے کی یاد دہانیاں",
   "home.alert_history": "چھوٹی ہوئی خوراک کی وارننگ کی تاریخ",
+  "home.blood_sugar": "بلڈ شوگر",
   "home.empty_title": "ابھی کوئی دوا نہیں",
   "home.empty_body": "اپنا دوا پاسپورٹ شروع کرنے کے لیے پہلی دوا شامل کریں۔",
   "home.add_first": "دوا شامل کریں",

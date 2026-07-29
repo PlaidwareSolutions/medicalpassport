@@ -56,6 +56,7 @@ export const hi: Record<keyof typeof en, string> = {
   "home.refills": "खत्म होने वाली",
   "home.refill_reminders": "रिफिल और कोर्स पूरा होने की याद दिलाना",
   "home.alert_history": "छूटी हुई खुराक की चेतावनी का इतिहास",
+  "home.blood_sugar": "ब्लड शुगर",
   "home.empty_title": "अभी कोई दवा नहीं",
   "home.empty_body": "अपना दवा पासपोर्ट शुरू करने के लिए पहली दवा जोड़ें।",
   "home.add_first": "दवा जोड़ें",

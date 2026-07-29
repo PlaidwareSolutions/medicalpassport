@@ -56,6 +56,7 @@ export const te: Record<keyof typeof en, string> = {
   "home.refills": "అయిపోతున్నాయి",
   "home.refill_reminders": "రీఫిల్ & కోర్సు పూర్తి రిమైండర్‌లు",
   "home.alert_history": "మిస్సైన మోతాదు హెచ్చరిక చరిత్ర",
+  "home.blood_sugar": "రక్తంలో చక్కెర",
   "home.empty_title": "ఇంకా మందులు లేవు",
   "home.empty_body": "మీ మందుల పాస్‌పోర్ట్ ప్రారంభించడానికి మొదటి మందు జోడించండి.",
   "home.add_first": "మందు జోడించండి",

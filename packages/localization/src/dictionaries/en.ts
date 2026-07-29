@@ -57,6 +57,7 @@ export const en = {
   "home.refills": "Running low",
   "home.refill_reminders": "Refill & completion reminders",
   "home.alert_history": "Missed-dose alert history",
+  "home.blood_sugar": "Blood sugar",
   "home.empty_title": "No medicines yet",
   "home.empty_body": "Add your first medicine to start your medicine passport.",
   "home.add_first": "Add a medicine",

@@ -7,6 +7,7 @@ import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
 import { PageHeader } from "../components/PageHeader";
 import { RefillReminderCard } from "../components/RefillReminderCard";
+import { useGlucoseReadings } from "../lib/blood-sugar";
 import { useCaregiverAlerts } from "../lib/caregiver-alerts";
 import { useI18n } from "../lib/i18n";
 import { useMedications } from "../lib/medications";
@@ -22,6 +23,7 @@ export default function HomePage() {
   const { items: findings, reload: reloadFindings } = useSafetyFindings();
   const { items: refillReminders, reload: reloadRefillReminders } = useRefillReminders();
   const { items: caregiverAlerts } = useCaregiverAlerts();
+  const { items: glucoseReadings } = useGlucoseReadings();
 
   const dueNow = (timeline?.items ?? []).filter((i) => i.isDueNow && i.status !== "missed");
   const missed = (timeline?.items ?? []).filter((i) => i.status === "missed");
@@ -32,6 +34,7 @@ export default function HomePage() {
 
   const noMedicinesAtAll = medications !== undefined && medications.length === 0;
   const hasAnySchedule = (timeline?.items.length ?? 0) > 0;
+  const latestReading = glucoseReadings?.[0];
 
   return (
     <AppShell>
@@ -50,6 +53,34 @@ export default function HomePage() {
             <Button fullWidth>{t("home.add_first")}</Button>
           </Link>
         </Card>
+      ) : null}
+
+      {glucoseReadings ? (
+        <>
+          <SectionTitle>{t("home.blood_sugar")}</SectionTitle>
+          <Card>
+            {latestReading ? (
+              <>
+                <strong>
+                  {latestReading.valueMgDl} {t("bloodsugar.mg_dl_unit")}
+                </strong>
+                <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+                  {t(`bloodsugar.context.${latestReading.context}` as never)} ·{" "}
+                  {new Date(latestReading.measuredAt).toLocaleString()}
+                </div>
+              </>
+            ) : (
+              <span style={{ color: "var(--color-text-muted)" }}>{t("bloodsugar.readings_empty")}</span>
+            )}
+            <div style={{ marginTop: "var(--space-sm)" }}>
+              <Link href="/blood-sugar">
+                <Button fullWidth variant={latestReading ? "secondary" : "primary"}>
+                  {t("bloodsugar.add_reading")}
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </>
       ) : null}
 
       {medications && medications.length > 0 ? (
