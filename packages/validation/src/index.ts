@@ -17,3 +17,4 @@ export * from "./admin-content.js";
 export * from "./admin-audit.js";
 export * from "./admin-findings.js";
 export * from "./admin-incidents.js";
+export * from "./vitals.js";

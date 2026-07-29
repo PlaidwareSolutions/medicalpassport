@@ -268,6 +268,32 @@ export interface AllergyDto {
   createdAt: string;
 }
 
+export interface GlucoseReadingDto {
+  id: string;
+  measuredAt: string;
+  context: string;
+  valueMgDl: number;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface CheckupRecordDto {
+  id: string;
+  checkupDate: string;
+  fastingGlucoseMgDl: number | null;
+  postPrandialGlucoseMgDl: number | null;
+  /** Prisma Decimal fields serialize as strings over JSON. */
+  hba1cPercent: string | null;
+  bloodPressureSystolic: number | null;
+  bloodPressureDiastolic: number | null;
+  weightKg: string | null;
+  waistCircumferenceCm: string | null;
+  cholesterolMgDl: number | null;
+  treatmentChanges: string | null;
+  nextAppointmentDate: string | null;
+  createdAt: string;
+}
+
 export interface SafetyFindingDto {
   id: string;
   category: string;

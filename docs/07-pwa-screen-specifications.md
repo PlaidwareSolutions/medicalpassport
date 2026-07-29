@@ -353,6 +353,16 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Analytics:** `help_topic_viewed {topic}` / `emergency_card_viewed`. **Audit:** `emergency.card_viewed` when accessed via share/caregiver.
 - **Acceptance:** emergency card readable in < 2 taps from app open when enabled; opt-in consent recorded.
 
+### 42. Blood sugar monitoring
+- **Objective:** digitize the paper "Blood Sugar Monitoring Diary" a doctor gives diabetic patients — reachable from Profile, two tabs.
+- **Daily readings tab — Information:** date & time, time-of-day context (before/after breakfast, before/after lunch, before/after dinner, during the night, random), blood glucose value (mg/dL), optional note. List newest-first; per-entry delete.
+- **Check-ups tab — Information:** check-up date (required); all other fields optional and never fabricated — fasting glucose, post-meal glucose, HbA1c%, blood pressure (systolic/diastolic), weight, waist circumference, cholesterol, treatment changes, next appointment date. List newest-first; per-entry delete.
+- **Primary action:** add a reading / add a check-up via an inline form; each entry independently deletable (no edit — delete and re-add).
+- **Access:** same `view_profile`/`edit_profile` scopes as allergies/conditions — a caregiver with only `view_medications` can view but not add or delete.
+- **Audit:** `glucose_reading.created/deleted`, `checkup_record.created/deleted`.
+- **Out of scope (this pass):** treatment target ranges, diabetes-education static text, trends/graphs, glucose-check reminders, and doctor-visit-summary inclusion (deferred — see docs/22).
+- **Acceptance:** a check-up saved with only some fields filled in shows only those fields, never a fabricated zero/default; a `view_medications`-only caregiver's add-forms are blocked server-side (403) even if reached client-side.
+
 ---
 
 ## Cross-screen acceptance pack

@@ -62,6 +62,19 @@ export type FoodInstruction = (typeof FOOD_INSTRUCTIONS)[number];
 export const DOSE_UNITS = ["tablet", "capsule", "ml", "drop", "puff", "sachet", "unit", "application"] as const;
 export type DoseUnit = (typeof DOSE_UNITS)[number];
 
+/** Blood Sugar Monitoring Diary (docs/07 screen 42) — time-of-day context for a glucose reading. */
+export const GLUCOSE_READING_CONTEXTS = [
+  "before_breakfast",
+  "after_breakfast",
+  "before_lunch",
+  "after_lunch",
+  "before_dinner",
+  "after_dinner",
+  "during_night",
+  "random",
+] as const;
+export type GlucoseReadingContext = (typeof GLUCOSE_READING_CONTEXTS)[number];
+
 /** docs/13, docs/07 screen 19 — each a separate labeled block, approved-only, never fabricated. */
 export const CLINICAL_CONTENT_KINDS = ["education", "storage", "warning_symptoms", "food_alcohol", "missed_dose"] as const;
 export type ClinicalContentKind = (typeof CLINICAL_CONTENT_KINDS)[number];

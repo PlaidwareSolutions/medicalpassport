@@ -167,6 +167,8 @@ model PatientProfile {
   prescriptionDocuments  PrescriptionDocument[]
   notifications          Notification[]
   notificationPreference NotificationPreference?
+  glucoseReadings        GlucoseReading[]
+  checkupRecords         CheckupRecord[]
 
   @@index([ownerUserId])
   @@map("patient_profiles")
@@ -347,6 +349,65 @@ model PatientCondition {
 
   @@index([patientProfileId])
   @@map("patient_conditions")
+}
+
+/// Blood Sugar Monitoring Diary (docs/07 screen 42): one row per glucose
+/// check, unlike PatientAllergy/PatientCondition's "ongoing fact" shape —
+/// a reading is a point-in-time event, closer to DoseEvent, so no
+/// active/source toggle, just create + soft-delete.
+enum GlucoseReadingContext {
+  before_breakfast
+  after_breakfast
+  before_lunch
+  after_lunch
+  before_dinner
+  after_dinner
+  during_night
+  random
+}
+
+model GlucoseReading {
+  id               String                @id @default(uuid()) @db.Uuid
+  patientProfileId String                @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile        @relation(fields: [patientProfileId], references: [id])
+  measuredAt       DateTime              @map("measured_at") @db.Timestamptz(6)
+  context          GlucoseReadingContext
+  valueMgDl        Int                   @map("value_mg_dl") @db.SmallInt
+  note             String?
+  recordedByUserId String                @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?             @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, measuredAt])
+  @@map("glucose_readings")
+}
+
+/// Periodic check-up visit metrics (docs/07 screen 42) — every field but
+/// checkupDate is optional; never fabricate a value the doctor didn't
+/// actually measure that visit.
+model CheckupRecord {
+  id                      String         @id @default(uuid()) @db.Uuid
+  patientProfileId        String         @map("patient_profile_id") @db.Uuid
+  patientProfile          PatientProfile @relation(fields: [patientProfileId], references: [id])
+  checkupDate             DateTime       @map("checkup_date") @db.Date
+  fastingGlucoseMgDl      Int?           @map("fasting_glucose_mg_dl") @db.SmallInt
+  postPrandialGlucoseMgDl Int?           @map("post_prandial_glucose_mg_dl") @db.SmallInt
+  hba1cPercent            Decimal?       @map("hba1c_percent") @db.Decimal(4, 1)
+  bloodPressureSystolic   Int?           @map("blood_pressure_systolic") @db.SmallInt
+  bloodPressureDiastolic  Int?           @map("blood_pressure_diastolic") @db.SmallInt
+  weightKg                Decimal?       @map("weight_kg") @db.Decimal(5, 2)
+  waistCircumferenceCm    Decimal?       @map("waist_circumference_cm") @db.Decimal(5, 1)
+  cholesterolMgDl         Int?           @map("cholesterol_mg_dl") @db.SmallInt
+  treatmentChanges        String?        @map("treatment_changes")
+  nextAppointmentDate     DateTime?      @map("next_appointment_date") @db.Date
+  recordedByUserId        String         @map("recorded_by_user_id") @db.Uuid
+  deletedAt               DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt               DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, checkupDate])
+  @@map("checkup_records")
 }
 
 // ---------- medication catalog (non-PHI, admin-owned) ----------
