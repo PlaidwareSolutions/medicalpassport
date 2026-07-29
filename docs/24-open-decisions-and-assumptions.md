@@ -19,6 +19,7 @@ Living register. Per spec §29: when uncertain we state the uncertainty, documen
 | ADR-11 | No Cloudflare compute (Workers/KV/D1/DO/Queues/Vectorize/Workers AI) in MVP | Spec default; any exception needs the §7.2 five-condition ADR process |
 | ADR-12 | R2 accessed via S3-compatible API from Railway (`packages/object-storage`), MinIO locally | Standard SDK; local parity |
 | ADR-13 | Cron = Railway cron jobs running one-shot Node entrypoints from `apps/cron` | Finite start→work→exit per spec §11.5 |
+| ADR-14 | Trusted-device login: a separate, long-lived, hashed, individually-revocable device-trust credential (`UserDevice.trustTokenHash` + a dedicated httpOnly cookie) lets a device that has completed OTP once (with "Remember this device" checked, default on) skip OTP on later logins via `POST /auth/device-login {phone}` | Removes real per-login friction (a real SMS/voice call) without weakening ADR-5's "immediate revocation" guarantee — it's a DB row with the same hash/revoke shape as `Session`, never a stateless token. No time-based expiry (renewed every use, ~400-day browser ceiling); ends only via explicit Sign out or a remote device revoke, both of which also kill any live session on that device. Every failure mode returns one generic error (no phone-enumeration oracle); a shared device where a different phone completes OTP supersedes whoever's trust was there. |
 
 ## Open decisions (blocking noted)
 

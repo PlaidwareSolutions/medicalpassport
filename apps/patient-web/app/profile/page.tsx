@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
-import { Banner, Button, Card, SectionTitle, TextInput } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
 import { ProfileDetailsSettings } from "../../components/ProfileDetailsSettings";
@@ -109,30 +109,35 @@ function ClaimInvitePendingSection() {
   );
 }
 
-interface SessionItem {
+interface DeviceItem {
   id: string;
-  device: { kind: string; label: string | null };
+  kind: string;
+  label: string | null;
+  /** Docs/24 ADR-14: can log back in with just a phone number, no OTP. */
+  trusted: boolean;
+  hasLiveSession: boolean;
+  isCurrent: boolean;
+  lastSeenAt: string;
   createdAt: string;
-  current: boolean;
 }
 
 /** Screens 2/35 + profile hub (docs/07): language, profiles, sessions, sign out. */
 export default function ProfilePage() {
   const { t, locale, setLocale } = useI18n();
   const { profiles, activeProfileId, signOut } = useSession();
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [devices, setDevices] = useState<DeviceItem[]>([]);
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
 
   useEffect(() => {
     api
-      .get<{ items: SessionItem[] }>("/auth/sessions")
-      .then((res) => setSessions(res.items))
-      .catch(() => setSessions([]));
+      .get<{ items: DeviceItem[] }>("/auth/devices")
+      .then((res) => setDevices(res.items))
+      .catch(() => setDevices([]));
   }, []);
 
   async function revoke(id: string) {
-    await api.delete(`/auth/sessions/${id}`);
-    setSessions((s) => s.filter((x) => x.id !== id));
+    await api.delete(`/auth/devices/${id}`);
+    setDevices((d) => d.filter((x) => x.id !== id));
   }
 
   return (
@@ -184,18 +189,22 @@ export default function ProfilePage() {
 
       <SectionTitle>{t("profile.sessions")}</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-        {sessions.map((s) => (
-          <Card key={s.id}>
+        {devices.map((d) => (
+          <Card key={d.id}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)" }}>
               <div>
-                <strong>{s.device.label ?? s.device.kind}</strong>
+                <strong>{d.label ?? d.kind}</strong>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                  {new Date(s.createdAt).toLocaleString()}
-                  {s.current ? " · ✓" : ""}
+                  {new Date(d.lastSeenAt).toLocaleString()}
+                  {d.isCurrent ? " · ✓" : ""}
+                </div>
+                <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)" }}>
+                  {d.trusted ? <Chip tone="success">{t("profile.device_trusted")}</Chip> : null}
+                  {!d.hasLiveSession ? <Chip>{t("profile.device_no_live_session")}</Chip> : null}
                 </div>
               </div>
-              {!s.current ? (
-                <Button variant="danger" onClick={() => void revoke(s.id)}>
+              {!d.isCurrent ? (
+                <Button variant="danger" onClick={() => void revoke(d.id)}>
                   ✕
                 </Button>
               ) : null}

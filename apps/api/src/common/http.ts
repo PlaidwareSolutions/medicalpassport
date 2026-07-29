@@ -8,6 +8,7 @@ export interface ApiRequest extends Request {
   auth?: {
     userId: string;
     sessionId: string;
+    userDeviceId: string;
     preferredLocale: string;
   };
   profileContext?: {

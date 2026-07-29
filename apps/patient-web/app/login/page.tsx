@@ -24,6 +24,7 @@ export default function LoginPage() {
   const [resendIn, setResendIn] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState<string | undefined>();
   const [otpTransport, setOtpTransport] = useState<OtpTransportDto["transport"]>("sms");
+  const [rememberDevice, setRememberDevice] = useState(true);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -41,6 +42,33 @@ export default function LoginPage() {
       .then((res) => setOtpTransport(res.transport))
       .catch(() => undefined);
   }, []);
+
+  /**
+   * Tries a silent, phone-only login for a previously-remembered device
+   * (docs/24 ADR-14) before ever bothering with Turnstile/OTP — only falls
+   * through to the existing flow when the device genuinely isn't trusted
+   * (first time here, or explicitly signed out before).
+   */
+  async function continueFromPhone() {
+    setBusyAction("request");
+    setError(undefined);
+    let notTrusted = false;
+    try {
+      await api.post("/auth/device-login", { phone });
+      await refresh();
+      router.replace("/");
+      return;
+    } catch (err) {
+      if (err instanceof ApiError && err.problem.code === "device_not_trusted") {
+        notTrusted = true;
+      } else {
+        setError(err instanceof ApiError ? mapAuthError(err) : t("common.error_generic"));
+      }
+    } finally {
+      setBusyAction(undefined);
+    }
+    if (notTrusted) await requestCode();
+  }
 
   async function requestCode() {
     setBusyAction("request");
@@ -61,7 +89,7 @@ export default function LoginPage() {
     setBusyAction("verify");
     setError(undefined);
     try {
-      await api.post("/auth/otp/verify", { phone, code, device: { kind: "browser" }, locale });
+      await api.post("/auth/otp/verify", { phone, code, device: { kind: "browser" }, locale, rememberDevice });
       await refresh();
       router.replace("/");
     } catch (err) {
@@ -109,14 +137,11 @@ export default function LoginPage() {
           <Button
             fullWidth
             loading={busyAction === "request"}
-            disabled={
-              busyAction !== undefined ||
-              phone.replace(/\D/g, "").length < 8 ||
-              // Only wait on a token when a widget actually exists (dev/local
-              // with no site key renders nothing and never calls onToken).
-              (!!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken)
-            }
-            onClick={() => void requestCode()}
+            // Deliberately not gated on turnstileToken — a remembered device
+            // never needs it at all, and Turnstile is only actually required
+            // by the OTP fallback this falls through to when untrusted.
+            disabled={busyAction !== undefined || phone.replace(/\D/g, "").length < 8}
+            onClick={() => void continueFromPhone()}
           >
             {t("auth.send_code")}
           </Button>
@@ -138,6 +163,15 @@ export default function LoginPage() {
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             style={{ letterSpacing: "0.5em", textAlign: "center" }}
           />
+          <label style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", minHeight: "var(--size-touch)", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={rememberDevice}
+              onChange={(e) => setRememberDevice(e.target.checked)}
+              style={{ width: 22, height: 22 }}
+            />
+            <span>{t("auth.remember_device")}</span>
+          </label>
           <Button fullWidth loading={busyAction === "verify"} disabled={busyAction !== undefined || code.length !== 6} onClick={() => void verify()}>
             {t("auth.verify")}
           </Button>

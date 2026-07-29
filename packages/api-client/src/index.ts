@@ -20,16 +20,35 @@ export interface ApiClientOptions {
   /** Native clients supply a token; the web relies on cookies. */
   getBearerToken?: () => string | undefined;
   fetchImpl?: typeof fetch;
+  /**
+   * Invoked at most once per request when the server returns 401 — e.g. to
+   * silently rotate an expired session via a long-lived refresh token
+   * (docs/24 ADR-14). Returning true retries the original request exactly
+   * once; false (or no handler at all) surfaces the 401 as a normal
+   * `ApiError`. The implementation is responsible for de-duplicating
+   * concurrent invocations itself (multiple requests can 401 at once).
+   */
+  onUnauthorized?: () => Promise<boolean>;
 }
 
 export class ApiClient {
   constructor(private readonly opts: ApiClientOptions) {}
 
-  async request<T>(
+  request<T>(
     method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
     path: string,
     body?: unknown,
     init?: { idempotencyKey?: string; profileId?: string },
+  ): Promise<T> {
+    return this.performRequest<T>(method, path, body, init, false);
+  }
+
+  private async performRequest<T>(
+    method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
+    path: string,
+    body: unknown,
+    init: { idempotencyKey?: string; profileId?: string } | undefined,
+    retried: boolean,
   ): Promise<T> {
     const headers: Record<string, string> = {
       "content-type": "application/json",
@@ -48,6 +67,11 @@ export class ApiClient {
       credentials: "include",
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+
+    if (res.status === 401 && !retried && this.opts.onUnauthorized) {
+      const shouldRetry = await this.opts.onUnauthorized();
+      if (shouldRetry) return this.performRequest<T>(method, path, body, init, true);
+    }
 
     if (res.status === 204) return undefined as T;
     const json = (await res.json().catch(() => null)) as unknown;

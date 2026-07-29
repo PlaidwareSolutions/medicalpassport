@@ -38,16 +38,17 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Acceptance:** selection persists across sessions (localStorage pre-auth, profile post-auth); RTL flips correctly for Urdu.
 
 ### 3. OTP login
-- **Objective:** authenticate via mobile number + OTP.
+- **Objective:** authenticate via mobile number + OTP — but a device that has done this once before skips OTP entirely (ADR-14, [24](24-open-decisions-and-assumptions.md)).
 - **Primary user:** all patients/caregivers.
-- **Information:** phone field (+91 default), consent-to-terms line, resend timer, attempt feedback.
+- **Direct login (returning device):** entering the phone number first silently tries `POST /auth/device-login` — no Turnstile, no OTP. Success logs straight in; only a genuinely untrusted device (first time here, or explicitly signed out) falls through to the flow below.
+- **Information:** phone field (+91 default), consent-to-terms line, resend timer, attempt feedback; on the code step, a "Remember this device" checkbox, **checked by default** — unchecked, this login behaves exactly as before (12-hour session only, nothing remembered).
 - **Primary action:** Send code → Verify. **Secondary:** change number, resend (rate-limited), get help.
-- **Error:** wrong/expired code messaging without revealing whether number is registered (enumeration-safe); lockout message after attempt limit.
+- **Error:** wrong/expired code messaging without revealing whether number is registered (enumeration-safe); lockout message after attempt limit; an untrusted device's silent direct-login attempt fails invisibly (no error shown) before falling through to Send code.
 - **Offline:** disabled with "Connection needed to sign in".
 - **Unsupported:** WebOTP autofill absent → manual entry.
-- **Analytics:** `otp_requested`, `otp_verified`, `otp_failed {reason_code}`. **Audit:** `auth.otp_requested`, `auth.otp_verified`, `auth.otp_failed`, `auth.session_created` (server).
-- **Security:** Turnstile hook on suspicious traffic; OTPs hashed server-side; resend/attempt limits; no OTP in URLs/logs; responses no-store.
-- **Acceptance:** attempt/resend limits enforced server-side and reflected in UI; screen reader announces countdown politely.
+- **Analytics:** `otp_requested`, `otp_verified`, `otp_failed {reason_code}`, `device_login_succeeded`, `device_login_failed`. **Audit:** `auth.otp_requested`, `auth.otp_verified`, `auth.otp_failed`, `auth.session_created`, `auth.device_login_succeeded`, `auth.device_login_failed` (server).
+- **Security:** Turnstile hook on suspicious traffic (not required for direct device-login, which sends no SMS/call — the credential is the unguessable httpOnly trust cookie); OTPs hashed server-side; resend/attempt limits; no OTP in URLs/logs; responses no-store.
+- **Acceptance:** attempt/resend limits enforced server-side and reflected in UI; screen reader announces countdown politely; a device that signed out (or was remotely revoked) is genuinely asked for OTP again, not silently let back in.
 
 ### 4. Create patient profile
 - **Objective:** minimal viable profile: name, year of birth, optional sex, optional allergies/conditions (skippable).
@@ -306,11 +307,11 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Acceptance:** revocation takes effect server-side immediately and is reflected in dependent features (e.g. SMS stops).
 
 ### 35. Active sessions
-- **Objective:** see and revoke devices/sessions.
-- **Information:** device descriptions, last active, current-session marker.
-- **Primary action:** revoke session. **Secondary:** revoke all others.
-- **Audit:** `auth.session_revoked {by}`.
-- **Acceptance:** revoked session's next request fails and its local data is cleared on next open ([15-offline-sync-strategy](15-offline-sync-strategy.md)).
+- **Objective:** see and revoke devices — device-centric, not session-centric (ADR-14, [24](24-open-decisions-and-assumptions.md)): a device can be trusted (can log back in with just a phone number) with no *currently live* session, and must still appear here to stay revokable — otherwise a dormant-but-trusted device would be invisible.
+- **Information:** device descriptions, last active, current-device marker, a "Trusted device" indicator for anything that can skip OTP.
+- **Primary action:** revoke device — kills its trust *and* any live session on it, in one action. **Secondary:** revoke all others (not yet implemented — see docs/22).
+- **Audit:** `auth.session_revoked {by}`, `auth.device_trust_revoked {reason}`.
+- **Acceptance:** a revoked device's next request fails immediately even if its 12h session was still live, its local data is cleared on next open ([15-offline-sync-strategy](15-offline-sync-strategy.md)), and it can no longer log back in via direct device-login either.
 
 ### 36. Offline and synchronization status
 - **Objective:** honest sync visibility (spec §19): Online / Offline / Synchronizing / Synchronization failed / Changes pending / Last synchronized time.

@@ -22,9 +22,10 @@ Base: `https://api.example.com/v1`. OpenAPI generated from NestJS decorators is 
 | Endpoint | Notes |
 |---|---|
 | `POST /auth/otp/request` | `{phone, purpose, turnstileToken?}` → `202` always (enumeration-safe). Limits: 5/hour/phone, resend cooldown. Turnstile verified server-side when challenged. |
-| `POST /auth/otp/verify` | `{phone, code, deviceInfo}` → session + refresh tokens. 5 attempts/OTP then invalidated. `423` on lockout. |
-| `POST /auth/refresh` · `POST /auth/logout` | Rotate / revoke. |
-| `GET/DELETE /auth/sessions` | List + revoke sessions/devices (screen 35). |
+| `POST /auth/otp/verify` | `{phone, code, deviceInfo, rememberDevice}` → session + refresh tokens. 5 attempts/OTP then invalidated. `423` on lockout. `rememberDevice` (default `true`) mints a long-lived device-trust cookie (ADR-14, [24](24-open-decisions-and-assumptions.md)). |
+| `POST /auth/refresh` · `POST /auth/logout` | Rotate / revoke. Logout also revokes this device's trust (ADR-14). |
+| `POST /auth/device-login` | `{phone}` + the httpOnly trust cookie → session, no OTP. `401 device_not_trusted` (generic, no enumeration) if the cookie is missing/revoked/for a different phone. |
+| `GET/DELETE /auth/devices` | List + revoke devices (screen 35) — device-centric, not session-centric: a trusted device with no currently-live session still appears here and stays revokable. Revoking a device kills its trust *and* any live session on it. |
 
 ### Profiles, caregivers, consent
 | Endpoint | Notes |

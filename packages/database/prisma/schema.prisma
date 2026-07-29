@@ -60,6 +60,11 @@ model UserDevice {
   label           String?
   userAgentDigest String?    @map("user_agent_digest")
   lastSeenAt      DateTime   @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  /// SHA-256(pepper + token) for the long-lived "remembered device" cookie
+  /// (docs/24 ADR-14) — non-null means this device can skip OTP via
+  /// POST /auth/device-login. The sole trust predicate; `revokedAt` below is
+  /// set alongside it purely for display/audit, never re-checked on its own.
+  trustTokenHash  String?    @unique @map("trust_token_hash")
   revokedAt       DateTime?  @map("revoked_at") @db.Timestamptz(6)
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
 

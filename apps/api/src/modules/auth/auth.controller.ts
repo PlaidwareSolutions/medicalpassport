@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
-import { otpRequestSchema, otpVerifySchema, refreshSchema } from "@medpass/validation";
+import { deviceLoginSchema, otpRequestSchema, otpVerifySchema, refreshSchema } from "@medpass/validation";
 import { ERROR_CODES } from "@medpass/domain";
 import { env } from "../../common/env";
 import { parseWith } from "../../common/zod";
@@ -14,6 +14,7 @@ import { AuthService, type IssuedSession } from "./auth.service";
 import { PrismaService } from "../../common/prisma.service";
 
 const REFRESH_COOKIE = "medpass_refresh";
+const DEVICE_TRUST_COOKIE = "medpass_device_trust";
 
 @Controller("auth")
 export class AuthController {
@@ -55,8 +56,32 @@ export class AuthController {
   @Post("otp/verify")
   async verifyOtp(@Body() body: unknown, @Req() req: ApiRequest, @Res({ passthrough: true }) res: Response) {
     const input = parseWith(otpVerifySchema, body);
-    const session = await this.auth.verifyOtp(input, req.correlationId);
+    const incomingTrustToken = (req.cookies as Record<string, string> | undefined)?.[DEVICE_TRUST_COOKIE];
+    const session = await this.auth.verifyOtp(input, incomingTrustToken, req.correlationId);
     this.setSessionCookies(res, session);
+    // No token in the response means "remember this device" was unchecked
+    // (or was explicitly cleared) this time — drop any stale cookie rather
+    // than leave a credential in the browser that no longer resolves.
+    if (session.deviceTrustToken) this.setDeviceTrustCookie(res, session.deviceTrustToken);
+    else res.clearCookie(DEVICE_TRUST_COOKIE, { path: "/v1/auth" });
+    return this.sessionResponse(session);
+  }
+
+  /**
+   * Silent phone-only login for a previously-remembered device (docs/24
+   * ADR-14) — no OTP, no Turnstile (no SMS/call is ever sent, so that abuse
+   * vector doesn't apply; the real security boundary is possession of the
+   * unguessable httpOnly trust cookie).
+   */
+  @Public()
+  @RateLimit({ name: "device_login", limit: 20, windowSeconds: 3600 })
+  @Post("device-login")
+  async deviceLogin(@Body() body: unknown, @Req() req: ApiRequest, @Res({ passthrough: true }) res: Response) {
+    const input = parseWith(deviceLoginSchema, body);
+    const incomingTrustToken = (req.cookies as Record<string, string> | undefined)?.[DEVICE_TRUST_COOKIE];
+    const session = await this.auth.deviceLogin(input, incomingTrustToken, req.correlationId);
+    this.setSessionCookies(res, session);
+    this.setDeviceTrustCookie(res, session.deviceTrustToken!);
     return this.sessionResponse(session);
   }
 
@@ -73,21 +98,32 @@ export class AuthController {
   @Post("logout")
   @HttpCode(204)
   async logout(@Req() req: ApiRequest, @Res({ passthrough: true }) res: Response) {
-    await this.auth.revokeSession(req.auth!.userId, req.auth!.sessionId, "logout", req.correlationId);
+    // Explicit sign-out also revokes this device's remembered-login trust
+    // (docs/24 ADR-14) — the whole point of "unless they explicitly signed
+    // out" is that this device shouldn't skip OTP again after this.
+    await this.auth.revokeSession(req.auth!.userId, req.auth!.sessionId, "logout", req.correlationId, {
+      revokeDeviceTrust: true,
+    });
     res.clearCookie(SESSION_COOKIE, { path: "/" });
     res.clearCookie(REFRESH_COOKIE, { path: "/v1/auth" });
+    res.clearCookie(DEVICE_TRUST_COOKIE, { path: "/v1/auth" });
   }
 
-  @Get("sessions")
-  async sessions(@Req() req: ApiRequest) {
-    const items = await this.auth.listSessions(req.auth!.userId);
-    return { items: items.map((s) => ({ ...s, current: s.id === req.auth!.sessionId })) };
+  /**
+   * Device-centric, not session-centric (docs/24 ADR-14): a trusted device
+   * can have zero *live* session at the moment and must still show up here
+   * to stay revokable — the only safety net now that trust has no expiry.
+   */
+  @Get("devices")
+  async devices(@Req() req: ApiRequest) {
+    const items = await this.auth.listDevices(req.auth!.userId);
+    return { items: items.map((d) => ({ ...d, isCurrent: d.id === req.auth!.userDeviceId })) };
   }
 
-  @Delete("sessions/:id")
+  @Delete("devices/:id")
   @HttpCode(204)
-  async revokeSession(@Param("id") id: string, @Req() req: ApiRequest) {
-    await this.auth.revokeSession(req.auth!.userId, id, "user_revoked", req.correlationId);
+  async revokeDevice(@Param("id") id: string, @Req() req: ApiRequest) {
+    await this.auth.revokeDevice(req.auth!.userId, id, req.correlationId);
   }
 
   private setSessionCookies(res: Response, session: IssuedSession): void {
@@ -106,6 +142,24 @@ export class AuthController {
       // Refresh token is only ever sent to the auth endpoints.
       path: "/v1/auth",
       maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  /**
+   * Chrome (and RFC-6265bis-aligned browsers) hard-cap cookie lifetime at
+   * ~400 days regardless of what's requested — rotated on every use (both
+   * otp/verify and device-login always mint a fresh token), so this is
+   * "indefinite until sign-out" in practice for anyone who opens the app at
+   * least once a year (docs/24 ADR-14).
+   */
+  private setDeviceTrustCookie(res: Response, token: string): void {
+    const secure = env().NODE_ENV === "production" || env().NODE_ENV === "staging";
+    res.cookie(DEVICE_TRUST_COOKIE, token, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/v1/auth",
+      maxAge: 400 * 24 * 60 * 60 * 1000,
     });
   }
 

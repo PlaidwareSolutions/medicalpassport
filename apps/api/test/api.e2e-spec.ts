@@ -529,10 +529,10 @@ describe("API e2e", () => {
     expect(changes).toEqual(expect.arrayContaining(["created", "updated", "status_changed"]));
   });
 
-  it("revoked sessions are rejected on the next request", async () => {
-    const sessions = await auth(tokenA)(request(app.getHttpServer()).get("/v1/auth/sessions")).expect(200);
-    const current = sessions.body.items.find((s: { current: boolean }) => s.current);
-    await auth(tokenA)(request(app.getHttpServer()).delete(`/v1/auth/sessions/${current.id}`)).expect(204);
+  it("revoked devices are rejected on the next request", async () => {
+    const devices = await auth(tokenA)(request(app.getHttpServer()).get("/v1/auth/devices")).expect(200);
+    const current = devices.body.items.find((d: { isCurrent: boolean }) => d.isCurrent);
+    await auth(tokenA)(request(app.getHttpServer()).delete(`/v1/auth/devices/${current.id}`)).expect(204);
     const res = await auth(tokenA)(request(app.getHttpServer()).get("/v1/profiles"));
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("session_revoked");

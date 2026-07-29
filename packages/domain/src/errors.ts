@@ -18,6 +18,7 @@ export const ERROR_CODES = {
   RATE_LIMITED: "rate_limited",
   STORAGE_QUOTA_EXCEEDED: "storage_quota_exceeded",
   TURNSTILE_FAILED: "turnstile_failed",
+  DEVICE_NOT_TRUSTED: "device_not_trusted",
   INVALID_STATUS_TRANSITION: "invalid_status_transition",
   CONSENT_REQUIRED: "consent_required",
   ADMIN_CREDENTIALS_INVALID: "admin_credentials_invalid",

@@ -56,6 +56,7 @@ export class AuthGuard implements CanActivate {
     req.auth = {
       userId: session.userId,
       sessionId: session.id,
+      userDeviceId: session.userDeviceId,
       preferredLocale: session.user.preferredLocale,
     };
     return true;

@@ -193,6 +193,6 @@ describe("Admin auth e2e", () => {
       .set("x-requested-with", "medpass")
       .expect(401);
 
-    await request(app.getHttpServer()).get("/v1/auth/sessions").set("Cookie", adminCookies).expect(401);
+    await request(app.getHttpServer()).get("/v1/auth/devices").set("Cookie", adminCookies).expect(401);
   });
 });

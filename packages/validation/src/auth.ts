@@ -28,9 +28,17 @@ export const otpVerifySchema = z.object({
     })
     .default({ kind: "browser" }),
   locale: z.enum(SUPPORTED_LOCALES).optional(),
+  /** "Remember this device" checkbox (docs/24 ADR-14), checked by default. */
+  rememberDevice: z.boolean().default(true),
 });
 export type OtpVerifyInput = z.infer<typeof otpVerifySchema>;
 
 export const refreshSchema = z.object({
   refreshToken: z.string().min(20).max(512),
 });
+
+/** POST /auth/device-login (docs/24 ADR-14) — phone only; the actual credential is the httpOnly trust cookie. */
+export const deviceLoginSchema = z.object({
+  phone: phoneSchema,
+});
+export type DeviceLoginInput = z.infer<typeof deviceLoginSchema>;

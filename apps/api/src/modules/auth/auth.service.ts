@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import type { OtpSender } from "@medpass/notifications";
-import type { OtpRequestInput, OtpVerifyInput } from "@medpass/validation";
+import type { DeviceLoginInput, OtpRequestInput, OtpVerifyInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import {
@@ -28,6 +28,8 @@ export interface IssuedSession {
   refreshToken: string;
   expiresAt: Date;
   userId: string;
+  /** Present only when a "remembered device" credential was minted/rotated this call (docs/24 ADR-14). */
+  deviceTrustToken?: string;
 }
 
 @Injectable()
@@ -80,7 +82,11 @@ export class AuthService {
   }
 
   /** Verifies an OTP and issues a session, creating the user on first sign-in. */
-  async verifyOtp(input: OtpVerifyInput, correlationId?: string): Promise<IssuedSession> {
+  async verifyOtp(
+    input: OtpVerifyInput,
+    incomingTrustToken: string | undefined,
+    correlationId?: string,
+  ): Promise<IssuedSession> {
     const digest = phoneDigest(input.phone);
     const attempt = await this.prisma.otpAttempt.findFirst({
       where: { phoneDigest: digest, consumedAt: null, invalidatedAt: null, purpose: "login" },
@@ -137,9 +143,58 @@ export class AuthService {
         user = await tx.user.update({ where: { id: user.id }, data: { preferredLocale: input.locale } });
       }
 
-      const device = await tx.userDevice.create({
-        data: { userId: user.id, kind: input.device.kind, label: input.device.label },
-      });
+      // Trusted-device reuse/supersede (docs/24 ADR-14). A hash match against
+      // the *same* user reuses that device row (e.g. its trust expired or
+      // "remember this device" was unchecked last time); a match against a
+      // *different* user (shared computer, someone else now completing OTP)
+      // supersedes it — that old credential must not keep working.
+      const device = await (async () => {
+        if (incomingTrustToken) {
+          const incomingHash = hashSessionToken(incomingTrustToken);
+          const existing = await tx.userDevice.findUnique({ where: { trustTokenHash: incomingHash } });
+          if (existing) {
+            if (existing.userId === user.id) {
+              return tx.userDevice.update({ where: { id: existing.id }, data: { lastSeenAt: new Date() } });
+            }
+            await tx.userDevice.update({
+              where: { id: existing.id },
+              data: { trustTokenHash: null, revokedAt: new Date() },
+            });
+            await writeAudit(tx, {
+              action: "auth.device_trust_revoked",
+              actorUserId: existing.userId,
+              actorType: "system",
+              correlationId,
+              context: { reason: "superseded_by_other_user" },
+            });
+          }
+        }
+        return tx.userDevice.create({
+          data: { userId: user.id, kind: input.device.kind, label: input.device.label },
+        });
+      })();
+
+      // "Remember this device" (checked by default): mint/rotate a fresh
+      // trust credential. Unchecked — including on a device that currently
+      // has one — clears it; this is the only user-facing "forget me"
+      // control besides Sign out and remote device revocation.
+      let deviceTrustToken: string | undefined;
+      if (input.rememberDevice) {
+        deviceTrustToken = newOpaqueToken();
+        await tx.userDevice.update({
+          where: { id: device.id },
+          data: { trustTokenHash: hashSessionToken(deviceTrustToken), revokedAt: null },
+        });
+      } else if (device.trustTokenHash) {
+        await tx.userDevice.update({ where: { id: device.id }, data: { trustTokenHash: null, revokedAt: new Date() } });
+        await writeAudit(tx, {
+          action: "auth.device_trust_revoked",
+          actorUserId: user.id,
+          actorType: "patient",
+          correlationId,
+          context: { reason: "remember_device_unchecked" },
+        });
+      }
 
       const token = newOpaqueToken();
       const refreshToken = newOpaqueToken();
@@ -169,7 +224,73 @@ export class AuthService {
         context: { deviceKind: input.device.kind },
       });
 
-      return { token, refreshToken, expiresAt, userId: user.id };
+      return { token, refreshToken, expiresAt, userId: user.id, deviceTrustToken };
+    });
+  }
+
+  /**
+   * POST /auth/device-login (docs/24 ADR-14) — no OTP at all. The real
+   * credential is possession of the unguessable httpOnly trust cookie;
+   * `phone` is only a cross-check against the device's own user (a shared
+   * computer where a different family member is signing in must fall back
+   * to a normal OTP, never silently log into the wrong account). Every
+   * failure mode returns the same generic error so this can never become a
+   * phone-number-enumeration oracle.
+   */
+  async deviceLogin(
+    input: DeviceLoginInput,
+    incomingTrustToken: string | undefined,
+    correlationId?: string,
+  ): Promise<IssuedSession> {
+    const device = incomingTrustToken
+      ? await this.prisma.userDevice.findUnique({
+          where: { trustTokenHash: hashSessionToken(incomingTrustToken) },
+          include: { user: true },
+        })
+      : null;
+    const digest = phoneDigest(input.phone);
+
+    if (!device || device.revokedAt || device.user.status !== "active" || device.user.phoneDigest !== digest) {
+      await writeAudit(this.prisma, { action: "auth.device_login_failed", actorType: "system", correlationId });
+      throw new ApiProblem(ERROR_CODES.DEVICE_NOT_TRUSTED, "Sign in with a verification code instead.", 401);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const deviceTrustToken = newOpaqueToken();
+      await tx.userDevice.update({
+        where: { id: device.id },
+        data: { trustTokenHash: hashSessionToken(deviceTrustToken), lastSeenAt: new Date() },
+      });
+
+      const token = newOpaqueToken();
+      const refreshToken = newOpaqueToken();
+      const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+      await tx.session.create({
+        data: {
+          userId: device.userId,
+          userDeviceId: device.id,
+          tokenHash: hashSessionToken(token),
+          refreshTokenHash: hashSessionToken(refreshToken),
+          expiresAt,
+          refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+        },
+      });
+
+      await writeAudit(tx, {
+        action: "auth.device_login_succeeded",
+        actorUserId: device.userId,
+        actorType: "patient",
+        correlationId,
+      });
+      await writeAudit(tx, {
+        action: "auth.session_created",
+        actorUserId: device.userId,
+        actorType: "patient",
+        correlationId,
+        context: { via: "device_login" },
+      });
+
+      return { token, refreshToken, expiresAt, userId: device.userId, deviceTrustToken };
     });
   }
 
@@ -182,11 +303,14 @@ export class AuthService {
     }
 
     // Rotate: revoke the old session, issue a new one on the same device.
+    // Legitimate continued use of an already-trusted device — never touches
+    // device trust (only Sign out and remote device revocation do that).
     return this.prisma.$transaction(async (tx) => {
       await tx.session.update({
         where: { id: session.id },
         data: { revokedAt: new Date(), revokeReason: "rotated" },
       });
+      await tx.userDevice.update({ where: { id: session.userDeviceId }, data: { lastSeenAt: new Date() } });
       const token = newOpaqueToken();
       const newRefresh = newOpaqueToken();
       const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
@@ -210,7 +334,13 @@ export class AuthService {
     });
   }
 
-  async revokeSession(userId: string, sessionId: string, reason: string, correlationId?: string): Promise<void> {
+  async revokeSession(
+    userId: string,
+    sessionId: string,
+    reason: string,
+    correlationId?: string,
+    opts?: { revokeDeviceTrust?: boolean },
+  ): Promise<void> {
     const session = await this.prisma.session.findFirst({ where: { id: sessionId, userId } });
     if (!session) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Session not found", 404);
     await this.prisma.$transaction(async (tx) => {
@@ -222,20 +352,77 @@ export class AuthService {
         correlationId,
         context: { reason },
       });
+      if (opts?.revokeDeviceTrust) {
+        await tx.userDevice.update({
+          where: { id: session.userDeviceId },
+          data: { trustTokenHash: null, revokedAt: new Date() },
+        });
+        await writeAudit(tx, {
+          action: "auth.device_trust_revoked",
+          actorUserId: userId,
+          actorType: "patient",
+          correlationId,
+          context: { reason },
+        });
+      }
     });
   }
 
-  async listSessions(userId: string) {
-    const sessions = await this.prisma.session.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
-      include: { userDevice: true },
-      orderBy: { createdAt: "desc" },
+  /**
+   * Revokes a device outright — its trust credential *and* any currently-live
+   * session on it, in one transaction (docs/24 ADR-14). Without this, a
+   * remotely-"revoked" device with a live 12h session would keep working for
+   * up to 12 more hours, regressing the existing "revoked session's next
+   * request fails immediately" guarantee.
+   */
+  async revokeDevice(userId: string, deviceId: string, correlationId?: string): Promise<void> {
+    const device = await this.prisma.userDevice.findFirst({ where: { id: deviceId, userId } });
+    if (!device) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Device not found", 404);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userDevice.update({ where: { id: device.id }, data: { trustTokenHash: null, revokedAt: new Date() } });
+      const { count } = await tx.session.updateMany({
+        where: { userDeviceId: device.id, userId, revokedAt: null },
+        data: { revokedAt: new Date(), revokeReason: "device_revoked" },
+      });
+      await writeAudit(tx, {
+        action: "auth.device_trust_revoked",
+        actorUserId: userId,
+        actorType: "patient",
+        correlationId,
+        context: { reason: "device_revoked", sessionsRevoked: count },
+      });
     });
-    return sessions.map((s) => ({
-      id: s.id,
-      device: { kind: s.userDevice.kind, label: s.userDevice.label },
-      createdAt: s.createdAt,
-      expiresAt: s.expiresAt,
+  }
+
+  /**
+   * Device-centric, not session-centric (docs/24 ADR-14): with indefinite
+   * device trust, a device can be fully trusted with zero *live* session at
+   * the moment (a 12h session expired days ago, the trust cookie is still
+   * valid) — such a device must still show up here to stay revokable.
+   */
+  async listDevices(userId: string) {
+    const devices = await this.prisma.userDevice.findMany({
+      where: { userId, revokedAt: null },
+      orderBy: { lastSeenAt: "desc" },
+    });
+    const liveSessions = await this.prisma.session.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+        userDeviceId: { in: devices.map((d) => d.id) },
+      },
+      select: { userDeviceId: true },
+    });
+    const liveDeviceIds = new Set(liveSessions.map((s) => s.userDeviceId));
+    return devices.map((d) => ({
+      id: d.id,
+      kind: d.kind,
+      label: d.label,
+      trusted: d.trustTokenHash !== null,
+      hasLiveSession: liveDeviceIds.has(d.id),
+      lastSeenAt: d.lastSeenAt,
+      createdAt: d.createdAt,
     }));
   }
 }
