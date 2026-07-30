@@ -9,6 +9,10 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 export const authorizeUploadSchema = z.object({
   kind: z.enum(DOCUMENT_KINDS).default("prescription"),
+  /** Attaches this upload to a standing prescription record (docs/07 screen
+   * 43). Absent for the one-off scan-to-add-a-medicine flow, which needs no
+   * prescription record of its own. */
+  prescriptionId: z.string().uuid().optional(),
   contentType: z.enum(ALLOWED_CONTENT_TYPES),
   sizeBytes: z.coerce
     .number()

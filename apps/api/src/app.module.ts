@@ -38,6 +38,8 @@ import { CatalogController } from "./modules/catalog/catalog.controller";
 import { ClinicalContentLookupService } from "./modules/clinical-content/clinical-content-lookup.service";
 import { MedicationsController } from "./modules/medications/medications.controller";
 import { MedicationsService } from "./modules/medications/medications.service";
+import { PrescriptionsController } from "./modules/prescriptions/prescriptions.controller";
+import { PrescriptionsService } from "./modules/prescriptions/prescriptions.service";
 import { SchedulingController } from "./modules/scheduling/scheduling.controller";
 import { SchedulingService } from "./modules/scheduling/scheduling.service";
 import { TimelineService } from "./modules/scheduling/timeline.service";
@@ -83,6 +85,7 @@ const OTP_SENDER = "OTP_SENDER";
     ConsentsController,
     CatalogController,
     MedicationsController,
+    PrescriptionsController,
     SchedulingController,
     SafetyController,
     SharingController,
@@ -106,6 +109,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminIncidentsService,
     ClinicalContentLookupService,
     MedicationsService,
+    PrescriptionsService,
     SchedulingService,
     TimelineService,
     SafetyEvaluationService,

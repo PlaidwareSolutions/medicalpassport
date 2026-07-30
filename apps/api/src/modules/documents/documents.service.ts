@@ -44,6 +44,14 @@ export class DocumentsService {
       throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "File is too large", 400);
     }
 
+    if (input.prescriptionId) {
+      const prescription = await this.prisma.prescription.findFirst({
+        where: { id: input.prescriptionId, patientProfileId: profileId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!prescription) throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown prescription", 400);
+    }
+
     const { allowed: withinDailyQuota } = await this.rateLimit.checkAndIncrement(
       `document_upload_daily:${actor.userId}`,
       DAILY_UPLOAD_QUOTA,
@@ -80,6 +88,7 @@ export class DocumentsService {
         data: {
           patientProfileId: profileId,
           storedObjectId: storedObject.id,
+          prescriptionId: input.prescriptionId,
           kind: input.kind,
           status: "pending_upload",
         },

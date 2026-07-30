@@ -106,6 +106,16 @@ export default function MedicineDetailPage() {
             {t("meds.prescribed_by", { name: medication.prescriberName })}
           </div>
         ) : null}
+        {medication.prescription ? (
+          <Link
+            href={`/prescriptions/${medication.prescription.id}`}
+            style={{ color: "var(--color-info)", fontSize: "var(--font-small)", textDecoration: "underline" }}
+          >
+            {medication.prescription.prescribedAt
+              ? t("meds.evidenced_by_dated", { date: new Date(medication.prescription.prescribedAt).toLocaleDateString() })
+              : t("meds.evidenced_by")}
+          </Link>
+        ) : null}
         {medication.quantityOnHand != null ? (
           <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
             {t("meds.quantity_remaining", { count: medication.quantityOnHand, unit: medication.instruction?.doseUnit ?? "" })}

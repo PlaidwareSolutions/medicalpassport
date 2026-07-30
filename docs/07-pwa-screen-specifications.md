@@ -364,6 +364,18 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Out of scope (this pass):** treatment target ranges, diabetes-education static text, trends/graphs, glucose-check reminders, and doctor-visit-summary inclusion (deferred — see docs/22).
 - **Acceptance:** a check-up saved with only some fields filled in shows only those fields, never a fabricated zero/default; a `view_medications`-only caregiver's add-forms are blocked server-side (403) even if reached client-side.
 
+### 43. Prescription records
+- **Objective:** a standing archive of what each doctor prescribed at each visit, with the prescription itself kept as evidence — and an optional link from any medicine back to the prescription substantiating it. Reachable from Profile.
+- **List:** newest visit first — doctor's name, visit date, and how many files/medicines each record holds. A record with no date recorded falls back to when it was filed rather than sinking to the bottom forever.
+- **New (`/prescriptions/new`):** doctor's name (free text, matching the prescriber-name UX everywhere else), visit date, optional notes, and one or more photos/PDFs of the prescription via the existing upload pipeline. **Every field is optional** — a patient who can't read the handwriting should still be able to file the photo and fill the rest in later.
+- **Detail (`/prescriptions/[id]`):** attached files (view via short-lived presigned link; an incomplete upload shows as unavailable rather than offering a broken link), the medicines linked to it, "Add a medicine from this prescription" (opens the normal add flow with the prescription pre-linked), and "Link a medicine you already added."
+- **Linking is optional in both directions:** a prescription can be filed with zero medicines (a record of the visit), and a medicine needs no prescription to be valid — never flagged as incomplete for lacking one.
+- **Doctor records are deduplicated per profile** (case-insensitive, trimmed), so the same doctor named on a prescription and on a medicine is one record — a per-doctor view depends on this.
+- **Access:** same `view_profile`/`edit_profile` scopes as allergies/conditions/blood sugar — this is a patient-owned record that may have no medicines attached at all, not a medication mutation. A caregiver with only `view_medications` can read but not create or delete.
+- **Audit:** `prescription.created`, `prescription.deleted`; linking a medicine emits `medication.updated`.
+- **Out of scope (this pass):** automatically parsing one prescription photo into several medicines — the existing OCR path extracts three fields for one medicine at a time, and true multi-drug segmentation is a much larger, separable feature. The "add a medicine from this prescription" button is the manual, fully-controlled equivalent.
+- **Acceptance:** deleting a prescription hides the record but leaves its files and linked medicines intact (this app never cascades a soft-delete); a medicine linked to a deleted prescription stops advertising it as evidence without losing its own prescriber; a medicine created from a prescription inherits that doctor without re-typing, and an explicitly typed prescriber always wins over the inherited one.
+
 ---
 
 ## Cross-screen acceptance pack

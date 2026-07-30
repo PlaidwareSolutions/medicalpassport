@@ -46,6 +46,8 @@ export const createMedicationSchema = z
     enteredName: z.string().trim().min(1).max(200).optional(),
     patientReason: z.string().trim().max(500).optional(),
     prescriberName: z.string().trim().max(120).optional(),
+    /** Optional evidence: the prescription record this medicine came from (docs/07 screen 43). */
+    prescriptionId: z.string().uuid().nullable().optional(),
     source: z.enum(MEDICATION_SOURCES),
     startDate: z.coerce.date().optional(),
     endDate: z.coerce.date().optional(),
@@ -72,7 +74,10 @@ export type CreateMedicationInput = z.infer<typeof createMedicationSchema>;
 export const updateMedicationSchema = z.object({
   rowVersion: z.number().int().nonnegative(),
   patientReason: z.string().trim().max(500).optional(),
+  /** An empty string clears the prescriber link rather than creating an unnamed record. */
   prescriberName: z.string().trim().max(120).optional(),
+  /** Null explicitly unlinks this medicine from its prescription record. */
+  prescriptionId: z.string().uuid().nullable().optional(),
   /** Anchor date for weekly/fortnightly/monthly frequencies (day-of-week /
    * day-of-month comes from it) — editable so switching an existing
    * medicine onto one of those frequencies can set/move the anchor. */

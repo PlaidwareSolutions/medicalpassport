@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ApiError, type CatalogProduct } from "@medpass/api-client";
 import { DOSE_UNITS, type DoseUnit } from "@medpass/domain";
@@ -18,10 +18,18 @@ type Food = "before" | "with" | "after" | "any";
 /**
  * Screens 11/12/18: add medication via search or manual entry with
  * typing-free pickers (docs/07). Scan (Stage 3/8) is shown as coming soon.
+ *
+ * Reading `?prescriptionId=` needs `useSearchParams`, which forces this
+ * subtree to render client-side — Next requires a Suspense boundary around
+ * it (see the default export below) or the whole route fails to prerender.
  */
-export default function AddMedicationPage() {
+function AddMedicationForm() {
   const { t } = useI18n();
   const router = useRouter();
+  // Set when arriving from a prescription's detail screen ("add a medicine
+  // from this prescription") — links the new medicine to it as evidence and
+  // carries the doctor over, so neither has to be re-entered.
+  const prescriptionId = useSearchParams().get("prescriptionId") ?? undefined;
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CatalogProduct[] | undefined>();
@@ -86,6 +94,7 @@ export default function AddMedicationPage() {
         source: selected ? "search" : "manual",
         ...(reason.trim() ? { patientReason: reason.trim() } : {}),
         ...(prescriber.trim() ? { prescriberName: prescriber.trim() } : {}),
+        ...(prescriptionId ? { prescriptionId } : {}),
         ...(quantityOnHand.trim() ? { quantityOnHand: Number(quantityOnHand) } : {}),
         criticalEscalation,
         instruction: {
@@ -129,6 +138,7 @@ export default function AddMedicationPage() {
   return (
     <AppShell>
       <PageHeader title={t("add.title")} />
+      {prescriptionId ? <Banner tone="info">{t("add.from_prescription")}</Banner> : null}
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       {!selected && !manualMode ? (
@@ -325,5 +335,19 @@ export default function AddMedicationPage() {
         </>
       )}
     </AppShell>
+  );
+}
+
+export default function AddMedicationPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <PillSpinner label="…" />
+        </AppShell>
+      }
+    >
+      <AddMedicationForm />
+    </Suspense>
   );
 }

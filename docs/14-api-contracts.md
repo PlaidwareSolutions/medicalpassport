@@ -42,12 +42,19 @@ Base: `https://api.example.com/v1`. OpenAPI generated from NestJS decorators is 
 |---|---|
 | `GET /catalog/products?q=` | Search brand/generic/ingredient incl. aliases; non-PHI; rate-limited; `Cache-Control: private, max-age=300` (per-user cache only). |
 | `GET /catalog/products/:id` | Product + ingredients + strengths + content availability. |
-| `GET/POST /profiles/:id/medications` | List (filter by status) / create. Create body: product ref *or* free-text `enteredName`, instructions (typed), prescriber, `patientReason`, source. Idempotency-Key required. |
-| `GET/PATCH/DELETE /medications/:id` | rowVersion concurrency; status transitions validated (`current→paused|completed|stopped`…); soft delete; every change appends `medication_changes` + audit. |
+| `GET/POST /profiles/:id/medications` | List (filter by status) / create. Create body: product ref *or* free-text `enteredName`, instructions (typed), prescriber, `patientReason`, source, optional `prescriptionId` (inherits that prescription's doctor when no prescriber is typed). Idempotency-Key required. |
+| `GET/PATCH/DELETE /medications/:id` | rowVersion concurrency; status transitions validated (`current→paused|completed|stopped`…); soft delete; every change appends `medication_changes` + audit. `prescriberName: ""` clears the prescriber link; `prescriptionId: null` unlinks the prescription. |
 | `GET /medications/:id/history` | Change log. |
 
+### Prescription records
+| Endpoint | Notes |
+|---|---|
+| `GET/POST /profiles/:id/prescriptions` | List (newest visit first, with file/medicine counts) / create. All body fields optional: `practitionerName` (deduped per profile, case-insensitive), `prescribedAt`, `notes`. Scopes: `view_profile`/`edit_profile`. |
+| `GET/DELETE /prescriptions/:id` | Detail (attached documents + linked medicines) / soft delete. Deleting never cascades — documents and medicines keep their `prescription_id` and stay intact; reads stop surfacing the deleted parent. |
+| `POST /prescriptions/:id/medications` | Links an already-added medicine as evidence; fills in the prescription's doctor only if the medicine names none. |
+
 ### Documents & uploads (Stage 3)
-`POST /profiles/:id/documents/authorize-upload` (type/size limits declared; returns pending doc + presigned PUT, expiry ≤ 10 min) · `POST /documents/:id/complete` (server verifies object: signature, size, checksum; idempotent) · `GET /documents/:id/download-url` (authorized, short-lived, audited) · `DELETE /documents/:id`. Upload limits: images ≤ 10 MB, PDF ≤ 20 MB; JPEG/PNG/HEIC/PDF only.
+`POST /profiles/:id/documents/authorize-upload` (type/size limits declared; optional `prescriptionId` attaches the upload to a prescription record — that path requires `edit_profile`, the medication-scan path `add_medications`; returns pending doc + presigned PUT, expiry ≤ 10 min) · `POST /documents/:id/complete` (server verifies object: signature, size, checksum; idempotent) · `GET /documents/:id/download-url` (authorized, short-lived, audited) · `DELETE /documents/:id`. `complete`/`download-url` carry only a document id, so they accept either the medication or profile scope — a deliberate, documented broadening. Upload limits: images ≤ 10 MB, PDF ≤ 20 MB; JPEG/PNG/HEIC/PDF only.
 
 ### Prescriptions & extraction (Stages 3/8)
 `POST /documents/:id/process` → extraction job · `GET /extractions/:id` (status + candidates with confidence) · `POST /extractions/:id/candidates/:candidateId/confirm|correct|reject` (records confirmer + timestamp; original immutable) · `POST /extractions/:id/create-medications` (only from confirmed candidates).

@@ -38,6 +38,8 @@ export const AUDIT_ACTIONS = [
   "glucose_reading.deleted",
   "checkup_record.created",
   "checkup_record.deleted",
+  "prescription.created",
+  "prescription.deleted",
   "medication.created",
   "medication.updated",
   "medication.status_changed",

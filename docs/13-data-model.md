@@ -83,8 +83,8 @@ Granular scopes per relationship. `caregiver_relationship_id FK`, `scope` enum `
 ### ★ consent_events
 Append-only consent history: `consent_id FK`, `event` enum `granted|renewed|revoked|expired|enforced`, `actor_user_id`, `context jsonb`, `occurred_at`. Retention: audit-class. Sync: no.
 
-### practitioners / organizations
-Prescriber and clinic/hospital directory (patient-entered in MVP). `display_name`, `speciality`/`kind`, `phone NULL`, `created_by_profile_id` (patient-scoped entries in MVP; global verified directory later). Sync: yes (referenced by medications).
+### ★ practitioners / organizations
+Prescriber and clinic/hospital directory (patient-entered in MVP). `display_name`, `speciality`/`kind`, `phone NULL`, `created_by_profile_id` (patient-scoped entries in MVP; global verified directory later), `deleted_at`. Resolved by case-insensitive trimmed name within a profile, so the same doctor typed on two medicines (or on a prescription record) is one row — a per-doctor view depends on this. An empty/whitespace-only prescriber name means "no prescriber" and clears the link rather than creating an unnamed record. Sync: yes (referenced by medications). `organizations` is **not implemented** — `phone` isn't either.
 
 ### ★ patient_conditions / ★ patient_allergies
 `patient_profile_id FK`, `label text` (patient-reported) + `condition_code`/`allergen_ingredient_id FK NULL` (normalized), `severity` enum for allergies, `reaction_note`, `source` enum `patient|document|professional`, `status` enum `active|inactive`, `recorded_by`, `deleted_at`. Changes trigger safety re-evaluation. Sync: yes.
@@ -116,11 +116,13 @@ Retention: catalog is permanent, append/deprecate only. Access: read by all auth
 
 ## Prescriptions & documents
 
-### prescriptions
-A prescribing event. `patient_profile_id FK`, `practitioner_id FK NULL`, `organization_id FK NULL`, `prescribed_at date NULL`, `source` enum `photo|upload|manual|import`, `status` enum `draft|processing|needs_review|confirmed|discarded`, `deleted_at`. Sync: yes (confirmed only).
+### ★ prescriptions
+A prescribing event — one doctor visit's prescription. `patient_profile_id FK`, `practitioner_id FK NULL`, `prescribed_at date NULL`, `notes text NULL`, `deleted_at`. Every field but the profile is optional: a patient who can't read the doctor's handwriting should still be able to file the photo. Soft-delete never cascades — attached documents and linked medications keep their `prescription_id`, and reads simply stop surfacing the deleted parent (matching every other soft-deleted parent in this codebase). Sync: no — online-only, matching the glucose/checkup precedent for simple patient-owned records.
 
-### prescription_documents
-Uploaded evidence. `prescription_id FK NULL` (linkable later), `patient_profile_id FK`, `stored_object_id FK`, `kind` enum `prescription|strip|box|bottle|discharge_summary|other`, `page_no`, `status` enum `pending_upload|uploaded|verified|quarantined|processing|processed|failed|deleted`. R2: 1:1 with stored object. Retention: original preserved while medication references it; lifecycle rules otherwise. Sync: metadata only, never binaries.
+**Trimmed from the original spec above, deliberately:** `organization_id` (no `organizations` table exists yet — nothing to reference), and `source`/`status` enums. This pass has exactly one creation path — a patient or caregiver filling in a form — so both would be permanently stuck at a single constant value. Reintroduce them if an automated creation path (e.g. OCR-driven multi-drug prescription detection) is ever built.
+
+### ★ prescription_documents
+Uploaded evidence. `prescription_id FK NULL` (set when the upload belongs to a prescription record; null for a one-off scan-to-add-a-medicine upload, which needs no standing record of its own), `patient_profile_id FK`, `stored_object_id FK`, `kind` enum `prescription|strip|box|bottle|discharge_summary|other`, `status` enum `pending_upload|uploaded|verified|quarantined|processing|processed|failed|deleted`. R2: 1:1 with stored object. Retention: original preserved while medication references it; lifecycle rules otherwise. Sync: metadata only, never binaries. (`page_no` from the original spec is not implemented — multi-page documents are filed as separate rows against the same prescription.)
 
 ### stored_objects
 Every R2 object. `bucket` enum, `object_key text UNIQUE` (opaque, no PHI), `sha256`, `size_bytes`, `content_type`, `status` enum `pending|verified|quarantined|deleted`, `expires_at NULL`. Constraint: object_key generated server-side. R2 relationship: authoritative record; deletion coordinates DB + R2 ([26](26-cloudflare-edge-and-r2-architecture.md)).
@@ -137,7 +139,7 @@ Per-field proposals. `extraction_id FK`, `field` enum (`brand`,`ingredient`,`str
 ## Patient medications & scheduling
 
 ### ★ patient_medications
-The passport core. `patient_profile_id FK`, `product_id FK NULL` (normalized), `entered_name text` (original, immutable), `normalization_status` enum `unmatched|candidate|confirmed`, `patient_reason text NULL` (**patient-specific reason — never inferred**), `prescription_id FK NULL`, `practitioner_id FK NULL`, `source` enum `search|manual|extraction|previous|import`, `status` enum `current|paused|completed|stopped|unknown`, `status_changed_at`, `status_reason`, `start_date`, `end_date NULL`, `is_prn bool`, `quantity_on_hand numeric NULL`, `row_version int`, `deleted_at`. Indexes: `(patient_profile_id, status) WHERE deleted_at IS NULL`. Sync: yes — key offline entity.
+The passport core. `patient_profile_id FK`, `product_id FK NULL` (normalized), `entered_name text` (original, immutable), `normalization_status` enum `unmatched|candidate|confirmed`, `patient_reason text NULL` (**patient-specific reason — never inferred**), `prescription_id FK NULL` (optional evidence — a medicine with no prescription on file is a normal, fully-valid entry, never flagged as incomplete), `practitioner_id FK NULL`, `source` enum `search|manual|extraction|previous|import`, `status` enum `current|paused|completed|stopped|unknown`, `status_changed_at`, `status_reason`, `start_date`, `end_date NULL`, `is_prn bool`, `quantity_on_hand numeric NULL`, `row_version int`, `deleted_at`. Indexes: `(patient_profile_id, status) WHERE deleted_at IS NULL`, `(prescription_id)`. Sync: yes — key offline entity.
 
 ### ★ medication_instructions
 Structured dosing per medication (typed, from confirmed input). `patient_medication_id FK`, `dose_quantity numeric`, `dose_unit`, `frequency_code` enum `OD|BD|TDS|QID|SOS|HS|pattern|alternate_day|weekly|fortnightly|monthly|custom` (`fortnightly`/`monthly` added Stage 4 follow-up — see below), `pattern text NULL` (e.g. `1-0-1`), `food_instruction` enum `before|with|after|any|bedtime`, `timing_slots jsonb`, `duration_days int NULL`, `original_text NULL` (immutable), `confirmed_by`, `confirmed_at`, `row_version`. Sync: yes.

@@ -167,6 +167,7 @@ model PatientProfile {
   conditions             PatientCondition[]
   medications            PatientMedication[]
   practitioners          Practitioner[]
+  prescriptions          Prescription[]
   safetyEvaluations      SafetyEvaluation[]
   sharePackages          SharePackage[]
   prescriptionDocuments  PrescriptionDocument[]
@@ -299,11 +300,42 @@ model Practitioner {
   createdByProfile   PatientProfile? @relation(fields: [createdByProfileId], references: [id])
   displayName        String          @map("display_name")
   speciality         String?
+  deletedAt          DateTime?       @map("deleted_at") @db.Timestamptz(6)
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  medications PatientMedication[]
+  medications   PatientMedication[]
+  prescriptions Prescription[]
 
   @@map("practitioners")
+}
+
+/// A prescribing event — one doctor visit's prescription (docs/13). Medications
+/// and uploaded documents optionally point at this as their evidence; nothing
+/// requires it, so a medication added without one is equally valid.
+/// docs/13 also specs `organization_id` (no Organization model exists yet),
+/// `source`, and a draft→confirmed `status` workflow — all trimmed this pass:
+/// there is exactly one creation path (a patient/caregiver filling a form),
+/// so both extra fields would be permanently stuck at one constant value.
+/// Reintroduce them if an automated creation path (e.g. OCR-driven multi-drug
+/// prescription detection) is ever built.
+model Prescription {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  practitionerId   String?        @map("practitioner_id") @db.Uuid
+  practitioner     Practitioner?  @relation(fields: [practitionerId], references: [id])
+  /// The visit/prescribing date as recorded by the patient — never inferred.
+  prescribedAt     DateTime?      @map("prescribed_at") @db.Date
+  notes            String?
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  documents   PrescriptionDocument[]
+  medications PatientMedication[]
+
+  @@index([patientProfileId, prescribedAt])
+  @@map("prescriptions")
 }
 
 enum AllergySeverity {
@@ -591,6 +623,11 @@ model PatientMedication {
   patientReason  String?       @map("patient_reason")
   practitionerId String?       @map("practitioner_id") @db.Uuid
   practitioner   Practitioner? @relation(fields: [practitionerId], references: [id])
+  /// Optional evidence: the prescription record this medication came from
+  /// (docs/13). Always optional — a medication with no prescription on file
+  /// is a normal, fully-valid entry, never flagged as incomplete.
+  prescriptionId String?       @map("prescription_id") @db.Uuid
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id])
 
   source             MedicationSource
   status             MedicationStatus @default(current)
@@ -621,6 +658,7 @@ model PatientMedication {
   notifications Notification[]
 
   @@index([patientProfileId, status])
+  @@index([prescriptionId])
   @@map("patient_medications")
 }
 
@@ -1253,6 +1291,11 @@ model PrescriptionDocument {
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
   storedObjectId   String         @unique @map("stored_object_id") @db.Uuid
   storedObject     StoredObject   @relation(fields: [storedObjectId], references: [id])
+  /// The prescription record this document evidences (docs/13 "linkable
+  /// later"). Null for a one-off scan-to-add-a-medicine upload, which needs
+  /// no standing prescription record of its own.
+  prescriptionId   String?        @map("prescription_id") @db.Uuid
+  prescription     Prescription?  @relation(fields: [prescriptionId], references: [id])
   kind             DocumentKind   @default(prescription)
   status           DocumentStatus @default(pending_upload)
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -1261,6 +1304,7 @@ model PrescriptionDocument {
   extractions PrescriptionExtraction[]
 
   @@index([patientProfileId])
+  @@index([prescriptionId])
   @@map("prescription_documents")
 }
 

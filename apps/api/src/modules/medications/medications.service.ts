@@ -23,8 +23,12 @@ const MEDICATION_INCLUDE = {
     },
   },
   practitioner: true,
+  prescription: { include: { practitioner: true } },
   instructions: { where: { supersededAt: null }, orderBy: { createdAt: "desc" as const }, take: 1 },
 } as const;
+
+/** Prisma transaction client — the subset these helpers actually use. */
+type Tx = Parameters<Parameters<PrismaService["$transaction"]>[0]>[0];
 
 @Injectable()
 export class MedicationsService {
@@ -99,6 +103,34 @@ export class MedicationsService {
     return { byIngredientId, byProductId };
   }
 
+  /**
+   * Resolves a typed prescriber name to a `Practitioner` row, reusing this
+   * profile's existing record for the same name rather than inserting a
+   * duplicate every time (which is what this did before — two medicines from
+   * the same doctor produced two unrelated rows, making any per-doctor view
+   * meaningless). An empty/whitespace-only name means "no prescriber": it
+   * returns null to clear the link, rather than creating an unnamed record.
+   */
+  private async resolvePractitioner(tx: Tx, profileId: string, prescriberName: string): Promise<string | null> {
+    const displayName = prescriberName.trim();
+    if (!displayName) return null;
+    const existing = await tx.practitioner.findFirst({
+      where: { createdByProfileId: profileId, displayName: { equals: displayName, mode: "insensitive" }, deletedAt: null },
+    });
+    if (existing) return existing.id;
+    const created = await tx.practitioner.create({ data: { displayName, createdByProfileId: profileId } });
+    return created.id;
+  }
+
+  /** Confirms a prescription reference belongs to this profile before linking to it. */
+  private async requirePrescription(tx: Tx, profileId: string, prescriptionId: string) {
+    const prescription = await tx.prescription.findFirst({
+      where: { id: prescriptionId, patientProfileId: profileId, deletedAt: null },
+    });
+    if (!prescription) throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown prescription", 400);
+    return prescription;
+  }
+
   async create(profileId: string, input: CreateMedicationInput, actor: Actor) {
     // Normalization: a catalog selection is a confirmed match; free text stays
     // unmatched until the (Stage 6) normalization pipeline proposes a match.
@@ -121,12 +153,16 @@ export class MedicationsService {
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
-      let practitionerId: string | undefined;
-      if (input.prescriberName) {
-        const practitioner = await tx.practitioner.create({
-          data: { displayName: input.prescriberName, createdByProfileId: profileId },
-        });
-        practitionerId = practitioner.id;
+      const prescription = input.prescriptionId ? await this.requirePrescription(tx, profileId, input.prescriptionId) : null;
+
+      // An explicitly typed prescriber always wins; otherwise a linked
+      // prescription's own doctor carries over (its practitionerId is reused
+      // directly, so linking can never mint a duplicate Practitioner row).
+      let practitionerId: string | null = null;
+      if (input.prescriberName !== undefined) {
+        practitionerId = await this.resolvePractitioner(tx, profileId, input.prescriberName);
+      } else if (prescription) {
+        practitionerId = prescription.practitionerId;
       }
 
       const medication = await tx.patientMedication.create({
@@ -137,6 +173,7 @@ export class MedicationsService {
           normalizationStatus: input.productId ? "confirmed" : "unmatched",
           patientReason: input.patientReason,
           practitionerId,
+          prescriptionId: prescription?.id ?? null,
           source: input.source,
           // Defaults to today rather than staying null: a patient adding a
           // medicine is almost always starting it now or very recently, and
@@ -253,10 +290,22 @@ export class MedicationsService {
       }
 
       if (input.prescriberName !== undefined) {
-        const practitioner = await tx.practitioner.create({
-          data: { displayName: input.prescriberName, createdByProfileId: profileId },
-        });
-        await tx.patientMedication.update({ where: { id }, data: { practitionerId: practitioner.id } });
+        // Clearing the field now genuinely unlinks. Previously any non-undefined
+        // value — including the empty string a cleared input sends — created a
+        // fresh Practitioner row, so clearing produced an unnamed record and
+        // left the medicine still linked to a prescriber.
+        const practitionerId = await this.resolvePractitioner(tx, profileId, input.prescriberName);
+        await tx.patientMedication.update({ where: { id }, data: { practitionerId } });
+      }
+
+      if (input.prescriptionId !== undefined) {
+        const prescription = input.prescriptionId ? await this.requirePrescription(tx, profileId, input.prescriptionId) : null;
+        await tx.patientMedication.update({ where: { id }, data: { prescriptionId: prescription?.id ?? null } });
+        // Linking to a prescription fills in its doctor only when the medicine
+        // doesn't already have one — never overwrites what the patient typed.
+        if (prescription?.practitionerId && input.prescriberName === undefined && !medication.practitionerId) {
+          await tx.patientMedication.update({ where: { id }, data: { practitionerId: prescription.practitionerId } });
+        }
       }
 
       if (input.instruction) {
@@ -371,6 +420,7 @@ export class MedicationsService {
       normalizationStatus: string;
       createdAt: Date;
       practitioner: { displayName: string } | null;
+      prescription: { id: string; prescribedAt: Date | null; deletedAt: Date | null; practitioner: { displayName: string } | null } | null;
       product:
         | ({
             id: string;
@@ -430,6 +480,17 @@ export class MedicationsService {
       clinicalContent,
       patientReason: m.patientReason,
       prescriberName: m.practitioner?.displayName ?? null,
+      // A soft-deleted prescription stops being surfaced as live evidence,
+      // but the medicine's own row and its FK are left untouched (this app
+      // never cascades a soft-delete into child rows).
+      prescription:
+        m.prescription && !m.prescription.deletedAt
+          ? {
+              id: m.prescription.id,
+              prescribedAt: m.prescription.prescribedAt?.toISOString().slice(0, 10) ?? null,
+              practitionerName: m.prescription.practitioner?.displayName ?? null,
+            }
+          : null,
       status: m.status,
       isPrn: m.isPrn,
       startDate: m.startDate?.toISOString().slice(0, 10) ?? null,

@@ -213,6 +213,13 @@ export interface ClinicalContentDto {
   missedDose?: ClinicalContentEntryDto;
 }
 
+/** The prescription record substantiating a medicine, when one is on file. */
+export interface MedicationPrescriptionRefDto {
+  id: string;
+  prescribedAt: string | null;
+  practitionerName: string | null;
+}
+
 export interface PatientMedicationDto {
   id: string;
   enteredName: string;
@@ -220,6 +227,8 @@ export interface PatientMedicationDto {
   clinicalContent: ClinicalContentDto;
   patientReason: string | null;
   prescriberName: string | null;
+  /** Null when no prescription is linked — always optional, never a gap to flag. */
+  prescription: MedicationPrescriptionRefDto | null;
   status: string;
   isPrn: boolean;
   startDate: string | null;
@@ -229,6 +238,36 @@ export interface PatientMedicationDto {
   rowVersion: number;
   instruction: MedicationInstructionDto | null;
   createdAt: string;
+}
+
+/** One doctor visit's prescription record (docs/07 screen 43). */
+export interface PrescriptionDto {
+  id: string;
+  practitionerName: string | null;
+  prescribedAt: string | null;
+  notes: string | null;
+  documentCount: number;
+  medicationCount: number;
+  createdAt: string;
+}
+
+export interface PrescriptionDocumentDto {
+  id: string;
+  kind: string;
+  status: string;
+  /** False while an upload is still pending/quarantined — no download to offer yet. */
+  downloadable: boolean;
+  createdAt: string;
+}
+
+export interface PrescriptionDetailDto {
+  id: string;
+  practitionerName: string | null;
+  prescribedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  documents: PrescriptionDocumentDto[];
+  medications: Array<{ id: string; enteredName: string; status: string; doseUnit: string | null }>;
 }
 
 export interface RefillReminderDto {
