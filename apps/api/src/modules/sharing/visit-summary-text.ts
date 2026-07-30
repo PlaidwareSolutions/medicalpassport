@@ -1,4 +1,5 @@
 import type { VisitSummaryDto } from "./visit-summary.service";
+import { checkupMetrics, contextLabel, formatDateOnly } from "./visit-summary-format";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
@@ -63,6 +64,53 @@ export function renderVisitSummaryText(summary: VisitSummaryDto): string {
     else
       for (const c of summary.recentChanges) {
         lines.push(`- ${c.medicationName} — ${c.change.replace(/_/g, " ")} (${formatDate(c.occurredAt)})`);
+      }
+    lines.push("");
+  }
+
+  if (summary.glucoseReadings) {
+    const g = summary.glucoseReadings;
+    lines.push(bold("Blood sugar (last 90 days)"));
+    if (g.readingCount === 0) lines.push("No readings in this period.");
+    else {
+      lines.push(`${g.readingCount} readings · average ${g.averageMgDl} mg/dL · range ${g.lowestMgDl}–${g.highestMgDl}`);
+      for (const c of g.byContext) {
+        lines.push(`- ${contextLabel(c.context)}: average ${c.averageMgDl} mg/dL (${c.count})`);
+      }
+      if (g.recent.length) {
+        lines.push("Most recent:");
+        for (const r of g.recent) {
+          lines.push(`- ${r.valueMgDl} mg/dL, ${contextLabel(r.context)} (${formatDate(r.measuredAt)})${r.note ? ` — ${r.note}` : ""}`);
+        }
+      }
+    }
+    lines.push("");
+  }
+
+  if (summary.checkups) {
+    lines.push(bold("Check-ups (last 90 days)"));
+    if (summary.checkups.length === 0) lines.push("No check-ups in this period.");
+    else
+      for (const c of summary.checkups) {
+        lines.push(`- ${formatDateOnly(c.checkupDate)}`);
+        // Only what was actually measured is listed — a metric the doctor
+        // didn't record stays absent rather than showing as a zero or dash.
+        for (const metric of checkupMetrics(c)) lines.push(`  ${metric}`);
+        if (c.treatmentChanges) lines.push(`  Treatment changes: ${c.treatmentChanges}`);
+        if (c.nextAppointmentDate) lines.push(`  Next appointment: ${formatDateOnly(c.nextAppointmentDate)}`);
+      }
+    lines.push("");
+  }
+
+  if (summary.prescriptions) {
+    lines.push(bold("Prescriptions (last 90 days)"));
+    if (summary.prescriptions.length === 0) lines.push("No prescriptions in this period.");
+    else
+      for (const p of summary.prescriptions) {
+        const who = p.practitionerName ?? "Doctor not recorded";
+        const when = p.prescribedAt ? formatDateOnly(p.prescribedAt) : "date not recorded";
+        lines.push(`- ${who} (${when}) — ${p.medicationCount} medicine(s), ${p.documentCount} file(s)`);
+        if (p.notes) lines.push(`  ${p.notes}`);
       }
     lines.push("");
   }

@@ -6,6 +6,9 @@ export const shareSectionsSchema = z.object({
   conditions: z.boolean().optional(),
   recentChanges: z.boolean().optional(),
   concerns: z.boolean().optional(),
+  glucoseReadings: z.boolean().optional(),
+  checkups: z.boolean().optional(),
+  prescriptions: z.boolean().optional(),
 });
 
 export const createShareSchema = z.object({
@@ -27,5 +30,8 @@ export const visitSummaryTextQuerySchema = z.object({
   conditions: sectionQueryFlag,
   recentChanges: sectionQueryFlag,
   concerns: sectionQueryFlag,
+  glucoseReadings: sectionQueryFlag,
+  checkups: sectionQueryFlag,
+  prescriptions: sectionQueryFlag,
 });
 export type VisitSummaryTextQuery = z.infer<typeof visitSummaryTextQuerySchema>;

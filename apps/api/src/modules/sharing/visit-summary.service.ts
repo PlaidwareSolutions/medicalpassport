@@ -7,6 +7,9 @@ export interface VisitSummarySections {
   conditions: boolean;
   recentChanges: boolean;
   concerns: boolean;
+  glucoseReadings: boolean;
+  checkups: boolean;
+  prescriptions: boolean;
 }
 
 export const ALL_SECTIONS: VisitSummarySections = {
@@ -15,6 +18,9 @@ export const ALL_SECTIONS: VisitSummarySections = {
   conditions: true,
   recentChanges: true,
   concerns: true,
+  glucoseReadings: true,
+  checkups: true,
+  prescriptions: true,
 };
 
 export interface VisitSummaryDto {
@@ -34,9 +40,51 @@ export interface VisitSummaryDto {
   }>;
   recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
   unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
+  /**
+   * The trend a doctor reads first, then the individual readings behind it —
+   * the per-time-of-day breakdown mirrors how the paper diary this digitizes
+   * is itself laid out (docs/07 screen 42).
+   */
+  glucoseReadings?: {
+    readingCount: number;
+    averageMgDl: number | null;
+    lowestMgDl: number | null;
+    highestMgDl: number | null;
+    byContext: Array<{ context: string; count: number; averageMgDl: number }>;
+    recent: Array<{ valueMgDl: number; context: string; measuredAt: string; note: string | null }>;
+  };
+  /** Every metric is nullable and stays null when not measured — never zero-filled. */
+  checkups?: Array<{
+    checkupDate: string;
+    fastingGlucoseMgDl: number | null;
+    postPrandialGlucoseMgDl: number | null;
+    hba1cPercent: string | null;
+    bloodPressureSystolic: number | null;
+    bloodPressureDiastolic: number | null;
+    weightKg: string | null;
+    waistCircumferenceCm: string | null;
+    cholesterolMgDl: number | null;
+    treatmentChanges: string | null;
+    nextAppointmentDate: string | null;
+  }>;
+  /**
+   * Metadata only — deliberately no document ids or download URLs. The public
+   * share view (docs/07 screen 29) is unauthenticated, so anything here is
+   * readable by whoever holds the token; prescription images stay behind the
+   * authenticated download endpoint.
+   */
+  prescriptions?: Array<{
+    prescribedAt: string | null;
+    practitionerName: string | null;
+    notes: string | null;
+    documentCount: number;
+    medicationCount: number;
+  }>;
 }
 
 const RECENT_DAYS = 90;
+/** The aggregate covers every reading in the window; only this listing is capped. */
+const GLUCOSE_RECENT_LIMIT = 10;
 
 /**
  * Doctor-visit mode data (docs/07 screen 28) and the public share payload
@@ -55,6 +103,24 @@ export class VisitSummaryService {
       generatedAt: new Date().toISOString(),
     };
 
+    // Each section is independent, so they run concurrently rather than as a
+    // chain of awaits — with eight of them the serial version noticeably
+    // slowed the PDF path, which polls on an 8s timeout.
+    await Promise.all([
+      this.addAllergies(profileId, sections, summary),
+      this.addConditions(profileId, sections, summary),
+      this.addMedications(profileId, sections, summary),
+      this.addRecentChanges(profileId, sections, summary),
+      this.addConcerns(profileId, sections, summary),
+      this.addGlucoseReadings(profileId, sections, summary),
+      this.addCheckups(profileId, sections, summary),
+      this.addPrescriptions(profileId, sections, summary),
+    ]);
+
+    return summary;
+  }
+
+  private async addAllergies(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
     if (sections.allergies) {
       const allergies = await this.prisma.patientAllergy.findMany({
         where: { patientProfileId: profileId, active: true, deletedAt: null },
@@ -62,7 +128,9 @@ export class VisitSummaryService {
       });
       summary.allergies = allergies.map((a) => ({ label: a.label, severity: a.severity, reactionNote: a.reactionNote }));
     }
+  }
 
+  private async addConditions(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
     if (sections.conditions) {
       const conditions = await this.prisma.patientCondition.findMany({
         where: { patientProfileId: profileId, active: true, deletedAt: null },
@@ -70,7 +138,9 @@ export class VisitSummaryService {
       });
       summary.conditions = conditions.map((c) => ({ label: c.label, note: c.note }));
     }
+  }
 
+  private async addMedications(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
     if (sections.medications) {
       const meds = await this.prisma.patientMedication.findMany({
         where: { patientProfileId: profileId, status: "current", deletedAt: null },
@@ -96,7 +166,9 @@ export class VisitSummaryService {
         };
       });
     }
+  }
 
+  private async addRecentChanges(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
     if (sections.recentChanges) {
       const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
       const changes = await this.prisma.medicationChange.findMany({
@@ -111,7 +183,9 @@ export class VisitSummaryService {
         occurredAt: c.occurredAt.toISOString(),
       }));
     }
+  }
 
+  private async addConcerns(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
     if (sections.concerns) {
       const latestEvaluation = await this.prisma.safetyEvaluation.findFirst({
         where: { patientProfileId: profileId },
@@ -131,7 +205,96 @@ export class VisitSummaryService {
           f.category,
       }));
     }
+  }
 
-    return summary;
+  /**
+   * Aggregate first, then the individual readings behind it (docs/07 screen
+   * 42). A diabetic patient can have hundreds of readings, so both the window
+   * and the row list are bounded — the aggregate still counts every reading
+   * in the window, only the listed rows are capped.
+   */
+  private async addGlucoseReadings(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.glucoseReadings) return;
+    const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const readings = await this.prisma.glucoseReading.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, measuredAt: { gte: cutoff } },
+      orderBy: { measuredAt: "desc" },
+    });
+
+    const values = readings.map((r) => r.valueMgDl);
+    const byContext = new Map<string, number[]>();
+    for (const r of readings) {
+      const bucket = byContext.get(r.context) ?? [];
+      bucket.push(r.valueMgDl);
+      byContext.set(r.context, bucket);
+    }
+    const mean = (nums: number[]) => Math.round(nums.reduce((sum, n) => sum + n, 0) / nums.length);
+
+    summary.glucoseReadings = {
+      readingCount: readings.length,
+      averageMgDl: values.length ? mean(values) : null,
+      lowestMgDl: values.length ? Math.min(...values) : null,
+      highestMgDl: values.length ? Math.max(...values) : null,
+      byContext: [...byContext.entries()].map(([context, nums]) => ({
+        context,
+        count: nums.length,
+        averageMgDl: mean(nums),
+      })),
+      recent: readings.slice(0, GLUCOSE_RECENT_LIMIT).map((r) => ({
+        valueMgDl: r.valueMgDl,
+        context: r.context,
+        measuredAt: r.measuredAt.toISOString(),
+        note: r.note,
+      })),
+    };
+  }
+
+  private async addCheckups(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.checkups) return;
+    const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const checkups = await this.prisma.checkupRecord.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, checkupDate: { gte: cutoff } },
+      orderBy: { checkupDate: "desc" },
+      take: 5,
+    });
+    // Decimals are stringified explicitly rather than left to the JSON
+    // serializer, so every renderer downstream gets a predictable shape.
+    summary.checkups = checkups.map((c) => ({
+      checkupDate: c.checkupDate.toISOString().slice(0, 10),
+      fastingGlucoseMgDl: c.fastingGlucoseMgDl,
+      postPrandialGlucoseMgDl: c.postPrandialGlucoseMgDl,
+      hba1cPercent: c.hba1cPercent?.toString() ?? null,
+      bloodPressureSystolic: c.bloodPressureSystolic,
+      bloodPressureDiastolic: c.bloodPressureDiastolic,
+      weightKg: c.weightKg?.toString() ?? null,
+      waistCircumferenceCm: c.waistCircumferenceCm?.toString() ?? null,
+      cholesterolMgDl: c.cholesterolMgDl,
+      treatmentChanges: c.treatmentChanges,
+      nextAppointmentDate: c.nextAppointmentDate?.toISOString().slice(0, 10) ?? null,
+    }));
+  }
+
+  private async addPrescriptions(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.prescriptions) return;
+    const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const prescriptions = await this.prisma.prescription.findMany({
+      // A prescription with no date recorded still belongs in the window —
+      // fall back to when it was filed rather than dropping it silently.
+      where: {
+        patientProfileId: profileId,
+        deletedAt: null,
+        OR: [{ prescribedAt: { gte: cutoff } }, { prescribedAt: null, createdAt: { gte: cutoff } }],
+      },
+      include: { practitioner: true, _count: { select: { documents: true, medications: true } } },
+      orderBy: [{ prescribedAt: "desc" }, { createdAt: "desc" }],
+      take: 10,
+    });
+    summary.prescriptions = prescriptions.map((p) => ({
+      prescribedAt: p.prescribedAt?.toISOString().slice(0, 10) ?? null,
+      practitionerName: p.practitioner?.displayName ?? null,
+      notes: p.notes,
+      documentCount: p._count.documents,
+      medicationCount: p._count.medications,
+    }));
   }
 }

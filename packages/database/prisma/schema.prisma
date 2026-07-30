@@ -1140,7 +1140,12 @@ model SharePackage {
   patientProfileId String         @map("patient_profile_id") @db.Uuid
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
 
-  /// { medications: true, allergies: true, conditions: true, recentChanges: true, concerns: true }
+  /// { medications, allergies, conditions, recentChanges, concerns,
+  /// glucoseReadings, checkups, prescriptions } — all booleans.
+  /// Frozen at creation and read back verbatim: a share predating a section
+  /// has no key for it, which reads as falsy and omits it. Never merge
+  /// missing keys with defaults on read — that would retroactively widen
+  /// every live link the moment a new section ships.
   sections        Json
   createdByUserId String   @map("created_by_user_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

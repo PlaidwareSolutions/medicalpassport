@@ -261,7 +261,9 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 ### 28. Doctor-visit mode
 - **Objective:** everything a clinician needs, dense but readable, in one screen (spec §14.6).
 - **Information:** identity, allergies, conditions, current medicines (ingredients, dosages, schedules, prescribers, start dates), recently stopped/completed, recent changes, adherence summary, unresolved concerns, prescription images where permitted.
+- **Also included (last 90 days each):** blood sugar — the aggregate a clinician reads first (count, average, lowest/highest, and a per-time-of-day breakdown mirroring the paper diary's own layout, screen 42) followed by the 10 most recent readings; check-up records, showing only the metrics actually measured (a metric the doctor didn't record is omitted, never zero-filled); and prescription records (screen 43) as **metadata only** — doctor, date, notes, and how many medicines/files — never document ids or download URLs, since the public share view is unauthenticated.
 - **Primary action:** Share (→ screen 29). **Secondary:** brightness-boosted QR, print-friendly view.
+- **Implementation note:** this screen and the public share view (screen 29) render the same `VisitSummarySections` component rather than two hand-synced copies.
 - **Offline:** renders from cache — designed to work in a clinic with no signal.
 - **Analytics:** `doctor_visit_mode_opened`. **Audit:** `share.visit_mode_opened`.
 - **Acceptance:** readable at arm's length; loads offline.
@@ -272,7 +274,8 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Primary action:** create share. **Secondary:** revoke, view access history.
 - **Analytics:** `share_created {method, sections_count, expiry_bucket}`. **Audit:** `share.created/accessed/revoked/expired` — access events visible to patient.
 - **Security:** share pages `no-store`, unguessable tokens, expiry enforced server-side, revocation immediate; QR contains token URL only, no PHI.
-- **Acceptance:** revoked link shows a safe "no longer available" page within seconds; every access appears in patient-visible log.
+- **Section choices are frozen at creation time and read back verbatim** — a share created before a section existed has no flag for it, which reads as "not shared" and omits it. This is deliberate and must not be "fixed" into a default-on merge: the patient who created that link never consented to data the section didn't cover yet, so adding a section must never retroactively widen live links.
+- **Acceptance:** revoked link shows a safe "no longer available" page within seconds; every access appears in patient-visible log; a pre-existing share never begins exposing a newly-added section.
 
 ## Profile & settings
 

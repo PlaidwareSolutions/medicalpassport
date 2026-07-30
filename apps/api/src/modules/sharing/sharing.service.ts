@@ -172,6 +172,12 @@ export class SharingService {
       context: { result },
     });
 
+    // Read verbatim, deliberately NOT merged with ALL_SECTIONS: a share
+    // created before a new section existed has no key for it, which reads as
+    // falsy and omits it. That is the point — the patient who created that
+    // link never consented to sharing data the section didn't cover yet.
+    // Defaulting missing keys to true here would retroactively widen every
+    // live link the moment a section is added.
     const sections = link.sharePackage.sections as unknown as VisitSummarySections;
     return this.visitSummary.build(link.sharePackage.patientProfileId, sections);
   }

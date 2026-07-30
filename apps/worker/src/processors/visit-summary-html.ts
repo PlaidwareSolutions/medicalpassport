@@ -4,9 +4,12 @@
  * worker never touches the database for this job type at all, just
  * renders whatever JSON it's handed. Kept as a plain type here rather than
  * a shared package import since apps/api isn't set up as an importable
- * library (docs/02: no premature abstraction) — any drift would fail
- * loudly (a TypeScript error on the next edit to either side), not
- * silently.
+ * library (docs/02: no premature abstraction).
+ *
+ * WARNING: drift here does NOT fail loudly, contrary to what this comment
+ * used to claim. The job payload is cast (`as`) in main.ts, so a section
+ * added to the API's DTO but not here is silently dropped from the PDF with
+ * no error anywhere. Any new section must be added in both places.
  */
 export interface VisitSummaryDto {
   profile: { displayName: string; yearOfBirth: number | null; sex: string | null };
@@ -24,6 +27,56 @@ export interface VisitSummaryDto {
   }>;
   recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
   unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
+  glucoseReadings?: {
+    readingCount: number;
+    averageMgDl: number | null;
+    lowestMgDl: number | null;
+    highestMgDl: number | null;
+    byContext: Array<{ context: string; count: number; averageMgDl: number }>;
+    recent: Array<{ valueMgDl: number; context: string; measuredAt: string; note: string | null }>;
+  };
+  checkups?: Array<{
+    checkupDate: string;
+    fastingGlucoseMgDl: number | null;
+    postPrandialGlucoseMgDl: number | null;
+    hba1cPercent: string | null;
+    bloodPressureSystolic: number | null;
+    bloodPressureDiastolic: number | null;
+    weightKg: string | null;
+    waistCircumferenceCm: string | null;
+    cholesterolMgDl: number | null;
+    treatmentChanges: string | null;
+    nextAppointmentDate: string | null;
+  }>;
+  prescriptions?: Array<{
+    prescribedAt: string | null;
+    practitionerName: string | null;
+    notes: string | null;
+    documentCount: number;
+    medicationCount: number;
+  }>;
+}
+
+const CONTEXT_LABELS: Record<string, string> = {
+  before_breakfast: "Before breakfast",
+  after_breakfast: "After breakfast",
+  before_lunch: "Before lunch",
+  after_lunch: "After lunch",
+  before_dinner: "Before dinner",
+  after_dinner: "After dinner",
+  during_night: "During the night",
+  random: "Random",
+};
+
+function contextLabel(context: string): string {
+  return CONTEXT_LABELS[context] ?? context.replace(/_/g, " ");
+}
+
+/** Date-only values (`YYYY-MM-DD`) must not go through a timezone-shifting Date parse. */
+function formatDateOnly(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  if (!y || !m || !d) return isoDate;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-IN", { dateStyle: "medium" });
 }
 
 /** Escapes text before interpolating into HTML — every field here can contain patient-entered text. */
@@ -104,6 +157,75 @@ export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
     );
   }
 
+  if (summary.glucoseReadings) {
+    const g = summary.glucoseReadings;
+    parts.push(
+      section(
+        "Blood sugar (last 90 days)",
+        g.readingCount
+          ? `<p><strong>${g.readingCount} readings</strong> · average ${g.averageMgDl} mg/dL · range ${g.lowestMgDl}–${g.highestMgDl}</p>` +
+            (g.byContext.length
+              ? `<table><thead><tr><th>When</th><th>Readings</th><th>Average</th></tr></thead><tbody>${g.byContext
+                  .map((c) => `<tr><td>${esc(contextLabel(c.context))}</td><td>${c.count}</td><td>${c.averageMgDl} mg/dL</td></tr>`)
+                  .join("")}</tbody></table>`
+              : "") +
+            (g.recent.length
+              ? `<h3 class="muted">Most recent</h3><ul>${g.recent
+                  .map(
+                    (r) =>
+                      `<li><strong>${r.valueMgDl} mg/dL</strong> — ${esc(contextLabel(r.context))} <span class="muted">(${formatDate(r.measuredAt)})</span>${r.note ? ` — ${esc(r.note)}` : ""}</li>`,
+                  )
+                  .join("")}</ul>`
+              : "")
+          : "<p class=\"muted\">No readings in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.checkups) {
+    parts.push(
+      section(
+        "Check-ups (last 90 days)",
+        summary.checkups.length
+          ? // A metric the doctor didn't record that visit is left out
+            // entirely rather than shown as a zero or dash.
+            `<table><thead><tr><th>Date</th><th>Measurements</th><th>Treatment changes</th><th>Next appointment</th></tr></thead><tbody>${summary.checkups
+              .map((c) => {
+                const metrics = [
+                  c.fastingGlucoseMgDl != null ? `Fasting glucose: ${c.fastingGlucoseMgDl} mg/dL` : null,
+                  c.postPrandialGlucoseMgDl != null ? `Post-meal glucose: ${c.postPrandialGlucoseMgDl} mg/dL` : null,
+                  c.hba1cPercent != null ? `HbA1c: ${esc(c.hba1cPercent)}%` : null,
+                  c.bloodPressureSystolic != null && c.bloodPressureDiastolic != null
+                    ? `Blood pressure: ${c.bloodPressureSystolic}/${c.bloodPressureDiastolic}`
+                    : null,
+                  c.weightKg != null ? `Weight: ${esc(c.weightKg)} kg` : null,
+                  c.waistCircumferenceCm != null ? `Waist: ${esc(c.waistCircumferenceCm)} cm` : null,
+                  c.cholesterolMgDl != null ? `Cholesterol: ${c.cholesterolMgDl} mg/dL` : null,
+                ].filter(Boolean);
+                return `<tr><td>${esc(formatDateOnly(c.checkupDate))}</td><td>${metrics.length ? metrics.join("<br>") : "<span class=\"muted\">Not recorded</span>"}</td><td>${esc(c.treatmentChanges) || "—"}</td><td>${c.nextAppointmentDate ? esc(formatDateOnly(c.nextAppointmentDate)) : "—"}</td></tr>`;
+              })
+              .join("")}</tbody></table>`
+          : "<p class=\"muted\">No check-ups in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.prescriptions) {
+    parts.push(
+      section(
+        "Prescriptions (last 90 days)",
+        summary.prescriptions.length
+          ? `<ul>${summary.prescriptions
+              .map(
+                (p) =>
+                  `<li><strong>${esc(p.practitionerName) || "Doctor not recorded"}</strong> <span class="muted">(${p.prescribedAt ? esc(formatDateOnly(p.prescribedAt)) : "date not recorded"})</span> — ${p.medicationCount} medicine(s), ${p.documentCount} file(s)${p.notes ? `<br>${esc(p.notes)}` : ""}</li>`,
+              )
+              .join("")}</ul>`
+          : "<p class=\"muted\">No prescriptions in this period.</p>",
+      ),
+    );
+  }
+
   if (summary.unresolvedConcerns) {
     parts.push(
       section(
@@ -131,6 +253,8 @@ export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
   h1 { font-size: 20px; margin: 0 0 4px; }
   .meta { color: #4c5563; font-size: 12px; margin-bottom: 24px; }
   h2 { font-size: 14px; margin: 20px 0 8px; border-bottom: 1px solid #d4dbd8; padding-bottom: 4px; }
+  h3 { font-size: 12px; font-weight: 600; margin: 12px 0 4px; }
+  p { margin: 0 0 8px; }
   ul { margin: 0; padding-left: 18px; }
   li { margin-bottom: 4px; }
   table { border-collapse: collapse; width: 100%; }

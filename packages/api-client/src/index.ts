@@ -387,6 +387,35 @@ export interface VisitSummaryDto {
   }>;
   recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
   unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
+  glucoseReadings?: {
+    readingCount: number;
+    averageMgDl: number | null;
+    lowestMgDl: number | null;
+    highestMgDl: number | null;
+    byContext: Array<{ context: string; count: number; averageMgDl: number }>;
+    recent: Array<{ valueMgDl: number; context: string; measuredAt: string; note: string | null }>;
+  };
+  checkups?: Array<{
+    checkupDate: string;
+    fastingGlucoseMgDl: number | null;
+    postPrandialGlucoseMgDl: number | null;
+    hba1cPercent: string | null;
+    bloodPressureSystolic: number | null;
+    bloodPressureDiastolic: number | null;
+    weightKg: string | null;
+    waistCircumferenceCm: string | null;
+    cholesterolMgDl: number | null;
+    treatmentChanges: string | null;
+    nextAppointmentDate: string | null;
+  }>;
+  /** Metadata only — never document ids or download URLs (the public share view is unauthenticated). */
+  prescriptions?: Array<{
+    prescribedAt: string | null;
+    practitionerName: string | null;
+    notes: string | null;
+    documentCount: number;
+    medicationCount: number;
+  }>;
 }
 
 export interface ShareDto {

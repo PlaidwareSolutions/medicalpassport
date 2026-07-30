@@ -8,7 +8,16 @@ import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { createShare, shareUrl, shareVisitSummaryViaWhatsApp } from "../../../lib/sharing";
 
-const SECTION_KEYS = ["medications", "allergies", "conditions", "recentChanges", "concerns"] as const;
+const SECTION_KEYS = [
+  "medications",
+  "allergies",
+  "conditions",
+  "recentChanges",
+  "concerns",
+  "glucoseReadings",
+  "checkups",
+  "prescriptions",
+] as const;
 const EXPIRY_OPTIONS = [
   { hours: 1, key: "share.expiry.1h" },
   { hours: 24, key: "share.expiry.24h" },
