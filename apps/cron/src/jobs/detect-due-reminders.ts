@@ -63,7 +63,7 @@
  * no-NestJS-in-cron reason as the decryption helpers above.
  */
 import { createDecipheriv, createHash } from "node:crypto";
-import { TelnyxSmsSender, VapidWebPushSender, type WebPushSubscriptionDetails } from "@medpass/notifications";
+import { TelnyxSmsSender, VapidWebPushSender, type WebPushPayload, type WebPushSubscriptionDetails } from "@medpass/notifications";
 import type { NotificationChannelKind, PrismaClient } from "@medpass/database";
 import { runJob } from "../lib/run-job";
 
@@ -72,6 +72,15 @@ const SCHEDULE_TIMEZONE_OFFSET_MINUTES = 5.5 * 60; // Asia/Kolkata, fixed (match
 /** Generous: well above docs/31's ~3 reminders/day/patient baseline, bounding a genuine runaway rather than normal heavy use. */
 const SMS_REMINDER_DAILY_CAP = 15;
 const NON_CRITICAL_KINDS = new Set(["refill", "completion"]);
+/**
+ * Patient-facing kinds get a louder push (vibration, persistent,
+ * high-urgency delivery) — never caregiver_escalation/dose_correction, which
+ * are caregiver-only and already have their own separate quiet-hours-bypass
+ * logic (docs/16). `missed_dose`/`safety_finding` are defined on the enum
+ * but nothing creates them yet — included here for definitional
+ * completeness, inert until something does.
+ */
+const LOUD_KINDS = new Set(["dose_reminder", "refill", "completion", "missed_dose", "safety_finding"]);
 
 /** Same fixed-window upsert-increment as RateLimitService (apps/api) — see file header for why this is duplicated here. */
 async function checkAndIncrementDailyCap(prisma: PrismaClient, key: string, limit: number): Promise<boolean> {
@@ -130,7 +139,9 @@ interface Recipient {
 interface PendingNotification {
   kind: string;
   privacyMode: string;
+  patientProfileId: string;
   patientMedicationId: string | null;
+  dedupeKey: string;
   scheduledDose: { medicationSchedule: { patientMedication: { enteredName: string } } } | null;
 }
 
@@ -139,38 +150,61 @@ interface PendingNotification {
  * (docs/16 privacy rule: the medicine name is never shown unless the
  * profile opted into `full_name`). `refill`/`completion` link to the
  * medicine itself rather than the timeline, since that's where the patient
- * acts (docs/07 screen 27).
+ * acts (docs/07 screen 27). Patient-facing kinds (`LOUD_KINDS`) additionally
+ * carry vibration/persistence/sound hints, gated by the profile's own
+ * preference — caregiver_escalation/dose_correction are untouched, exactly
+ * today's plain payload.
  */
-function buildPushPayload(notification: PendingNotification, medicationName: string | undefined): { title: string; body: string; url: string } {
+function buildPushPayload(
+  notification: PendingNotification,
+  medicationName: string | undefined,
+  pref: { soundEnabled: boolean; vibrationEnabled: boolean } | null,
+): WebPushPayload {
   const fullName = notification.privacyMode === "full_name" && medicationName;
-  switch (notification.kind) {
-    case "dose_reminder":
-      return fullName
-        ? { title: medicationName!, body: "It's time to take this now.", url: "/timeline" }
-        : { title: "Medicine reminder", body: "Time to take your scheduled medicine.", url: "/timeline" };
-    case "refill": {
-      const url = `/medicines/${notification.patientMedicationId}`;
-      return fullName
-        ? { title: medicationName!, body: "You may be running low — check your supply.", url }
-        : { title: "Medicine reminder", body: "You may be running low on a medicine. Check your supply.", url };
+  const base: WebPushPayload = (() => {
+    switch (notification.kind) {
+      case "dose_reminder":
+        return fullName
+          ? { title: medicationName!, body: "It's time to take this now.", url: "/timeline" }
+          : { title: "Medicine reminder", body: "Time to take your scheduled medicine.", url: "/timeline" };
+      case "refill": {
+        const url = `/medicines/${notification.patientMedicationId}`;
+        return fullName
+          ? { title: medicationName!, body: "You may be running low — check your supply.", url }
+          : { title: "Medicine reminder", body: "You may be running low on a medicine. Check your supply.", url };
+      }
+      case "completion": {
+        const url = `/medicines/${notification.patientMedicationId}`;
+        return fullName
+          ? { title: medicationName!, body: "This course was expected to finish. Please review it.", url }
+          : { title: "Medicine reminder", body: "A course of medicine was expected to finish. Please review it.", url };
+      }
+      case "caregiver_escalation":
+        return fullName
+          ? { title: medicationName!, body: "A scheduled dose may have been missed. Please check in.", url: "/timeline" }
+          : { title: "Missed dose", body: "A scheduled dose may have been missed. Please check in.", url: "/timeline" };
+      case "dose_correction":
+        return fullName
+          ? { title: medicationName!, body: "Actually taken — the earlier missed-dose alert was a false alarm.", url: "/timeline" }
+          : { title: "Missed-dose update", body: "A medicine reported as missed was actually taken. No action needed.", url: "/timeline" };
+      default:
+        throw new Error(`unexpected notification kind: ${notification.kind}`);
     }
-    case "completion": {
-      const url = `/medicines/${notification.patientMedicationId}`;
-      return fullName
-        ? { title: medicationName!, body: "This course was expected to finish. Please review it.", url }
-        : { title: "Medicine reminder", body: "A course of medicine was expected to finish. Please review it.", url };
-    }
-    case "caregiver_escalation":
-      return fullName
-        ? { title: medicationName!, body: "A scheduled dose may have been missed. Please check in.", url: "/timeline" }
-        : { title: "Missed dose", body: "A scheduled dose may have been missed. Please check in.", url: "/timeline" };
-    case "dose_correction":
-      return fullName
-        ? { title: medicationName!, body: "Actually taken — the earlier missed-dose alert was a false alarm.", url: "/timeline" }
-        : { title: "Missed-dose update", body: "A medicine reported as missed was actually taken. No action needed.", url: "/timeline" };
-    default:
-      throw new Error(`unexpected notification kind: ${notification.kind}`);
-  }
+  })();
+
+  if (!LOUD_KINDS.has(notification.kind)) return base;
+
+  const soundEnabled = pref?.soundEnabled ?? true;
+  const vibrationEnabled = pref?.vibrationEnabled ?? true;
+  return {
+    ...base,
+    profileId: notification.patientProfileId,
+    tag: notification.dedupeKey,
+    renotify: true,
+    requireInteraction: true,
+    silent: !soundEnabled,
+    ...(vibrationEnabled ? { vibrate: [300, 100, 300, 100, 300] } : {}),
+  };
 }
 
 /** Owner + any caregiver with reminder-management scope (docs/16 consented escalation). */
@@ -330,7 +364,9 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
         if (recipient.channel === "web_push") {
           if (!pushSender) throw new Error("web_push channel exists but VAPID keys aren't configured");
           const subscription = decryptWebPushSubscription(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
-          const result = await pushSender.send(subscription, buildPushPayload(notification, medicationName));
+          const result = await pushSender.send(subscription, buildPushPayload(notification, medicationName, pref), {
+            urgency: LOUD_KINDS.has(notification.kind) ? "high" : "normal",
+          });
           if (result.ok) {
             anySent = true;
             await prisma.notificationAttempt.create({

@@ -23,5 +23,7 @@ export const notificationPreferencesSchema = z.object({
   quietHoursEnabled: z.boolean().default(true),
   quietHoursStart: z.string().regex(TIME_OF_DAY, "Use HH:MM").default("22:00"),
   quietHoursEnd: z.string().regex(TIME_OF_DAY, "Use HH:MM").default("07:00"),
+  soundEnabled: z.boolean().default(true),
+  vibrationEnabled: z.boolean().default(true),
 });
 export type NotificationPreferencesInput = z.infer<typeof notificationPreferencesSchema>;

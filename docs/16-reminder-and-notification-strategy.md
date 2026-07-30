@@ -68,6 +68,14 @@ sequenceDiagram
 
 Default wording never exposes medication names in SMS or lock-screen notifications. Options (screen 33): "Medicine reminder" (default) · "Time to take your scheduled medicine" · full medication name (**explicit opt-in**) · custom privacy-safe wording. Notification payloads carry opaque IDs; content is fetched after tap where the platform allows. SMS templates are pre-approved, localized, and PHI-free unless opted in.
 
+## Making a reminder obvious (sound, vibration, persistence)
+
+Patient-facing kinds (`dose_reminder`, `refill`, `completion`, plus the currently-unused `missed_dose`/`safety_finding`) get a louder push than a caregiver's own notifications: `requireInteraction: true` (persists on desktop instead of auto-dismissing after a few seconds), `tag`/`renotify` (a re-attempted send re-alerts rather than silently replacing), a vibration pattern, and `urgency: "high"` delivery (a hint to the OS to wake the device promptly rather than batch it). `caregiver_escalation`/`dose_correction` are deliberately untouched — they're caregiver-only and already bypass quiet hours on their own terms.
+
+Two new per-profile toggles (screen 33, `NotificationPreference.soundEnabled`/`vibrationEnabled`, both default on) let the patient turn either off independently — `soundEnabled: false` sends `silent: true` instead of omitting the field, and `vibrationEnabled: false` omits the `vibrate` key entirely rather than sending an empty pattern.
+
+A genuinely new in-app chime (Web Audio API, synthesized — no audio asset, no licensing question) plays on the Home screen the instant a push arrives **while the tab is already open**, via a new service-worker→client `postMessage` (there was no such channel before this) that also reuses the existing sync-engine `REMOTE_CHANGE_EVENT` mechanism to refresh the due-now/missed lists immediately — no polling added, no changes to `useTimeline()` itself. Real, unavoidable constraint: audio (any of it, including this) can only play in a tab that has recorded at least one user gesture since load — a completely untouched tab may not chime on the very first attempt. The OS push notification above remains the reliable channel regardless; the chime is a bonus, not a replacement, matching this doc's own opening line.
+
 ## Scheduling correctness
 
 - Due times computed server-side from `medication_schedules` in the profile's timezone; device timezone changes update the schedule explicitly (travel prompt, [spec §14.4]).

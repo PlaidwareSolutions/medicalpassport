@@ -49,12 +49,27 @@ export interface WebPushPayload {
   body: string;
   /** Relative in-app URL to open on notification click (e.g. "/timeline"). */
   url: string;
+  /** Below: presentation hints for patient-facing reminders only (docs/16) —
+   * absent entirely for caregiver_escalation/dose_correction, which keep
+   * today's plain display unchanged. */
+  silent?: boolean;
+  vibrate?: number[];
+  requireInteraction?: boolean;
+  /** Lets the OS collapse/replace a re-attempted send instead of stacking duplicates. */
+  tag?: string;
+  renotify?: boolean;
+  /** So an open-tab listener can confirm this push is for the profile it's currently viewing. */
+  profileId?: string;
 }
 
 export type WebPushSendResult = { ok: true } | { ok: false; gone: boolean; statusCode?: number };
 
+export interface WebPushSendOptions {
+  urgency?: "very-low" | "low" | "normal" | "high";
+}
+
 export interface WebPushSender {
-  send(subscription: WebPushSubscriptionDetails, payload: WebPushPayload): Promise<WebPushSendResult>;
+  send(subscription: WebPushSubscriptionDetails, payload: WebPushPayload, options?: WebPushSendOptions): Promise<WebPushSendResult>;
 }
 
 /**
@@ -69,9 +84,13 @@ export class VapidWebPushSender implements WebPushSender {
     webpush.setVapidDetails(config.subject, config.publicKey, config.privateKey);
   }
 
-  async send(subscription: WebPushSubscriptionDetails, payload: WebPushPayload): Promise<WebPushSendResult> {
+  async send(
+    subscription: WebPushSubscriptionDetails,
+    payload: WebPushPayload,
+    options?: WebPushSendOptions,
+  ): Promise<WebPushSendResult> {
     try {
-      await webpush.sendNotification(subscription, JSON.stringify(payload));
+      await webpush.sendNotification(subscription, JSON.stringify(payload), options);
       return { ok: true };
     } catch (err) {
       if (err instanceof webpush.WebPushError) {

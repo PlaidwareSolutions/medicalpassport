@@ -21,6 +21,8 @@ export function ReminderSettings() {
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(true);
   const [quietHoursStart, setQuietHoursStart] = useState("22:00");
   const [quietHoursEnd, setQuietHoursEnd] = useState("07:00");
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [smsConsent, setSmsConsent] = useState<ConsentDto | undefined>();
@@ -35,6 +37,8 @@ export function ReminderSettings() {
         setQuietHoursEnabled(prefs.quietHoursEnabled);
         setQuietHoursStart(prefs.quietHoursStart);
         setQuietHoursEnd(prefs.quietHoursEnd);
+        setSoundEnabled(prefs.soundEnabled);
+        setVibrationEnabled(prefs.vibrationEnabled);
       })
       .catch(() => {});
   }, [supported]);
@@ -73,7 +77,7 @@ export function ReminderSettings() {
     return { ...snapshot(), ...overrides };
   }
   function snapshot() {
-    return { pushEnabled, privacyMode, quietHoursEnabled, quietHoursStart, quietHoursEnd };
+    return { pushEnabled, privacyMode, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundEnabled, vibrationEnabled };
   }
 
   async function toggle() {
@@ -124,6 +128,16 @@ export function ReminderSettings() {
     if (overrides.quietHoursStart !== undefined) setQuietHoursStart(overrides.quietHoursStart);
     if (overrides.quietHoursEnd !== undefined) setQuietHoursEnd(overrides.quietHoursEnd);
     await saveIfEnabled(overrides);
+  }
+
+  async function changeSound(enabled: boolean) {
+    setSoundEnabled(enabled);
+    await saveIfEnabled({ soundEnabled: enabled });
+  }
+
+  async function changeVibration(enabled: boolean) {
+    setVibrationEnabled(enabled);
+    await saveIfEnabled({ vibrationEnabled: enabled });
   }
 
   return (
@@ -188,6 +202,32 @@ export function ReminderSettings() {
                   />
                 </div>
               ) : null}
+            </div>
+
+            <div style={{ marginTop: "var(--space-md)" }}>
+              <ChoiceGrid
+                label={t("reminders.sound_title")}
+                columns={2}
+                choices={[
+                  { value: "on", label: t("reminders.sound_on") },
+                  { value: "off", label: t("reminders.sound_off") },
+                ]}
+                value={soundEnabled ? "on" : "off"}
+                onChange={(v) => void changeSound(v === "on")}
+              />
+            </div>
+
+            <div style={{ marginTop: "var(--space-md)" }}>
+              <ChoiceGrid
+                label={t("reminders.vibration_title")}
+                columns={2}
+                choices={[
+                  { value: "on", label: t("reminders.vibration_on") },
+                  { value: "off", label: t("reminders.vibration_off") },
+                ]}
+                value={vibrationEnabled ? "on" : "off"}
+                onChange={(v) => void changeVibration(v === "on")}
+              />
             </div>
 
             <span style={{ display: "block", marginTop: "var(--space-md)", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>

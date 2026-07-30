@@ -56,6 +56,8 @@ export class NotificationsService {
       quietHoursEnabled: pref?.quietHoursEnabled ?? true,
       quietHoursStart: pref?.quietHoursStart ?? "22:00",
       quietHoursEnd: pref?.quietHoursEnd ?? "07:00",
+      soundEnabled: pref?.soundEnabled ?? true,
+      vibrationEnabled: pref?.vibrationEnabled ?? true,
     };
   }
 
@@ -74,7 +76,13 @@ export class NotificationsService {
         entityId: profileId,
         patientProfileId: profileId,
         correlationId: actor.correlationId,
-        context: { pushEnabled: input.pushEnabled, privacyMode: input.privacyMode, quietHoursEnabled: input.quietHoursEnabled },
+        context: {
+          pushEnabled: input.pushEnabled,
+          privacyMode: input.privacyMode,
+          quietHoursEnabled: input.quietHoursEnabled,
+          soundEnabled: input.soundEnabled,
+          vibrationEnabled: input.vibrationEnabled,
+        },
       });
     });
     return input;

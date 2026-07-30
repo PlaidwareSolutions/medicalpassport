@@ -970,6 +970,10 @@ model NotificationPreference {
   quietHoursEnabled Boolean                 @default(true) @map("quiet_hours_enabled")
   quietHoursStart   String                  @default("22:00") @map("quiet_hours_start")
   quietHoursEnd     String                  @default("07:00") @map("quiet_hours_end")
+  /// Docs/16: patient-facing reminders (dose/refill/completion) get a louder
+  /// push (vibration, persistent, explicit sound) unless opted out here.
+  soundEnabled      Boolean                 @default(true) @map("sound_enabled")
+  vibrationEnabled  Boolean                 @default(true) @map("vibration_enabled")
   createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
 

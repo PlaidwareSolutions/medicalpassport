@@ -55,6 +55,8 @@ export interface NotificationPreferences {
   quietHoursEnabled: boolean;
   quietHoursStart: string;
   quietHoursEnd: string;
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
 }
 
 export async function getPreferences(): Promise<NotificationPreferences> {

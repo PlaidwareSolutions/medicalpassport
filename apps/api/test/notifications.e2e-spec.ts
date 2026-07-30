@@ -89,6 +89,8 @@ describe("Notifications e2e", () => {
       quietHoursEnabled: true,
       quietHoursStart: "22:00",
       quietHoursEnd: "07:00",
+      soundEnabled: true,
+      vibrationEnabled: true,
     });
   });
 
@@ -127,6 +129,8 @@ describe("Notifications e2e", () => {
       quietHoursEnabled: true,
       quietHoursStart: "22:00",
       quietHoursEnd: "07:00",
+      soundEnabled: true,
+      vibrationEnabled: true,
     });
 
     const audit = await prisma.auditEvent.findFirst({
@@ -134,6 +138,36 @@ describe("Notifications e2e", () => {
     });
     expect(audit).toBeTruthy();
     expect(JSON.stringify(audit?.context ?? {})).not.toMatch(/notifications test/i);
+  });
+
+  it("lets the patient turn off alert sound and vibration independently, recorded in the audit trail", async () => {
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/notification-preferences"))
+      .send({
+        pushEnabled: true,
+        privacyMode: "generic",
+        quietHoursEnabled: true,
+        quietHoursStart: "22:00",
+        quietHoursEnd: "07:00",
+        soundEnabled: false,
+        vibrationEnabled: false,
+      })
+      .expect(201);
+
+    const res = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/notification-preferences"),
+    ).expect(200);
+    expect(res.body).toMatchObject({ soundEnabled: false, vibrationEnabled: false });
+
+    const audit = await prisma.auditEvent.findFirst({
+      where: { patientProfileId: profileId, action: "notification.preferences_updated" },
+      orderBy: { seq: "desc" },
+    });
+    expect(audit?.context).toMatchObject({ soundEnabled: false, vibrationEnabled: false });
+
+    // Restore defaults for the tests that follow.
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/notification-preferences"))
+      .send({ pushEnabled: true, privacyMode: "generic", quietHoursEnabled: true, quietHoursStart: "22:00", quietHoursEnd: "07:00" })
+      .expect(201);
   });
 
   it("lets the patient set a custom quiet-hours window", async () => {

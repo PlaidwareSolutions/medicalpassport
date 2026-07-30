@@ -295,10 +295,10 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Acceptance:** SMS/WhatsApp never enabled without explicit consent record; browser denial handled with recovery instructions.
 
 ### 33. Reminder privacy preferences
-- **Objective:** control what reminder text reveals (spec §10).
-- **Information:** options — "Medicine reminder" / "Time to take your scheduled medicine" / full medication name / custom wording — with live preview of a lock-screen notification and SMS.
-- **Analytics:** `reminder_privacy_set {mode}`. **Audit:** `preference.reminder_privacy_changed`.
-- **Acceptance:** default is privacy-safe (no medication names); full names require explicit opt-in.
+- **Objective:** control what reminder text reveals (spec §10), plus how obvious a reminder is.
+- **Information:** options — "Medicine reminder" / "Time to take your scheduled medicine" / full medication name / custom wording — with live preview of a lock-screen notification and SMS. Also: quiet hours on/off + window, and two independent on/off toggles — "Alert sound" and "Vibration" (both default on) — for patient-facing reminders (docs/16).
+- **Analytics:** `reminder_privacy_set {mode}`. **Audit:** `preference.reminder_privacy_changed`, `notification.preferences_updated`.
+- **Acceptance:** default is privacy-safe (no medication names); full names require explicit opt-in. Turning sound off sends a genuinely silent push (not just unmuted-by-luck); turning vibration off omits the vibration pattern entirely.
 
 ### 34. Consent management
 - **Objective:** single place to see and control every consent: data processing, channels, caregivers, shares, AI processing.
