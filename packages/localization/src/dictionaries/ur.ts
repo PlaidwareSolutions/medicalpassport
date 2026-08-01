@@ -109,6 +109,9 @@ export const ur: Record<keyof typeof en, string> = {
   "meds.common_uses": "یہ دوا عام طور پر ان کے لیے استعمال ہوتی ہے",
   "meds.your_reason": "آپ کے نسخے کے مطابق یہ اس لیے دی گئی",
   "meds.your_reason_empty": "ابھی کوئی وجہ درج نہیں۔ ڈاکٹر نے جو بتایا وہ شامل کر سکتے ہیں۔",
+  "meds.search_web": "{name} کے بارے میں گوگل پر تلاش کریں",
+  "meds.search_web_note":
+    "یہ گوگل کو نئے ٹیب میں کھولے گا۔ وہاں کی معلومات اس ایپ نے جانچی نہیں — کوئی بھی اہم بات ڈاکٹر یا فارماسسٹ سے تصدیق کریں۔",
   "meds.ingredients": "فعال اجزاء",
   "meds.instruction": "کیسے لیں",
   "meds.no_content":
@@ -190,6 +193,7 @@ export const ur: Record<keyof typeof en, string> = {
   "prescriptions.link": "منسلک کریں",
   "prescriptions.delete": "یہ نسخہ حذف کریں",
   "prescriptions.delete_confirm": "یہ نسخہ ریکارڈ حذف کریں؟ دوائیں اور فائلیں آپ کے پاسپورٹ میں رہیں گی۔",
+
   "add.critical_escalation_label": "اگر اس دوا کی خوراک چھوٹ جائے",
   "add.critical_escalation_intro": "اسے صرف ان دواؤں کے لیے آن کریں جہاں خوراک چھوٹنا فوری طور پر اہم ہو — اس سے آدھی رات میں بھی آپ کے دیکھ بھال کرنے والے کو فوراً اطلاع مل جائے گی۔",
   "add.critical_escalation_on": "دیکھ بھال کرنے والے کو فوراً مطلع کریں",

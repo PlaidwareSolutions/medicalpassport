@@ -110,6 +110,9 @@ export const en = {
   "meds.common_uses": "This medicine is commonly used for",
   "meds.your_reason": "Your recorded prescription says it was prescribed for",
   "meds.your_reason_empty": "No reason recorded yet. You can add what your doctor told you.",
+  "meds.search_web": "Search Google for {name}",
+  "meds.search_web_note":
+    "This opens Google in a new tab. Those results are not checked by this app — confirm anything important with a doctor or pharmacist.",
   "meds.ingredients": "Active ingredients",
   "meds.instruction": "How to take it",
   "meds.no_content":
@@ -195,6 +198,7 @@ export const en = {
   "prescriptions.link": "Link",
   "prescriptions.delete": "Delete this prescription",
   "prescriptions.delete_confirm": "Delete this prescription record? The medicines and files stay in your passport.",
+
   "add.critical_escalation_label": "If I miss a dose of this medicine",
   "add.critical_escalation_intro": "Only turn this on for medicines where a missed dose matters urgently — it will alert your caregiver right away, even in the middle of the night.",
   "add.critical_escalation_on": "Alert my caregiver immediately",

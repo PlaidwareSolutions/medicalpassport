@@ -109,6 +109,9 @@ export const hi: Record<keyof typeof en, string> = {
   "meds.common_uses": "यह दवा आमतौर पर इसके लिए उपयोग होती है",
   "meds.your_reason": "आपके पर्चे के अनुसार यह इसलिए दी गई",
   "meds.your_reason_empty": "अभी कोई कारण दर्ज नहीं है। डॉक्टर ने जो बताया वह जोड़ सकते हैं।",
+  "meds.search_web": "{name} के बारे में गूगल पर खोजें",
+  "meds.search_web_note":
+    "यह गूगल को नए टैब में खोलेगा। वहाँ मिली जानकारी इस ऐप ने जाँची नहीं है — कोई भी ज़रूरी बात डॉक्टर या दवा विक्रेता से पक्की करें।",
   "meds.ingredients": "सक्रिय घटक",
   "meds.instruction": "कैसे लें",
   "meds.no_content":
@@ -190,6 +193,7 @@ export const hi: Record<keyof typeof en, string> = {
   "prescriptions.link": "लिंक करें",
   "prescriptions.delete": "यह पर्चा हटाएँ",
   "prescriptions.delete_confirm": "यह पर्चा रिकॉर्ड हटाएँ? दवाइयाँ और फ़ाइलें आपके पासपोर्ट में बनी रहेंगी।",
+
   "add.critical_escalation_label": "अगर इस दवा की खुराक छूट जाए",
   "add.critical_escalation_intro": "इसे केवल उन दवाओं के लिए चालू करें जहाँ खुराक छूटना तुरंत मायने रखता है — इससे आपके देखभालकर्ता को आधी रात में भी तुरंत सूचना मिलेगी।",
   "add.critical_escalation_on": "देखभालकर्ता को तुरंत सूचित करें",

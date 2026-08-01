@@ -109,6 +109,9 @@ export const te: Record<keyof typeof en, string> = {
   "meds.common_uses": "ఈ మందు సాధారణంగా వీటికి వాడతారు",
   "meds.your_reason": "మీ ప్రిస్క్రిప్షన్ ప్రకారం ఇది ఇచ్చిన కారణం",
   "meds.your_reason_empty": "ఇంకా కారణం నమోదు కాలేదు. డాక్టర్ చెప్పింది జోడించవచ్చు.",
+  "meds.search_web": "{name} గురించి గూగుల్‌లో వెతకండి",
+  "meds.search_web_note":
+    "ఇది గూగుల్‌ను కొత్త ట్యాబ్‌లో తెరుస్తుంది. అక్కడి సమాచారాన్ని ఈ యాప్ తనిఖీ చేయలేదు — ముఖ్యమైన విషయాలను డాక్టర్ లేదా ఫార్మసిస్ట్‌తో నిర్ధారించుకోండి.",
   "meds.ingredients": "క్రియాశీల పదార్థాలు",
   "meds.instruction": "ఎలా తీసుకోవాలి",
   "meds.no_content":
@@ -190,6 +193,7 @@ export const te: Record<keyof typeof en, string> = {
   "prescriptions.link": "లింక్ చేయండి",
   "prescriptions.delete": "ఈ ప్రిస్క్రిప్షన్ తొలగించండి",
   "prescriptions.delete_confirm": "ఈ ప్రిస్క్రిప్షన్ రికార్డును తొలగించాలా? మందులు మరియు ఫైల్‌లు మీ పాస్‌పోర్ట్‌లో ఉంటాయి.",
+
   "add.critical_escalation_label": "ఈ మందు మోతాదు మిస్ అయితే",
   "add.critical_escalation_intro": "మోతాదు మిస్ కావడం అత్యవసరంగా ముఖ్యమైన మందులకు మాత్రమే దీన్ని ఆన్ చేయండి — ఇది అర్ధరాత్రి అయినా మీ కేర్‌గివర్‌కు వెంటనే తెలియజేస్తుంది.",
   "add.critical_escalation_on": "నా కేర్‌గివర్‌కు వెంటనే తెలియజేయండి",

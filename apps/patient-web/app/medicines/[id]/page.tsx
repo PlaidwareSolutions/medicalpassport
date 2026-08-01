@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ApiError } from "@medpass/api-client";
+import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
@@ -17,6 +17,20 @@ import { instructionSummary, useMedication } from "../../../lib/medications";
  * warning symptoms, food/alcohol, missed dose, storage) — approved-only,
  * the mandated no-data fallback shown otherwise.
  */
+/**
+ * What the patient searches the web for: the name they see, plus the
+ * catalogue strength when the name doesn't already carry it (a typed-in
+ * "Gabapin 100mg" stays as it is, a catalogue "Gabapin" becomes
+ * "Gabapin 100mg") — a strength-specific search is far more useful than a
+ * bare brand name.
+ */
+function webSearchTerm(m: PatientMedicationDto): string {
+  const name = m.product?.brandName ?? m.enteredName;
+  const strength = m.product?.strengthLabel;
+  if (!strength || name.toLowerCase().includes(strength.toLowerCase())) return name;
+  return `${name} ${strength}`;
+}
+
 export default function MedicineDetailPage() {
   const { t } = useI18n();
   const params = useParams<{ id: string }>();
@@ -73,12 +87,16 @@ export default function MedicineDetailPage() {
   const statusTone =
     medication.status === "current" ? "success" : medication.status === "paused" ? "warning" : "default";
 
+  const displayName = medication.product?.brandName ?? medication.enteredName;
+  const searchTerm = webSearchTerm(medication);
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(`"${searchTerm}"`)}`;
+
   return (
     <AppShell>
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
       <PageHeader
-        title={medication.product?.brandName ?? medication.enteredName}
+        title={displayName}
         right={<Chip tone={statusTone}>{t(`meds.status.${medication.status}` as never)}</Chip>}
       />
       <Link href={`/medicines/${medication.id}/edit`}>
@@ -136,6 +154,25 @@ export default function MedicineDetailPage() {
         ) : (
           <span style={{ color: "var(--color-text-muted)" }}>{t("meds.your_reason_empty")}</span>
         )}
+      </Card>
+
+      {/*
+        A way out to the wider web for the patient who wants more than the
+        approved clinical blocks below — kept clearly separate from them, and
+        labelled as unchecked, so it never reads as this app's own content.
+      */}
+      <Card>
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "var(--color-info)", fontSize: "var(--font-large)", textDecoration: "underline" }}
+        >
+          🔎 {t("meds.search_web", { name: searchTerm })}
+        </a>
+        <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+          {t("meds.search_web_note")}
+        </div>
       </Card>
 
       <ClinicalContentBlock title={t("meds.common_uses")} entry={medication.clinicalContent.education} emptyMessage={t("meds.no_content")} t={t as never} />
