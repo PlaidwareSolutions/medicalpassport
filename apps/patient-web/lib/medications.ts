@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
-import { formatDoseAmount } from "@medpass/medication-terminology";
+import { formatDoseAmount, needsDoseUnitConfirmation } from "@medpass/medication-terminology";
 import { cacheMedications, enqueueMutation, getCachedMedications, type SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId, newIdempotencyKey } from "./api";
 import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
@@ -158,12 +158,12 @@ export function instructionSummary(
 }
 
 /**
- * Whether the app defaulted this medicine's type instead of asking. Drives
- * the confirm-your-medicine-type prompt: a medicine with no instruction at
- * all has no unit to be wrong about, so it isn't asked.
+ * Whether to prompt for this medicine's type. A medicine with no instruction
+ * has no unit to be wrong about; the status rule lives in
+ * `needsDoseUnitConfirmation`, where it's unit-tested.
  */
 export function needsTypeConfirmation(m: PatientMedicationDto): boolean {
-  return m.instruction != null && !m.instruction.doseUnitConfirmed;
+  return m.instruction != null && needsDoseUnitConfirmation(m.status, m.instruction.doseUnitConfirmed);
 }
 
 export async function confirmDoseUnit(id: string, doseUnit: string) {

@@ -76,6 +76,25 @@ export function hasFixedDailySlots(frequencyCode: string): boolean {
   return DAILY_SLOT_FREQUENCIES.has(frequencyCode);
 }
 
+/**
+ * Statuses worth asking the patient about. Paused counts — it's meant to
+ * resume, so its type still matters; stopped and completed are history.
+ */
+const TYPE_CONFIRMATION_STATUSES: ReadonlySet<string> = new Set(["current", "paused"]);
+
+/**
+ * Whether to ask the patient what kind of medicine this is (docs/07 screen 9).
+ *
+ * Scoped to medicines still in their life on purpose. A stopped or completed
+ * one only ever shows its glyph on the "previous" tab, so asking buys
+ * nothing — and including them left the prompt permanently unclearable for a
+ * patient whose only remaining unconfirmed medicines were ones they'd already
+ * stopped, which is exactly what happened to one of the pilot patients.
+ */
+export function needsDoseUnitConfirmation(status: string, doseUnitConfirmed: boolean): boolean {
+  return !doseUnitConfirmed && TYPE_CONFIRMATION_STATUSES.has(status);
+}
+
 export interface SlotDoseAmount {
   slot: SlotDose["slot"];
   /** The actual amount taken in this slot, in dose units. */

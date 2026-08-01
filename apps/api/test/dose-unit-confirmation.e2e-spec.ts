@@ -155,6 +155,30 @@ describe("Dose unit confirmation e2e", () => {
     expect(rows[1]!.supersededAt).toBeNull();
   });
 
+  it("keeps reporting the flag for a stopped medicine — the API states the fact, the UI decides whom to ask", async () => {
+    const med = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Stopped Legacy",
+        source: "manual",
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" },
+      })
+      .expect(201);
+    await prisma.medicationInstruction.updateMany({
+      where: { patientMedicationId: med.body.id, supersededAt: null },
+      data: { doseUnitConfirmedAt: null },
+    });
+    await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/medications/${med.body.id}/status`))
+      .send({ status: "stopped", reason: "no longer needed", rowVersion: med.body.rowVersion })
+      .expect(201);
+
+    // Still false — the client filters stopped medicines out of the prompt
+    // (needsDoseUnitConfirmation), rather than the API pretending they're
+    // confirmed when nobody ever confirmed them.
+    const fresh = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/medications/${med.body.id}`)).expect(200);
+    expect(fresh.body.status).toBe("stopped");
+    expect(fresh.body.instruction.doseUnitConfirmed).toBe(false);
+  });
+
   it("rejects a unit that isn't a real medicine type", async () => {
     await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/medications/${legacyId}/confirm-dose-unit`))
       .send({ doseUnit: "spoonful" })

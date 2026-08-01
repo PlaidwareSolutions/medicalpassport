@@ -3,6 +3,7 @@ import {
   formatDoseAmount,
   hasFixedDailySlots,
   isCountableUnit,
+  needsDoseUnitConfirmation,
   perSlotDoses,
   planDoseGlyphs,
   slotsAreUniform,
@@ -125,6 +126,30 @@ describe("ambiguous frequencies", () => {
   it("still return null from proposeSlots, so the time-of-day row is omitted rather than guessed", () => {
     for (const code of ["SOS", "QID", "ALTERNATE_DAY", "CUSTOM"] as const) {
       expect(proposeSlots(code)).toBeNull();
+    }
+  });
+});
+
+describe("needsDoseUnitConfirmation", () => {
+  it("asks about medicines the patient is still on", () => {
+    expect(needsDoseUnitConfirmation("current", false)).toBe(true);
+    // Paused is meant to resume, so its type still matters.
+    expect(needsDoseUnitConfirmation("paused", false)).toBe(true);
+  });
+
+  it("never asks about a medicine already confirmed", () => {
+    for (const status of ["current", "paused", "stopped", "completed"]) {
+      expect(needsDoseUnitConfirmation(status, true)).toBe(false);
+    }
+  });
+
+  it("never asks about history the patient has finished with", () => {
+    // The regression this guards: including stopped/completed left the prompt
+    // permanently unclearable for a pilot patient whose only remaining
+    // unconfirmed medicines were ones they'd already stopped — and their
+    // glyphs only ever appear on the "previous" tab anyway.
+    for (const status of ["stopped", "completed", "unknown"]) {
+      expect(needsDoseUnitConfirmation(status, false)).toBe(false);
     }
   });
 });
