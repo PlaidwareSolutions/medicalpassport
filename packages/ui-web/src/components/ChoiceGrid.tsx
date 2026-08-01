@@ -65,7 +65,9 @@ export function ChoiceGrid<V extends string>({
         aria-label={label}
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(${columns}, 1fr)`,
+          // minmax(0, 1fr), not bare 1fr: bare 1fr floors each column at its
+          // min-content width, which overflows 320px at 200% zoom (docs/33).
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gap: "var(--size-touch-gap)",
         }}
       >

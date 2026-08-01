@@ -42,8 +42,8 @@ export function FindingCard({ finding, onChanged }: { finding: SafetyFindingDto;
 
   return (
     <Card tone={CARD_TONE[finding.severity]}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "var(--space-sm)" }}>
-        <strong style={{ fontSize: "var(--font-large)" }}>{t(`safety.finding.${finding.category}` as never)}</strong>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+        <strong style={{ fontSize: "var(--font-large)", minWidth: 0 }}>{t(`safety.finding.${finding.category}` as never)}</strong>
         <Chip tone={SEVERITY_TONE[finding.severity]}>{t(`safety.severity.${finding.severity}` as never)}</Chip>
       </div>
 

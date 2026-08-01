@@ -19,6 +19,11 @@ apps/patient-web/public/sw.js
 apps/patient-web/public/swe-worker-*.js
 coverage/
 
+# playwright (docs/33 a11y suite)
+apps/patient-web/e2e/.auth/
+apps/patient-web/test-results/
+apps/patient-web/playwright-report/
+
 # local databases / scratch
 *.local
 .DS_Store

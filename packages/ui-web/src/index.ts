@@ -9,3 +9,4 @@ export * from "./components/ChoiceGrid";
 export * from "./components/BottomNav";
 export * from "./components/TurnstileWidget";
 export * from "./components/Table";
+export * from "./components/Tabs";

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Table, type TableColumn } from "@medpass/ui-web";
+import { Button, Table, Tabs, type TableColumn } from "@medpass/ui-web";
 import { AdminShell } from "../../components/AdminShell";
 import { api } from "../../lib/api";
 
@@ -106,24 +106,15 @@ export default function ContentPage() {
         section — scrutinize those excerpts more carefully.
       </p>
 
-      <div style={{ display: "flex", gap: "var(--space-sm)", margin: "var(--space-md) 0" }}>
-        {(["queue", "all"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{
-              padding: "var(--space-xs) var(--space-sm)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-sm)",
-              background: tab === t ? "var(--color-primary)" : "transparent",
-              color: tab === t ? "var(--color-primary-contrast)" : "var(--color-text)",
-              cursor: "pointer",
-            }}
-          >
-            {t === "queue" ? "Review queue" : "All content"}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Content"
+        tabs={[
+          { key: "queue", label: "Review queue" },
+          { key: "all", label: "All content" },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === "queue" ? (
         <Table

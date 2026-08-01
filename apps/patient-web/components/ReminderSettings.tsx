@@ -187,7 +187,7 @@ export function ReminderSettings() {
                 {t("reminders.quiet_hours_intro")}
               </span>
               {quietHoursEnabled ? (
-                <div style={{ display: "flex", gap: "var(--space-sm)", marginTop: "var(--space-sm)" }}>
+                <div style={{ display: "flex", gap: "var(--space-sm)", marginTop: "var(--space-sm)", flexWrap: "wrap" }}>
                   <TextInput
                     label={t("reminders.quiet_hours_start")}
                     type="time"

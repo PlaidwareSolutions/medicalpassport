@@ -18,6 +18,9 @@ export function Chip({ children, tone = "default" }: { children: ReactNode; tone
         fontSize: "var(--font-small)",
         fontWeight: 600,
         display: "inline-block",
+        // Reflow (docs/33: 200% zoom at 320px): never force the row wider than
+        // its container — let the label wrap inside the pill instead.
+        maxWidth: "100%",
       }}
     >
       {children}

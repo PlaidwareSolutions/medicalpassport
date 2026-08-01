@@ -191,7 +191,7 @@ export default function ProfilePage() {
       <ReminderSettings />
 
       <SectionTitle>{t("profile.language")}</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--size-touch-gap)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "var(--size-touch-gap)" }}>
         {SUPPORTED_LOCALES.map((l) => (
           <Button key={l} variant={l === locale ? "primary" : "secondary"} onClick={() => setLocale(l)}>
             {LOCALE_NAMES[l]}
@@ -203,14 +203,14 @@ export default function ProfilePage() {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
         {devices.map((d) => (
           <Card key={d.id}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)" }}>
-              <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
                 <strong>{d.label ?? d.kind}</strong>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                   {new Date(d.lastSeenAt).toLocaleString()}
                   {d.isCurrent ? " · ✓" : ""}
                 </div>
-                <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)" }}>
+                <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)", flexWrap: "wrap" }}>
                   {d.trusted ? <Chip tone="success">{t("profile.device_trusted")}</Chip> : null}
                   {!d.hasLiveSession ? <Chip>{t("profile.device_no_live_session")}</Chip> : null}
                 </div>

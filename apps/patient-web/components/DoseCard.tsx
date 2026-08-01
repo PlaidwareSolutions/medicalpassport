@@ -80,8 +80,8 @@ export function DoseCard({
 
   return (
     <Card tone={item.isDueNow && !resolved ? "info" : "default"}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "var(--space-sm)" }}>
-        <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0 }}>
           <strong style={{ fontSize: "var(--font-large)" }}>{item.medication.name}</strong>
           <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
             {formatTime(item.dueAt)} · {item.quantity} {item.medication.doseUnit} ·{" "}

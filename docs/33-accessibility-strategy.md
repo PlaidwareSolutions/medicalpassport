@@ -6,7 +6,7 @@ Design target: **an older adult with limited smartphone experience** (spec §18)
 
 - Touch targets ≥ 48×48 dp with ≥ 8 dp spacing; thumb-reachable bottom navigation; portrait-first.
 - One primary action per screen; strong visual hierarchy; progressive disclosure.
-- Large default type (16 px body minimum), scalable to 200% without loss of function; layouts tested at 320 px width.
+- Large default type (16 px body minimum), scalable to 200% without loss of function; layouts tested at 320 px width. Reflow (WCAG 1.4.10) is enforced mechanically: no horizontal scrolling at 320 px with the root font doubled, verified per screen and locale by the Playwright reflow suite (`apps/patient-web/e2e/reflow.spec.ts`).
 - High contrast (≥ 4.5:1 text, ≥ 3:1 UI components); medication colors only as **secondary** cues, never the sole differentiator.
 - Icons always paired with text labels.
 - Minimal typing: pickers, chips, voice input; free text only where unavoidable (names, notes).
@@ -38,7 +38,7 @@ Design target: **an older adult with limited smartphone experience** (spec §18)
 | Design tokens | Contrast-validated palette, spacing/size scales encoding the 48 dp minimum (`packages/design-tokens`) |
 | Component library | `packages/ui-web` components accessible by construction (labels required by props, focus management built in) |
 | Lint | `eslint-plugin-jsx-a11y` error-level in CI |
-| Automated tests | axe-core checks per screen in Playwright suite; zero serious/critical violations gate merges |
+| Automated tests | axe-core checks per screen in Playwright suite (`apps/patient-web/e2e/axe.spec.ts`, in CI); zero serious/critical violations gate merges. Reflow suite (`e2e/reflow.spec.ts`) additionally gates every screen × locale at 320 px × 200% root font |
 | Manual passes | Per-release: TalkBack (Chrome Android), VoiceOver (Safari iOS), 200% zoom, keyboard-only desktop, Urdu RTL sweep |
 | Release gate | Accessibility item in [29-production-readiness-checklist](29-production-readiness-checklist.md); native phases require TalkBack/VoiceOver parity ([08](08-native-mobile-roadmap.md)) |
 

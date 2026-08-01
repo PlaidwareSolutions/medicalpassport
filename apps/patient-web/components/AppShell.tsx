@@ -64,7 +64,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     sync.status !== "online" || sync.pendingCount > 0 || sync.storageTrimmed || sync.conflictCount > 0 || swUpdate.updateAvailable;
 
   return (
-    <div style={{ minHeight: "100dvh", paddingBottom: "calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-md))" }}>
+    // Flex column with the (sticky) BottomNav as the last in-flow child: the
+    // bar keeps its own layout space and may grow taller than one row at
+    // large text sizes (docs/33 reflow), so no manual bottom padding is
+    // needed to stop it covering content.
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
       <ProfileSwitcher />
       {pendingInvitations > 0 ? (
         <div style={{ padding: "var(--space-sm) var(--space-md) 0" }}>
@@ -141,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           reset what this component receives as `children`, never the page
           component's own data hooks (useMedications, useTimeline, ...),
           which are called before the page ever renders AppShell at all. */}
-      <main style={{ maxWidth: 560, margin: "0 auto", padding: "var(--space-md)" }}>{children}</main>
+      <main style={{ flex: 1, width: "100%", maxWidth: 560, margin: "0 auto", padding: "var(--space-md) var(--space-md) var(--space-lg)" }}>{children}</main>
       <BottomNav
         items={items}
         renderLink={(item, children) => (

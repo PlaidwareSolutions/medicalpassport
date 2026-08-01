@@ -74,6 +74,16 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Install Playwright browser
+        run: pnpm --filter @medpass/patient-web exec playwright install --with-deps chromium
+
+      # Accessibility gate (docs/33 engineering-enforcement table): reflow at
+      # 320px × 200% across every screen and locale, plus axe-core with zero
+      # serious/critical violations. Playwright boots the built API + web
+      # itself (its webServer config), reusing this job's DB and env.
+      - name: Accessibility suite (reflow + axe)
+        run: pnpm --filter @medpass/patient-web test:e2e
+
   deploy-staging:
     # Railway deploy hook (docs/25): fill in RAILWAY_TOKEN + service IDs when
     # the Railway projects exist (Requires platform configuration).

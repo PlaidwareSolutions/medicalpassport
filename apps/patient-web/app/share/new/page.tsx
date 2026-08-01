@@ -138,7 +138,7 @@ export default function CreateSharePage() {
       </div>
 
       <SectionTitle>{t("share.expiry_label")}</SectionTitle>
-      <div style={{ display: "flex", gap: "var(--size-touch-gap)" }}>
+      <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
         {EXPIRY_OPTIONS.map((opt) => (
           <Button
             key={opt.hours}

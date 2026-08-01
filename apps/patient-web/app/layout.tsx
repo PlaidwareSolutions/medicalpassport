@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 const globalCss = `
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{font-family:var(--font-family);color:var(--color-text);background:var(--color-bg);font-size:var(--font-body);line-height:1.5}
+body{font-family:var(--font-family);color:var(--color-text);background:var(--color-bg);font-size:var(--font-body);line-height:1.5;overflow-wrap:break-word}
 a{color:inherit;text-decoration:none}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 :focus-visible{outline:3px solid var(--color-info);outline-offset:2px}

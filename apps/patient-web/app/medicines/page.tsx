@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
+import { Button, Card, Chip, PillSpinner, Tabs } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { DoseVisual } from "../../components/DoseVisual";
 import { PageHeader } from "../../components/PageHeader";
@@ -38,29 +38,15 @@ export default function MedicinesPage() {
           </Card>
         </Link>
       ) : null}
-      <div role="tablist" style={{ display: "flex", gap: "var(--size-touch-gap)", marginBottom: "var(--space-md)" }}>
-        {(["current", "previous"] as const).map((k) => (
-          <button
-            key={k}
-            role="tab"
-            aria-selected={tab === k}
-            onClick={() => setTab(k)}
-            style={{
-              flex: 1,
-              minHeight: "var(--size-touch)",
-              borderRadius: "var(--radius-sm)",
-              border: `2px solid ${tab === k ? "var(--color-primary)" : "var(--color-border)"}`,
-              background: tab === k ? "var(--color-primary-soft)" : "var(--color-bg)",
-              fontWeight: tab === k ? 700 : 400,
-              fontSize: "var(--font-body)",
-              fontFamily: "var(--font-family)",
-              cursor: "pointer",
-            }}
-          >
-            {k === "current" ? t("meds.current") : t("meds.previous")}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label={t("nav.medicines")}
+        tabs={[
+          { key: "current", label: t("meds.current") },
+          { key: "previous", label: t("meds.previous") },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {stillLoading ? (
         <PillSpinner label={t("common.loading")} />
@@ -78,8 +64,8 @@ export default function MedicinesPage() {
           {shown.map((m) => (
             <Link key={m.id} href={`/medicines/${m.id}`}>
               <Card>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)" }}>
-                  <strong style={{ fontSize: "var(--font-large)" }}>{m.product?.brandName ?? m.enteredName}</strong>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+                  <strong style={{ fontSize: "var(--font-large)", minWidth: 0 }}>{m.product?.brandName ?? m.enteredName}</strong>
                   <Chip tone={statusTone(m.status)}>{t(`meds.status.${m.status}` as never)}</Chip>
                 </div>
                 {m.product ? (

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Banner, Button, Card, ChoiceGrid, PillSpinner, TextInput } from "@medpass/ui-web";
+import { Banner, Button, Card, ChoiceGrid, PillSpinner, Tabs, TextInput } from "@medpass/ui-web";
 import { GLUCOSE_READING_CONTEXTS, type GlucoseReadingContext } from "@medpass/domain";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
@@ -284,14 +284,17 @@ export default function BloodSugarPage() {
   return (
     <AppShell>
       <PageHeader title={t("bloodsugar.title")} />
-      <div style={{ display: "flex", gap: "var(--size-touch-gap)", marginBottom: "var(--space-sm)" }}>
-        <Button variant={tab === "readings" ? "primary" : "secondary"} fullWidth onClick={() => setTab("readings")}>
-          {t("bloodsugar.tab_readings")}
-        </Button>
-        <Button variant={tab === "checkups" ? "primary" : "secondary"} fullWidth onClick={() => setTab("checkups")}>
-          {t("bloodsugar.tab_checkups")}
-        </Button>
-      </div>
+      {/* Real tablist semantics (was a pair of plain Buttons with no
+          role=tab/aria-selected) + reflow-safe wrapping (docs/33). */}
+      <Tabs
+        label={t("bloodsugar.title")}
+        tabs={[
+          { key: "readings", label: t("bloodsugar.tab_readings") },
+          { key: "checkups", label: t("bloodsugar.tab_checkups") },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === "readings" ? <ReadingsTab /> : <CheckupsTab />}
     </AppShell>

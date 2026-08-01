@@ -13,8 +13,8 @@ export function CaregiverAlertCard({ alert }: { alert: CaregiverAlertDto }) {
   const isOpen = alert.status === "missed";
   return (
     <Card tone={isOpen ? "danger" : "default"}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)" }}>
-        <strong>{alert.medicationName}</strong>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+        <strong style={{ minWidth: 0 }}>{alert.medicationName}</strong>
         <Chip tone={isOpen ? "danger" : "success"}>
           {isOpen ? t("alerts.status_missed") : t("alerts.status_resolved")}
         </Chip>

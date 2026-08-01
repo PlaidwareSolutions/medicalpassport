@@ -31,20 +31,22 @@ export function PageHeader({
         justifyContent: "space-between",
         alignItems: "flex-start",
         gap: "var(--space-sm)",
+        // Wrap rather than overflow when the title and profile name can't
+        // share a 320px row at 200% zoom (docs/33 reflow).
+        flexWrap: "wrap",
         margin: "0 0 var(--space-sm)",
         ...style,
       }}
     >
-      <h1 style={{ fontSize: "var(--font-title)", margin: 0 }}>{title}</h1>
+      <h1 style={{ fontSize: "var(--font-title)", margin: 0, minWidth: 0 }}>{title}</h1>
       {activeName || right ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-xs)", flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-xs)", minWidth: 0 }}>
           {activeName ? (
             <span
               style={{
                 fontSize: "var(--font-small)",
                 color: "var(--color-text-muted)",
-                textAlign: "right",
-                whiteSpace: "nowrap",
+                textAlign: "end",
               }}
             >
               {activeName}
