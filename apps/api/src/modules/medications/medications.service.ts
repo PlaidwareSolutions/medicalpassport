@@ -196,6 +196,9 @@ export class MedicationsService {
               durationDays: input.instruction.durationDays,
               originalText: input.instruction.originalText,
               confirmedByUserId: actor.userId,
+              // Every client path reaching here now presents a medicine-type
+              // picker, so the unit is a real choice rather than a default.
+              doseUnitConfirmedAt: new Date(),
             },
           },
         },
@@ -267,6 +270,66 @@ export class MedicationsService {
     }
   }
 
+  /**
+   * Records the patient's answer to "what kind of medicine is this?" for a
+   * medication whose unit the app once defaulted (docs/07 screen 9).
+   *
+   * Two different things can happen, and they're treated differently on
+   * purpose. Confirming the unit that's already stored changes no clinical
+   * value, so it just stamps the existing instruction — creating a superseding
+   * copy identical in every field would pad the history with a non-event.
+   * Correcting it to a different unit *is* a change to how the dose reads, so
+   * it goes through the same copy-on-write supersede the edit screen uses and
+   * leaves the old row intact (docs/13).
+   */
+  async confirmDoseUnit(profileId: string, id: string, doseUnit: string, actor: Actor) {
+    const medication = await this.prisma.patientMedication.findFirst({
+      where: { id, patientProfileId: profileId, deletedAt: null },
+      include: { instructions: { where: { supersededAt: null }, take: 1 } },
+    });
+    if (!medication) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Medicine not found", 404);
+    const current = medication.instructions[0];
+    if (!current) throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "This medicine has no instructions to confirm", 400);
+
+    const corrected = current.doseUnit !== doseUnit;
+    await this.prisma.$transaction(async (tx) => {
+      if (corrected) {
+        await tx.medicationInstruction.update({ where: { id: current.id }, data: { supersededAt: new Date() } });
+        await tx.medicationInstruction.create({
+          data: {
+            patientMedicationId: id,
+            doseQuantity: current.doseQuantity,
+            doseUnit,
+            frequencyCode: current.frequencyCode,
+            pattern: current.pattern,
+            foodInstruction: current.foodInstruction,
+            durationDays: current.durationDays,
+            originalText: current.originalText,
+            confirmedByUserId: actor.userId,
+            doseUnitConfirmedAt: new Date(),
+          },
+        });
+      } else {
+        await tx.medicationInstruction.update({
+          where: { id: current.id },
+          data: { doseUnitConfirmedAt: new Date() },
+        });
+      }
+      await writeAudit(tx, {
+        action: "medication.updated",
+        actorUserId: actor.userId,
+        actorType: actor.actorRole,
+        entityType: "patient_medication",
+        entityId: id,
+        patientProfileId: profileId,
+        correlationId: actor.correlationId,
+        context: { field: "dose_unit", confirmed: doseUnit, corrected },
+      });
+    });
+
+    return (await this.byId(profileId, id))!;
+  }
+
   async update(profileId: string, id: string, input: UpdateMedicationInput, actor: Actor) {
     const medication = await this.prisma.patientMedication.findFirst({
       where: { id, patientProfileId: profileId, deletedAt: null },
@@ -325,6 +388,7 @@ export class MedicationsService {
             durationDays: input.instruction.durationDays,
             originalText: input.instruction.originalText,
             confirmedByUserId: actor.userId,
+            doseUnitConfirmedAt: new Date(),
           },
         });
       }
@@ -439,6 +503,7 @@ export class MedicationsService {
         pattern: string | null;
         foodInstruction: string;
         durationDays: number | null;
+        doseUnitConfirmedAt: Date | null;
       }>;
     },
     content: {
@@ -506,6 +571,10 @@ export class MedicationsService {
             pattern: instruction.pattern,
             foodInstruction: instruction.foodInstruction,
             durationDays: instruction.durationDays,
+            // False only for instructions written before every client path
+            // offered a medicine-type picker — the app defaulted "tablet"
+            // then, so the UI must ask rather than draw a guessed glyph.
+            doseUnitConfirmed: instruction.doseUnitConfirmedAt != null,
           }
         : null,
       createdAt: m.createdAt.toISOString(),

@@ -101,12 +101,14 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 
 ### 9. Current medication passport
 - **Objective:** the canonical current-medicines list (question 1 of 20).
-- **Information:** cards: brand name, active ingredient(s), strength, schedule summary, prescriber, status chip (current/paused), duplicate-ingredient badge when flagged.
+- **Information:** cards: brand name, active ingredient(s), strength, **a visual dose and timing block**, schedule summary, prescriber, status chip (current/paused), duplicate-ingredient badge when flagged.
+- **Visual dose and timing (docs/33's "1-0-1 grid shown visually"):** a medicine-form glyph with the per-dose quantity — repeated once per tablet/capsule (with a half glyph for ½), a single glyph plus the numeral for measured units, since five cup glyphs for "5 ml" would draw a quantity that doesn't exist — then a sun/plate/moon row naming each slot. Every glyph carries its own visible text label; none is icon-only. **Two cases must show less, not more:** a frequency that doesn't recur daily (as-needed, weekly, fortnightly, monthly, or unparseable) shows no time row at all rather than a sun implying a daily morning dose; and a pattern whose slots differ (`2-0-1`) shows no single headline dose, moving the amount into each slot instead, because one number would misstate at least one of them.
 - **Primary action:** open medication detail. **Secondary:** add medication, filter (current/paused), history, doctor-visit mode.
 - **Empty:** onboarding CTA pair (add / scan).
 - **Offline:** cached list renders.
 - **Analytics:** `passport_viewed {count}`. **Audit:** `medication.list_viewed` when caregiver views another's profile.
-- **Acceptance:** ingredient shown for every item; same-ingredient items visually grouped.
+- **Confirm-your-medicine-type prompt:** until 2026-07-25 every save hardcoded `doseUnit: "tablet"`, so a syrup filed then still reads as a tablet. Survivable while the unit was only text; not survivable once it's drawn as a picture, which the low-literacy reader trusts over the line beside it. `MedicationInstruction.doseUnitConfirmedAt` records whether a human actually chose the unit (null = never asked), and an info card at the top of the list offers a one-medicine-per-screen review at `/medicines/confirm-type` showing each option's own glyph. Confirming the stored unit stamps it; correcting it supersedes the instruction copy-on-write and never touches the dose. The prompt is offered once at the top rather than badged on every affected tile — 27 of the pilot's 32 medicines qualify.
+- **Acceptance:** ingredient shown for every item; same-ingredient items visually grouped; a monthly or as-needed medicine shows no time-of-day row; a `2-0-1` pattern shows its amounts per slot and no headline dose; glyphs scale with text at 200% (sized in `em`) and the slot row wraps rather than truncating at 320 px in all four locales.
 
 ### 10. Medication history
 - **Objective:** previous/stopped/completed medicines and change log.

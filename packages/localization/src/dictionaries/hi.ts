@@ -134,6 +134,15 @@ export const hi: Record<keyof typeof en, string> = {
   "meds.edit_save": "बदलाव सहेजें",
   "meds.quantity_remaining": "{count} {unit} बचे हैं",
 
+  "confirmtype.title": "अपनी दवाइयों का प्रकार जाँचें",
+  "confirmtype.banner_title": "{count} दवाइयों का प्रकार जाँचें",
+  "confirmtype.banner_body": "जब ये दवाइयाँ जोड़ी गई थीं, तब हमने नहीं पूछा था कि ये किस प्रकार की हैं। बताइए, ताकि तस्वीरें सही हों।",
+  "confirmtype.question": "यह किस प्रकार की दवा है?",
+  "confirmtype.remaining": "{count} और जाँचनी हैं",
+  "confirmtype.all_done": "आपकी सभी दवाइयाँ जाँच ली गई हैं। धन्यवाद।",
+  "confirmtype.back_to_medicines": "मेरी दवाइयों पर वापस जाएँ",
+  "confirmtype.later": "यह बाद में करें",
+
   "add.title": "दवा जोड़ें",
   "add.search": "नाम से खोजें",
   "add.search_placeholder": "जैसे Dolo, Metformin",

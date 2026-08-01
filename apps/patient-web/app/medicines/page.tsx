@@ -3,9 +3,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { DoseVisual } from "../../components/DoseVisual";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
-import { instructionSummary, useMedications } from "../../lib/medications";
+import { needsTypeConfirmation, scheduleSummary, useMedications } from "../../lib/medications";
 
 /** Screen 9/10: current passport + previous medicines (docs/07). */
 export default function MedicinesPage() {
@@ -21,9 +22,22 @@ export default function MedicinesPage() {
   const statusTone = (status: string) =>
     status === "current" ? "success" : status === "paused" ? "warning" : "default";
 
+  // Medicines whose type the app defaulted rather than asked about. Offered
+  // once, at the top, rather than as a badge on every affected tile — 27 of
+  // the pilot's 32 medicines qualify, and a nag on each would bury the list.
+  const unconfirmed = (all.items ?? []).filter(needsTypeConfirmation);
+
   return (
     <AppShell>
       <PageHeader title={t("nav.medicines")} />
+      {unconfirmed.length > 0 ? (
+        <Link href="/medicines/confirm-type" style={{ textDecoration: "none" }}>
+          <Card tone="info">
+            <strong>{t("confirmtype.banner_title", { count: unconfirmed.length })}</strong>
+            <span style={{ fontSize: "var(--font-small)" }}>{t("confirmtype.banner_body")}</span>
+          </Card>
+        </Link>
+      ) : null}
       <div role="tablist" style={{ display: "flex", gap: "var(--size-touch-gap)", marginBottom: "var(--space-md)" }}>
         {(["current", "previous"] as const).map((k) => (
           <button
@@ -73,8 +87,11 @@ export default function MedicinesPage() {
                     {m.product.ingredients.map((i) => i.name).join(" + ")} {m.product.strengthLabel ?? ""}
                   </span>
                 ) : null}
+                {/* Dose and timing as a picture first, for a patient who
+                    can't read the line below it (docs/07 screen 9). */}
+                <DoseVisual instruction={m.instruction} />
                 <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                  {instructionSummary(m, t as never)}
+                  {scheduleSummary(m, t as never)}
                 </span>
                 {/* Omitted rather than shown as "not recorded" — a medicine
                     needs no prescriber to be valid (docs/07 screen 43). */}

@@ -188,6 +188,13 @@ export interface MedicationInstructionDto {
   pattern: string | null;
   foodInstruction: string;
   durationDays: number | null;
+  /**
+   * False when the app defaulted the unit instead of asking — true for
+   * everything written since every client path gained a medicine-type picker.
+   * The medicines list draws the unit as a picture now, so an unconfirmed one
+   * is prompted rather than illustrated (docs/07 screen 9).
+   */
+  doseUnitConfirmed: boolean;
 }
 
 /**

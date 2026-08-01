@@ -134,6 +134,15 @@ export const te: Record<keyof typeof en, string> = {
   "meds.edit_save": "మార్పులను సేవ్ చేయండి",
   "meds.quantity_remaining": "{count} {unit} మిగిలి ఉన్నాయి",
 
+  "confirmtype.title": "మీ మందుల రకాన్ని సరిచూడండి",
+  "confirmtype.banner_title": "{count} మందుల రకాన్ని సరిచూడండి",
+  "confirmtype.banner_body": "ఈ మందులను జోడించినప్పుడు అవి ఏ రకమో మేము అడగలేదు. చిత్రాలు సరిగ్గా ఉండటానికి చెప్పండి.",
+  "confirmtype.question": "ఇది ఏ రకమైన మందు?",
+  "confirmtype.remaining": "ఇంకా {count} సరిచూడాలి",
+  "confirmtype.all_done": "మీ మందులన్నీ సరిచూశారు. ధన్యవాదాలు.",
+  "confirmtype.back_to_medicines": "నా మందులకు తిరిగి వెళ్లండి",
+  "confirmtype.later": "దీన్ని తర్వాత చేయండి",
+
   "add.title": "మందు జోడించండి",
   "add.search": "పేరుతో వెతకండి",
   "add.search_placeholder": "ఉదా. Dolo, Metformin",

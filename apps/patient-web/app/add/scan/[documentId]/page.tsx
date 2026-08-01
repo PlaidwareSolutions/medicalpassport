@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { MessageKey } from "@medpass/localization";
 import { ApiError, type DocumentExtractionDto, type ExtractionCandidateDto } from "@medpass/api-client";
-import { Banner, Button, Card, Chip, ChoiceGrid, PillSpinner } from "@medpass/ui-web";
+import { DOSE_UNITS, type DoseUnit } from "@medpass/domain";
+import { Banner, Button, Card, Chip, ChoiceGrid, PillSpinner, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
 import { PageHeader } from "../../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../../lib/api";
@@ -46,7 +47,8 @@ export default function ReviewExtractionPage() {
   const [data, setData] = useState<DocumentExtractionDto | undefined>();
   const [loadError, setLoadError] = useState<string | undefined>();
   const [busyCandidateId, setBusyCandidateId] = useState<string | undefined>();
-  const [doseQuantity, setDoseQuantity] = useState<"0.5" | "1" | "2" | undefined>("1");
+  const [doseQuantity, setDoseQuantity] = useState<string | undefined>("1");
+  const [doseUnit, setDoseUnit] = useState<DoseUnit>("tablet");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | undefined>();
 
@@ -107,7 +109,7 @@ export default function ReviewExtractionPage() {
     try {
       await api.post(
         `/extractions/${data!.extraction!.id}/create-medication`,
-        { doseQuantity: Number(doseQuantity), doseUnit: "tablet" },
+        { doseQuantity: Number(doseQuantity), doseUnit },
         { idempotencyKey: newIdempotencyKey(), profileId: getActiveProfileId() },
       );
       router.replace("/medicines");
@@ -174,7 +176,7 @@ export default function ReviewExtractionPage() {
 
   const brandReady = brand?.status === "confirmed";
   const frequencyReady = frequency?.status === "confirmed";
-  const canSubmit = brandReady && frequencyReady && Boolean(doseQuantity) && !submitting;
+  const canSubmit = brandReady && frequencyReady && Number(doseQuantity) > 0 && !submitting;
 
   const fieldMeta: Array<{ field: FieldName; label: string; noMatchKey: MessageKey }> = [
     { field: "brand_name", label: t("review.field_brand_name"), noMatchKey: "review.no_brand_match" },
@@ -238,17 +240,44 @@ export default function ReviewExtractionPage() {
       {brandReady && frequencyReady ? (
         <>
           <div style={{ height: "var(--space-md)" }} />
+          {/* The unit used to be hardcoded to "tablet" here, so a scanned
+              syrup was filed as a tablet — the same bug 10afc28 fixed for the
+              add/edit screens but missed on this path. It matters more now
+              that the medicines list draws the unit as a picture. */}
           <ChoiceGrid
-            label={t("review.dose_prompt")}
-            columns={3}
-            choices={[
-              { value: "0.5", label: "½" },
-              { value: "1", label: "1" },
-              { value: "2", label: "2" },
-            ]}
-            value={doseQuantity}
-            onChange={setDoseQuantity}
+            label={t("add.dose_unit_label")}
+            columns={2}
+            choices={DOSE_UNITS.map((u) => ({ value: u, label: t(`medicineType.${u}` as MessageKey) }))}
+            value={doseUnit}
+            onChange={setDoseUnit}
           />
+          <div style={{ height: "var(--space-md)" }} />
+          {/* Same countable/measured split as the add screen: the ½/1/2 tiles
+              only make sense for things you can halve. */}
+          {doseUnit === "tablet" || doseUnit === "capsule" ? (
+            <ChoiceGrid
+              label={t("review.dose_prompt")}
+              columns={3}
+              choices={[
+                { value: "0.5", label: "½" },
+                { value: "1", label: "1" },
+                { value: "2", label: "2" },
+              ]}
+              value={doseQuantity}
+              onChange={setDoseQuantity}
+            />
+          ) : (
+            <TextInput
+              label={t("review.dose_prompt")}
+              help={t(`unit.${doseUnit}` as MessageKey)}
+              type="number"
+              inputMode="decimal"
+              step="0.5"
+              min="0.1"
+              value={doseQuantity ?? ""}
+              onChange={(e) => setDoseQuantity(e.target.value)}
+            />
+          )}
           <div style={{ marginTop: "var(--space-lg)" }}>
             <Button fullWidth disabled={!canSubmit} onClick={() => void submit()}>
               {t("review.submit")}

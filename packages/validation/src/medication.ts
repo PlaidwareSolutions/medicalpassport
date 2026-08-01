@@ -71,6 +71,17 @@ export const createMedicationSchema = z
   });
 export type CreateMedicationInput = z.infer<typeof createMedicationSchema>;
 
+/**
+ * The one-tap answer to "what kind of medicine is this?" for a medication
+ * whose unit the app defaulted rather than asked about (docs/07 screen 9).
+ * Only the unit — confirming the type must never be a route to editing a
+ * dose, which is a clinical change with its own audited path.
+ */
+export const confirmDoseUnitSchema = z.object({
+  doseUnit: z.enum(DOSE_UNITS),
+});
+export type ConfirmDoseUnitInput = z.infer<typeof confirmDoseUnitSchema>;
+
 export const updateMedicationSchema = z.object({
   rowVersion: z.number().int().nonnegative(),
   patientReason: z.string().trim().max(500).optional(),

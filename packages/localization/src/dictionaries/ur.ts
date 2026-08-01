@@ -134,6 +134,15 @@ export const ur: Record<keyof typeof en, string> = {
   "meds.edit_save": "تبدیلیاں محفوظ کریں",
   "meds.quantity_remaining": "{count} {unit} باقی ہیں",
 
+  "confirmtype.title": "اپنی دواؤں کی قسم جانچیں",
+  "confirmtype.banner_title": "{count} دواؤں کی قسم جانچیں",
+  "confirmtype.banner_body": "جب یہ دوائیں شامل کی گئی تھیں تو ہم نے نہیں پوچھا تھا کہ یہ کس قسم کی ہیں۔ بتائیں، تاکہ تصویریں درست ہوں۔",
+  "confirmtype.question": "یہ کس قسم کی دوا ہے؟",
+  "confirmtype.remaining": "{count} اور جانچنی ہیں",
+  "confirmtype.all_done": "آپ کی تمام دوائیں جانچ لی گئی ہیں۔ شکریہ۔",
+  "confirmtype.back_to_medicines": "میری دواؤں پر واپس جائیں",
+  "confirmtype.later": "یہ بعد میں کریں",
+
   "add.title": "دوا شامل کریں",
   "add.search": "نام سے تلاش کریں",
   "add.search_placeholder": "مثلاً Dolo, Metformin",

@@ -1,7 +1,13 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES, MEDICATION_STATUS_TRANSITIONS, type MedicationStatus } from "@medpass/domain";
-import { changeMedicationStatusSchema, createMedicationSchema, recordRefillSchema, updateMedicationSchema } from "@medpass/validation";
+import {
+  changeMedicationStatusSchema,
+  confirmDoseUnitSchema,
+  createMedicationSchema,
+  recordRefillSchema,
+  updateMedicationSchema,
+} from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
@@ -107,6 +113,24 @@ export class MedicationsController {
         }),
     });
     return result;
+  }
+
+  /**
+   * Confirms (or corrects) the medicine type for a medication whose dose unit
+   * the app once defaulted rather than asked about — docs/07 screen 9. A
+   * one-tap answer, so it's a dedicated route rather than the full PATCH,
+   * which would need every instruction field and a rowVersion the prompt has
+   * no reason to hold.
+   */
+  @Post("medications/:id/confirm-dose-unit")
+  async confirmDoseUnit(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+    const { profileId, actorRole } = await this.access.require(req, "edit_medications");
+    const input = parseWith(confirmDoseUnitSchema, body);
+    return this.medications.confirmDoseUnit(profileId, id, input.doseUnit, {
+      userId: req.auth!.userId,
+      actorRole,
+      correlationId: req.correlationId,
+    });
   }
 
   /** Status transitions are validated; stop/pause reasons attributed (docs/09). */

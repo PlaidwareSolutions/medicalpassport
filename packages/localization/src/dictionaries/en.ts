@@ -139,6 +139,15 @@ export const en = {
   "meds.edit_save": "Save changes",
   "meds.quantity_remaining": "{count} {unit} left",
 
+  "confirmtype.title": "Check your medicine types",
+  "confirmtype.banner_title": "Check the type of {count} medicine(s)",
+  "confirmtype.banner_body": "We didn't ask what kind of medicine these were when they were added. Tell us, so the pictures are right.",
+  "confirmtype.question": "What kind of medicine is this?",
+  "confirmtype.remaining": "{count} left to check",
+  "confirmtype.all_done": "All your medicines are checked. Thank you.",
+  "confirmtype.back_to_medicines": "Back to my medicines",
+  "confirmtype.later": "Do this later",
+
   "add.title": "Add a medicine",
   "add.search": "Search by name",
   "add.search_placeholder": "e.g. Dolo, Metformin",

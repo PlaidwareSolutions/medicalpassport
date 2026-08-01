@@ -758,6 +758,19 @@ model MedicationInstruction {
 
   confirmedByUserId String    @map("confirmed_by_user_id") @db.Uuid
   confirmedAt       DateTime  @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+  /// When a human actually chose the dose unit — distinct from `confirmedAt`,
+  /// which is stamped on every instruction regardless. Null means the unit was
+  /// never really chosen: until 2026-07-25 the add/edit screens hardcoded
+  /// "tablet" on every save, so a syrup filed then still reads as a tablet.
+  /// That was invisible while the unit was only ever text, but the medicines
+  /// list now draws it as a picture, and a wrong picture is trusted by exactly
+  /// the low-literacy patient the glyph exists for. Null drives the
+  /// confirm-your-medicine-type prompt (docs/07 screen 9).
+  ///
+  /// Every client path that sets a unit now presents a picker, so anything
+  /// written from here on is genuinely chosen and stamped. Keep that true: a
+  /// new creation path that defaults the unit must leave this null.
+  doseUnitConfirmedAt DateTime? @map("dose_unit_confirmed_at") @db.Timestamptz(6)
   /// Latest instruction wins; superseded rows keep history.
   supersededAt      DateTime? @map("superseded_at") @db.Timestamptz(6)
 

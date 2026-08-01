@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
+import { formatDoseAmount } from "@medpass/medication-terminology";
 import { cacheMedications, enqueueMutation, getCachedMedications, type SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId, newIdempotencyKey } from "./api";
 import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
@@ -153,7 +154,40 @@ export function instructionSummary(
   const food = t(`food.${i.foodInstruction}` as never);
   const unit = t(`unit.${i.doseUnit}` as never);
   const pattern = i.pattern ? ` ${i.pattern}` : "";
-  return `${i.doseQuantity} ${unit} · ${freq}${pattern} · ${food}`;
+  return `${formatDoseAmount(Number(i.doseQuantity))} ${unit} · ${freq}${pattern} · ${food}`;
+}
+
+/**
+ * Whether the app defaulted this medicine's type instead of asking. Drives
+ * the confirm-your-medicine-type prompt: a medicine with no instruction at
+ * all has no unit to be wrong about, so it isn't asked.
+ */
+export function needsTypeConfirmation(m: PatientMedicationDto): boolean {
+  return m.instruction != null && !m.instruction.doseUnitConfirmed;
+}
+
+export async function confirmDoseUnit(id: string, doseUnit: string) {
+  return api.post<PatientMedicationDto>(`/medications/${id}/confirm-dose-unit`, { doseUnit }, {
+    profileId: getActiveProfileId(),
+  });
+}
+
+/**
+ * The same line minus the dose — for screens that already show the dose
+ * visually (DoseVisual), where repeating "1 tablet" as text would just be
+ * noise. The dose glyph's own label is what satisfies docs/33's
+ * "icons always paired with text labels".
+ */
+export function scheduleSummary(
+  m: PatientMedicationDto,
+  t: (key: never, params?: Record<string, string | number>) => string,
+): string {
+  const i = m.instruction;
+  if (!i) return "";
+  const freq = t(`frequency.${i.frequencyCode.toLowerCase()}` as never);
+  const food = t(`food.${i.foodInstruction}` as never);
+  const pattern = i.pattern ? ` ${i.pattern}` : "";
+  return `${freq}${pattern} · ${food}`;
 }
 
 async function patchCachedMedication(profileId: string, id: string, patch: EditMedicationPatch): Promise<void> {
