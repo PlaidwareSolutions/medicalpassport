@@ -1,7 +1,16 @@
 import { z } from "zod";
 import { DOSE_UNITS } from "@medpass/domain";
 
-export const DOCUMENT_KINDS = ["prescription", "strip", "box", "bottle", "discharge_summary", "other"] as const;
+export const DOCUMENT_KINDS = [
+  "prescription",
+  "strip",
+  "box",
+  "bottle",
+  "discharge_summary",
+  "lab_report",
+  "scan_report",
+  "other",
+] as const;
 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"] as const;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -13,6 +22,8 @@ export const authorizeUploadSchema = z.object({
    * 43). Absent for the one-off scan-to-add-a-medicine flow, which needs no
    * prescription record of its own. */
   prescriptionId: z.string().uuid().optional(),
+  /** Attaches this upload to a test report (docs/07 screen 44). */
+  reportId: z.string().uuid().optional(),
   contentType: z.enum(ALLOWED_CONTENT_TYPES),
   sizeBytes: z.coerce
     .number()

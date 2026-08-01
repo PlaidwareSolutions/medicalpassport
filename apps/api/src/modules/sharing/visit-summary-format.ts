@@ -27,6 +27,20 @@ export function contextLabel(context: string): string {
   return CONTEXT_LABELS[context] ?? context.replace(/_/g, " ");
 }
 
+const REPORT_KIND_LABELS: Record<string, string> = {
+  blood_test: "Blood test",
+  urine_test: "Urine test",
+  imaging: "Imaging / scan",
+  ecg: "ECG / heart test",
+  pathology: "Pathology / biopsy",
+  discharge_summary: "Discharge summary",
+  other: "Other test",
+};
+
+export function reportKindLabel(kind: string): string {
+  return REPORT_KIND_LABELS[kind] ?? kind.replace(/_/g, " ");
+}
+
 type Checkup = NonNullable<VisitSummaryDto["checkups"]>[number];
 
 /**

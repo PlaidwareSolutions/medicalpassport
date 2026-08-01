@@ -38,6 +38,7 @@ describe("Sharing e2e", () => {
       TRUNCATE TABLE audit_events, rate_limit_buckets, offline_mutations, dead_letter_jobs, background_jobs,
         medication_changes, medication_instructions, patient_medications, practitioners,
         glucose_readings, checkup_records, prescription_documents, prescriptions,
+        medical_reports,
         patient_allergies, patient_conditions, consent_events, consents,
         caregiver_permissions, caregiver_relationships, sessions,
         user_devices, otp_attempts, patient_profiles, users CASCADE
@@ -131,6 +132,7 @@ describe("Sharing e2e", () => {
           glucoseReadings: false,
           checkups: false,
           prescriptions: false,
+          reports: false,
         },
         expiresInHours: 1,
         kind: "link",
@@ -211,9 +213,55 @@ describe("Sharing e2e", () => {
     expect(serialized).not.toMatch(/download|storedObject|documentId/i);
   });
 
+  it("includes test reports as metadata only, and dates an undated one by when it was filed", async () => {
+    const dated = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/reports"))
+      .send({
+        kind: "blood_test",
+        label: "Lipid profile",
+        facilityName: "Metro Labs",
+        practitionerName: "Dr. Report Summary",
+        testedAt: new Date().toISOString(),
+        notes: "Cholesterol borderline",
+      })
+      .expect(201);
+    // No testedAt at all — it must still fall inside the 90-day window via
+    // its createdAt rather than being silently dropped from the summary.
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/reports"))
+      .send({ kind: "imaging" })
+      .expect(201);
+
+    const summary = await auth(token, profileId)(request(app.getHttpServer()).get("/v1/profiles/current/visit-summary")).expect(200);
+    expect(summary.body.reports).toHaveLength(2);
+    expect(summary.body.reports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "blood_test", label: "Lipid profile", practitionerName: "Dr. Report Summary" }),
+        expect.objectContaining({ kind: "imaging", testedAt: null }),
+      ]),
+    );
+
+    const text = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/visit-summary/text"),
+    ).expect(200);
+    expect(text.body.text).toContain("Test reports (last 90 days)");
+    expect(text.body.text).toContain("Blood test — Lipid profile");
+    expect(text.body.text).toContain("Metro Labs · ordered by Dr. Report Summary");
+    expect(text.body.text).toContain("Imaging / scan (date not recorded)");
+
+    const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
+      .send({ sections: {}, expiresInHours: 1, kind: "link" })
+      .expect(201);
+    const publicRes = await request(app.getHttpServer()).get(`/v1/public/shares/${created.body.token}`).expect(200);
+    expect(publicRes.body.reports).toEqual(
+      expect.arrayContaining([expect.objectContaining({ label: "Lipid profile" })]),
+    );
+    // Anyone holding the token can read this, so it must carry no handle to
+    // the report's actual files — not even the report id.
+    expect(JSON.stringify(publicRes.body)).not.toContain(dated.body.id);
+  });
+
   it("a share created before a section existed never starts exposing it later", async () => {
     // Mimics a real pre-existing share: its stored sections JSON predates
-    // the blood-sugar/check-up/prescription sections entirely.
+    // the blood-sugar/check-up/prescription/report sections entirely.
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({ sections: {}, expiresInHours: 1, kind: "link" })
       .expect(201);
@@ -232,6 +280,7 @@ describe("Sharing e2e", () => {
     expect(publicRes.body.glucoseReadings).toBeUndefined();
     expect(publicRes.body.checkups).toBeUndefined();
     expect(publicRes.body.prescriptions).toBeUndefined();
+    expect(publicRes.body.reports).toBeUndefined();
   });
 
   it("exports the patient's own doctor-visit summary as a real PDF", async () => {
@@ -261,6 +310,7 @@ describe("Sharing e2e", () => {
           glucoseReadings: false,
           checkups: false,
           prescriptions: false,
+          reports: false,
         },
         expiresInHours: 1,
         kind: "link",

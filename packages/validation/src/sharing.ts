@@ -9,6 +9,7 @@ export const shareSectionsSchema = z.object({
   glucoseReadings: z.boolean().optional(),
   checkups: z.boolean().optional(),
   prescriptions: z.boolean().optional(),
+  reports: z.boolean().optional(),
 });
 
 export const createShareSchema = z.object({
@@ -33,5 +34,6 @@ export const visitSummaryTextQuerySchema = z.object({
   glucoseReadings: sectionQueryFlag,
   checkups: sectionQueryFlag,
   prescriptions: sectionQueryFlag,
+  reports: sectionQueryFlag,
 });
 export type VisitSummaryTextQuery = z.infer<typeof visitSummaryTextQuerySchema>;

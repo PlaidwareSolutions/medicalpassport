@@ -75,6 +75,18 @@ export const GLUCOSE_READING_CONTEXTS = [
 ] as const;
 export type GlucoseReadingContext = (typeof GLUCOSE_READING_CONTEXTS)[number];
 
+/** Test reports the patient keeps a copy of (docs/07 screen 44). */
+export const MEDICAL_REPORT_KINDS = [
+  "blood_test",
+  "urine_test",
+  "imaging",
+  "ecg",
+  "pathology",
+  "discharge_summary",
+  "other",
+] as const;
+export type MedicalReportKind = (typeof MEDICAL_REPORT_KINDS)[number];
+
 /** docs/13, docs/07 screen 19 — each a separate labeled block, approved-only, never fabricated. */
 export const CLINICAL_CONTENT_KINDS = ["education", "storage", "warning_symptoms", "food_alcohol", "missed_dose"] as const;
 export type ClinicalContentKind = (typeof CLINICAL_CONTENT_KINDS)[number];

@@ -55,6 +55,15 @@ export interface VisitSummaryDto {
     documentCount: number;
     medicationCount: number;
   }>;
+  reports?: Array<{
+    kind: string;
+    label: string | null;
+    facilityName: string | null;
+    practitionerName: string | null;
+    testedAt: string | null;
+    notes: string | null;
+    documentCount: number;
+  }>;
 }
 
 const CONTEXT_LABELS: Record<string, string> = {
@@ -70,6 +79,20 @@ const CONTEXT_LABELS: Record<string, string> = {
 
 function contextLabel(context: string): string {
   return CONTEXT_LABELS[context] ?? context.replace(/_/g, " ");
+}
+
+const REPORT_KIND_LABELS: Record<string, string> = {
+  blood_test: "Blood test",
+  urine_test: "Urine test",
+  imaging: "Imaging / scan",
+  ecg: "ECG / heart test",
+  pathology: "Pathology / biopsy",
+  discharge_summary: "Discharge summary",
+  other: "Other test",
+};
+
+function reportKindLabel(kind: string): string {
+  return REPORT_KIND_LABELS[kind] ?? kind.replace(/_/g, " ");
 }
 
 /** Date-only values (`YYYY-MM-DD`) must not go through a timezone-shifting Date parse. */
@@ -222,6 +245,24 @@ export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
               )
               .join("")}</ul>`
           : "<p class=\"muted\">No prescriptions in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.reports) {
+    parts.push(
+      section(
+        "Test reports (last 90 days)",
+        summary.reports.length
+          ? // Metadata only — the API deliberately never puts document ids or
+            // download URLs in this payload, so there is nothing to link to.
+            `<table><thead><tr><th>Test</th><th>Date</th><th>Where / who</th><th>Notes</th><th>Files</th></tr></thead><tbody>${summary.reports
+              .map((r) => {
+                const where = [esc(r.facilityName), r.practitionerName ? `Ordered by ${esc(r.practitionerName)}` : ""].filter(Boolean);
+                return `<tr><td><strong>${esc(reportKindLabel(r.kind))}</strong>${r.label ? `<br>${esc(r.label)}` : ""}</td><td>${r.testedAt ? esc(formatDateOnly(r.testedAt)) : "<span class=\"muted\">Not recorded</span>"}</td><td>${where.length ? where.join("<br>") : "—"}</td><td>${esc(r.notes) || "—"}</td><td>${r.documentCount || "—"}</td></tr>`;
+              })
+              .join("")}</tbody></table>`
+          : "<p class=\"muted\">No test reports in this period.</p>",
       ),
     );
   }

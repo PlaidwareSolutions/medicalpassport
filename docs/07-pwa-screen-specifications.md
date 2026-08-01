@@ -192,11 +192,11 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 ### 19. Medication explanation (detail)
 - **Objective:** answer questions 2–11 for one medicine.
 - **Information:** brand, ingredients, class, **"Commonly used for"** and **"Your recorded prescription says it was prescribed for"** as separate labeled blocks, how to take, common side effects, serious warning signs, food/alcohol notes, interaction summary, approved missed-dose guidance, pregnancy/breastfeeding warnings where applicable, storage, source + content version + review status + last-reviewed date.
-- **Primary action:** Read aloud. **Secondary:** Explain simply / Tell me more / Show clinical details; edit; pause/stop (with "talk to your doctor first" interstitial); share.
+- **Primary action:** Read aloud. **Secondary:** Explain simply / Tell me more / Show clinical details; edit; pause/stop (with "talk to your doctor first" interstitial); share; **search the web for this medicine** — a Google search for the displayed name plus catalogue strength, opened in a new tab, sitting directly under the "prescribed for" block, above the approved clinical blocks, and always carrying the note that those results are not checked by this app.
 - **Error (no approved content):** the exact fallback string: "Reliable medication-safety information is not available for this medicine. Please confirm with a doctor or pharmacist."
 - **Offline:** cached content renders with content-version note.
 - **Analytics:** `explanation_depth_used {level}`, `read_aloud_used`. **Audit:** caregiver reads audited.
-- **Acceptance:** the two "used for" blocks never merge; content provenance always visible.
+- **Acceptance:** the two "used for" blocks never merge; content provenance always visible; the web-search link is visibly external and never presented as this app's own content.
 
 ### 20. Read-aloud medication explanation
 - **Objective:** TTS playback of the explanation at the current disclosure level.
@@ -261,7 +261,7 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 ### 28. Doctor-visit mode
 - **Objective:** everything a clinician needs, dense but readable, in one screen (spec §14.6).
 - **Information:** identity, allergies, conditions, current medicines (ingredients, dosages, schedules, prescribers, start dates), recently stopped/completed, recent changes, adherence summary, unresolved concerns, prescription images where permitted.
-- **Also included (last 90 days each):** blood sugar — the aggregate a clinician reads first (count, average, lowest/highest, and a per-time-of-day breakdown mirroring the paper diary's own layout, screen 42) followed by the 10 most recent readings; check-up records, showing only the metrics actually measured (a metric the doctor didn't record is omitted, never zero-filled); and prescription records (screen 43) as **metadata only** — doctor, date, notes, and how many medicines/files — never document ids or download URLs, since the public share view is unauthenticated.
+- **Also included (last 90 days each):** blood sugar — the aggregate a clinician reads first (count, average, lowest/highest, and a per-time-of-day breakdown mirroring the paper diary's own layout, screen 42) followed by the 10 most recent readings; check-up records, showing only the metrics actually measured (a metric the doctor didn't record is omitted, never zero-filled); and prescription records (screen 43) as **metadata only** — doctor, date, notes, and how many medicines/files — never document ids or download URLs, since the public share view is unauthenticated. Test reports (screen 44) appear on the same metadata-only terms — kind, test name, date, lab, ordering doctor, notes, file count — and a report with no test date recorded is dated by when it was filed so it isn't silently dropped from the window.
 - **Primary action:** Share (→ screen 29). **Secondary:** brightness-boosted QR, print-friendly view.
 - **Implementation note:** this screen and the public share view (screen 29) render the same `VisitSummarySections` component rather than two hand-synced copies.
 - **Offline:** renders from cache — designed to work in a clinic with no signal.
@@ -365,6 +365,7 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Access:** same `view_profile`/`edit_profile` scopes as allergies/conditions — a caregiver with only `view_medications` can view but not add or delete.
 - **Audit:** `glucose_reading.created/deleted`, `checkup_record.created/deleted`.
 - **Out of scope (this pass):** treatment target ranges, diabetes-education static text, trends/graphs, glucose-check reminders, and doctor-visit-summary inclusion (deferred — see docs/22).
+- **Relationship to screen 44 (test reports):** the check-ups tab overlaps a blood test report on four numbers but is the **manual-transcription** surface — what the patient or caregiver types in, which is why it can be trusted never to contain a fabricated value. Screen 44 is the **document archive**. Nothing flows automatically between them in either direction.
 - **Acceptance:** a check-up saved with only some fields filled in shows only those fields, never a fabricated zero/default; a `view_medications`-only caregiver's add-forms are blocked server-side (403) even if reached client-side.
 
 ### 43. Prescription records
@@ -378,6 +379,19 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Audit:** `prescription.created`, `prescription.deleted`; linking a medicine emits `medication.updated`.
 - **Out of scope (this pass):** automatically parsing one prescription photo into several medicines — the existing OCR path extracts three fields for one medicine at a time, and true multi-drug segmentation is a much larger, separable feature. The "add a medicine from this prescription" button is the manual, fully-controlled equivalent.
 - **Acceptance:** deleting a prescription hides the record but leaves its files and linked medicines intact (this app never cascades a soft-delete); a medicine linked to a deleted prescription stops advertising it as evidence without losing its own prescriber; a medicine created from a prescription inherits that doctor without re-typing, and an explicitly typed prescriber always wins over the inherited one.
+
+### 44. Test reports
+- **Objective:** one place for every test result the patient collects — blood and urine panels, X-ray/MRI/CT scans, ECGs, biopsies, discharge summaries. Reachable from Profile.
+- **Document-first by design:** the uploaded report *is* the record. Individual analyte values (haemoglobin, creatinine, TSH…) are deliberately **not** stored as structured fields — see the `MedicalReport` schema comment. Typing twenty rows off a lab printout on a phone is not a thing patients will do, and a half-typed panel is worse than a photo of the whole one.
+- **List:** newest test first — kind, optional test name, date, and lab/hospital. A report with no test date recorded falls back to when it was filed rather than sinking to the bottom forever.
+- **New (`/reports/new`):** kind (the only required field, chosen from a typing-free grid), optional test name, lab/hospital, ordering doctor, test date, free-text notes, and one or more photos/PDFs via the existing upload pipeline. A patient who can't read the report should still be able to keep the photo.
+- **Detail (`/reports/[id]`):** the recorded details plus attached files (view via short-lived presigned link; an incomplete upload shows as unavailable rather than offering a broken link).
+- **Doctor records are deduplicated per profile** (case-insensitive, trimmed) with prescriptions and medicines, so a doctor who ordered a test and wrote a prescription is one record.
+- **Access:** same `view_profile`/`edit_profile` scopes as allergies/conditions/blood sugar/prescriptions — a patient-owned record, not a medication mutation. A caregiver with only `view_medications` can read but not create or delete.
+- **Audit:** `report.created`, `report.deleted`.
+- **Overlap with screen 42 is deliberate, and never automatic.** A blood test report and a check-up record intersect on four numbers (fasting glucose, post-meal glucose, HbA1c, cholesterol) but are different things: check-ups also carry BP/weight/waist and visit-administrative fields, have no document attachment, and are anchored to a *visit* date rather than a sample date. **Check-ups are the manual-transcription surface; reports are the document archive.** Nothing flows automatically between them — screen 42 promises values are never fabricated, and parsing a report photo to populate a check-up would break that promise.
+- **Out of scope (this pass):** per-analyte structured values and the trend charts they would enable; OCR of report values. Both can be layered on later without reworking what's here.
+- **Acceptance:** a report saved with only its kind still files and displays; deleting a report hides it but leaves its uploaded files retrievable with their foreign key intact (this app never cascades a soft-delete); a `view_medications`-only caregiver gets 403 on create and delete; an undated report still appears in the doctor-visit summary window rather than being silently dropped.
 
 ---
 

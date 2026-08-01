@@ -36,6 +36,10 @@ erDiagram
     scheduled_doses ||--o{ dose_events : records
     patient_profiles ||--o{ prescriptions : receives
     prescriptions ||--o{ prescription_documents : evidenced_by
+    patient_profiles ||--o{ medical_reports : collects
+    medical_reports ||--o{ prescription_documents : evidenced_by
+    patient_profiles ||--o{ glucose_readings : records
+    patient_profiles ||--o{ checkup_records : records
     prescription_documents }o--|| stored_objects : stored_as
     prescription_documents ||--o{ prescription_extractions : extracted_by
     prescription_extractions ||--o{ extraction_candidates : proposes
@@ -122,7 +126,14 @@ A prescribing event — one doctor visit's prescription. `patient_profile_id FK`
 **Trimmed from the original spec above, deliberately:** `organization_id` (no `organizations` table exists yet — nothing to reference), and `source`/`status` enums. This pass has exactly one creation path — a patient or caregiver filling in a form — so both would be permanently stuck at a single constant value. Reintroduce them if an automated creation path (e.g. OCR-driven multi-drug prescription detection) is ever built.
 
 ### ★ prescription_documents
-Uploaded evidence. `prescription_id FK NULL` (set when the upload belongs to a prescription record; null for a one-off scan-to-add-a-medicine upload, which needs no standing record of its own), `patient_profile_id FK`, `stored_object_id FK`, `kind` enum `prescription|strip|box|bottle|discharge_summary|other`, `status` enum `pending_upload|uploaded|verified|quarantined|processing|processed|failed|deleted`. R2: 1:1 with stored object. Retention: original preserved while medication references it; lifecycle rules otherwise. Sync: metadata only, never binaries. (`page_no` from the original spec is not implemented — multi-page documents are filed as separate rows against the same prescription.)
+Uploaded evidence. **Genuinely multi-owner despite the name** — it now holds prescription images, one-off medicine scans, *and* test-report files. The name and table name are historical; renaming a live table holding real pilot patient data was judged riskier than the clarity was worth. `prescription_id FK NULL` (set when the upload belongs to a prescription record), `report_id FK NULL` (set when it belongs to a `medical_reports` record), both null for a one-off scan-to-add-a-medicine upload which needs no standing record of its own; at most one is ever set. `patient_profile_id FK`, `stored_object_id FK`, `kind` enum `prescription|strip|box|bottle|discharge_summary|lab_report|scan_report|other`, `status` enum `pending_upload|uploaded|verified|quarantined|processing|processed|failed|deleted`. R2: 1:1 with stored object. Retention: original preserved while medication references it; lifecycle rules otherwise. Sync: metadata only, never binaries. (`page_no` from the original spec is not implemented — multi-page documents are filed as separate rows against the same prescription.)
+
+### ★ medical_reports
+A test result the patient keeps a copy of — blood/urine panels, imaging, ECGs, pathology, discharge summaries (docs/07 screen 44). `patient_profile_id FK`, `kind` enum `blood_test|urine_test|imaging|ecg|pathology|discharge_summary|other` (the only required field), `label text NULL` (free text — "Vitamin D panel"), `facility_name text NULL`, `practitioner_id FK NULL` (the ordering doctor, sharing the deduplicated `practitioners` pool with prescriptions and medications), `tested_at date NULL` (sample/scan date), `notes text NULL`, `deleted_at`. Documents attach via `prescription_documents.report_id`. Soft-delete never cascades. Sync: no — online-only, matching the prescriptions/glucose/checkup precedent.
+
+**Document-first: per-analyte values are deliberately not stored.** There is no `report_values` table and no open-domain clinical value store anywhere in this schema — every clinical number here is a fixed, named column (`fasting_glucose_mg_dl`, `value_mg_dl`) with its unit baked into the name. Storing arbitrary analytes would be the first open-domain clinical store in the model, would need its own units/reference-range/LOINC normalization to be worth anything, and would ask a patient to type twenty rows off a lab printout on a phone. The uploaded document is the record; notes carry what the doctor said. This can be layered on later without reworking what's here.
+
+**Overlaps `checkup_records` on four analytes and is never auto-synced with it.** See docs/07 screens 42/44: check-ups are the manual-transcription surface, reports are the document archive.
 
 ### stored_objects
 Every R2 object. `bucket` enum, `object_key text UNIQUE` (opaque, no PHI), `sha256`, `size_bytes`, `content_type`, `status` enum `pending|verified|quarantined|deleted`, `expires_at NULL`. Constraint: object_key generated server-side. R2 relationship: authoritative record; deletion coordinates DB + R2 ([26](26-cloudflare-edge-and-r2-architecture.md)).
@@ -160,6 +171,14 @@ Append-only change log per medication (who/what/when/why) powering history + doc
 
 ### medication_reconciliations
 Discharge/multi-doctor reconciliation sessions: `patient_profile_id`, `source_document_id NULL`, `status`, `decisions jsonb` (continued/changed/stopped, each attributed). Sync: no.
+
+## Patient-recorded clinical measurements
+
+### ★ glucose_readings
+One blood-sugar reading from the paper diary (docs/07 screen 42). `patient_profile_id FK`, `measured_at timestamptz`, `context` enum `before_breakfast|after_breakfast|before_lunch|after_lunch|before_dinner|after_dinner|during_night|random`, `value_mg_dl int`, `note text NULL`, `deleted_at`. mg/dL only — the unit is in the column name, matching how every other clinical number in this model is stored. Sync: no — online-only.
+
+### ★ checkup_records
+One periodic check-up's measurements (docs/07 screen 42, second tab). `patient_profile_id FK`, `checkup_date date` (the only required field), then every metric nullable and **never zero-filled**: `fasting_glucose_mg_dl`, `post_prandial_glucose_mg_dl`, `hba1c_percent numeric`, `blood_pressure_systolic`, `blood_pressure_diastolic`, `weight_kg numeric`, `waist_circumference_cm numeric`, `cholesterol_mg_dl`, `treatment_changes text NULL`, `next_appointment_date NULL`, `deleted_at`. A metric the doctor didn't record stays NULL and is omitted everywhere it's rendered — a fabricated-looking zero on a clinical summary is worse than a gap. Sync: no — online-only.
 
 ## Safety
 

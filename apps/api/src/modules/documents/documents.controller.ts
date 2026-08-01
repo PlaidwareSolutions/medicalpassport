@@ -14,16 +14,18 @@ export class DocumentsController {
   ) {}
 
   /**
-   * A document is either evidence for a prescription record (docs/07 screen
-   * 43) or part of scanning a medicine to add it — different scopes govern
-   * each, so the body is parsed first to know which this is. The
-   * medication-scoped path is byte-for-byte today's behavior.
+   * A document belongs to a prescription record (docs/07 screen 43), a test
+   * report (screen 44), or nothing at all when it's a one-off scan to add a
+   * medicine — different scopes govern each, so the body is parsed first to
+   * know which this is. The medication-scoped path is byte-for-byte today's
+   * behavior.
    */
   @RateLimit({ name: "document_upload", limit: 20, windowSeconds: 3600 })
   @Post("profiles/current/documents/authorize-upload")
   async authorizeUpload(@Body() body: unknown, @Req() req: ApiRequest) {
     const input = parseWith(authorizeUploadSchema, body);
-    const { profileId, actorRole } = await this.access.require(req, input.prescriptionId ? "edit_profile" : "add_medications");
+    const ownedByRecord = Boolean(input.prescriptionId || input.reportId);
+    const { profileId, actorRole } = await this.access.require(req, ownedByRecord ? "edit_profile" : "add_medications");
     return this.documents.authorizeUpload(profileId, input, {
       userId: req.auth!.userId,
       actorType: actorRole,

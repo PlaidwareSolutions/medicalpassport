@@ -168,6 +168,7 @@ model PatientProfile {
   medications            PatientMedication[]
   practitioners          Practitioner[]
   prescriptions          Prescription[]
+  medicalReports         MedicalReport[]
   safetyEvaluations      SafetyEvaluation[]
   sharePackages          SharePackage[]
   prescriptionDocuments  PrescriptionDocument[]
@@ -305,6 +306,7 @@ model Practitioner {
 
   medications   PatientMedication[]
   prescriptions Prescription[]
+  medicalReports MedicalReport[]
 
   @@map("practitioners")
 }
@@ -336,6 +338,57 @@ model Prescription {
 
   @@index([patientProfileId, prescribedAt])
   @@map("prescriptions")
+}
+
+enum MedicalReportKind {
+  blood_test
+  urine_test
+  imaging
+  ecg
+  pathology
+  discharge_summary
+  other
+}
+
+/// A diagnostic test result the patient keeps a copy of (docs/07 screen 44) —
+/// blood/urine panels, MRI/CT/X-ray scans, ECGs, biopsy reports, discharge
+/// summaries. Document-first by design: the report itself is the record, with
+/// only free-text notes alongside it. Individual analyte values (e.g.
+/// "Hemoglobin 13.2 g/dL") are deliberately NOT stored — that would be the
+/// first open-domain clinical value store in this schema, and typing 20+ rows
+/// per report on a phone isn't realistic. Layer it on later if it's ever
+/// wanted; nothing here forecloses it.
+///
+/// Overlaps CheckupRecord on four analytes (fasting/post-prandial glucose,
+/// HbA1c, cholesterol) but is deliberately kept separate and never auto-synced
+/// with it: a check-up is a hand-transcribed set of visit measurements anchored
+/// to a visit date, this is an archived document anchored to a sample date, and
+/// screen 42 promises check-up values are never fabricated — which rules out
+/// populating one by parsing the other.
+model MedicalReport {
+  id               String            @id @default(uuid()) @db.Uuid
+  patientProfileId String            @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile    @relation(fields: [patientProfileId], references: [id])
+  kind             MedicalReportKind
+  /// Free text naming the specific test — mainly for `other` ("Vitamin D panel").
+  label            String?
+  /// The lab / imaging centre / hospital that performed it.
+  facilityName     String?           @map("facility_name")
+  /// The doctor who ordered it, if recorded — same deduped Practitioner records prescriptions use.
+  practitionerId   String?           @map("practitioner_id") @db.Uuid
+  practitioner     Practitioner?     @relation(fields: [practitionerId], references: [id])
+  /// Sample/scan date as recorded by the patient — never inferred.
+  testedAt         DateTime?         @map("tested_at") @db.Date
+  /// Free-text key findings, in the patient's own words.
+  notes            String?
+  deletedAt        DateTime?         @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  documents PrescriptionDocument[]
+
+  @@index([patientProfileId, testedAt])
+  @@map("medical_reports")
 }
 
 enum AllergySeverity {
@@ -1275,6 +1328,8 @@ enum DocumentKind {
   box
   bottle
   discharge_summary
+  lab_report
+  scan_report
   other
 }
 
@@ -1289,7 +1344,15 @@ enum DocumentStatus {
   deleted
 }
 
-/// One uploaded prescription/strip/box/bottle photo (docs/13).
+/// Any uploaded patient document — prescription/strip/box/bottle photo, or a
+/// test report (docs/13). Despite the name this model is genuinely
+/// multi-owner: `prescriptionId` and `reportId` are both nullable and mutually
+/// exclusive in practice, and both may be null for a one-off
+/// scan-to-add-a-medicine upload that needs no standing record at all. The
+/// `PrescriptionDocument`/`prescription_documents` naming is historical —
+/// renaming a table already holding real patient data was judged riskier than
+/// the clarity was worth. The storage pipeline (presign, verify, quota, audit)
+/// is owner-agnostic throughout.
 model PrescriptionDocument {
   id               String         @id @default(uuid()) @db.Uuid
   patientProfileId String         @map("patient_profile_id") @db.Uuid
@@ -1301,6 +1364,9 @@ model PrescriptionDocument {
   /// no standing prescription record of its own.
   prescriptionId   String?        @map("prescription_id") @db.Uuid
   prescription     Prescription?  @relation(fields: [prescriptionId], references: [id])
+  /// The test report this document is a scan/photo of (docs/07 screen 44).
+  reportId         String?        @map("report_id") @db.Uuid
+  report           MedicalReport? @relation(fields: [reportId], references: [id])
   kind             DocumentKind   @default(prescription)
   status           DocumentStatus @default(pending_upload)
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -1310,6 +1376,7 @@ model PrescriptionDocument {
 
   @@index([patientProfileId])
   @@index([prescriptionId])
+  @@index([reportId])
   @@map("prescription_documents")
 }
 

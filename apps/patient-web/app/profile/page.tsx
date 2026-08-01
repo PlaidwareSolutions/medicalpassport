@@ -164,6 +164,12 @@ export default function ProfilePage() {
         </Card>
       </Link>
 
+      <Link href="/reports">
+        <Card>
+          <strong>{t("profile.reports")}</strong>
+        </Card>
+      </Link>
+
       {activeProfile?.relationship !== "caregiver" ? (
         <Link href="/caregivers">
           <Card>

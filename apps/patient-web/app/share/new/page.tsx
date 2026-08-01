@@ -17,6 +17,7 @@ const SECTION_KEYS = [
   "glucoseReadings",
   "checkups",
   "prescriptions",
+  "reports",
 ] as const;
 const EXPIRY_OPTIONS = [
   { hours: 1, key: "share.expiry.1h" },

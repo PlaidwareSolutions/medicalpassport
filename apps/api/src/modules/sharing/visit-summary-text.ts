@@ -1,5 +1,5 @@
 import type { VisitSummaryDto } from "./visit-summary.service";
-import { checkupMetrics, contextLabel, formatDateOnly } from "./visit-summary-format";
+import { checkupMetrics, contextLabel, formatDateOnly, reportKindLabel } from "./visit-summary-format";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
@@ -111,6 +111,22 @@ export function renderVisitSummaryText(summary: VisitSummaryDto): string {
         const when = p.prescribedAt ? formatDateOnly(p.prescribedAt) : "date not recorded";
         lines.push(`- ${who} (${when}) — ${p.medicationCount} medicine(s), ${p.documentCount} file(s)`);
         if (p.notes) lines.push(`  ${p.notes}`);
+      }
+    lines.push("");
+  }
+
+  if (summary.reports) {
+    lines.push(bold("Test reports (last 90 days)"));
+    if (summary.reports.length === 0) lines.push("No test reports in this period.");
+    else
+      for (const r of summary.reports) {
+        const title = r.label ? `${reportKindLabel(r.kind)} — ${r.label}` : reportKindLabel(r.kind);
+        const when = r.testedAt ? formatDateOnly(r.testedAt) : "date not recorded";
+        lines.push(`- ${title} (${when})`);
+        const where = [r.facilityName, r.practitionerName ? `ordered by ${r.practitionerName}` : null].filter(Boolean);
+        if (where.length) lines.push(`  ${where.join(" · ")}`);
+        if (r.notes) lines.push(`  ${r.notes}`);
+        if (r.documentCount) lines.push(`  ${r.documentCount} file(s) on record`);
       }
     lines.push("");
   }

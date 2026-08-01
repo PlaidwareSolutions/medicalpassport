@@ -52,6 +52,14 @@ export class DocumentsService {
       if (!prescription) throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown prescription", 400);
     }
 
+    if (input.reportId) {
+      const report = await this.prisma.medicalReport.findFirst({
+        where: { id: input.reportId, patientProfileId: profileId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!report) throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown report", 400);
+    }
+
     const { allowed: withinDailyQuota } = await this.rateLimit.checkAndIncrement(
       `document_upload_daily:${actor.userId}`,
       DAILY_UPLOAD_QUOTA,
@@ -89,6 +97,7 @@ export class DocumentsService {
           patientProfileId: profileId,
           storedObjectId: storedObject.id,
           prescriptionId: input.prescriptionId,
+          reportId: input.reportId,
           kind: input.kind,
           status: "pending_upload",
         },

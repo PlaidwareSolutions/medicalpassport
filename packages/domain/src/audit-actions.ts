@@ -40,6 +40,8 @@ export const AUDIT_ACTIONS = [
   "checkup_record.deleted",
   "prescription.created",
   "prescription.deleted",
+  "report.created",
+  "report.deleted",
   "medication.created",
   "medication.updated",
   "medication.status_changed",

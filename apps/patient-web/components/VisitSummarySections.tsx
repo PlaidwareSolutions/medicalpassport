@@ -173,6 +173,25 @@ export function VisitSummarySections({ data, concernTones = true }: { data: Visi
         </>
       ) : null}
 
+      {data.reports && data.reports.length > 0 ? (
+        <>
+          <SectionTitle>{t("visit.reports")}</SectionTitle>
+          <div style={COLUMN}>
+            {data.reports.map((r, i) => (
+              <Card key={i}>
+                <strong>{t(`reports.kind.${r.kind}` as never)}</strong>
+                {r.label ? <span style={{ fontSize: "var(--font-small)" }}>{r.label}</span> : null}
+                <span style={MUTED_SMALL}>{r.testedAt ? formatDateOnly(r.testedAt) : t("reports.no_date")}</span>
+                {r.facilityName ? <span style={MUTED_SMALL}>{r.facilityName}</span> : null}
+                {r.practitionerName ? <span style={MUTED_SMALL}>{t("reports.ordered_by", { name: r.practitionerName })}</span> : null}
+                {r.notes ? <span style={MUTED_SMALL}>{r.notes}</span> : null}
+                {r.documentCount > 0 ? <span style={MUTED_SMALL}>{t("reports.document_count", { count: r.documentCount })}</span> : null}
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : null}
+
       {data.unresolvedConcerns && data.unresolvedConcerns.length > 0 ? (
         <>
           <SectionTitle>{t("home.concerns")}</SectionTitle>

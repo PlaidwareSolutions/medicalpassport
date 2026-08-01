@@ -10,6 +10,7 @@ export interface VisitSummarySections {
   glucoseReadings: boolean;
   checkups: boolean;
   prescriptions: boolean;
+  reports: boolean;
 }
 
 export const ALL_SECTIONS: VisitSummarySections = {
@@ -21,6 +22,7 @@ export const ALL_SECTIONS: VisitSummarySections = {
   glucoseReadings: true,
   checkups: true,
   prescriptions: true,
+  reports: true,
 };
 
 export interface VisitSummaryDto {
@@ -80,6 +82,16 @@ export interface VisitSummaryDto {
     documentCount: number;
     medicationCount: number;
   }>;
+  /** Metadata only, same reasoning as prescriptions — no document handles on an unauthenticated path. */
+  reports?: Array<{
+    kind: string;
+    label: string | null;
+    facilityName: string | null;
+    practitionerName: string | null;
+    testedAt: string | null;
+    notes: string | null;
+    documentCount: number;
+  }>;
 }
 
 const RECENT_DAYS = 90;
@@ -115,6 +127,7 @@ export class VisitSummaryService {
       this.addGlucoseReadings(profileId, sections, summary),
       this.addCheckups(profileId, sections, summary),
       this.addPrescriptions(profileId, sections, summary),
+      this.addReports(profileId, sections, summary),
     ]);
 
     return summary;
@@ -295,6 +308,32 @@ export class VisitSummaryService {
       notes: p.notes,
       documentCount: p._count.documents,
       medicationCount: p._count.medications,
+    }));
+  }
+
+  private async addReports(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.reports) return;
+    const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const reports = await this.prisma.medicalReport.findMany({
+      // A report with no test date recorded still belongs in the window —
+      // fall back to when it was filed rather than dropping it silently.
+      where: {
+        patientProfileId: profileId,
+        deletedAt: null,
+        OR: [{ testedAt: { gte: cutoff } }, { testedAt: null, createdAt: { gte: cutoff } }],
+      },
+      include: { practitioner: true, _count: { select: { documents: true } } },
+      orderBy: [{ testedAt: "desc" }, { createdAt: "desc" }],
+      take: 10,
+    });
+    summary.reports = reports.map((r) => ({
+      kind: r.kind,
+      label: r.label,
+      facilityName: r.facilityName,
+      practitionerName: r.practitioner?.displayName ?? null,
+      testedAt: r.testedAt?.toISOString().slice(0, 10) ?? null,
+      notes: r.notes,
+      documentCount: r._count.documents,
     }));
   }
 }

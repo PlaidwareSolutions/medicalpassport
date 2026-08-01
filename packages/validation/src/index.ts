@@ -5,6 +5,7 @@ export * from "./claim.js";
 export * from "./consent.js";
 export * from "./medication.js";
 export * from "./prescription.js";
+export * from "./report.js";
 export * from "./catalog.js";
 export * from "./dose.js";
 export * from "./safety.js";

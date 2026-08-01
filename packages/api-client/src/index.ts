@@ -270,6 +270,36 @@ export interface PrescriptionDetailDto {
   medications: Array<{ id: string; enteredName: string; status: string; doseUnit: string | null }>;
 }
 
+/**
+ * One filed test report (docs/07 screen 44). Document-first: the uploaded
+ * report is the record, so there are no per-analyte values here — only what
+ * the patient could reasonably type off the header plus their own notes.
+ */
+export interface ReportDto {
+  id: string;
+  kind: string;
+  label: string | null;
+  facilityName: string | null;
+  practitionerName: string | null;
+  testedAt: string | null;
+  notes: string | null;
+  documentCount: number;
+  createdAt: string;
+}
+
+export interface ReportDetailDto {
+  id: string;
+  kind: string;
+  label: string | null;
+  facilityName: string | null;
+  practitionerName: string | null;
+  testedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  /** Reuses the prescription document shape — the storage pipeline is owner-agnostic. */
+  documents: PrescriptionDocumentDto[];
+}
+
 export interface RefillReminderDto {
   notificationId: string;
   kind: "refill" | "completion";
@@ -415,6 +445,16 @@ export interface VisitSummaryDto {
     notes: string | null;
     documentCount: number;
     medicationCount: number;
+  }>;
+  /** Metadata only, same reasoning as prescriptions. */
+  reports?: Array<{
+    kind: string;
+    label: string | null;
+    facilityName: string | null;
+    practitionerName: string | null;
+    testedAt: string | null;
+    notes: string | null;
+    documentCount: number;
   }>;
 }
 
