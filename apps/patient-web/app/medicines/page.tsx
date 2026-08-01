@@ -76,6 +76,13 @@ export default function MedicinesPage() {
                 <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                   {instructionSummary(m, t as never)}
                 </span>
+                {/* Omitted rather than shown as "not recorded" — a medicine
+                    needs no prescriber to be valid (docs/07 screen 43). */}
+                {m.prescriberName ? (
+                  <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+                    {t("meds.prescribed_by", { name: m.prescriberName })}
+                  </span>
+                ) : null}
               </Card>
             </Link>
           ))}
