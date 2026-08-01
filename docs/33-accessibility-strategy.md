@@ -20,7 +20,7 @@ Design target: **an older adult with limited smartphone experience** (spec §18)
 - Plain language (~5th-grade level) in en/hi/te/ur; approved medical translations only ([11](11-medication-knowledge-strategy.md)).
 - **Text-to-speech on every clinical content surface** (medication explanations, warnings, instructions) with per-locale voice detection and server-audio fallback ([32](32-browser-capability-and-fallback-matrix.md)).
 - Urdu RTL fully supported (logical CSS properties throughout `packages/ui-web`; no hardcoded left/right).
-- Numerals, dates, and dose patterns localized (1-0-1 grid shown visually: sun/plate/moon icons + text).
+- Numerals, dates, and dose patterns localized (1-0-1 grid shown visually: sun/plate/moon icons + text). **Built on the medicines list (screens 9/10)**: `DoseVisual` draws the form and per-dose quantity, then a sun/plate/moon row per slot, each glyph paired with its own visible label. Two honesty rules are enforced in `packages/medication-terminology/src/dose-visual.ts` and unit-tested: the time row is drawn only for frequencies that genuinely repeat daily (WEEKLY/FORTNIGHTLY/MONTHLY are excluded even though `proposeSlots` offers them a morning slot — the *days* come from the start date, which a list tile doesn't have), and when a pattern's slots differ (`2-0-1`) the single headline dose is suppressed and the amount moves into each slot, since one number would misstate at least one of them. **Numerals themselves are still Western digits** — localizing them only in the new row would put two digit systems in one tile, so both call sites move together or neither does.
 - Browser-permission education screens explain in plain language before any OS prompt (screen 38).
 
 ## Screen-reader support
