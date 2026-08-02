@@ -1,14 +1,13 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import {
-  ApiError,
-  type CaregiverAccessEventDto,
-  type CaregiverInvitationDto,
-  type CaregiverRelationshipDto,
-  type CaregiverRelationshipKind,
+import type {
+  CaregiverAccessEventDto,
+  CaregiverInvitationDto,
+  CaregiverRelationshipDto,
+  CaregiverRelationshipKind,
 } from "@medpass/api-client";
 import type { CaregiverScope } from "@medpass/domain";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 
 /**
  * The list endpoint only ever returns "invited"/"active" rows — nothing ever
@@ -24,48 +23,31 @@ export function isCaregiverActive(item: Pick<CaregiverRelationshipDto, "status" 
 }
 
 export function useCaregivers() {
-  const [items, setItems] = useState<CaregiverRelationshipDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: CaregiverRelationshipDto[] }>("/profiles/current/caregivers", {
-        profileId: getActiveProfileId(),
-      });
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<CaregiverRelationshipDto[]>({
+    path: "/profiles/current/caregivers",
+    fetcher: async () =>
+      (await api.get<{ items: CaregiverRelationshipDto[] }>("/profiles/current/caregivers", { profileId: getActiveProfileId() }))
+        .items,
+  });
+  return { items: data, error, reload };
 }
 
-/** Not profile-scoped — resolved from the caller's own phone digest server-side. */
+/**
+ * Not profile-scoped — resolved from the caller's own phone digest
+ * server-side, hence `scope: "user"` (a profile switch must not bust it).
+ * AppShell mounts this on every page; the short TTL is what stops that
+ * costing a request per navigation. Worst case: the invitation banner
+ * appears up to a minute late. The invitations page itself calls `reload()`,
+ * which forces past the TTL.
+ */
 export function useCaregiverInvitations() {
-  const [items, setItems] = useState<CaregiverInvitationDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: CaregiverInvitationDto[] }>("/caregivers/invitations");
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<CaregiverInvitationDto[]>({
+    path: "/caregivers/invitations",
+    scope: "user",
+    ttlMs: 60_000,
+    fetcher: async () => (await api.get<{ items: CaregiverInvitationDto[] }>("/caregivers/invitations")).items,
+  });
+  return { items: data, error, reload };
 }
 
 export async function fetchCaregiverAccessLog(relationshipId: string): Promise<CaregiverAccessEventDto[]> {
@@ -82,24 +64,34 @@ export async function inviteCaregiver(input: {
   label?: string;
   expiresAt?: string;
 }) {
-  return api.post<{ id: string; status: string }>("/profiles/current/caregivers", input, {
+  const res = await api.post<{ id: string; status: string }>("/profiles/current/caregivers", input, {
     profileId: getActiveProfileId(),
   });
+  invalidate("profile", "/profiles/current/caregivers");
+  return res;
 }
 
 /** Not profile-scoped — matched against the caller's own phone digest. */
 export async function acceptInvitation(invitationId: string) {
-  return api.post<{ id: string; status: string; patientProfileId: string }>("/caregivers/accept", { invitationId });
+  const res = await api.post<{ id: string; status: string; patientProfileId: string }>("/caregivers/accept", { invitationId });
+  // The AppShell banner count must be right on the very next navigation, not
+  // a TTL later.
+  invalidate("user", "/caregivers/invitations");
+  return res;
 }
 
 export async function updateCaregiverScopes(relationshipId: string, scopes: CaregiverScope[], label?: string) {
-  return api.patch<{ id: string; scopes: CaregiverScope[] }>(
+  const res = await api.patch<{ id: string; scopes: CaregiverScope[] }>(
     `/caregivers/${relationshipId}/scopes`,
     { scopes, ...(label !== undefined ? { label } : {}) },
     { profileId: getActiveProfileId() },
   );
+  invalidate("profile", "/profiles/current/caregivers");
+  return res;
 }
 
 export async function revokeCaregiver(relationshipId: string) {
-  return api.delete(`/caregivers/${relationshipId}`, { profileId: getActiveProfileId() });
+  const res = await api.delete(`/caregivers/${relationshipId}`, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/caregivers");
+  return res;
 }

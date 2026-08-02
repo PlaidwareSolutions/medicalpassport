@@ -10,6 +10,7 @@ import { AppShell } from "../../../../components/AppShell";
 import { PageHeader } from "../../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../../lib/api";
 import { useI18n } from "../../../../lib/i18n";
+import { invalidateMedicationData } from "../../../../lib/medications";
 
 type FieldName = ExtractionCandidateDto["field"];
 type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
@@ -112,6 +113,8 @@ export default function ReviewExtractionPage() {
         { doseQuantity: Number(doseQuantity), doseUnit },
         { idempotencyKey: newIdempotencyKey(), profileId: getActiveProfileId() },
       );
+      // The medicines list the patient lands on must include what they just created.
+      invalidateMedicationData();
       router.replace("/medicines");
     } catch (err) {
       setSubmitError(

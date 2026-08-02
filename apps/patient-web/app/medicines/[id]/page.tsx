@@ -9,7 +9,7 @@ import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
 import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
-import { instructionSummary, useMedication } from "../../../lib/medications";
+import { invalidateMedicationData, instructionSummary, useMedication } from "../../../lib/medications";
 
 /**
  * Screen 19: medication detail (docs/07). Each clinical-content kind is its
@@ -47,6 +47,9 @@ export default function MedicineDetailPage() {
       await api.post(`/medications/${medication.id}/status`, { rowVersion: medication.rowVersion, status }, {
         profileId: getActiveProfileId(),
       });
+      // A status change reshapes the lists, the schedule and the reminders —
+      // cached copies of all of them are stale now.
+      invalidateMedicationData();
       await reload();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.problem.title : t("common.error_generic"));

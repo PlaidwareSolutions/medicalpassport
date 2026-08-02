@@ -12,12 +12,15 @@ import { needsTypeConfirmation, scheduleSummary, useMedications } from "../../li
 export default function MedicinesPage() {
   const { t } = useI18n();
   const [tab, setTab] = useState<"current" | "previous">("current");
-  const current = useMedications("current");
+  // One request for both tabs: the server's ?status=current filter is a plain
+  // equality over the same ordering, so "current" is derived client-side and
+  // switching tabs costs nothing.
   const all = useMedications();
 
+  const current = (all.items ?? []).filter((m) => m.status === "current");
   const previous = (all.items ?? []).filter((m) => m.status !== "current");
-  const shown = tab === "current" ? (current.items ?? []) : previous;
-  const stillLoading = tab === "current" ? current.items === undefined : all.items === undefined;
+  const shown = tab === "current" ? current : previous;
+  const stillLoading = all.items === undefined;
 
   const statusTone = (status: string) =>
     status === "current" ? "success" : status === "paused" ? "warning" : "default";

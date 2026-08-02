@@ -1,7 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, type CaregiverRelationshipKind, type ClaimInvitationDto } from "@medpass/api-client";
+import type { CaregiverRelationshipKind, ClaimInvitationDto } from "@medpass/api-client";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 
 export async function createDependent(input: {
   displayName: string;
@@ -33,29 +33,24 @@ export async function cancelClaimInvite() {
   return api.delete("/profiles/current/claim-invite", { profileId: getActiveProfileId() });
 }
 
-/** Not profile-scoped — resolved from the caller's own phone digest server-side. */
+/**
+ * Not profile-scoped — resolved from the caller's own phone digest
+ * server-side, hence `scope: "user"`. Mounted by AppShell on every page; the
+ * TTL is what keeps that from costing a request per navigation.
+ */
 export function useClaimInvitations() {
-  const [items, setItems] = useState<ClaimInvitationDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: ClaimInvitationDto[] }>("/profiles/claim-invitations");
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<ClaimInvitationDto[]>({
+    path: "/profiles/claim-invitations",
+    scope: "user",
+    ttlMs: 60_000,
+    fetcher: async () => (await api.get<{ items: ClaimInvitationDto[] }>("/profiles/claim-invitations")).items,
+  });
+  return { items: data, error, reload };
 }
 
 /** Not profile-scoped. */
 export async function claimProfile(profileId: string) {
-  return api.post<{ id: string; displayName: string }>("/profiles/claim", { profileId });
+  const res = await api.post<{ id: string; displayName: string }>("/profiles/claim", { profileId });
+  invalidate("user", "/profiles/claim-invitations");
+  return res;
 }

@@ -1,9 +1,10 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
 import { formatDoseAmount, needsDoseUnitConfirmation } from "@medpass/medication-terminology";
 import { cacheMedications, enqueueMutation, getCachedMedications, type SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId, newIdempotencyKey } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
 
 /** The two cached list variants any screen actually reads (docs/15) — Home's "current" and the Medicines tab's unfiltered "all". */
@@ -24,60 +25,64 @@ export interface EditMedicationPatch {
   };
 }
 
+/** Everything a medication mutation can leave stale — the lists, any detail row, and the schedule built from them. */
+export function invalidateMedicationData(): void {
+  invalidate("profile", "/profiles/current/medications");
+  invalidate("profile", "/medications/");
+  invalidate("profile", "/profiles/current/timeline");
+}
+
 export function useMedications(status?: string) {
-  const [items, setItems] = useState<PatientMedicationDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-  const [fromCache, setFromCache] = useState(false);
   const variant = status ?? "all";
+  const query = status ? `?status=${status}` : "";
+  const path = `/profiles/current/medications${query}`;
 
-  const load = useCallback(async () => {
-    setError(undefined);
+  const readIndexedDb = async () => {
     const profileId = getActiveProfileId();
-    try {
-      const query = status ? `?status=${status}` : "";
-      const res = await api.get<{ items: PatientMedicationDto[] }>(`/profiles/current/medications${query}`, {
-        profileId,
-      });
-      setItems(res.items);
-      setFromCache(false);
-      if (profileId) await cacheMedications(profileId, variant, res.items);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.problem.title);
-        return;
-      }
-      // Genuine network failure (no response at all) — fall back to cache
-      // rather than a dead error screen (docs/15).
-      if (profileId) {
-        const cached = await getCachedMedications<PatientMedicationDto[]>(profileId, variant);
-        if (cached) {
-          setItems(cached.items);
-          setFromCache(true);
-          return;
-        }
-      }
-      setError("network");
-    }
-  }, [status, variant]);
+    if (!profileId) return undefined;
+    return (await getCachedMedications<PatientMedicationDto[]>(profileId, variant))?.items;
+  };
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data, error, fromCache, reload } = useSharedResource<PatientMedicationDto[]>({
+    path,
+    fetcher: async () =>
+      (await api.get<{ items: PatientMedicationDto[] }>(path, { profileId: getActiveProfileId() })).items,
+    // Cold start: the IndexedDB copy renders before the first network answer.
+    seed: readIndexedDb,
+    // Genuine network failure: the docs/15 offline path, unchanged.
+    fallback: readIndexedDb,
+    onFetched: async (items) => {
+      const profileId = getActiveProfileId();
+      if (!profileId) return;
+      await cacheMedications(profileId, variant, items);
+      // The medicines screen now fetches only the unfiltered list (its
+      // "current" tab is derived client-side), so the offline "current"
+      // variant — which offline Home and the low-storage trim keep alive —
+      // is written here as a derivation instead of by a second request.
+      if (variant === "all") {
+        await cacheMedications(profileId, "current", items.filter((m) => m.status === "current"));
+      }
+    },
+  });
 
   // A caregiver's edit (or this patient's own other device) made while this
   // screen wasn't actively fetching — reload once told the medications list
-  // for this profile changed (docs/15 incremental sync), rather than waiting
-  // for the patient to navigate away and back.
+  // for this profile changed (docs/15 incremental sync). The shared entries
+  // are dropped first so an unmounted consumer can't render the stale copy.
   useEffect(() => {
     function onRemoteChange(e: Event) {
       const change = (e as CustomEvent<SyncChangeSignal>).detail;
-      if (change.scope === "medications" && change.profileId === getActiveProfileId()) void load();
+      if (change.scope === "medications" && change.profileId === getActiveProfileId()) {
+        invalidate("profile", "/profiles/current/medications");
+        invalidate("profile", "/medications/");
+        void reload();
+      }
     }
     window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
     return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
-  }, [load]);
+  }, [reload]);
 
-  return { items, error, fromCache, reload: load };
+  return { items: data, error, fromCache, reload };
 }
 
 async function findCachedMedication(profileId: string, id: string): Promise<PatientMedicationDto | undefined> {
@@ -96,37 +101,17 @@ async function findCachedMedication(profileId: string, id: string): Promise<Pati
  * viewed shouldn't go dead just because the app is offline (docs/15).
  */
 export function useMedication(id: string) {
-  const [medication, setMedication] = useState<PatientMedicationDto | undefined>();
-  const [error, setError] = useState<string | undefined>();
-  const [fromCache, setFromCache] = useState(false);
-
-  const load = useCallback(async () => {
-    setError(undefined);
+  const readIndexedDb = async () => {
     const profileId = getActiveProfileId();
-    try {
-      const m = await api.get<PatientMedicationDto>(`/medications/${id}`, { profileId });
-      setMedication(m);
-      setFromCache(false);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.problem.title);
-        return;
-      }
-      if (profileId) {
-        const cached = await findCachedMedication(profileId, id);
-        if (cached) {
-          setMedication(cached);
-          setFromCache(true);
-          return;
-        }
-      }
-      setError("network");
-    }
-  }, [id]);
+    if (!profileId) return undefined;
+    return findCachedMedication(profileId, id);
+  };
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data, error, fromCache, reload } = useSharedResource<PatientMedicationDto>({
+    path: `/medications/${id}`,
+    fetcher: () => api.get<PatientMedicationDto>(`/medications/${id}`, { profileId: getActiveProfileId() }),
+    fallback: readIndexedDb,
+  });
 
   // The signal doesn't say which medicine changed (docs/15 — an
   // invalidation, not a patch), so any "medications changed" for this
@@ -135,13 +120,17 @@ export function useMedication(id: string) {
   useEffect(() => {
     function onRemoteChange(e: Event) {
       const change = (e as CustomEvent<SyncChangeSignal>).detail;
-      if (change.scope === "medications" && change.profileId === getActiveProfileId()) void load();
+      if (change.scope === "medications" && change.profileId === getActiveProfileId()) {
+        invalidate("profile", "/profiles/current/medications");
+        invalidate("profile", "/medications/");
+        void reload();
+      }
     }
     window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
     return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
-  }, [load]);
+  }, [reload]);
 
-  return { medication, error, fromCache, reload: load };
+  return { medication: data, error, fromCache, reload };
 }
 
 export function instructionSummary(
@@ -167,9 +156,13 @@ export function needsTypeConfirmation(m: PatientMedicationDto): boolean {
 }
 
 export async function confirmDoseUnit(id: string, doseUnit: string) {
-  return api.post<PatientMedicationDto>(`/medications/${id}/confirm-dose-unit`, { doseUnit }, {
+  const res = await api.post<PatientMedicationDto>(`/medications/${id}/confirm-dose-unit`, { doseUnit }, {
     profileId: getActiveProfileId(),
   });
+  // The list must not keep advertising the unconfirmed state (or the old
+  // glyph) after the patient just answered.
+  invalidateMedicationData();
+  return res;
 }
 
 /**
@@ -238,6 +231,8 @@ export async function createMedication(payload: Record<string, unknown>): Promis
   const clientMutationId = newIdempotencyKey();
   try {
     await api.post("/profiles/current/medications", payload, { idempotencyKey: clientMutationId, profileId });
+    invalidateMedicationData();
+    invalidate("profile", "/profiles/current/safety/findings");
     return { queuedOffline: false };
   } catch (err) {
     if (err instanceof ApiError) throw err; // a real rejection (e.g. validation) — never hide it
@@ -252,6 +247,7 @@ export async function createMedication(payload: Record<string, unknown>): Promis
       });
       notifyMutationQueued();
     }
+    invalidateMedicationData();
     return { queuedOffline: true };
   }
 }
@@ -272,6 +268,8 @@ export async function updateMedication(
   const body = { rowVersion: medication.rowVersion, ...patch };
   try {
     await api.patch(`/medications/${medication.id}`, body, { idempotencyKey: clientMutationId, profileId });
+    invalidateMedicationData();
+    invalidate("profile", "/profiles/current/safety/findings");
     return { queuedOffline: false };
   } catch (err) {
     if (err instanceof ApiError) throw err;
@@ -287,6 +285,7 @@ export async function updateMedication(
       await patchCachedMedication(profileId, medication.id, patch);
       notifyMutationQueued();
     }
+    invalidateMedicationData();
     return { queuedOffline: true };
   }
 }

@@ -1,49 +1,23 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, type ReportDetailDto, type ReportDto } from "@medpass/api-client";
+import type { ReportDetailDto, ReportDto } from "@medpass/api-client";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 
 export function useReports() {
-  const [items, setItems] = useState<ReportDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: ReportDto[] }>("/profiles/current/reports", {
-        profileId: getActiveProfileId(),
-      });
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<ReportDto[]>({
+    path: "/profiles/current/reports",
+    fetcher: async () =>
+      (await api.get<{ items: ReportDto[] }>("/profiles/current/reports", { profileId: getActiveProfileId() })).items,
+  });
+  return { items: data, error, reload };
 }
 
 export function useReport(id: string) {
-  const [report, setReport] = useState<ReportDetailDto | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      setReport(await api.get<ReportDetailDto>(`/reports/${id}`, { profileId: getActiveProfileId() }));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { report, error, reload: load };
+  const { data, error, reload } = useSharedResource<ReportDetailDto>({
+    path: `/reports/${id}`,
+    fetcher: () => api.get<ReportDetailDto>(`/reports/${id}`, { profileId: getActiveProfileId() }),
+  });
+  return { report: data, error, reload };
 }
 
 export async function createReport(input: {
@@ -54,9 +28,14 @@ export async function createReport(input: {
   testedAt?: string;
   notes?: string;
 }) {
-  return api.post<ReportDetailDto>("/profiles/current/reports", input, { profileId: getActiveProfileId() });
+  const res = await api.post<ReportDetailDto>("/profiles/current/reports", input, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/reports");
+  return res;
 }
 
 export async function deleteReport(id: string) {
-  return api.delete(`/reports/${id}`, { profileId: getActiveProfileId() });
+  const res = await api.delete(`/reports/${id}`, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/reports");
+  invalidate("profile", "/reports/");
+  return res;
 }

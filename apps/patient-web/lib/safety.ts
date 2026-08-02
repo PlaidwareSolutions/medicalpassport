@@ -1,29 +1,16 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, type SafetyFindingDto } from "@medpass/api-client";
+import type { SafetyFindingDto } from "@medpass/api-client";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 
 export function useSafetyFindings() {
-  const [items, setItems] = useState<SafetyFindingDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: SafetyFindingDto[] }>("/profiles/current/safety/findings", {
-        profileId: getActiveProfileId(),
-      });
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<SafetyFindingDto[]>({
+    path: "/profiles/current/safety/findings",
+    fetcher: async () =>
+      (await api.get<{ items: SafetyFindingDto[] }>("/profiles/current/safety/findings", { profileId: getActiveProfileId() }))
+        .items,
+  });
+  return { items: data, error, reload };
 }
 
 const OPEN_STATUSES = new Set(["open"]);
@@ -32,7 +19,9 @@ export function isOpenFinding(f: SafetyFindingDto): boolean {
 }
 
 export async function recordFindingAction(findingId: string, action: string, note?: string) {
-  return api.post(`/findings/${findingId}/actions`, { action, note }, { profileId: getActiveProfileId() });
+  const res = await api.post(`/findings/${findingId}/actions`, { action, note }, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/safety/findings");
+  return res;
 }
 
 /** Fills the {medicines}/{ingredient}/{allergy}/{medicine} params from `detail`. */

@@ -1,30 +1,17 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, type CheckupRecordDto, type GlucoseReadingDto } from "@medpass/api-client";
+import type { CheckupRecordDto, GlucoseReadingDto } from "@medpass/api-client";
 import type { GlucoseReadingContext } from "@medpass/domain";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 
 export function useGlucoseReadings() {
-  const [items, setItems] = useState<GlucoseReadingDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: GlucoseReadingDto[] }>("/profiles/current/glucose-readings", {
-        profileId: getActiveProfileId(),
-      });
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<GlucoseReadingDto[]>({
+    path: "/profiles/current/glucose-readings",
+    fetcher: async () =>
+      (await api.get<{ items: GlucoseReadingDto[] }>("/profiles/current/glucose-readings", { profileId: getActiveProfileId() }))
+        .items,
+  });
+  return { items: data, error, reload };
 }
 
 export async function addGlucoseReading(input: {
@@ -33,34 +20,25 @@ export async function addGlucoseReading(input: {
   valueMgDl: number;
   note?: string;
 }) {
-  return api.post("/profiles/current/glucose-readings", input, { profileId: getActiveProfileId() });
+  const res = await api.post("/profiles/current/glucose-readings", input, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/glucose-readings");
+  return res;
 }
 
 export async function deleteGlucoseReading(id: string) {
-  return api.delete(`/glucose-readings/${id}`, { profileId: getActiveProfileId() });
+  const res = await api.delete(`/glucose-readings/${id}`, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/glucose-readings");
+  return res;
 }
 
 export function useCheckupRecords() {
-  const [items, setItems] = useState<CheckupRecordDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: CheckupRecordDto[] }>("/profiles/current/checkup-records", {
-        profileId: getActiveProfileId(),
-      });
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<CheckupRecordDto[]>({
+    path: "/profiles/current/checkup-records",
+    fetcher: async () =>
+      (await api.get<{ items: CheckupRecordDto[] }>("/profiles/current/checkup-records", { profileId: getActiveProfileId() }))
+        .items,
+  });
+  return { items: data, error, reload };
 }
 
 export async function addCheckupRecord(input: {
@@ -76,9 +54,13 @@ export async function addCheckupRecord(input: {
   treatmentChanges?: string;
   nextAppointmentDate?: string;
 }) {
-  return api.post("/profiles/current/checkup-records", input, { profileId: getActiveProfileId() });
+  const res = await api.post("/profiles/current/checkup-records", input, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/checkup-records");
+  return res;
 }
 
 export async function deleteCheckupRecord(id: string) {
-  return api.delete(`/checkup-records/${id}`, { profileId: getActiveProfileId() });
+  const res = await api.delete(`/checkup-records/${id}`, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/checkup-records");
+  return res;
 }

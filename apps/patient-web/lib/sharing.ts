@@ -1,48 +1,23 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, type ShareAccessEventDto, type ShareDto, type VisitSummaryDto } from "@medpass/api-client";
+import type { ShareAccessEventDto, ShareDto, VisitSummaryDto } from "@medpass/api-client";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 
 export function useVisitSummary() {
-  const [data, setData] = useState<VisitSummaryDto | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<VisitSummaryDto>("/profiles/current/visit-summary", { profileId: getActiveProfileId() });
-      setData(res);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { data, error, reload: load };
+  const { data, error, reload } = useSharedResource<VisitSummaryDto>({
+    path: "/profiles/current/visit-summary",
+    fetcher: () => api.get<VisitSummaryDto>("/profiles/current/visit-summary", { profileId: getActiveProfileId() }),
+  });
+  return { data, error, reload };
 }
 
 export function useShares() {
-  const [items, setItems] = useState<ShareDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: ShareDto[] }>("/profiles/current/shares", { profileId: getActiveProfileId() });
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<ShareDto[]>({
+    path: "/profiles/current/shares",
+    fetcher: async () =>
+      (await api.get<{ items: ShareDto[] }>("/profiles/current/shares", { profileId: getActiveProfileId() })).items,
+  });
+  return { items: data, error, reload };
 }
 
 export async function createShare(input: {
@@ -50,13 +25,17 @@ export async function createShare(input: {
   expiresInHours: number;
   kind: "link" | "qr";
 }) {
-  return api.post<{ id: string; token: string; expiresAt: string }>("/profiles/current/shares", input, {
+  const res = await api.post<{ id: string; token: string; expiresAt: string }>("/profiles/current/shares", input, {
     profileId: getActiveProfileId(),
   });
+  invalidate("profile", "/profiles/current/shares");
+  return res;
 }
 
 export async function revokeShare(id: string) {
-  return api.post(`/shares/${id}/revoke`, undefined, { profileId: getActiveProfileId() });
+  const res = await api.post(`/shares/${id}/revoke`, undefined, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/shares");
+  return res;
 }
 
 export async function fetchAccessLog(id: string): Promise<ShareAccessEventDto[]> {

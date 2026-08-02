@@ -1,6 +1,7 @@
 "use client";
 import { ApiClient } from "@medpass/api-client";
 import { clearAllOfflineData } from "@medpass/offline-sync";
+import { clearMemoryCache } from "./data-cache";
 
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/v1`;
 
@@ -51,6 +52,8 @@ export function setActiveProfileId(id: string): void {
  */
 export async function clearLocalState(): Promise<void> {
   window.localStorage.removeItem(PROFILE_STORAGE_KEY);
+  // The in-memory SWR cache holds PHI too — same rule as the IndexedDB copy.
+  clearMemoryCache();
   await clearAllOfflineData();
 }
 

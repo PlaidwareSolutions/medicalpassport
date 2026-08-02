@@ -1,8 +1,9 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { ApiError, type TimelineDto, type TimelineItemDto } from "@medpass/api-client";
 import { cacheTimeline, enqueueMutation, getCachedTimeline, type SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
 
 /** Fixed +05:30 offset — matches the API's Asia/Kolkata simplification (docs/16). */
@@ -11,43 +12,27 @@ function istToday(): string {
 }
 
 export function useTimeline(date?: string) {
-  const [data, setData] = useState<TimelineDto | undefined>();
-  const [error, setError] = useState<string | undefined>();
-  const [fromCache, setFromCache] = useState(false);
   const effectiveDate = date ?? istToday();
+  const query = date ? `?date=${date}` : "";
+  const path = `/profiles/current/timeline${query}`;
 
-  const load = useCallback(async () => {
-    setError(undefined);
+  const readIndexedDb = async (): Promise<TimelineDto | undefined> => {
     const profileId = getActiveProfileId();
-    try {
-      const query = date ? `?date=${date}` : "";
-      const res = await api.get<TimelineDto>(`/profiles/current/timeline${query}`, { profileId });
-      setData(res);
-      setFromCache(false);
-      if (profileId) await cacheTimeline(profileId, res.date, res.items);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.problem.title);
-        return;
-      }
-      // Not an ApiError means fetch() itself failed (no response at all) —
-      // a real network outage, not a server-side rejection. Serve the cache
-      // rather than a dead error screen (docs/15).
-      if (profileId) {
-        const cached = await getCachedTimeline<TimelineItemDto[]>(profileId, effectiveDate);
-        if (cached) {
-          setData({ date: effectiveDate, items: cached.items });
-          setFromCache(true);
-          return;
-        }
-      }
-      setError("network");
-    }
-  }, [date, effectiveDate]);
+    if (!profileId) return undefined;
+    const cached = await getCachedTimeline<TimelineItemDto[]>(profileId, effectiveDate);
+    return cached ? { date: effectiveDate, items: cached.items } : undefined;
+  };
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data, error, fromCache, reload, mutate } = useSharedResource<TimelineDto>({
+    path,
+    fetcher: () => api.get<TimelineDto>(path, { profileId: getActiveProfileId() }),
+    seed: readIndexedDb,
+    fallback: readIndexedDb,
+    onFetched: async (res) => {
+      const profileId = getActiveProfileId();
+      if (profileId) await cacheTimeline(profileId, res.date, res.items);
+    },
+  });
 
   // A caregiver recording a dose (or this patient's own other device) while
   // this screen wasn't fetching — reload only if the changed date is the
@@ -56,26 +41,27 @@ export function useTimeline(date?: string) {
     function onRemoteChange(e: Event) {
       const change = (e as CustomEvent<SyncChangeSignal>).detail;
       if (change.scope === "timeline" && change.profileId === getActiveProfileId() && change.dates?.includes(effectiveDate)) {
-        void load();
+        invalidate("profile", "/profiles/current/timeline");
+        void reload();
       }
     }
     window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
     return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
-  }, [load, effectiveDate]);
+  }, [reload, effectiveDate]);
 
   /**
    * Applies a dose-status change to the currently-displayed timeline
-   * immediately, and writes it back to the offline cache — so recording a
-   * dose while offline doesn't get silently reverted the next time the
-   * cache-fallback path re-renders this same data (docs/15).
+   * immediately — including the shared memory entry, so navigating away and
+   * back doesn't resurrect the pre-action state — and writes it back to the
+   * offline cache, so recording a dose while offline doesn't get silently
+   * reverted the next time the cache-fallback path re-renders (docs/15).
    */
   const patchItem = useCallback(
     async (scheduledDoseId: string, patch: Partial<TimelineItemDto>) => {
-      setData((prev) => {
-        if (!prev) return prev;
-        const items = prev.items.map((i) => (i.scheduledDoseId === scheduledDoseId ? { ...i, ...patch } : i));
-        return { ...prev, items };
-      });
+      if (data) {
+        const items = data.items.map((i) => (i.scheduledDoseId === scheduledDoseId ? { ...i, ...patch } : i));
+        mutate({ ...data, items });
+      }
       const profileId = getActiveProfileId();
       if (profileId) {
         const cached = await getCachedTimeline<TimelineItemDto[]>(profileId, effectiveDate);
@@ -85,10 +71,10 @@ export function useTimeline(date?: string) {
         }
       }
     },
-    [effectiveDate],
+    [data, mutate, effectiveDate],
   );
 
-  return { data, error, fromCache, reload: load, patchItem };
+  return { data, error, fromCache, reload, patchItem };
 }
 
 /**
@@ -109,6 +95,9 @@ export async function recordDoseEvent(
 
   try {
     const res = await api.post<{ status: string }>(`/doses/${scheduledDoseId}/events`, payload, { profileId });
+    // The visible screen is patched by patchItem; this drops other cached
+    // timeline dates that may embed the same dose (e.g. Home vs /timeline).
+    invalidate("profile", "/profiles/current/timeline");
     return { status: res.status, queuedOffline: false };
   } catch (err) {
     if (err instanceof ApiError) throw err; // a real rejection (e.g. permission) — never hide it

@@ -1,31 +1,21 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, type AllergyDto } from "@medpass/api-client";
+import type { AllergyDto } from "@medpass/api-client";
 import { api, getActiveProfileId } from "./api";
+import { invalidate, useSharedResource } from "./data-cache";
 
 export function useAllergies() {
-  const [items, setItems] = useState<AllergyDto[] | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const load = useCallback(async () => {
-    setError(undefined);
-    try {
-      const res = await api.get<{ items: AllergyDto[] }>("/profiles/current/allergies", {
-        profileId: getActiveProfileId(),
-      });
-      setItems(res.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : "network");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, error, reload: load };
+  const { data, error, reload } = useSharedResource<AllergyDto[]>({
+    path: "/profiles/current/allergies",
+    fetcher: async () =>
+      (await api.get<{ items: AllergyDto[] }>("/profiles/current/allergies", { profileId: getActiveProfileId() })).items,
+  });
+  return { items: data, error, reload };
 }
 
 export async function addAllergy(input: { label: string; severity: string; reactionNote?: string }) {
-  return api.post("/profiles/current/allergies", input, { profileId: getActiveProfileId() });
+  const res = await api.post("/profiles/current/allergies", input, { profileId: getActiveProfileId() });
+  invalidate("profile", "/profiles/current/allergies");
+  // A new allergy can raise a new safety finding against current medicines.
+  invalidate("profile", "/profiles/current/safety/findings");
+  return res;
 }
