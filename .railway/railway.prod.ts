@@ -168,7 +168,12 @@ export default defineRailway(() => {
 
   const cleanupExpiredOtps = cronJob("cron-cleanup-expired-otps", "0 3 * * *", "cleanup-expired-otps");
   const cleanupExpiredSessions = cronJob("cron-cleanup-expired-sessions", "30 3 * * *", "cleanup-expired-sessions");
-  const verifyAuditChain = cronJob("cron-verify-audit-chain", "0 2 * * *", "verify-audit-chain");
+  // AUDIT_CHAIN_ACKNOWLEDGED_BREAKS_BEFORE_SEQ was set live via CLI (an
+  // acknowledged historical break) — preserve() it so an apply doesn't
+  // delete it and make the verifier re-flag what was already reviewed.
+  const verifyAuditChain = cronJob("cron-verify-audit-chain", "0 2 * * *", "verify-audit-chain", {
+    AUDIT_CHAIN_ACKNOWLEDGED_BREAKS_BEFORE_SEQ: preserve(),
+  });
   const extendScheduledDoses = cronJob("cron-extend-scheduled-doses", "0 1 * * *", "extend-scheduled-doses");
   const reconcileMissedDoses = cronJob("cron-reconcile-missed-doses", "*/15 * * * *", "reconcile-missed-doses");
   // Needs R2 access — deletes stale objects via the same ObjectStorage interface.
