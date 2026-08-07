@@ -24,6 +24,11 @@ export const te: Record<keyof typeof en, string> = {
   "common.error_generic": "ఏదో తప్పు జరిగింది. దయచేసి మళ్లీ ప్రయత్నించండి.",
   "common.skip": "ప్రస్తుతానికి దాటవేయండి",
 
+  "guide.listen": "వినండి",
+  "guide.stop": "ఆపండి",
+  "guide.slower": "నెమ్మదిగా చెప్పండి",
+  "guide.screen.medicine_detail": "ఈ స్క్రీన్ ఒక మందును చూపిస్తుంది — ఎంత తీసుకోవాలి, ఎప్పుడు తీసుకోవాలి, దేని గురించి జాగ్రత్త వహించాలి.",
+
   "welcome.title": "స్వాగతం",
   "welcome.get_started": "ప్రారంభించండి",
   "welcome.choose_language": "మీ భాషను ఎంచుకోండి",

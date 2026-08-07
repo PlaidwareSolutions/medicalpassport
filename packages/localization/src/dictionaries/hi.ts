@@ -24,6 +24,11 @@ export const hi: Record<keyof typeof en, string> = {
   "common.error_generic": "कुछ गलत हुआ। कृपया फिर कोशिश करें।",
   "common.skip": "अभी छोड़ें",
 
+  "guide.listen": "सुनें",
+  "guide.stop": "रोकें",
+  "guide.slower": "धीरे बोलें",
+  "guide.screen.medicine_detail": "यह स्क्रीन एक दवा दिखाती है — कितनी लेनी है, कब लेनी है, और किन बातों का ध्यान रखना है।",
+
   "welcome.title": "स्वागत है",
   "welcome.get_started": "शुरू करें",
   "welcome.choose_language": "अपनी भाषा चुनें",

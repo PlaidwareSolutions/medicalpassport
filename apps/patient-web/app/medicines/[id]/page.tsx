@@ -7,6 +7,7 @@ import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/
 import { AppShell } from "../../../components/AppShell";
 import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
 import { PageHeader } from "../../../components/PageHeader";
+import { ReadAloud } from "../../../components/ReadAloud";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { invalidateMedicationData, instructionSummary, useMedication } from "../../../lib/medications";
@@ -58,20 +59,6 @@ export default function MedicineDetailPage() {
     }
   }
 
-  function speak() {
-    if (!medication || !("speechSynthesis" in window)) return;
-    const text = [
-      medication.product?.brandName ?? medication.enteredName,
-      medication.product?.ingredients.map((i) => i.name).join(", "),
-      instructionSummary(medication, t as never),
-      medication.patientReason ?? "",
-    ]
-      .filter(Boolean)
-      .join(". ");
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-  }
-
   if (error && !medication) {
     return (
       <AppShell>
@@ -93,6 +80,18 @@ export default function MedicineDetailPage() {
   const displayName = medication.product?.brandName ?? medication.enteredName;
   const searchTerm = webSearchTerm(medication);
   const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(`"${searchTerm}"`)}`;
+
+  // What the listen button reads: the screen's purpose first (pre-generated
+  // audio, so it works even where the browser has no matching voice), then
+  // this medicine's own summary via browser TTS in the UI language.
+  const spokenSummary = [
+    displayName,
+    medication.product?.ingredients.map((i) => i.name).join(", "),
+    instructionSummary(medication, t as never),
+    medication.patientReason ?? "",
+  ]
+    .filter(Boolean)
+    .join(". ");
 
   return (
     <AppShell>
@@ -142,11 +141,7 @@ export default function MedicineDetailPage() {
             {t("meds.quantity_remaining", { count: medication.quantityOnHand, unit: medication.instruction?.doseUnit ?? "" })}
           </div>
         ) : null}
-        {"speechSynthesis" in globalThis ? (
-          <Button variant="secondary" onClick={speak}>
-            🔊 {t("meds.instruction")}
-          </Button>
-        ) : null}
+        <ReadAloud size="md" segments={[{ audio: "screen.medicine_detail" }, { text: spokenSummary }]} />
       </Card>
 
       {/* The two "used for" blocks are always separate (docs/02 principle 3). */}

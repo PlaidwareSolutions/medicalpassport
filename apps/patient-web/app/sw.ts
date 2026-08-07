@@ -8,7 +8,7 @@
  */
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { NetworkOnly, Serwist } from "serwist";
+import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -28,6 +28,18 @@ const serwist = new Serwist({
       // API traffic (any origin, /v1/ or /healthz paths) is network-only.
       matcher: ({ url }) => url.pathname.startsWith("/v1/") || url.pathname === "/readyz" || url.pathname === "/healthz",
       handler: new NetworkOnly(),
+    },
+    {
+      // Pre-generated guidance audio (static UI copy, not PHI): the files
+      // are content-addressed so CacheFirst can never serve stale audio.
+      // maxEntries ≈ one locale's full set — the patient plays one locale,
+      // and docs/01 P4's phone has almost no free storage; deliberately not
+      // precached (see globPublicPatterns in next.config.mjs).
+      matcher: ({ url }) => url.pathname.startsWith("/audio/guidance/"),
+      handler: new CacheFirst({
+        cacheName: "guidance-audio",
+        plugins: [new ExpirationPlugin({ maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 90 })],
+      }),
     },
     ...defaultCache,
   ],

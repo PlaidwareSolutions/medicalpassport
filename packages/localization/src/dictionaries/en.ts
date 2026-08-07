@@ -25,6 +25,11 @@ export const en = {
   "common.error_generic": "Something went wrong. Please try again.",
   "common.skip": "Skip for now",
 
+  "guide.listen": "Listen",
+  "guide.stop": "Stop",
+  "guide.slower": "Slower",
+  "guide.screen.medicine_detail": "This screen shows one medicine — how much to take, when to take it, and what to watch out for.",
+
   "welcome.title": "Welcome",
   "welcome.get_started": "Get started",
   "welcome.choose_language": "Choose your language",

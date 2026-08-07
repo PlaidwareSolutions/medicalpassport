@@ -16,7 +16,7 @@ Target browsers (test matrix per [20-testing-strategy](20-testing-strategy.md)):
 | Camera (`getUserMedia`) | ✅ | ✅ | ✅ | ✅ | permission + device enumeration | `<input type="file" accept="image/*" capture>` then plain file upload |
 | File upload | ✅ | ✅ | ✅ | ✅ | — | Always available; baseline capture path |
 | Microphone / speech recognition | ✅ (Web Speech partial) | ⚠️ | ⚠️ limited locales | ✅ | API + locale check | Manual entry with pickers (already typing-minimal) |
-| Text-to-speech (Web Speech synthesis) | ✅ (voice availability varies by locale) | ✅ | ✅ (locale gaps for te/ur) | ✅ | `speechSynthesis.getVoices()` per locale | Server-generated audio (Stage 8); text always primary |
+| Text-to-speech (Web Speech synthesis) | ✅ (voice availability varies by locale) | ✅ | ✅ (locale gaps for te/ur) | ✅ | `speechSynthesis.getVoices()` per locale (`lib/read-aloud.ts`: async `voiceschanged` + first-interaction re-poll) | **Built:** static guidance copy plays build-time pre-generated audio (`generate:audio`, committed under `public/audio/guidance/`) on every browser incl. te/ur Safari; dynamic content uses a locale-matched browser voice with `lang` set (Latin-only text may use an English voice); when neither exists the listen button renders nothing — text always primary |
 | IndexedDB | ✅ | ✅ | ✅ (evictable; private browsing limits) | ✅ | open test + quota estimate | Online-only behavior with clear message |
 | Storage persistence (`navigator.storage.persist`) | ✅ | ✅ | ⚠️ | ✅ | API check | Warn that offline data may be evicted; sync eagerly |
 | Web Share / Share target | ✅ | ✅ | ✅ share; target when installed | ⚠️ | `navigator.share` | Copy-link button, download PDF |

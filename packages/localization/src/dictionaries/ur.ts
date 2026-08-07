@@ -24,6 +24,11 @@ export const ur: Record<keyof typeof en, string> = {
   "common.error_generic": "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
   "common.skip": "ابھی چھوڑ دیں",
 
+  "guide.listen": "سنیں",
+  "guide.stop": "روکیں",
+  "guide.slower": "آہستہ بولیں",
+  "guide.screen.medicine_detail": "یہ اسکرین ایک دوا دکھاتی ہے — کتنی لینی ہے، کب لینی ہے، اور کن باتوں کا خیال رکھنا ہے۔",
+
   "welcome.title": "خوش آمدید",
   "welcome.get_started": "شروع کریں",
   "welcome.choose_language": "اپنی زبان منتخب کریں",
