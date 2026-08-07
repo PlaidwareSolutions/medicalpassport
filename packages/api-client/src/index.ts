@@ -349,11 +349,13 @@ export interface RefillReminderDto {
 }
 
 /**
- * Persistent in-app record of a missed-dose caregiver escalation — the
- * push/SMS notification is a one-shot alert; this is the durable list a
- * caregiver (or the patient) can check regardless of whether that delivery
- * succeeded. "missed" means still open; "taken_other_time" means the
- * patient corrected it (shown for a trailing window, not forever).
+ * In-app record of a missed-dose caregiver escalation — the push/SMS
+ * notification is a one-shot alert; this list is what a caregiver (or the
+ * patient) can check regardless of whether that delivery succeeded.
+ * "missed" means still open; "taken_other_time" means the patient
+ * corrected it. Both are shown only for a bounded trailing window and the
+ * list is capped at the most recent few — a recent-attention view, not a
+ * full history (Timeline remains the per-day record).
  */
 export interface CaregiverAlertDto {
   scheduledDoseId: string;

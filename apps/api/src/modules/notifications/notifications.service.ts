@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { dailySlotQuantity, type SlotDose } from "@medpass/medication-terminology";
-import { ERROR_CODES, type AuditActorType } from "@medpass/domain";
+import { CAREGIVER_ALERT_MAX_ITEMS, CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES, type AuditActorType } from "@medpass/domain";
 import type { NotificationPreferencesInput, WebPushSubscribeInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { encryptField, sha256Hex } from "../../common/crypto";
@@ -172,29 +172,33 @@ export class NotificationsService {
   }
 
   /**
-   * Caregiver-visible missed-dose alert history — a persistent in-app
-   * record, unlike the push/SMS `caregiver_escalation` notification it
-   * accompanies. Deliberately reads the dose's own live status rather than
-   * the Notification row: a missed dose with nobody to escalate to (no
-   * caregiver channel active) still gets its Notification cancelled with
-   * nothing sent (detect-due-reminders.ts), which would otherwise make this
-   * list just as blind as the push it's meant to back up. "Open" means
-   * still missed; "recently resolved" is a bounded trailing window (docs/16
-   * never specified a retention period, and an ever-growing list of
-   * long-past corrections has no ongoing value) so the list stays a live
-   * "what needs attention / just got resolved" view, not a full history.
+   * Caregiver-visible missed-dose alert history — a recent-attention view,
+   * not a full history. Deliberately reads the dose's own live status
+   * rather than the Notification row: a missed dose with nobody to
+   * escalate to (no caregiver channel active) still gets its Notification
+   * cancelled with nothing sent (detect-due-reminders.ts), which would
+   * otherwise make this list just as blind as the push it's meant to back
+   * up. Both branches are bounded to the trailing window and the combined
+   * list silently capped — the push/SMS `caregiver_escalation` at miss
+   * time is the primary channel, Timeline keeps the full per-day record,
+   * and the retention-cleanup cron is the long-term bound, so an
+   * ever-growing on-Home list of stale misses has no ongoing value
+   * (hazard H-26 covers the trade-off).
    */
   async listCaregiverAlerts(profileId: string) {
-    const RESOLVED_WINDOW_DAYS = 7;
-    const resolvedSince = new Date(Date.now() - RESOLVED_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    const windowStart = new Date(Date.now() - CAREGIVER_ALERT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
     const doses = await this.prisma.scheduledDose.findMany({
       where: {
         medicationSchedule: { patientMedication: { patientProfileId: profileId, deletedAt: null } },
-        OR: [{ status: "missed" }, { status: "taken_other_time", updatedAt: { gte: resolvedSince } }],
+        OR: [
+          { status: "missed", dueAt: { gte: windowStart } },
+          { status: "taken_other_time", updatedAt: { gte: windowStart } },
+        ],
       },
       include: { medicationSchedule: { include: { patientMedication: true } } },
       orderBy: { dueAt: "desc" },
+      take: CAREGIVER_ALERT_MAX_ITEMS,
     });
 
     return {

@@ -181,6 +181,9 @@ export default defineRailway(() => {
   });
   const generateRefillReminders = cronJob("cron-generate-refill-reminders", "0 6 * * *", "generate-refill-reminders");
   const cleanupRateLimitBuckets = cronJob("cron-cleanup-rate-limit-buckets", "0 4 * * *", "cleanup-rate-limit-buckets");
+  // docs/25 planned retention-cleanup at 0 4, but that minute is taken
+  // above (and monthly by restore-test) — 30 4 keeps the same quiet window.
+  const retentionCleanup = cronJob("cron-retention-cleanup", "30 4 * * *", "retention-cleanup");
 
   // Backups (docs/27) — real pg_dump + R2 + a monthly restore test into a
   // genuine scratch database. BACKUP_ENCRYPTION_KEY is a dedicated secret
@@ -213,6 +216,7 @@ export default defineRailway(() => {
       detectDueReminders,
       generateRefillReminders,
       cleanupRateLimitBuckets,
+      retentionCleanup,
       backupExport,
       verifyBackups,
       restoreTest,

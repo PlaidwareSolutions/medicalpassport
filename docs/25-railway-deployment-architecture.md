@@ -61,7 +61,7 @@ flowchart TB
 | content-freshness-check | 0 2 * * 0 |
 | backup-export + verify-backups | 0 1 * * * / 0 3 * * * |
 | restore-test | 0 4 1 * * (monthly) |
-| retention-cleanup | 0 4 * * * |
+| retention-cleanup | 30 4 * * * (live; 0 4 was taken by cleanup-rate-limit-buckets/restore-test) |
 | reconcile-stuck-jobs | */30 * * * * |
 | operational-report | 0 7 * * * |
 | review-pending-content / overdue-approval-nudges | 0 9 * * 1-5 |

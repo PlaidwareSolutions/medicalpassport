@@ -152,4 +152,61 @@ describe("Caregiver alerts e2e", () => {
     const alerts = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/caregiver-alerts")).expect(200);
     expect(alerts.body.items.find((i: { scheduledDoseId: string }) => i.scheduledDoseId === doseId)).toBeUndefined();
   });
+
+  let staleMissedDoseId: string;
+
+  it("a missed dose older than the window drops off the alert list and stops lighting hasOpenAlerts", async () => {
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+    const upcoming = await prisma.scheduledDose.findFirstOrThrow({
+      where: { medicationSchedule: { patientMedicationId: medicationId }, status: "upcoming" },
+      orderBy: { dueAt: "asc" },
+    });
+    await prisma.scheduledDose.update({ where: { id: upcoming.id }, data: { status: "missed", dueAt: eightDaysAgo } });
+    staleMissedDoseId = upcoming.id;
+
+    const alerts = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/caregiver-alerts")).expect(200);
+    expect(alerts.body.items.find((i: { scheduledDoseId: string }) => i.scheduledDoseId === staleMissedDoseId)).toBeUndefined();
+
+    const profiles = await auth(tokenA)(request(app.getHttpServer()).get("/v1/profiles")).expect(200);
+    expect(profiles.body.items.find((p: { id: string }) => p.id === profileA).hasOpenAlerts).toBe(false);
+  });
+
+  let recentMissedDoseIds: string[];
+
+  it("the alert list is silently capped at the most recent five", async () => {
+    const upcoming = await prisma.scheduledDose.findMany({
+      where: { medicationSchedule: { patientMedicationId: medicationId }, status: "upcoming" },
+      orderBy: { dueAt: "asc" },
+      take: 7,
+    });
+    expect(upcoming).toHaveLength(7);
+    recentMissedDoseIds = [];
+    for (const [index, dose] of upcoming.entries()) {
+      const dueAt = new Date(Date.now() - (index + 1) * 60 * 60 * 1000);
+      await prisma.scheduledDose.update({ where: { id: dose.id }, data: { status: "missed", dueAt } });
+      recentMissedDoseIds.push(dose.id);
+    }
+
+    const alerts = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/caregiver-alerts")).expect(200);
+    // Newest-first by dueAt; the two oldest in-window misses and the
+    // 8-day-old one are pushed out by the cap and window respectively.
+    expect(alerts.body.items.map((i: { scheduledDoseId: string }) => i.scheduledDoseId)).toEqual(recentMissedDoseIds.slice(0, 5));
+  });
+
+  it("the cap applies to the combined list, not per branch: a fresh resolution competes with open misses", async () => {
+    await prisma.scheduledDose.update({ where: { id: doseId }, data: { updatedAt: new Date() } });
+
+    // Expected top 5 by dueAt desc across both branches — doseId's dueAt
+    // (the schedule's first slot) ranks time-of-day-dependently against
+    // the hourly misses, so compute the expectation from the DB.
+    const candidates = await prisma.scheduledDose.findMany({
+      where: { id: { in: [...recentMissedDoseIds, doseId] } },
+      select: { id: true },
+      orderBy: { dueAt: "desc" },
+      take: 5,
+    });
+
+    const alerts = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/caregiver-alerts")).expect(200);
+    expect(alerts.body.items.map((i: { scheduledDoseId: string }) => i.scheduledDoseId)).toEqual(candidates.map((c) => c.id));
+  });
 });

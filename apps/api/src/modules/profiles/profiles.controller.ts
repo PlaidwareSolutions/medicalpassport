@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Patch, Post, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
-import { ERROR_CODES } from "@medpass/domain";
+import { CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES } from "@medpass/domain";
 import {
   allergySchema,
   conditionSchema,
@@ -45,6 +45,9 @@ export class ProfilesController {
     // actually receives the escalation, so a view-only caregiver doesn't
     // see a badge for something they have no responsibility for. Self/
     // dependent profiles always qualify (it's the caller's own data).
+    // Shares CAREGIVER_ALERT_WINDOW_DAYS with the alert-history list by
+    // design: a badge lit by a miss too old to appear there would lead
+    // nowhere.
     const caregiverProfileIds = profiles.filter((p) => relationships.get(p.id) === "caregiver").map((p) => p.id);
     let scopedCaregiverProfileIds = new Set<string>();
     if (caregiverProfileIds.length > 0) {
@@ -63,8 +66,13 @@ export class ProfilesController {
       .filter((p) => relationships.get(p.id) !== "caregiver" || scopedCaregiverProfileIds.has(p.id))
       .map((p) => p.id);
 
+    const alertWindowStart = new Date(Date.now() - CAREGIVER_ALERT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const missedDoses = await this.prisma.scheduledDose.findMany({
-      where: { status: "missed", medicationSchedule: { patientMedication: { patientProfileId: { in: visibleProfileIds }, deletedAt: null } } },
+      where: {
+        status: "missed",
+        dueAt: { gte: alertWindowStart },
+        medicationSchedule: { patientMedication: { patientProfileId: { in: visibleProfileIds }, deletedAt: null } },
+      },
       select: { medicationSchedule: { select: { patientMedication: { select: { patientProfileId: true } } } } },
       distinct: ["medicationScheduleId"],
     });
