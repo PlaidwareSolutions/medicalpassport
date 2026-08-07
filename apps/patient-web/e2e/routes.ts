@@ -35,6 +35,7 @@ export function screenRoutes(): string[] {
     "/profile/dependents/new",
     "/reports",
     "/reports/new",
+  "/reports/values",
     "/safety",
     "/share",
     "/share/new",

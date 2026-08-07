@@ -7,14 +7,15 @@ import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { documentDownloadUrl } from "../../../lib/prescriptions";
-import { deleteReport, useReport } from "../../../lib/reports";
+import { addReportValue, deleteReport, deleteReportValue, useReport } from "../../../lib/reports";
+import { ReportValuesSection } from "../../../components/ReportValuesSection";
 
 /** Screen 44 (docs/07): one test report — its details and the filed documents. */
 export default function ReportDetailPage() {
   const { t } = useI18n();
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { report, error } = useReport(params.id);
+  const { report, error, reload } = useReport(params.id);
   const [actionError, setActionError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
 
@@ -74,6 +75,18 @@ export default function ReportDetailPage() {
         ) : null}
         {report.notes ? <div style={{ marginTop: "var(--space-xs)" }}>{report.notes}</div> : null}
       </Card>
+
+      <ReportValuesSection
+        values={report.values}
+        onAdd={async (input) => {
+          await addReportValue(report.id, input);
+          await reload();
+        }}
+        onDelete={async (id) => {
+          await deleteReportValue(id);
+          await reload();
+        }}
+      />
 
       <SectionTitle>{t("reports.documents")}</SectionTitle>
       {report.documents.length === 0 ? (

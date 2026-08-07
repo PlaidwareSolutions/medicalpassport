@@ -176,6 +176,7 @@ model PatientProfile {
   notificationPreference NotificationPreference?
   glucoseReadings        GlucoseReading[]
   checkupRecords         CheckupRecord[]
+  reportValues           ReportValue[]
 
   @@index([ownerUserId])
   @@map("patient_profiles")
@@ -352,19 +353,22 @@ enum MedicalReportKind {
 
 /// A diagnostic test result the patient keeps a copy of (docs/07 screen 44) —
 /// blood/urine panels, MRI/CT/X-ray scans, ECGs, biopsy reports, discharge
-/// summaries. Document-first by design: the report itself is the record, with
-/// only free-text notes alongside it. Individual analyte values (e.g.
-/// "Hemoglobin 13.2 g/dL") are deliberately NOT stored — that would be the
-/// first open-domain clinical value store in this schema, and typing 20+ rows
-/// per report on a phone isn't realistic. Layer it on later if it's ever
-/// wanted; nothing here forecloses it.
+/// summaries. Document-first: the report itself is the record, with free-text
+/// notes alongside it. Individual analyte values, originally deferred, now
+/// live in `report_values` — but as a *closed-vocabulary transcription layer*
+/// (curated ~30-analyte list in @medpass/domain, entered text kept immutable
+/// with a parsed numeric twin, reference ranges display-only and never
+/// compared). This is still not an open-domain clinical value store: no
+/// free-form analytes beyond an explicitly labelled `other`, no computed
+/// high/low flags (docs/02 — not a diagnostic system), no OCR of values.
 ///
 /// Overlaps CheckupRecord on four analytes (fasting/post-prandial glucose,
 /// HbA1c, cholesterol) but is deliberately kept separate and never auto-synced
 /// with it: a check-up is a hand-transcribed set of visit measurements anchored
 /// to a visit date, this is an archived document anchored to a sample date, and
 /// screen 42 promises check-up values are never fabricated — which rules out
-/// populating one by parsing the other.
+/// populating one by parsing the other. Per-analyte history shows report
+/// values only, never check-up entries.
 model MedicalReport {
   id               String            @id @default(uuid()) @db.Uuid
   patientProfileId String            @map("patient_profile_id") @db.Uuid
@@ -386,9 +390,43 @@ model MedicalReport {
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   documents PrescriptionDocument[]
+  values    ReportValue[]
 
   @@index([patientProfileId, testedAt])
   @@map("medical_reports")
+}
+
+/// One structured value transcribed off a test report (docs/07 screen 44,
+/// docs/10 H-25). `enteredValue` is the immutable original exactly as typed;
+/// `numericValue` is its server-parsed twin, present only when the text
+/// parses cleanly — qualitative results ("Negative", "<5.7") stay text-only
+/// and never trend. `referenceText` is the report's own printed range,
+/// display-only: the app never compares a value against it and never flags
+/// high/low (docs/02 boundary — not a diagnostic system). `analyte` is TEXT
+/// against the closed REPORT_ANALYTES vocabulary (@medpass/domain), not a PG
+/// enum — the list is provisional pending clinical validation (docs/34) and
+/// must be renamable without enum surgery. No update path exists: a typo is
+/// delete + re-add (glucose-reading precedent).
+model ReportValue {
+  id               String         @id @default(uuid()) @db.Uuid
+  reportId         String         @map("report_id") @db.Uuid
+  report           MedicalReport  @relation(fields: [reportId], references: [id])
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  analyte          String
+  /// Names the measurement when analyte = "other"; null otherwise.
+  otherLabel       String?        @map("other_label")
+  enteredValue     String         @map("entered_value")
+  numericValue     Decimal?       @map("numeric_value") @db.Decimal(10, 3)
+  referenceText    String?        @map("reference_text")
+  recordedByUserId String         @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, analyte])
+  @@index([reportId])
+  @@map("report_values")
 }
 
 enum AllergySeverity {

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { REPORT_ANALYTE_IDS, reportAnalyteById } from "@medpass/domain";
 import { PrismaService } from "../../common/prisma.service";
 
 export interface VisitSummarySections {
@@ -91,6 +92,13 @@ export interface VisitSummaryDto {
     testedAt: string | null;
     notes: string | null;
     documentCount: number;
+    /**
+     * Structured values transcribed off the report — label/unit resolved
+     * server-side from the closed vocabulary so the worker's duplicated
+     * renderer never needs the analyte mapping. enteredValue verbatim, no
+     * flags, no value ids (public share path is unauthenticated).
+     */
+    values?: Array<{ label: string; enteredValue: string; unit: string | null; referenceText: string | null }>;
   }>;
 }
 
@@ -322,10 +330,17 @@ export class VisitSummaryService {
         deletedAt: null,
         OR: [{ testedAt: { gte: cutoff } }, { testedAt: null, createdAt: { gte: cutoff } }],
       },
-      include: { practitioner: true, _count: { select: { documents: true } } },
+      include: {
+        practitioner: true,
+        _count: { select: { documents: true } },
+        // Cap 30 = the vocabulary size: a genuine full-panel report is never
+        // truncated, only `other`-spam is (a 50/report write guard exists too).
+        values: { where: { deletedAt: null }, take: 30 },
+      },
       orderBy: [{ testedAt: "desc" }, { createdAt: "desc" }],
       take: 10,
     });
+    const vocabularyOrder = new Map(REPORT_ANALYTE_IDS.map((id, i) => [id, i]));
     summary.reports = reports.map((r) => ({
       kind: r.kind,
       label: r.label,
@@ -334,6 +349,17 @@ export class VisitSummaryService {
       testedAt: r.testedAt?.toISOString().slice(0, 10) ?? null,
       notes: r.notes,
       documentCount: r._count.documents,
+      values: [...r.values]
+        .sort((a, b) => (vocabularyOrder.get(a.analyte) ?? 999) - (vocabularyOrder.get(b.analyte) ?? 999))
+        .map((v) => ({
+          // Label/unit resolved here, server-side, so the worker's duplicated
+          // renderer never needs the analyte mapping. enteredValue verbatim —
+          // the parsed numericValue is never rendered anywhere.
+          label: v.analyte === "other" ? (v.otherLabel ?? "Other test value") : (reportAnalyteById(v.analyte)?.label ?? v.analyte),
+          enteredValue: v.enteredValue,
+          unit: reportAnalyteById(v.analyte)?.unit ?? null,
+          referenceText: v.referenceText,
+        })),
     }));
   }
 }

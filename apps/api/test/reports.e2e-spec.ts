@@ -9,9 +9,11 @@ import { PrismaService } from "../src/common/prisma.service";
 /**
  * Medical test reports (docs/07 screen 44, docs/13 "medical_reports") — the
  * archive of blood/urine panels, scans, ECGs, biopsies and discharge
- * summaries. Document-first by design: there are no per-analyte values to
- * assert, so these cover the record itself, its document attachment through
- * the shared upload pipeline, and the scope/soft-delete semantics.
+ * summaries. Document-first, plus the closed-vocabulary value layer: these
+ * cover the record, its document attachment through the shared upload
+ * pipeline, the scope/soft-delete semantics, and the transcribed values —
+ * entered text verbatim, numeric twin only when clean, history coalesced by
+ * test-date-then-filing-date.
  */
 describe("Reports e2e", () => {
   let app: INestApplication;
@@ -34,7 +36,7 @@ describe("Reports e2e", () => {
         prescription_extractions, prescription_documents, object_access_events,
         stored_objects, dose_events, scheduled_doses, medication_schedules,
         medication_changes, medication_instructions, patient_medications,
-        medical_reports, prescriptions, practitioners, patient_allergies,
+        report_values, medical_reports, prescriptions, practitioners, patient_allergies,
         patient_conditions, consent_events, consents, caregiver_permissions,
         caregiver_relationships, sessions, user_devices, otp_attempts,
         patient_profiles, users CASCADE
@@ -124,6 +126,106 @@ describe("Reports e2e", () => {
 
   it("rejects a report with no kind — that's the one thing the record can't be without", async () => {
     await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/reports")).send({}).expect(400);
+  });
+
+  it("records values verbatim, deriving a numeric twin only when the text parses cleanly", async () => {
+    const hb = await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${reportId}/values`))
+      .send({ analyte: "hemoglobin", enteredValue: "13.2", referenceText: "13.0 - 17.0" })
+      .expect(201);
+    expect(hb.body).toMatchObject({
+      analyte: "hemoglobin",
+      label: "Hemoglobin (Hb)",
+      unit: "g/dL",
+      enteredValue: "13.2",
+      numericValue: "13.2",
+      referenceText: "13.0 - 17.0",
+    });
+
+    // Indian digit grouping parses; the entered text stays exactly as typed.
+    const platelets = await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${reportId}/values`))
+      .send({ analyte: "platelet_count", enteredValue: "4,50,000" })
+      .expect(201);
+    expect(platelets.body.enteredValue).toBe("4,50,000");
+    expect(platelets.body.numericValue).toBe("450000");
+
+    // Qualitative results record fine and simply never trend.
+    const other = await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${reportId}/values`))
+      .send({ analyte: "other", otherLabel: "Urine Albumin", enteredValue: "Negative" })
+      .expect(201);
+    expect(other.body).toMatchObject({ label: "Urine Albumin", enteredValue: "Negative", numericValue: null, unit: null });
+
+    const detail = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/reports/${reportId}`)).expect(200);
+    expect(detail.body.values).toHaveLength(3);
+    // Vocabulary order: CBC analytes before `other`.
+    expect(detail.body.values.map((v: { analyte: string }) => v.analyte)).toEqual(["hemoglobin", "platelet_count", "other"]);
+  });
+
+  it("rejects an unknown analyte, and `other` without a name", async () => {
+    await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${reportId}/values`))
+      .send({ analyte: "unicorn_dust", enteredValue: "1" })
+      .expect(400);
+    await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${reportId}/values`))
+      .send({ analyte: "other", enteredValue: "1" })
+      .expect(400);
+  });
+
+  it("serves per-analyte history newest-first, dating an undated report by when it was filed", async () => {
+    // A second, older report with its own Hb value — dated before the first.
+    const older = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/reports"))
+      .send({ kind: "blood_test", testedAt: "2026-01-15" })
+      .expect(201);
+    await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${older.body.id}/values`))
+      .send({ analyte: "hemoglobin", enteredValue: "12.8" })
+      .expect(201);
+    // And one on an undated report — created now, so it must sort by filing
+    // date (a plain DESC on testedAt would pin NULLs to the top forever).
+    const undated = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/reports"))
+      .send({ kind: "blood_test" })
+      .expect(201);
+    await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${undated.body.id}/values`))
+      .send({ analyte: "hemoglobin", enteredValue: "14.0" })
+      .expect(201);
+
+    const history = await auth(tokenA, profileA)(
+      request(app.getHttpServer()).get("/v1/profiles/current/report-values?analyte=hemoglobin"),
+    ).expect(200);
+    expect(history.body.items.map((i: { enteredValue: string }) => i.enteredValue)).toEqual(["14.0", "13.2", "12.8"]);
+
+    // `other` has no shared identity to trend.
+    await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/report-values?analyte=other")).expect(400);
+  });
+
+  it("deleting a value hides it without touching the report; deleting a report hides its values from history", async () => {
+    const doomed = await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${reportId}/values`))
+      .send({ analyte: "tsh", enteredValue: "2.5" })
+      .expect(201);
+    await auth(tokenA, profileA)(request(app.getHttpServer()).delete(`/v1/report-values/${doomed.body.id}`)).expect(204);
+    const detail = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/reports/${reportId}`)).expect(200);
+    expect(detail.body.values.some((v: { id: string }) => v.id === doomed.body.id)).toBe(false);
+
+    // Values on a deleted report vanish from history but keep their FK rows.
+    const temp = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/reports"))
+      .send({ kind: "blood_test" })
+      .expect(201);
+    const val = await auth(tokenA, profileA)(request(app.getHttpServer()).post(`/v1/reports/${temp.body.id}/values`))
+      .send({ analyte: "crp", enteredValue: "3.1" })
+      .expect(201);
+    await auth(tokenA, profileA)(request(app.getHttpServer()).delete(`/v1/reports/${temp.body.id}`)).expect(204);
+    const history = await auth(tokenA, profileA)(
+      request(app.getHttpServer()).get("/v1/profiles/current/report-values?analyte=crp"),
+    ).expect(200);
+    expect(history.body.items).toHaveLength(0);
+    const row = await prisma.reportValue.findUniqueOrThrow({ where: { id: val.body.id } });
+    expect(row.reportId).toBe(temp.body.id);
+    expect(row.deletedAt).toBeNull(); // no cascade — the parent hides it, nothing rewrites it
+  });
+
+  it("a caregiver with only view_medications reads values and history but cannot write them", async () => {
+    await auth(tokenB, profileA)(request(app.getHttpServer()).get(`/v1/reports/${reportId}`)).expect(200);
+    await auth(tokenB, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/report-values?analyte=hemoglobin")).expect(200);
+    await auth(tokenB, profileA)(request(app.getHttpServer()).post(`/v1/reports/${reportId}/values`))
+      .send({ analyte: "hemoglobin", enteredValue: "9.9" })
+      .expect(403);
   });
 
   it("a doctor named on both a report and a prescription resolves to one practitioner record", async () => {

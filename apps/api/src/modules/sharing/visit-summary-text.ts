@@ -1,5 +1,5 @@
 import type { VisitSummaryDto } from "./visit-summary.service";
-import { checkupMetrics, contextLabel, formatDateOnly, reportKindLabel } from "./visit-summary-format";
+import { checkupMetrics, contextLabel, formatDateOnly, reportKindLabel, reportValueLine } from "./visit-summary-format";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
@@ -125,6 +125,7 @@ export function renderVisitSummaryText(summary: VisitSummaryDto): string {
         lines.push(`- ${title} (${when})`);
         const where = [r.facilityName, r.practitionerName ? `ordered by ${r.practitionerName}` : null].filter(Boolean);
         if (where.length) lines.push(`  ${where.join(" · ")}`);
+        for (const v of r.values ?? []) lines.push(`  ${reportValueLine(v)}`);
         if (r.notes) lines.push(`  ${r.notes}`);
         if (r.documentCount) lines.push(`  ${r.documentCount} file(s) on record`);
       }

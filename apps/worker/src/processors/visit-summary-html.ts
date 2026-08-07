@@ -63,6 +63,8 @@ export interface VisitSummaryDto {
     testedAt: string | null;
     notes: string | null;
     documentCount: number;
+    /** Label/unit pre-resolved by the API — this renderer never maps analytes. */
+    values?: Array<{ label: string; enteredValue: string; unit: string | null; referenceText: string | null }>;
   }>;
 }
 
@@ -259,7 +261,13 @@ export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
             `<table><thead><tr><th>Test</th><th>Date</th><th>Where / who</th><th>Notes</th><th>Files</th></tr></thead><tbody>${summary.reports
               .map((r) => {
                 const where = [esc(r.facilityName), r.practitionerName ? `Ordered by ${esc(r.practitionerName)}` : ""].filter(Boolean);
-                return `<tr><td><strong>${esc(reportKindLabel(r.kind))}</strong>${r.label ? `<br>${esc(r.label)}` : ""}</td><td>${r.testedAt ? esc(formatDateOnly(r.testedAt)) : "<span class=\"muted\">Not recorded</span>"}</td><td>${where.length ? where.join("<br>") : "—"}</td><td>${esc(r.notes) || "—"}</td><td>${r.documentCount || "—"}</td></tr>`;
+                // Values verbatim as entered, never flagged or coloured —
+                // every field is patient-entered text, so everything is esc()d.
+                const values = (r.values ?? [])
+                  .map((v) => `${esc(v.label)}: ${esc(v.enteredValue)}${v.unit ? ` ${esc(v.unit)}` : ""}${v.referenceText ? ` <span class="muted">(ref ${esc(v.referenceText)})</span>` : ""}`)
+                  .join("<br>");
+                const notesCell = [values, esc(r.notes)].filter(Boolean).join("<br>");
+                return `<tr><td><strong>${esc(reportKindLabel(r.kind))}</strong>${r.label ? `<br>${esc(r.label)}` : ""}</td><td>${r.testedAt ? esc(formatDateOnly(r.testedAt)) : "<span class=\"muted\">Not recorded</span>"}</td><td>${where.length ? where.join("<br>") : "—"}</td><td>${notesCell || "—"}</td><td>${r.documentCount || "—"}</td></tr>`;
               })
               .join("")}</tbody></table>`
           : "<p class=\"muted\">No test reports in this period.</p>",

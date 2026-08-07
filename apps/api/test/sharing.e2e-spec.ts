@@ -38,7 +38,7 @@ describe("Sharing e2e", () => {
       TRUNCATE TABLE audit_events, rate_limit_buckets, offline_mutations, dead_letter_jobs, background_jobs,
         medication_changes, medication_instructions, patient_medications, practitioners,
         glucose_readings, checkup_records, prescription_documents, prescriptions,
-        medical_reports,
+        report_values, medical_reports,
         patient_allergies, patient_conditions, consent_events, consents,
         caregiver_permissions, caregiver_relationships, sessions,
         user_devices, otp_attempts, patient_profiles, users CASCADE
@@ -224,6 +224,9 @@ describe("Sharing e2e", () => {
         notes: "Cholesterol borderline",
       })
       .expect(201);
+    const hbValue = await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/reports/${dated.body.id}/values`))
+      .send({ analyte: "hemoglobin", enteredValue: "13.2", referenceText: "13.0 - 17.0" })
+      .expect(201);
     // No testedAt at all — it must still fall inside the 90-day window via
     // its createdAt rather than being silently dropped from the summary.
     await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/reports"))
@@ -246,6 +249,8 @@ describe("Sharing e2e", () => {
     expect(text.body.text).toContain("Blood test — Lipid profile");
     expect(text.body.text).toContain("Metro Labs · ordered by Dr. Report Summary");
     expect(text.body.text).toContain("Imaging / scan (date not recorded)");
+    // Transcribed values ride inside the report entry, verbatim, range and all.
+    expect(text.body.text).toContain("Hemoglobin (Hb): 13.2 g/dL (ref 13.0 - 17.0)");
 
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({ sections: {}, expiresInHours: 1, kind: "link" })
@@ -254,9 +259,14 @@ describe("Sharing e2e", () => {
     expect(publicRes.body.reports).toEqual(
       expect.arrayContaining([expect.objectContaining({ label: "Lipid profile" })]),
     );
+    const publicReport = publicRes.body.reports.find((r: { label: string | null }) => r.label === "Lipid profile");
+    expect(publicReport.values).toEqual([
+      { label: "Hemoglobin (Hb)", enteredValue: "13.2", unit: "g/dL", referenceText: "13.0 - 17.0" },
+    ]);
     // Anyone holding the token can read this, so it must carry no handle to
-    // the report's actual files — not even the report id.
+    // the report's actual files — not even the report id, nor any value id.
     expect(JSON.stringify(publicRes.body)).not.toContain(dated.body.id);
+    expect(JSON.stringify(publicRes.body)).not.toContain(hbValue.body.id);
   });
 
   it("a share created before a section existed never starts exposing it later", async () => {

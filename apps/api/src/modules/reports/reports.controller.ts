@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query, Req } from "@nestjs/common";
 import { ERROR_CODES } from "@medpass/domain";
-import { createReportSchema } from "@medpass/validation";
+import { addReportValueSchema, createReportSchema, reportValueHistoryQuerySchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
@@ -43,6 +43,36 @@ export class ReportsController {
     const report = await this.reports.byId(profileId, id);
     if (!report) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Report not found", 404);
     return report;
+  }
+
+  @Post("reports/:id/values")
+  async addValue(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+    const { profileId, actorRole } = await this.access.require(req, "edit_profile");
+    const input = parseWith(addReportValueSchema, body);
+    return this.reports.addValue(profileId, id, input, {
+      userId: req.auth!.userId,
+      actorRole,
+      correlationId: req.correlationId,
+    });
+  }
+
+  @Delete("report-values/:id")
+  @HttpCode(204)
+  async deleteValue(@Param("id") id: string, @Req() req: ApiRequest) {
+    const { profileId, actorRole } = await this.access.require(req, "edit_profile");
+    await this.reports.deleteValue(profileId, id, {
+      userId: req.auth!.userId,
+      actorRole,
+      correlationId: req.correlationId,
+    });
+  }
+
+  /** One analyte across every report — report values only, never check-ups (docs/07 screens 42/44). */
+  @Get("profiles/current/report-values")
+  async valueHistory(@Query() query: unknown, @Req() req: ApiRequest) {
+    const { profileId } = await this.access.require(req, "view_profile");
+    const { analyte } = parseWith(reportValueHistoryQuerySchema, query);
+    return { items: await this.reports.valueHistory(profileId, analyte) };
   }
 
   @Delete("reports/:id")

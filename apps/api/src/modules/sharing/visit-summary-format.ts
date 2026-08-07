@@ -41,6 +41,17 @@ export function reportKindLabel(kind: string): string {
   return REPORT_KIND_LABELS[kind] ?? kind.replace(/_/g, " ");
 }
 
+/**
+ * One transcribed lab value as a line: "Hemoglobin (Hb): 13.2 g/dL (ref 13.0-17.0)".
+ * Always the entered text verbatim — never the parsed number, never a flag
+ * (docs/02: not a diagnostic system).
+ */
+export function reportValueLine(v: { label: string; enteredValue: string; unit: string | null; referenceText: string | null }): string {
+  const unit = v.unit ? ` ${v.unit}` : "";
+  const ref = v.referenceText ? ` (ref ${v.referenceText})` : "";
+  return `${v.label}: ${v.enteredValue}${unit}${ref}`;
+}
+
 type Checkup = NonNullable<VisitSummaryDto["checkups"]>[number];
 
 /**

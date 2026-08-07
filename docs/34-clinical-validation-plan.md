@@ -13,6 +13,10 @@ Validation gates that must pass before the safety engine (Stage 6), OCR confirma
 - Curated validation set: ≥ 200 common Indian products including ≥ 50 FDCs, look-alike/sound-alike pairs, multiple strengths/forms/release types.
 - Pass: ≥ 98% correct product→ingredient resolution on the set; 100% of failures produce "uncertain normalization" findings (never silent). *(H-01, H-23)*
 
+## Gate 1b — Report analyte vocabulary (before structured lab values are relied on)
+
+The `REPORT_ANALYTES` constant (`packages/domain/src/report-analytes.ts`) ships provisional: ~30 common Indian panel analytes with canonical units, chosen to match what labs actually print. Clinical lead reviews labels and units before the vocabulary is treated as authoritative; validation artifact under `docs/validation/`. Known review items: T3 printed in both ng/mL and ng/dL by Indian labs; platelets printed both as absolute `/cumm` and as "lakhs/cumm"; blood urea vs BUN. Mitigating design until sign-off: entered values render verbatim beside the canonical unit, the report's own printed range is transcribed alongside, the original document is always filed with the values, and the app never interprets (docs/10 H-25).
+
 ## Gate 2 — Safety rules (before findings shown to patients)
 
 Golden clinical test set covering every spec §24 clinical case, each mapped to expected findings:

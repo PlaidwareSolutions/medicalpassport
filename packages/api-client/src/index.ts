@@ -294,6 +294,34 @@ export interface ReportDto {
   createdAt: string;
 }
 
+/**
+ * One structured value transcribed off a report. `enteredValue` is what the
+ * patient typed, verbatim — the only thing any screen renders. `numericValue`
+ * is its server-parsed twin (string over JSON), null for qualitative results;
+ * it exists to answer "does this row trend", nothing else. `referenceText` is
+ * the report's own printed range, display-only — the app never compares.
+ */
+export interface ReportValueDto {
+  id: string;
+  analyte: string;
+  label: string;
+  unit: string | null;
+  enteredValue: string;
+  numericValue: string | null;
+  referenceText: string | null;
+  createdAt: string;
+}
+
+/** One row of per-analyte history — a value plus where it came from. */
+export interface ReportValueHistoryItemDto extends ReportValueDto {
+  reportId: string;
+  reportKind: string;
+  reportLabel: string | null;
+  facilityName: string | null;
+  testedAt: string | null;
+  reportCreatedAt: string;
+}
+
 export interface ReportDetailDto {
   id: string;
   kind: string;
@@ -305,6 +333,7 @@ export interface ReportDetailDto {
   createdAt: string;
   /** Reuses the prescription document shape — the storage pipeline is owner-agnostic. */
   documents: PrescriptionDocumentDto[];
+  values: ReportValueDto[];
 }
 
 export interface RefillReminderDto {
@@ -462,6 +491,7 @@ export interface VisitSummaryDto {
     testedAt: string | null;
     notes: string | null;
     documentCount: number;
+    values?: Array<{ label: string; enteredValue: string; unit: string | null; referenceText: string | null }>;
   }>;
 }
 

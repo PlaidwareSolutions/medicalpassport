@@ -20,6 +20,12 @@ export default function ReportsPage() {
         <Button fullWidth>{t("reports.add")}</Button>
       </Link>
 
+      <Link href="/reports/values">
+        <Button variant="secondary" fullWidth>
+          {t("reports.values_history_link")}
+        </Button>
+      </Link>
+
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
