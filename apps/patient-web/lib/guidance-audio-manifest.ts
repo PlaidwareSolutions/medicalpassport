@@ -15,4 +15,1193 @@ export interface GuidanceAudioAsset {
   textHash: string;
 }
 
-export const GUIDANCE_AUDIO: Partial<Record<GuidanceAudioId, Record<Locale, GuidanceAudioAsset>>> = {};
+export const GUIDANCE_AUDIO: Partial<Record<GuidanceAudioId, Record<Locale, GuidanceAudioAsset>>> = {
+  "empty.allergies": {
+    "en": {
+      "file": "empty.allergies.en.aba4bb07.mp3",
+      "textHash": "aba4bb073a518090b147d1177ac30f0a5d66c52cd2a0064b66220b4eddf2e075"
+    },
+    "hi": {
+      "file": "empty.allergies.hi.eaf69cd0.mp3",
+      "textHash": "eaf69cd0ae234046f3372c2c1b7c6827c347935b835e618c247503ec732f2eed"
+    },
+    "te": {
+      "file": "empty.allergies.te.456fa47b.mp3",
+      "textHash": "456fa47b0b6d5a30842aaf55b5ac7327f55ecc3400ecf3f8dee8abf62efb1bf5"
+    },
+    "ur": {
+      "file": "empty.allergies.ur.c11b8171.mp3",
+      "textHash": "c11b8171fd23bdab8570ec78dfbf865f5fa7844b2da02cbef1554f8304f2abec"
+    }
+  },
+  "empty.bloodsugar_checkups": {
+    "en": {
+      "file": "empty.bloodsugar_checkups.en.aa7326bb.mp3",
+      "textHash": "aa7326bb1dc71ab8231daa888f6da28298617c00a1cb0e74f2490b73f2ed65dc"
+    },
+    "hi": {
+      "file": "empty.bloodsugar_checkups.hi.e285fd9c.mp3",
+      "textHash": "e285fd9c6602391d72474289a21dc9797402d919f6ae940ef1fe27d047baa96e"
+    },
+    "te": {
+      "file": "empty.bloodsugar_checkups.te.84781cfb.mp3",
+      "textHash": "84781cfb5a4ff6875fd719b04c2da3540235dcefbb7adce58254c2339690eff9"
+    },
+    "ur": {
+      "file": "empty.bloodsugar_checkups.ur.c839b5c1.mp3",
+      "textHash": "c839b5c1d1b4bb922d72b74a3fdb887dcaf51f7c9048581d291c77a37291700b"
+    }
+  },
+  "empty.bloodsugar_readings": {
+    "en": {
+      "file": "empty.bloodsugar_readings.en.4253e127.mp3",
+      "textHash": "4253e1271d6370c854ca27c8d1b76d1576787b12d29c4a083243fbec988752cb"
+    },
+    "hi": {
+      "file": "empty.bloodsugar_readings.hi.1b821b64.mp3",
+      "textHash": "1b821b6497b61182756678fabad6f1be4f86b2f9560074c590d433f5e5a7ea84"
+    },
+    "te": {
+      "file": "empty.bloodsugar_readings.te.c427be2b.mp3",
+      "textHash": "c427be2bb4749fc338edf112629b0413e7591235cf89c0b69418188eff9e85aa"
+    },
+    "ur": {
+      "file": "empty.bloodsugar_readings.ur.23d31758.mp3",
+      "textHash": "23d3175848054a0c10633a110057b74137c942032d87d6a56745d39048718c91"
+    }
+  },
+  "empty.caregiver_invitations": {
+    "en": {
+      "file": "empty.caregiver_invitations.en.9fa711d1.mp3",
+      "textHash": "9fa711d1e14988e13e3c3e180aa644acfd47cea91c7772082b218576bc1cf773"
+    },
+    "hi": {
+      "file": "empty.caregiver_invitations.hi.1f6d38e9.mp3",
+      "textHash": "1f6d38e903f26cb1eea6665995442558a634d98804601b63f77a6bf9ba097468"
+    },
+    "te": {
+      "file": "empty.caregiver_invitations.te.3a6d28ae.mp3",
+      "textHash": "3a6d28ae4d7525b975192c94217f7d292501a6aa31e5c661d80cd592b28259ee"
+    },
+    "ur": {
+      "file": "empty.caregiver_invitations.ur.398499fe.mp3",
+      "textHash": "398499fe4f6e05d2b39d337c7a7a3a3cdfb4d11b681472a2f8715b1ab4bafa17"
+    }
+  },
+  "empty.caregivers": {
+    "en": {
+      "file": "empty.caregivers.en.87d31c80.mp3",
+      "textHash": "87d31c80f68238eb9d6944f481bffed864ebece540b4ef6b3dcaf69a8d7d92ee"
+    },
+    "hi": {
+      "file": "empty.caregivers.hi.a36ccbd0.mp3",
+      "textHash": "a36ccbd09cd469a1abbcf6e8334584b7861d0a1309362b3230557baf1d47b247"
+    },
+    "te": {
+      "file": "empty.caregivers.te.b1dc9099.mp3",
+      "textHash": "b1dc909982bd672cc8831966dc76b9e981c5116080b46c8899ac131b0112a103"
+    },
+    "ur": {
+      "file": "empty.caregivers.ur.74dbb4a0.mp3",
+      "textHash": "74dbb4a05b7d7ff3e92d748c9e5e269a1f1da2b7363a3352d327dd45c5dbf0fa"
+    }
+  },
+  "empty.claim_invitations": {
+    "en": {
+      "file": "empty.claim_invitations.en.406176b8.mp3",
+      "textHash": "406176b8bf0f7c221cc8dbb24bf7f81b1e7961ff46d2d70d637a73c35a0ce5ae"
+    },
+    "hi": {
+      "file": "empty.claim_invitations.hi.076aaeee.mp3",
+      "textHash": "076aaeee42796f08f191fac4a044c7b4127dfec023b2448b9699b573ba822a73"
+    },
+    "te": {
+      "file": "empty.claim_invitations.te.5d5ba300.mp3",
+      "textHash": "5d5ba3005103b25de27d625cf0575bac3f5468226782142792230e27fc2ad2df"
+    },
+    "ur": {
+      "file": "empty.claim_invitations.ur.fdae83f5.mp3",
+      "textHash": "fdae83f5beef0222e0f3cd676984370e46df828e8269b0769cf7092f2652d29f"
+    }
+  },
+  "empty.home": {
+    "en": {
+      "file": "empty.home.en.ebcc615c.mp3",
+      "textHash": "ebcc615cffba60d46a4ad9fbdb47eb824cab0bdec7264299f925255349083ba2"
+    },
+    "hi": {
+      "file": "empty.home.hi.aae3659d.mp3",
+      "textHash": "aae3659da734554941de83a2439cdc36fcef397976a800b1df55df2c34469a92"
+    },
+    "te": {
+      "file": "empty.home.te.9a02daac.mp3",
+      "textHash": "9a02daacbce7f0078019b2c04ac4fd9b8393c09c6b6ec1d431a3110c77bf22a4"
+    },
+    "ur": {
+      "file": "empty.home.ur.43b63457.mp3",
+      "textHash": "43b6345758c47ed549447892d1fcf0587831da0a5f26b213b51ede5e9f22bb3a"
+    }
+  },
+  "empty.meds": {
+    "en": {
+      "file": "empty.meds.en.89c52ccc.mp3",
+      "textHash": "89c52cccc0b2dfd78b3eb4c05a9c17b17c18e0ceb0957cd3081e272752afdeb8"
+    },
+    "hi": {
+      "file": "empty.meds.hi.36a406e7.mp3",
+      "textHash": "36a406e721403630e1977b30e1b340e542093f4ee0353d19e6cbaca2a93504ac"
+    },
+    "te": {
+      "file": "empty.meds.te.23e261c6.mp3",
+      "textHash": "23e261c6221502a99dfe919122cf45e6d13d930434ca0ea8a55e1a722348f472"
+    },
+    "ur": {
+      "file": "empty.meds.ur.ab061d2a.mp3",
+      "textHash": "ab061d2a29fbaf48d1e166804150d20beb5675036ae8d7383bb786d049fbaee3"
+    }
+  },
+  "empty.prescriptions": {
+    "en": {
+      "file": "empty.prescriptions.en.e2f355e5.mp3",
+      "textHash": "e2f355e5581878b4898cf0dd46bb91144341a3d0f4fcf77a59da23c437f3da5d"
+    },
+    "hi": {
+      "file": "empty.prescriptions.hi.0933792a.mp3",
+      "textHash": "0933792a185ffda0e972d6076432d6aa3c3129a216a1131bff512e948c57f758"
+    },
+    "te": {
+      "file": "empty.prescriptions.te.d32461f5.mp3",
+      "textHash": "d32461f5e02570430b70c668bcaa60dab804776b510a0f7936c8aaa28668dcf2"
+    },
+    "ur": {
+      "file": "empty.prescriptions.ur.63a95280.mp3",
+      "textHash": "63a95280e22b26aeda50211cfb715f5e7076963876f9a53226573bc95df9b9b7"
+    }
+  },
+  "empty.report_history": {
+    "en": {
+      "file": "empty.report_history.en.926ed7bc.mp3",
+      "textHash": "926ed7bc785979ab2d3d032c60b2a1123d8b1dd24ef397dfd05970c3669463be"
+    },
+    "hi": {
+      "file": "empty.report_history.hi.1cca6d10.mp3",
+      "textHash": "1cca6d107b1769946ec858d1293a7473960acbdaa64b608f20173df3e7f321fa"
+    },
+    "te": {
+      "file": "empty.report_history.te.1e05668d.mp3",
+      "textHash": "1e05668d393fd090c94eff700ed0e28c90d872d5c431e569b55e9bb06335d0ee"
+    },
+    "ur": {
+      "file": "empty.report_history.ur.21e92c70.mp3",
+      "textHash": "21e92c707954a1ae3ed2666502c66daefbbd2397ae829055708e5fe5dec3f0fb"
+    }
+  },
+  "empty.report_values": {
+    "en": {
+      "file": "empty.report_values.en.7a46ac80.mp3",
+      "textHash": "7a46ac80c9962ded762c2f9f7326ab84c44ccdf2484ccb505d763754a492b66d"
+    },
+    "hi": {
+      "file": "empty.report_values.hi.beddcdcb.mp3",
+      "textHash": "beddcdcbf1ac3294069ab2956fc771b1c300e4d9df5827bbf6bff8dfb6a5c234"
+    },
+    "te": {
+      "file": "empty.report_values.te.578a689c.mp3",
+      "textHash": "578a689c12cd6fe8adfab7da2af449258580d49a49a61fde9934337046fec14b"
+    },
+    "ur": {
+      "file": "empty.report_values.ur.72ccc615.mp3",
+      "textHash": "72ccc615c4ccae4cf3089e58e4b2d339026615c0726563cd1c267bd8452a9be9"
+    }
+  },
+  "empty.reports": {
+    "en": {
+      "file": "empty.reports.en.a6f85bbb.mp3",
+      "textHash": "a6f85bbb83cba608a81ca0902c8736ec4ae95a7ccfbd12994b57f45d2e8cef93"
+    },
+    "hi": {
+      "file": "empty.reports.hi.0cbc97a4.mp3",
+      "textHash": "0cbc97a4525a971c5038ac86b4452ff7f7a91ccb5f27ec44f7756b45b17f2671"
+    },
+    "te": {
+      "file": "empty.reports.te.1ef856da.mp3",
+      "textHash": "1ef856da68b510e0ad212f677e11b1f44b3c2e9ac9228eb5287d4f3f07054097"
+    },
+    "ur": {
+      "file": "empty.reports.ur.8569a2b1.mp3",
+      "textHash": "8569a2b1bb8e1315921a461aab4f1acbb50e24d8b34f8261c01bd7e5b4c9d732"
+    }
+  },
+  "empty.safety": {
+    "en": {
+      "file": "empty.safety.en.d44131cd.mp3",
+      "textHash": "d44131cdd31fdd3a4a1e5bb1726c5909401b8d966a7842d4711af65e3273ea02"
+    },
+    "hi": {
+      "file": "empty.safety.hi.ed97c35a.mp3",
+      "textHash": "ed97c35ad57ffe37fa3ad1bade81ca85cccefa9cf2074c6c84a343670de1ef1a"
+    },
+    "te": {
+      "file": "empty.safety.te.0bc955bf.mp3",
+      "textHash": "0bc955bfb6d8495fe5d6bb83c522df18f64eeae09abb1bc59aab71dcd2d7f6c9"
+    },
+    "ur": {
+      "file": "empty.safety.ur.9638b650.mp3",
+      "textHash": "9638b650904c64aceea286d0e4685428ea18f255eca08455a13155d51a4312d8"
+    }
+  },
+  "empty.share": {
+    "en": {
+      "file": "empty.share.en.6de4fe77.mp3",
+      "textHash": "6de4fe77ceec180f56c7c06778eed717b53ad1103479d203409fdb2acab693e0"
+    },
+    "hi": {
+      "file": "empty.share.hi.d1ac45b3.mp3",
+      "textHash": "d1ac45b33c441b7f1875ccb06201b02c2cf62999976c1e2c9265c25f1473ed4f"
+    },
+    "te": {
+      "file": "empty.share.te.3aba068a.mp3",
+      "textHash": "3aba068aa543e6cb41c8adb64d1e7a367fd9b2f36509c5fecc032a1f75ba0b78"
+    },
+    "ur": {
+      "file": "empty.share.ur.4e4ac5a7.mp3",
+      "textHash": "4e4ac5a7e3cc4b66b5d04fe053703746638575f9af10f0da82124bd3f784339f"
+    }
+  },
+  "empty.sync_conflicts": {
+    "en": {
+      "file": "empty.sync_conflicts.en.ea9338fa.mp3",
+      "textHash": "ea9338fa2a5bceef3f4bf66da5050be1f4cde802a14bb62345283b7d3458a7f6"
+    },
+    "hi": {
+      "file": "empty.sync_conflicts.hi.b144b45d.mp3",
+      "textHash": "b144b45dcf580f58c7a3b927cdad323183fd2a436b0ed02bd064a711df1625e0"
+    },
+    "te": {
+      "file": "empty.sync_conflicts.te.47533ebd.mp3",
+      "textHash": "47533ebd9e222b9d50a4ac54bf3971820a3f24e01ef8da9297c89db9b48085d0"
+    },
+    "ur": {
+      "file": "empty.sync_conflicts.ur.b9d212e5.mp3",
+      "textHash": "b9d212e52a53c11885a2234fc5be5ac642a34b23e75dd41164b29ba4c75c590f"
+    }
+  },
+  "empty.timeline": {
+    "en": {
+      "file": "empty.timeline.en.aae8aa71.mp3",
+      "textHash": "aae8aa71515dbb1dcfbda1d57b316f3fe61997c7291e9cd4c532e83c2f972553"
+    },
+    "hi": {
+      "file": "empty.timeline.hi.c981e54e.mp3",
+      "textHash": "c981e54e910dadfeb847d117448a6e29166537916ab557464fc267d21e368d27"
+    },
+    "te": {
+      "file": "empty.timeline.te.f9ec3481.mp3",
+      "textHash": "f9ec3481846b72828c375f8e1f7567e7676842ef8ce97b03dec20dc1688ff225"
+    },
+    "ur": {
+      "file": "empty.timeline.ur.4da61c16.mp3",
+      "textHash": "4da61c16de41a8665cbe992f5a488b53d0b8f862868cb083ce6789c7e6988769"
+    }
+  },
+  "faq.caregiver_access": {
+    "en": {
+      "file": "faq.caregiver_access.en.646ad6af.mp3",
+      "textHash": "646ad6afaa53d00fdd645a7b04f9c8590f6d14d8bf97bb96a9734c28654af110"
+    },
+    "hi": {
+      "file": "faq.caregiver_access.hi.17f57761.mp3",
+      "textHash": "17f57761f5f57de15f47c5ff7ee9c1bc849490c9edbe098d99a8427d3dcb5ac3"
+    },
+    "te": {
+      "file": "faq.caregiver_access.te.248857d2.mp3",
+      "textHash": "248857d2a83326af05af4c02dc17a7f73855eeed29c79c164d4678320a094001"
+    },
+    "ur": {
+      "file": "faq.caregiver_access.ur.43a24a28.mp3",
+      "textHash": "43a24a2865b1332dca70d985c93071aa909450ce11aa9d53ed3c1f6c539fdb71"
+    }
+  },
+  "faq.common_uses": {
+    "en": {
+      "file": "faq.common_uses.en.a2eb048b.mp3",
+      "textHash": "a2eb048be03a30cbe32c9a4d17de2daaa3171fe09668988ec0c5c6176ea5be19"
+    },
+    "hi": {
+      "file": "faq.common_uses.hi.2e1ce005.mp3",
+      "textHash": "2e1ce0050e2bca4faddb57087a5bc0bb3fa5ee5d0aae5b350ab1cf72a58fb639"
+    },
+    "te": {
+      "file": "faq.common_uses.te.d0ee1c46.mp3",
+      "textHash": "d0ee1c46c5b46c1849fd943f223b6192a07af48a42509cd2d0bbb4d70df726a8"
+    },
+    "ur": {
+      "file": "faq.common_uses.ur.1ce95751.mp3",
+      "textHash": "1ce95751fd514e10edf7febeaecc6e7fa56c3c84ed251820713ffbe36e9b7268"
+    }
+  },
+  "faq.concerns": {
+    "en": {
+      "file": "faq.concerns.en.73147e1a.mp3",
+      "textHash": "73147e1aa93eb8eae0c6125dc0dbde080fd2320f5c63169296c54c9408af354d"
+    },
+    "hi": {
+      "file": "faq.concerns.hi.49785c22.mp3",
+      "textHash": "49785c22e004ca9cefd1e239da380ac12e2724d364bc555636ba0efd92a8adea"
+    },
+    "te": {
+      "file": "faq.concerns.te.fc498816.mp3",
+      "textHash": "fc4988165b0ce37fde4f77c2063c9e19beda2813a5772077e9ef0b6cb1c2abac"
+    },
+    "ur": {
+      "file": "faq.concerns.ur.32e727ed.mp3",
+      "textHash": "32e727edb68126915332ddc7d5aa9c1da94219ff695a0a2cfad7c37fdc9f35a3"
+    }
+  },
+  "faq.current_meds": {
+    "en": {
+      "file": "faq.current_meds.en.fcc3110f.mp3",
+      "textHash": "fcc3110fd30b8e39b7eff4fb33c172b2f01ca8086399c3e234a2ce34abbee541"
+    },
+    "hi": {
+      "file": "faq.current_meds.hi.dd99ac5d.mp3",
+      "textHash": "dd99ac5dbb3b5bfd8a26d44823e92f27fd76d41243b5bde67e357b32bf601271"
+    },
+    "te": {
+      "file": "faq.current_meds.te.daf52b2c.mp3",
+      "textHash": "daf52b2c8282148712c49e7016c1054b27379ab32eb34dbf5590217f4ec07313"
+    },
+    "ur": {
+      "file": "faq.current_meds.ur.009a5502.mp3",
+      "textHash": "009a55023185bbb1f876f7289be407e0cc335361d7c29e0bc6e2e16010c68cac"
+    }
+  },
+  "faq.due_now": {
+    "en": {
+      "file": "faq.due_now.en.52142f07.mp3",
+      "textHash": "52142f075f0f1ede08d8fe306d4fabbac00bb2ee3fb091c5f85f5251439c4b23"
+    },
+    "hi": {
+      "file": "faq.due_now.hi.7dcfa83c.mp3",
+      "textHash": "7dcfa83cfb795510ea4cb9caf0a88b6e38af271f3d120b434b3c6d0c09e025b0"
+    },
+    "te": {
+      "file": "faq.due_now.te.077c08d2.mp3",
+      "textHash": "077c08d2a8dc14492432632969321cf05170464e3620ff5e61eca13895f874aa"
+    },
+    "ur": {
+      "file": "faq.due_now.ur.5b5cf4a1.mp3",
+      "textHash": "5b5cf4a16bf552a434b0bfa21b8704dd9a7706b11170c68db13b376148059a1b"
+    }
+  },
+  "faq.food": {
+    "en": {
+      "file": "faq.food.en.55a6816d.mp3",
+      "textHash": "55a6816d7ac1b90664448f3f4edf090d8d6596e8232ccf0322ca05532f320690"
+    },
+    "hi": {
+      "file": "faq.food.hi.8f9dd47e.mp3",
+      "textHash": "8f9dd47e4735e46ab4ee0b74fb03af16a7d4714f5ec7c75520c4ba39e92c79f7"
+    },
+    "te": {
+      "file": "faq.food.te.e61f4b41.mp3",
+      "textHash": "e61f4b41f25e25126c110246327f2bec82213273c341c1d2e9929990e36d6e20"
+    },
+    "ur": {
+      "file": "faq.food.ur.84c51754.mp3",
+      "textHash": "84c51754b7ec8d94777f0f8402771569bbd80a352fd3af1a3853d0fc99fd79aa"
+    }
+  },
+  "faq.how_long": {
+    "en": {
+      "file": "faq.how_long.en.5f5f98cf.mp3",
+      "textHash": "5f5f98cf8a4c4b6f2fe518793628058a53558ac4312009ad4b79eae62b4fdf19"
+    },
+    "hi": {
+      "file": "faq.how_long.hi.ba11e722.mp3",
+      "textHash": "ba11e722c91bcb9f5719b34d7d3eccb42a454f7f586eb231e0bc0727be92b7a0"
+    },
+    "te": {
+      "file": "faq.how_long.te.15315530.mp3",
+      "textHash": "15315530acc4d38d71478ad0c519008ba07c8ce0b58b431476cc5f54dcc76ab9"
+    },
+    "ur": {
+      "file": "faq.how_long.ur.58e86fa5.mp3",
+      "textHash": "58e86fa51006e4a2062add3e8c733d19d9192a234296a3264cbba673b9ab4ea1"
+    }
+  },
+  "faq.how_much": {
+    "en": {
+      "file": "faq.how_much.en.a8d76ee7.mp3",
+      "textHash": "a8d76ee7d6861afa752bc8eeea2690c1bff0d9315a41c2e61c781afb14758192"
+    },
+    "hi": {
+      "file": "faq.how_much.hi.c1b920bf.mp3",
+      "textHash": "c1b920bf7e1bc90d5ef79e8fa9b2592f951780a03d150e52ada9de5652dc6b7b"
+    },
+    "te": {
+      "file": "faq.how_much.te.bf2adfd1.mp3",
+      "textHash": "bf2adfd1680352c2616f94ec92b9ed8610a7c6c958272ca7dec4ba604d69bd59"
+    },
+    "ur": {
+      "file": "faq.how_much.ur.2e1918be.mp3",
+      "textHash": "2e1918bea202852ad0ec3303412bfd4fa399183aa0ca545f6a00e857320db084"
+    }
+  },
+  "faq.ingredients": {
+    "en": {
+      "file": "faq.ingredients.en.9bcb1b88.mp3",
+      "textHash": "9bcb1b8812dbc06b83079a43eecaa5ce8a629dc0d850a8ce1e5c8e1f8eb0acb5"
+    },
+    "hi": {
+      "file": "faq.ingredients.hi.9887000f.mp3",
+      "textHash": "9887000f9bb2c8632f3fb5124ac206b5e0996cd77f85b28bb179b2a3a5ed1f83"
+    },
+    "te": {
+      "file": "faq.ingredients.te.028e0a78.mp3",
+      "textHash": "028e0a78b123b0ffdb143678893a357df68b189788c784e36c63ce7952f7d6a2"
+    },
+    "ur": {
+      "file": "faq.ingredients.ur.bb184f15.mp3",
+      "textHash": "bb184f1544667d9f7b4d08ce8ada00087e48fa5ef5ba133c448eb45d46e5e538"
+    }
+  },
+  "faq.interactions": {
+    "en": {
+      "file": "faq.interactions.en.32c11f5c.mp3",
+      "textHash": "32c11f5c5bd3d3260210e02e740264f2c138dbe85ad116935cbdd18938f214a0"
+    },
+    "hi": {
+      "file": "faq.interactions.hi.c65940b5.mp3",
+      "textHash": "c65940b581e0af37f989d59278066f5d93de21accd79ab4a2380968b2219f1b7"
+    },
+    "te": {
+      "file": "faq.interactions.te.b26590ba.mp3",
+      "textHash": "b26590ba2c17988f24babe090f3f6d5bcfde6abd8f10f904e359fd2532683159"
+    },
+    "ur": {
+      "file": "faq.interactions.ur.4a0c69d7.mp3",
+      "textHash": "4a0c69d79192b6e919b8db92749522719dc5b50800902a0f7d48352692257632"
+    }
+  },
+  "faq.missed": {
+    "en": {
+      "file": "faq.missed.en.4f8cf8b3.mp3",
+      "textHash": "4f8cf8b38df35d5e4d846d780c6d296d62707d0bac3467fb374b9b63c9abe231"
+    },
+    "hi": {
+      "file": "faq.missed.hi.d57e3538.mp3",
+      "textHash": "d57e35382f6e6c7a127032ee6a5627e419567a255ccc46f803080812b37b36ed"
+    },
+    "te": {
+      "file": "faq.missed.te.cd5a150a.mp3",
+      "textHash": "cd5a150a79ed3e0bc5f36e26f6f156f6a243d4f6abbc09820b4da721a52e7a27"
+    },
+    "ur": {
+      "file": "faq.missed.ur.657ca8ed.mp3",
+      "textHash": "657ca8ed765764f3483730fd404389fd1d64e0a05d267d4a5627892de3600963"
+    }
+  },
+  "faq.names": {
+    "en": {
+      "file": "faq.names.en.2fb929ed.mp3",
+      "textHash": "2fb929ede5df9ee5241f8c2cf4a4382411cdd8e48a69ba05503bc5561b1baca1"
+    },
+    "hi": {
+      "file": "faq.names.hi.80f1e33c.mp3",
+      "textHash": "80f1e33cc2434174818ce00fe7ff451d6c899a41da5eac97cde604ca51814513"
+    },
+    "te": {
+      "file": "faq.names.te.d9e5649c.mp3",
+      "textHash": "d9e5649cc9797aa99f89529e7818e9de53ba5941c80615824e72a975a6bae3c6"
+    },
+    "ur": {
+      "file": "faq.names.ur.e9cab4c6.mp3",
+      "textHash": "e9cab4c6fb4ab524e92dc33766da4ad676eeaecd883b18931cef80751b1f81cc"
+    }
+  },
+  "faq.running_out": {
+    "en": {
+      "file": "faq.running_out.en.3d3abd73.mp3",
+      "textHash": "3d3abd733584422522e7189199588fa800fcadb77a07c67cc4f6fe9fed6e1295"
+    },
+    "hi": {
+      "file": "faq.running_out.hi.cf1b7c73.mp3",
+      "textHash": "cf1b7c73f32e350e33366e16405232734a3965a34cbe70b17263553ad73c0212"
+    },
+    "te": {
+      "file": "faq.running_out.te.1557a8db.mp3",
+      "textHash": "1557a8db3b4015cd85b133341a7ef5800ae6c8460a1cf1d2612f6bc628e434a2"
+    },
+    "ur": {
+      "file": "faq.running_out.ur.4348c613.mp3",
+      "textHash": "4348c61336d649ae0fa4d137e734ac8e2a96300834015cf3498e2075832e1400"
+    }
+  },
+  "faq.same_ingredient": {
+    "en": {
+      "file": "faq.same_ingredient.en.a85ea540.mp3",
+      "textHash": "a85ea5403986750ac7284e142a7c9fd5f001ae463fd5579e506e1f1a3319a836"
+    },
+    "hi": {
+      "file": "faq.same_ingredient.hi.6c874e1b.mp3",
+      "textHash": "6c874e1bbeeeec936a05d5053406dca3403e4d4b6c579ea7faba0a74ecf5c8e0"
+    },
+    "te": {
+      "file": "faq.same_ingredient.te.6f2b1b43.mp3",
+      "textHash": "6f2b1b43386aee3dfd1037a36f8c88b45643e38d9864f34ef7d943dee6445298"
+    },
+    "ur": {
+      "file": "faq.same_ingredient.ur.42f72888.mp3",
+      "textHash": "42f728884ed706840851d3fc59bfe91e8bd3d4a6a21ce52f706f47fbd8b28507"
+    }
+  },
+  "faq.show_doctor": {
+    "en": {
+      "file": "faq.show_doctor.en.8cb79c6f.mp3",
+      "textHash": "8cb79c6f2604ccd5178fd3a595bb9dead7886ea67160a44b907fb3c42ec2c372"
+    },
+    "hi": {
+      "file": "faq.show_doctor.hi.6651ae09.mp3",
+      "textHash": "6651ae096a4f21d77d33da4dddee66d54da42216d00ac5b3f80c5e23a6ebd7b7"
+    },
+    "te": {
+      "file": "faq.show_doctor.te.a73720ac.mp3",
+      "textHash": "a73720ac392021f4e6f1209beaeaa93170fb0e05b780766b43cfc3d71938779c"
+    },
+    "ur": {
+      "file": "faq.show_doctor.ur.b9f513a2.mp3",
+      "textHash": "b9f513a297eea7ed919569fc24ae8fa388cb69e7a675af81dfda0fbe708e8f43"
+    }
+  },
+  "faq.side_effects": {
+    "en": {
+      "file": "faq.side_effects.en.f822fa7b.mp3",
+      "textHash": "f822fa7b8a934f5092e11a23903c8e02ee72a2857264b2d80a3d0fad6ba8b1a7"
+    },
+    "hi": {
+      "file": "faq.side_effects.hi.fcc8d7b2.mp3",
+      "textHash": "fcc8d7b2cd71528797e462341ceb17a323b8028b105412b64095b0bd5ff2ca24"
+    },
+    "te": {
+      "file": "faq.side_effects.te.958a3a51.mp3",
+      "textHash": "958a3a517e2eeb1058864d538709b37cd045388da490091e51861e3bb4111bf5"
+    },
+    "ur": {
+      "file": "faq.side_effects.ur.80c86c30.mp3",
+      "textHash": "80c86c3057777a42ecadb8b60035ca596e9736583d6ec9d73def3532e8190418"
+    }
+  },
+  "faq.warning_signs": {
+    "en": {
+      "file": "faq.warning_signs.en.4ef4cd71.mp3",
+      "textHash": "4ef4cd71e3edb3b621300d0ddfdfe592d3a23dfdcbddfe4ef6133dfbc4bbbddb"
+    },
+    "hi": {
+      "file": "faq.warning_signs.hi.58136ff2.mp3",
+      "textHash": "58136ff256c4c6c3f61eb2d92fbb6e285e6e7442a00b759eba34caa9c2ea4b3d"
+    },
+    "te": {
+      "file": "faq.warning_signs.te.839d2735.mp3",
+      "textHash": "839d2735d1c3f8e383d831525143025b27f3981e6598b05c5d0d82dc85146597"
+    },
+    "ur": {
+      "file": "faq.warning_signs.ur.a4969964.mp3",
+      "textHash": "a4969964f700617524b34f7847279ca4e9b94fa13a567d7998107a581a26d17d"
+    }
+  },
+  "faq.when": {
+    "en": {
+      "file": "faq.when.en.f1d50087.mp3",
+      "textHash": "f1d50087170cdd45adc20b687cd0f6c5cf7e76b1f99eba2c8df72c4181911bb2"
+    },
+    "hi": {
+      "file": "faq.when.hi.cc06b081.mp3",
+      "textHash": "cc06b0813a069dbc1819f6bbd834461efb2c098b5513073f27f6833dfbc13f8e"
+    },
+    "te": {
+      "file": "faq.when.te.a9be4802.mp3",
+      "textHash": "a9be4802406a2accfc94da7c49c4b3fa3d714828e5ad94235533a6ab5dcd7396"
+    },
+    "ur": {
+      "file": "faq.when.ur.4946b83f.mp3",
+      "textHash": "4946b83f918496e300ee1d014a93365a6fa77d32b1c2edfc5f575bfeab42026f"
+    }
+  },
+  "faq.which_doctor": {
+    "en": {
+      "file": "faq.which_doctor.en.72c9b7c7.mp3",
+      "textHash": "72c9b7c7f7b74381526a1bd827e5ccd3bb5f354bd4949b95403c31becaca1bb6"
+    },
+    "hi": {
+      "file": "faq.which_doctor.hi.47cd66ac.mp3",
+      "textHash": "47cd66acb785c3be9cecf96cc08a410e893bb6b34aa355dacdb87c783eacd3df"
+    },
+    "te": {
+      "file": "faq.which_doctor.te.65fde562.mp3",
+      "textHash": "65fde562b838e965e4a76d6f259faef1ec545c42d9967b7d2b7d2c10ea7da026"
+    },
+    "ur": {
+      "file": "faq.which_doctor.ur.ac382a40.mp3",
+      "textHash": "ac382a401917438cbae94004c7077e995924a6751462cff21584961c41d756ff"
+    }
+  },
+  "faq.why_prescribed": {
+    "en": {
+      "file": "faq.why_prescribed.en.36321698.mp3",
+      "textHash": "36321698e43792c7893aacfc662c1b599b62345cf08abb8f97af22edc76f8982"
+    },
+    "hi": {
+      "file": "faq.why_prescribed.hi.5410acfd.mp3",
+      "textHash": "5410acfd15a00b7edd73db9a3d75f6cf1109f1ad1b0ac01e0ed2e9eba6011c6b"
+    },
+    "te": {
+      "file": "faq.why_prescribed.te.a21cddd3.mp3",
+      "textHash": "a21cddd302dda2a51ae306408d253c9204780db9d1fae02bd9dc29de7f03e51b"
+    },
+    "ur": {
+      "file": "faq.why_prescribed.ur.114b7053.mp3",
+      "textHash": "114b705307fd9a7ae4fb87ca574798f3660f0ba84e39c53d397a925bc30b9c7b"
+    }
+  },
+  "help.emergency": {
+    "en": {
+      "file": "help.emergency.en.04a0bfe1.mp3",
+      "textHash": "04a0bfe12026fb0d4231568a65eb9d439d81c8ce8c4b994b7f1a67d1b88f4e41"
+    },
+    "hi": {
+      "file": "help.emergency.hi.38360a9c.mp3",
+      "textHash": "38360a9c7e00ab6fe5cc3bd6a3a138735f1420b47d8e44eb3dc6840bb27cb730"
+    },
+    "te": {
+      "file": "help.emergency.te.4908f76f.mp3",
+      "textHash": "4908f76f3b49919ef162fc650a98074b80bfc0683def1ed066df9e62729e83f2"
+    },
+    "ur": {
+      "file": "help.emergency.ur.020bee3a.mp3",
+      "textHash": "020bee3ab956aadf61b7c576ec9bfb5ad42634f29dc4ac0d7fd86565c6fc18e1"
+    }
+  },
+  "help.intro": {
+    "en": {
+      "file": "help.intro.en.0f58a2f6.mp3",
+      "textHash": "0f58a2f6e4575e24ad1e821255ed5ceb12998764cb09f95a3d8404dc8cd07796"
+    },
+    "hi": {
+      "file": "help.intro.hi.2f52b2c1.mp3",
+      "textHash": "2f52b2c113b69e0b7780029649326c9c946d5bcb075c7f50626e363ba44a91e5"
+    },
+    "te": {
+      "file": "help.intro.te.46ea810e.mp3",
+      "textHash": "46ea810e24817ada29b86e343fefddcce63506b70f3b9a256e2ac4517cd6daa9"
+    },
+    "ur": {
+      "file": "help.intro.ur.14a3737e.mp3",
+      "textHash": "14a3737e3abe26657292dcf3bca84de1c98b0cc8ef482a03e84245067cd76f3d"
+    }
+  },
+  "install.education": {
+    "en": {
+      "file": "install.education.en.08be7022.mp3",
+      "textHash": "08be7022f71d3cd02f6bac7c3b1987b710bf17b82f2ff884845229a4d0a8cc4b"
+    },
+    "hi": {
+      "file": "install.education.hi.c8574ffb.mp3",
+      "textHash": "c8574ffb9d1ee725e097194436456a6238a4b1797eba03787e16abeb50c14b03"
+    },
+    "te": {
+      "file": "install.education.te.3b770700.mp3",
+      "textHash": "3b770700baa9ff1e63d5ad7f2369550d2f8e4918706de11ad656dd121da6ae3c"
+    },
+    "ur": {
+      "file": "install.education.ur.53e389b8.mp3",
+      "textHash": "53e389b838ab65042159a11d29968b7995dfb0f4b62482a990cb14b0f889a7b5"
+    }
+  },
+  "install.ios_steps": {
+    "en": {
+      "file": "install.ios_steps.en.6c8a529e.mp3",
+      "textHash": "6c8a529e1d3102ca0bd3174135424c7fdfb0cf16dc3083a52c3a26b7c4f48241"
+    },
+    "hi": {
+      "file": "install.ios_steps.hi.ad865453.mp3",
+      "textHash": "ad865453f614398c34cbdf7ca3c92697c417bc2629a3483f6b690adcc9a809fe"
+    },
+    "te": {
+      "file": "install.ios_steps.te.9708e26a.mp3",
+      "textHash": "9708e26abef60e47e68e376f2bfa46bbb30a6676be6518d0183a78085bde766a"
+    },
+    "ur": {
+      "file": "install.ios_steps.ur.668b89b1.mp3",
+      "textHash": "668b89b143b7f39052da63f6eee417583441b00641cc96fdba4b91c31be0c5f5"
+    }
+  },
+  "perm.notifications": {
+    "en": {
+      "file": "perm.notifications.en.2ae08426.mp3",
+      "textHash": "2ae0842637ab74e74753e99cf319659147d55a339d191acbf97a44f7231d0f16"
+    },
+    "hi": {
+      "file": "perm.notifications.hi.3e932b4f.mp3",
+      "textHash": "3e932b4f6f420aa788ad2a5de48dade1ca0ddcdb2bfc89bc5db1d43e5d727c59"
+    },
+    "te": {
+      "file": "perm.notifications.te.ab98a9e5.mp3",
+      "textHash": "ab98a9e53c6a6d25ce1572a3fec053a2d07cff361a5334665d2b2c1723210e65"
+    },
+    "ur": {
+      "file": "perm.notifications.ur.67e1266b.mp3",
+      "textHash": "67e1266bdd2393ca0226ebd540b8facf2607599b8e2f68e7b01f74464955b9ee"
+    }
+  },
+  "screen.add": {
+    "en": {
+      "file": "screen.add.en.3fc7ba08.mp3",
+      "textHash": "3fc7ba08a93858817004daf78d5f0557393b25eef0ca5eef948a6595b478ed92"
+    },
+    "hi": {
+      "file": "screen.add.hi.fa8f761a.mp3",
+      "textHash": "fa8f761a2e49d6cdcd33c81eaa20c484db021b29efd54a66f925ccec37b08d55"
+    },
+    "te": {
+      "file": "screen.add.te.a5b95731.mp3",
+      "textHash": "a5b95731d185bf3bf60911d77417ad5d87baffcb062273c0c42a72c5d71ffcef"
+    },
+    "ur": {
+      "file": "screen.add.ur.6a72b33d.mp3",
+      "textHash": "6a72b33d664ab461d7ff527f21f5c758de2020db4a7fb6aeb5a121e9dd7e4ec3"
+    }
+  },
+  "screen.allergies": {
+    "en": {
+      "file": "screen.allergies.en.0923042c.mp3",
+      "textHash": "0923042c1a41bda1955ab7fada87d43a6dbcb43fc175c7a01160458c77285f34"
+    },
+    "hi": {
+      "file": "screen.allergies.hi.28b1a5b3.mp3",
+      "textHash": "28b1a5b35abc8232faa8bb82d4965451e499e0b168e59457720804e1b9489702"
+    },
+    "te": {
+      "file": "screen.allergies.te.771063d5.mp3",
+      "textHash": "771063d5cf14fc10ec6275c65b44f78c87b3e023b397f7cc0059b421080b70c4"
+    },
+    "ur": {
+      "file": "screen.allergies.ur.76ea734f.mp3",
+      "textHash": "76ea734f58c95258224871124429e69cfdb3a35eb6b0d82c100520f8f99b0bf8"
+    }
+  },
+  "screen.blood_sugar": {
+    "en": {
+      "file": "screen.blood_sugar.en.8b1494a2.mp3",
+      "textHash": "8b1494a2e2622ee7716bb2efc99e0e75c20c336392bd9ba80f04609d1b59042b"
+    },
+    "hi": {
+      "file": "screen.blood_sugar.hi.878414a6.mp3",
+      "textHash": "878414a6bbb964c577f5a230208a74e0315f276c581dc93cc5c8c6e4d6ea67cd"
+    },
+    "te": {
+      "file": "screen.blood_sugar.te.da138268.mp3",
+      "textHash": "da1382686f890a0efad025200ab6ed558ef674b8a043830dda4f500d515c3d1d"
+    },
+    "ur": {
+      "file": "screen.blood_sugar.ur.fd6c8393.mp3",
+      "textHash": "fd6c8393ab04d449b79d207008cc8aa2eb8745d7ea980312bea4a0acd93993f8"
+    }
+  },
+  "screen.caregiver_invitations": {
+    "en": {
+      "file": "screen.caregiver_invitations.en.bb473fb4.mp3",
+      "textHash": "bb473fb4fdcbf5add9f72c2fc4e28d2c472b1f4c79a9d5dac12a3cf9a7c2da43"
+    },
+    "hi": {
+      "file": "screen.caregiver_invitations.hi.5e2b8ced.mp3",
+      "textHash": "5e2b8ced326d1fd2872de8e98b808b14f20fb706bcab7e740cd846e96903eeb1"
+    },
+    "te": {
+      "file": "screen.caregiver_invitations.te.7ecdb657.mp3",
+      "textHash": "7ecdb657a4d1ce8d0510a769d735461be984effe30f567b608782af62f531989"
+    },
+    "ur": {
+      "file": "screen.caregiver_invitations.ur.32a4370c.mp3",
+      "textHash": "32a4370cc8d4565cf4aefdf02c088ef0a9dac80331355e07ce3e6607ae79eb36"
+    }
+  },
+  "screen.caregivers": {
+    "en": {
+      "file": "screen.caregivers.en.6b1e2ad6.mp3",
+      "textHash": "6b1e2ad61bdb67e353e3da91a2aaa5b19bc22cbb7203272997b4eff6f477cf3e"
+    },
+    "hi": {
+      "file": "screen.caregivers.hi.28057966.mp3",
+      "textHash": "28057966053ac910283a2a5fe71b4597e9877c8c69160d8e8ec711c390815ede"
+    },
+    "te": {
+      "file": "screen.caregivers.te.ce8c6159.mp3",
+      "textHash": "ce8c6159f24ef9989e8573ef437f7c3b3ddd26b38097a6570c5e53ba02b609fe"
+    },
+    "ur": {
+      "file": "screen.caregivers.ur.c85e0e46.mp3",
+      "textHash": "c85e0e46f509fe50cde05be8069cd9be9fc61e202d03201f96308b6dc20ecf9d"
+    }
+  },
+  "screen.claim_invitations": {
+    "en": {
+      "file": "screen.claim_invitations.en.cc36b61a.mp3",
+      "textHash": "cc36b61ac6db64eba84fe3ef18c7daec3ed7200bb7d4853fac67c7f04184a969"
+    },
+    "hi": {
+      "file": "screen.claim_invitations.hi.a05e85fe.mp3",
+      "textHash": "a05e85fec775408f124cda7ef6759ffa099a320146f730d11490ed166beaa78d"
+    },
+    "te": {
+      "file": "screen.claim_invitations.te.761c5178.mp3",
+      "textHash": "761c5178ed2550378be3ba2180c4f73e8d0fd9a53c910d9ca4340f0a6af756b3"
+    },
+    "ur": {
+      "file": "screen.claim_invitations.ur.0c2b291b.mp3",
+      "textHash": "0c2b291b2eafa302338e161b2667f0804d3a2ca31d67c0595ceebf26de69d911"
+    }
+  },
+  "screen.confirm_type": {
+    "en": {
+      "file": "screen.confirm_type.en.4da9626e.mp3",
+      "textHash": "4da9626e5e46193a3d2393e10c2bc2cd4eb5006c5a28c2a3b8cc2b9212f3c5cb"
+    },
+    "hi": {
+      "file": "screen.confirm_type.hi.861655fc.mp3",
+      "textHash": "861655fcb557f3c7fa3734ff7a1f4fc21dbc9ef38be965f8f2bebf8b8ad91bfd"
+    },
+    "te": {
+      "file": "screen.confirm_type.te.9bebaeb2.mp3",
+      "textHash": "9bebaeb2888626fba2bd088e436e3a655ecef5d1ae5124400ffa885086bb3de5"
+    },
+    "ur": {
+      "file": "screen.confirm_type.ur.5c76239d.mp3",
+      "textHash": "5c76239dc13057a17caede7caed89290c04a0047e48481de1bba6c85eb95909e"
+    }
+  },
+  "screen.help": {
+    "en": {
+      "file": "screen.help.en.0f7a4f2c.mp3",
+      "textHash": "0f7a4f2cfd0f4b149282f8ea00aad3b40372b3811ee12b4d479d6fe9ca975dba"
+    },
+    "hi": {
+      "file": "screen.help.hi.72b41b58.mp3",
+      "textHash": "72b41b589edb0b78df535d9833f3d03d9abdc3442d84b17dbe3ac44ca77cc3cb"
+    },
+    "te": {
+      "file": "screen.help.te.e0ca0c6b.mp3",
+      "textHash": "e0ca0c6b0bce8d8d940bc4e5e8ae766cd2656c8e4e5e1a5a86799e21b7bef4a4"
+    },
+    "ur": {
+      "file": "screen.help.ur.3ca98cfd.mp3",
+      "textHash": "3ca98cfd485fd28643babf13896bfffde2d84a19e30e4963dfd2a7f4b89fdc41"
+    }
+  },
+  "screen.home": {
+    "en": {
+      "file": "screen.home.en.ffe335c1.mp3",
+      "textHash": "ffe335c1c35e65332072a371ada722d46c44b506df2ecdd8c4215d8f2fcc6d51"
+    },
+    "hi": {
+      "file": "screen.home.hi.42612cf3.mp3",
+      "textHash": "42612cf3c11b63362f5346be0db81eebea3a006f02a15bffaa4ade75b5e58f85"
+    },
+    "te": {
+      "file": "screen.home.te.deeb13e3.mp3",
+      "textHash": "deeb13e38d3ec2a54c97e2bcaacbf67e0b1848d1850c219f93fc6a2296f59796"
+    },
+    "ur": {
+      "file": "screen.home.ur.91148a02.mp3",
+      "textHash": "91148a022c9f4a6628ea7df4057ec57c4fddc37b3825d50939f7b07d83b5b82a"
+    }
+  },
+  "screen.medicine_detail": {
+    "en": {
+      "file": "screen.medicine_detail.en.5fb9bc5f.mp3",
+      "textHash": "5fb9bc5fafc84ec9b7522679f2a68b2f893f10d0d4fdd410123dcf4258d0a97b"
+    },
+    "hi": {
+      "file": "screen.medicine_detail.hi.72710faf.mp3",
+      "textHash": "72710faf63c143e6ac903b267419f6eb2af62cb3b8af1cb0cb6f13c38494654e"
+    },
+    "te": {
+      "file": "screen.medicine_detail.te.dafea879.mp3",
+      "textHash": "dafea87931fd31a8fd3c0cfec5f424716b21cea20d3178f4ea79f98a952ea6ae"
+    },
+    "ur": {
+      "file": "screen.medicine_detail.ur.368b82e8.mp3",
+      "textHash": "368b82e8531031294500487c504f5865a61b1184a0475289a892f77f208b8e64"
+    }
+  },
+  "screen.medicines": {
+    "en": {
+      "file": "screen.medicines.en.93ced85c.mp3",
+      "textHash": "93ced85c0e4ff4ab4b60aab6ea132e7f32200188c85ee3eeda26efbcffa1b75d"
+    },
+    "hi": {
+      "file": "screen.medicines.hi.d7052b8a.mp3",
+      "textHash": "d7052b8a0bc19a858854ea7a7adec2e35ee9dfab971adc81c836a2e6a62fdfd9"
+    },
+    "te": {
+      "file": "screen.medicines.te.aa084be3.mp3",
+      "textHash": "aa084be3f8bc9b7c34cf33aa029c4ef31b333a4bfaaf2d9318c42b4d03162254"
+    },
+    "ur": {
+      "file": "screen.medicines.ur.a4d9f9bd.mp3",
+      "textHash": "a4d9f9bdccce1c7f28feb2947fcf1c80f693f0b89075901b3c3308c401b61cea"
+    }
+  },
+  "screen.offline": {
+    "en": {
+      "file": "screen.offline.en.08a1926d.mp3",
+      "textHash": "08a1926ddfbf5df05abf34c1224596a89f19c136214eaf0eecfe1488998bde97"
+    },
+    "hi": {
+      "file": "screen.offline.hi.35ec307c.mp3",
+      "textHash": "35ec307c2872f5bca20fa6559b58b068567a721a8eea3cc5bf946b681e887e9f"
+    },
+    "te": {
+      "file": "screen.offline.te.150beee3.mp3",
+      "textHash": "150beee364508da5b871abcaff4a35917cd349b91b825cc8aa03a709dbd3c249"
+    },
+    "ur": {
+      "file": "screen.offline.ur.4b054e33.mp3",
+      "textHash": "4b054e33a2d2d12f2e845ac2b05c04e01daaa082fb1a89e187dca0dede8615ed"
+    }
+  },
+  "screen.prescriptions": {
+    "en": {
+      "file": "screen.prescriptions.en.3276b1bc.mp3",
+      "textHash": "3276b1bc7c70da10f4bde5e070993b0c64e44bac4dcb4aa378bd7371b9bd331f"
+    },
+    "hi": {
+      "file": "screen.prescriptions.hi.11854436.mp3",
+      "textHash": "11854436a982e4511ebe7f3fea4b01696d388d7d81d4ce4517f0a4f592fe5d9d"
+    },
+    "te": {
+      "file": "screen.prescriptions.te.d08ca1da.mp3",
+      "textHash": "d08ca1da35abc10b123c2abf1eb77221d3ba78a5d4f2964ad08c66cc84310de7"
+    },
+    "ur": {
+      "file": "screen.prescriptions.ur.379dd228.mp3",
+      "textHash": "379dd2287a418197d36ed2c0269a46d8894ac6298040bb6dd605a8d0dcb0b924"
+    }
+  },
+  "screen.profile": {
+    "en": {
+      "file": "screen.profile.en.cc8b3565.mp3",
+      "textHash": "cc8b356535b0126866ac8a9b4abdfd51b05e352d10911913e91a352adb3fc81b"
+    },
+    "hi": {
+      "file": "screen.profile.hi.83ca7943.mp3",
+      "textHash": "83ca79430ada43ace2c787e161c32e61203ace9037d18a8858b987468da32899"
+    },
+    "te": {
+      "file": "screen.profile.te.705e772f.mp3",
+      "textHash": "705e772f339a44d57dcda0d2ca6c277643f323616a3d42b8e6277ce624236808"
+    },
+    "ur": {
+      "file": "screen.profile.ur.df8dcff6.mp3",
+      "textHash": "df8dcff6c214a065b9ae0a97bd6d6810920d688df327832fb434bd94365f7f83"
+    }
+  },
+  "screen.report_values": {
+    "en": {
+      "file": "screen.report_values.en.a72eda89.mp3",
+      "textHash": "a72eda89948f29246e54a61b0ab523b2078e5f1d1ca7ef1d1b134ddbaffc433a"
+    },
+    "hi": {
+      "file": "screen.report_values.hi.f840b365.mp3",
+      "textHash": "f840b365316b325d6d3f984b0a8f44044f2aba7c5e9a5998cb0bee06c18df8be"
+    },
+    "te": {
+      "file": "screen.report_values.te.30e70459.mp3",
+      "textHash": "30e70459df4bedf5f89c3d227717a7b31c8276dea4e3ef1fb6788163756c74d5"
+    },
+    "ur": {
+      "file": "screen.report_values.ur.b241528e.mp3",
+      "textHash": "b241528e3b2f07bf7cb8190aaa123855f03c415f1228984426fa022fcff10155"
+    }
+  },
+  "screen.reports": {
+    "en": {
+      "file": "screen.reports.en.33706832.mp3",
+      "textHash": "3370683209df13992c19e1bbcef99e6b705ce8d698bdc875de5598a732dbc8ac"
+    },
+    "hi": {
+      "file": "screen.reports.hi.d61cee5a.mp3",
+      "textHash": "d61cee5a59f365b41b1ad3e551653e9384f2a9474c469dbfc40a476f017ab5e2"
+    },
+    "te": {
+      "file": "screen.reports.te.ca55678a.mp3",
+      "textHash": "ca55678a32296ab4b814c4f707d05e55fe79bbf50964db9d20b21c56b20d1492"
+    },
+    "ur": {
+      "file": "screen.reports.ur.d2682bf1.mp3",
+      "textHash": "d2682bf19cdab58f25fed0de86e0e8ab19f1c2c510d7ddd4b04e704f0cc134b6"
+    }
+  },
+  "screen.safety": {
+    "en": {
+      "file": "screen.safety.en.9fe57584.mp3",
+      "textHash": "9fe575842e226ed9520737f4a8d235a70fc85ec7129f5619a5c41374f5ed7233"
+    },
+    "hi": {
+      "file": "screen.safety.hi.0bdff358.mp3",
+      "textHash": "0bdff3582403f333bae5703ae73d26912ba90c402c87027dd20bf24bba5b5119"
+    },
+    "te": {
+      "file": "screen.safety.te.c4b16775.mp3",
+      "textHash": "c4b167754b73eddcc95b7194793bfec086eb99e14aa0fb772f02a91195701579"
+    },
+    "ur": {
+      "file": "screen.safety.ur.d95fb593.mp3",
+      "textHash": "d95fb593c55834ae82820adc8988578714d5e1f34ebbe1712cfff1008830d762"
+    }
+  },
+  "screen.scan": {
+    "en": {
+      "file": "screen.scan.en.b9382891.mp3",
+      "textHash": "b9382891000c9de03583e456cb1f39430d4774296ca72fa6b6618c730da45df1"
+    },
+    "hi": {
+      "file": "screen.scan.hi.640c5143.mp3",
+      "textHash": "640c51438a7eff5216737d973625d610bb980b12030a5779db7d603558b164c0"
+    },
+    "te": {
+      "file": "screen.scan.te.b4f880c7.mp3",
+      "textHash": "b4f880c747a2a0abc1310fb1324eff04975a156b256a24e808e0a6c9ee16eb23"
+    },
+    "ur": {
+      "file": "screen.scan.ur.cbdf17ed.mp3",
+      "textHash": "cbdf17edaa3c53894e87735dff2fef505ccfd3b92409c1c1d6bf97ea3baeed15"
+    }
+  },
+  "screen.share": {
+    "en": {
+      "file": "screen.share.en.2b226e8c.mp3",
+      "textHash": "2b226e8c1b2d40e6e37b73788dfebd61678fc0bc22bd0d3bcf733c50a58d63ac"
+    },
+    "hi": {
+      "file": "screen.share.hi.2ef2520e.mp3",
+      "textHash": "2ef2520e5d4adf03d98ea31735b7a14d5d389ae70c557c98494dad1fb72908d2"
+    },
+    "te": {
+      "file": "screen.share.te.e6a46808.mp3",
+      "textHash": "e6a46808ff5574e188d654ed944957843d0207082406a924b4f50921af8e8b1d"
+    },
+    "ur": {
+      "file": "screen.share.ur.73543fcd.mp3",
+      "textHash": "73543fcd2e91c3335e08f13a36bd56631a70e6f2d974e79f172a2e8a1ac9c155"
+    }
+  },
+  "screen.sync_conflicts": {
+    "en": {
+      "file": "screen.sync_conflicts.en.3caaf631.mp3",
+      "textHash": "3caaf631a092ade3fd192f6a5cdc4e3d819a3382b06cc9416253d179bc091a44"
+    },
+    "hi": {
+      "file": "screen.sync_conflicts.hi.1b26b59c.mp3",
+      "textHash": "1b26b59c91ae7ede63a7ec39b607bc613e17c9508b1dce4aa92877f36facba70"
+    },
+    "te": {
+      "file": "screen.sync_conflicts.te.a2b37709.mp3",
+      "textHash": "a2b37709460bd8a5d453b0bcb2ee7f68f73d9f111013d80f083b9bf232af0b3c"
+    },
+    "ur": {
+      "file": "screen.sync_conflicts.ur.9c7e81ba.mp3",
+      "textHash": "9c7e81baec618bd3da3c43aa403e7d37af723d08d0180daf1227e1a8aefc735c"
+    }
+  },
+  "screen.timeline": {
+    "en": {
+      "file": "screen.timeline.en.41c16f58.mp3",
+      "textHash": "41c16f58c31f8b0dd8c8ed06fad4192f46c37c861630b1c19b795d077aae628e"
+    },
+    "hi": {
+      "file": "screen.timeline.hi.1e520c56.mp3",
+      "textHash": "1e520c56ec0dd3985f9788bb1e4eaf785f0057419add5f9cf3231d4defe905a7"
+    },
+    "te": {
+      "file": "screen.timeline.te.d4a058ff.mp3",
+      "textHash": "d4a058ff44852dd3d93d6bee31469291c68bc1bc32b765a9899d5f9e67f8e635"
+    },
+    "ur": {
+      "file": "screen.timeline.ur.45b5e9c9.mp3",
+      "textHash": "45b5e9c9dab9902d9c3c7c67d947ae74ef9c63ce35d3f46e6a2acdeb343518e4"
+    }
+  },
+  "screen.visit": {
+    "en": {
+      "file": "screen.visit.en.2d5d0298.mp3",
+      "textHash": "2d5d029896e19bdab2337552c75e64be25dee6a04c7997a0c325ced0302d43ed"
+    },
+    "hi": {
+      "file": "screen.visit.hi.b2d81de1.mp3",
+      "textHash": "b2d81de15d0c16d4915577a136156328c7939ca82add793e63e13c1fbd1d93f9"
+    },
+    "te": {
+      "file": "screen.visit.te.dfdc6be7.mp3",
+      "textHash": "dfdc6be72cc596d33a0eeb20d10eb8734304a8d058aca5bd153a046635544f7d"
+    },
+    "ur": {
+      "file": "screen.visit.ur.072daf06.mp3",
+      "textHash": "072daf06fecbba42125f73fccce82af292d972e287c24650180e92e1a32320f9"
+    }
+  },
+  "tour.1": {
+    "en": {
+      "file": "tour.1.en.7a8b4579.mp3",
+      "textHash": "7a8b457963b83ce002ebeb2d34b7380a7499dbccf040c39bc116c05554c93acb"
+    },
+    "hi": {
+      "file": "tour.1.hi.1c94eef1.mp3",
+      "textHash": "1c94eef1fbad9def8d7a494570cf3e7f5165535810745fdbf35e2cea7a8d0712"
+    },
+    "te": {
+      "file": "tour.1.te.fa718a17.mp3",
+      "textHash": "fa718a17cbaa5563d1b813274b3d7a302d934177081383a9e6a3641a743401fe"
+    },
+    "ur": {
+      "file": "tour.1.ur.29a775ef.mp3",
+      "textHash": "29a775ef89a1734f189bbabd1e2265745ef3cd014e60a80487350f355bf9a7e0"
+    }
+  },
+  "tour.2": {
+    "en": {
+      "file": "tour.2.en.3185d43e.mp3",
+      "textHash": "3185d43e14790bfffb435649beb62ccf4a2417941e5ff55ce59239f66ee8c4cc"
+    },
+    "hi": {
+      "file": "tour.2.hi.9f830667.mp3",
+      "textHash": "9f830667478c2b78c6546604a015be8002b93f7595e2d1e078a69d64139232cc"
+    },
+    "te": {
+      "file": "tour.2.te.9a39363d.mp3",
+      "textHash": "9a39363db3b6636b7313d2919daac4ee1c53737d7064b799f27d893a98adda98"
+    },
+    "ur": {
+      "file": "tour.2.ur.e692e836.mp3",
+      "textHash": "e692e836091028af59982a6860df140c9d9b83dea9a82508cb98deebc16db885"
+    }
+  },
+  "tour.3": {
+    "en": {
+      "file": "tour.3.en.dcc50ca2.mp3",
+      "textHash": "dcc50ca225c26186d267b09f84f132a146fc67b51ee688ccca7e164feb4e4e53"
+    },
+    "hi": {
+      "file": "tour.3.hi.6cfd9ef2.mp3",
+      "textHash": "6cfd9ef2248a1d6ad6b7a4f4b8199e3eb06ed65464e096ac3e67b0bd6f250523"
+    },
+    "te": {
+      "file": "tour.3.te.28795d68.mp3",
+      "textHash": "28795d68039383943f68940b2ba2c8b82a02e103fa175789a6204ad9e67cfab2"
+    },
+    "ur": {
+      "file": "tour.3.ur.a84cb8e5.mp3",
+      "textHash": "a84cb8e5c7136d2582fd7c18ee8476c7ad84737a2ed694fea474ec788fcb952d"
+    }
+  }
+};

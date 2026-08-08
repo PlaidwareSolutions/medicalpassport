@@ -26,12 +26,20 @@ import { GUIDANCE_AUDIO_ENTRIES, type GuidanceAudioId } from "../lib/guidance-au
 const LANGUAGE_CODE: Record<Locale, string> = { en: "en-IN", hi: "hi-IN", te: "te-IN", ur: "ur-IN" };
 
 /**
- * Pin specific voices here after auditioning them (docs/34: te/ur voice
- * quality needs a native-speaker check before bulk generation). Unset = the
- * vendor's default voice for the language, which is stable enough between
- * runs but not guaranteed forever.
+ * Pinned after a live audition (2026-08-08, OD-16): the user compared
+ * Chirp3-HD female/male and Standard per locale on real guidance copy and
+ * chose Chirp3-HD-Achernar everywhere — one consistent voice across
+ * languages, from the most natural family, verified compatible with this
+ * script's exact audioConfig. Changing a pin invalidates nothing by itself:
+ * files are keyed by text hash, so re-voicing requires deleting
+ * public/audio/guidance/ and regenerating.
  */
-const VOICE_NAME: Partial<Record<Locale, string>> = {};
+const VOICE_NAME: Partial<Record<Locale, string>> = {
+  en: "en-IN-Chirp3-HD-Achernar",
+  hi: "hi-IN-Chirp3-HD-Achernar",
+  te: "te-IN-Chirp3-HD-Achernar",
+  ur: "ur-IN-Chirp3-HD-Achernar",
+};
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const audioDir = path.resolve(scriptDir, "../public/audio/guidance");
