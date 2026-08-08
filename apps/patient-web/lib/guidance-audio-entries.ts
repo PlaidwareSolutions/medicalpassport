@@ -60,6 +60,13 @@ export const GUIDANCE_AUDIO_ENTRIES = {
   "empty.bloodsugar_readings": { sourceKeys: ["bloodsugar.readings_empty_title", "bloodsugar.readings_empty_body"] },
   "empty.bloodsugar_checkups": { sourceKeys: ["bloodsugar.checkups_empty_title", "bloodsugar.checkups_empty_body"] },
   "empty.sync_conflicts": { sourceKeys: ["sync.conflicts_empty_title", "sync.conflicts_empty_body"] },
+  "perm.notifications": {
+    sourceKeys: ["guide.perm.notif_title", "guide.perm.notif_why", "guide.perm.notif_denied", "guide.perm.notif_change_later"],
+  },
+  "install.education": { sourceKeys: ["guide.install.title", "guide.install.body"] },
+  "install.ios_steps": {
+    sourceKeys: ["guide.install.ios_title", "guide.install.ios_step1", "guide.install.ios_step2", "guide.install.ios_step3"],
+  },
 } as const satisfies Record<string, GuidanceAudioEntry>;
 
 export type GuidanceAudioId = keyof typeof GUIDANCE_AUDIO_ENTRIES;

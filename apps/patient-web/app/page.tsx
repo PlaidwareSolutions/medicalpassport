@@ -6,6 +6,7 @@ import { EmptyState } from "../components/EmptyState";
 import { CaregiverAlertCard } from "../components/CaregiverAlertCard";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
+import { InstallEducationCard } from "../components/InstallEducationCard";
 import { PageHeader } from "../components/PageHeader";
 import { RefillReminderCard } from "../components/RefillReminderCard";
 import { useGlucoseReadings } from "../lib/blood-sugar";
@@ -163,6 +164,10 @@ export default function HomePage() {
               </Button>
             </Link>
           ) : null}
+
+          {/* Screen 37: install education only after value delivered (≥1
+              medicine), at the bottom — an offer, never a gate. */}
+          <InstallEducationCard />
         </>
       ) : null}
     </AppShell>

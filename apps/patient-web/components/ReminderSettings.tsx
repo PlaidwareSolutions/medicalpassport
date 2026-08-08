@@ -5,6 +5,7 @@ import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medp
 import { disablePush, enablePush, getPreferences, pushSupported, savePreferences } from "../lib/push";
 import { grantConsent, listConsents, revokeConsent } from "../lib/consents";
 import { useI18n } from "../lib/i18n";
+import { PermissionEducation } from "./PermissionEducation";
 
 const SMS_CONSENT_PURPOSE = "Send a text message reminder when a scheduled dose is due, or when a refill/course reminder fires.";
 
@@ -24,6 +25,7 @@ export function ReminderSettings() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [educating, setEducating] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [smsConsent, setSmsConsent] = useState<ConsentDto | undefined>();
   const [smsBusy, setSmsBusy] = useState(false);
@@ -78,6 +80,20 @@ export function ReminderSettings() {
   }
   function snapshot() {
     return { pushEnabled, privacyMode, quietHoursEnabled, quietHoursStart, quietHoursEnd, soundEnabled, vibrationEnabled };
+  }
+
+  /**
+   * Screen 38 (docs/07): the OS permission prompt may only ever fire after
+   * the in-app explainer's Continue. Enabling skips the explainer only when
+   * the browser already granted permission (re-enable case) — no prompt can
+   * appear then.
+   */
+  function requestEnable() {
+    if (!pushEnabled && typeof Notification !== "undefined" && Notification.permission !== "granted") {
+      setEducating(true);
+      return;
+    }
+    void toggle();
   }
 
   async function toggle() {
@@ -151,14 +167,27 @@ export function ReminderSettings() {
           </span>
         ) : (
           <>
-            <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-              {pushEnabled ? t("reminders.enabled") : t("reminders.push_intro")}
-            </span>
-            <div style={{ marginTop: "var(--space-sm)" }}>
-              <Button variant={pushEnabled ? "secondary" : "primary"} disabled={busy} onClick={() => void toggle()}>
-                {pushEnabled ? t("reminders.disable") : t("reminders.enable")}
-              </Button>
-            </div>
+            {educating ? (
+              <PermissionEducation
+                permission="notifications"
+                onContinue={() => {
+                  setEducating(false);
+                  void toggle();
+                }}
+                onDismiss={() => setEducating(false)}
+              />
+            ) : (
+              <>
+                <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+                  {pushEnabled ? t("reminders.enabled") : t("reminders.push_intro")}
+                </span>
+                <div style={{ marginTop: "var(--space-sm)" }}>
+                  <Button variant={pushEnabled ? "secondary" : "primary"} disabled={busy} onClick={requestEnable}>
+                    {pushEnabled ? t("reminders.disable") : t("reminders.enable")}
+                  </Button>
+                </div>
+              </>
+            )}
             <div style={{ marginTop: "var(--space-md)" }}>
               <ChoiceGrid
                 label={t("reminders.privacy_label")}

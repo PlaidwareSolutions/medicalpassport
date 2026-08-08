@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import { cssVariables } from "@medpass/design-tokens";
+import { InstallPromptListener } from "../components/InstallPromptListener";
 import { ProfileKeyedContent } from "../components/ProfileKeyedContent";
 import { I18nProvider } from "../lib/i18n";
 import { SessionProvider } from "../lib/session";
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <style dangerouslySetInnerHTML={{ __html: cssVariables() + globalCss }} />
       </head>
       <body>
+        <InstallPromptListener />
         <I18nProvider>
           <SessionProvider>
             <ProfileKeyedContent>{children}</ProfileKeyedContent>

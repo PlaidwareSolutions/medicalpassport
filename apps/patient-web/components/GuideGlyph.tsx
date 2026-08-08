@@ -22,7 +22,8 @@ export type GuideGlyphName =
   | "report"
   | "share"
   | "drop"
-  | "check";
+  | "check"
+  | "install";
 
 const SIZE_EM = { sm: "1em", md: "1.35em", lg: "3em" } as const;
 export type GuideGlyphSize = keyof typeof SIZE_EM;
@@ -129,6 +130,16 @@ function paths(name: GuideGlyphName) {
         <>
           <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="9" />
           <path d="M33 52l12 12 22-26" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      );
+    case "install":
+      // A phone with an arrow landing on it — the app arriving on the device.
+      return (
+        <>
+          <rect x="28" y="26" width="44" height="64" rx="8" fill="none" stroke="currentColor" strokeWidth="9" />
+          <line x1="42" y1="78" x2="58" y2="78" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+          <line x1="50" y1="6" x2="50" y2="46" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+          <path d="M38 36l12 14 12-14" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
         </>
       );
   }
