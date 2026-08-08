@@ -94,16 +94,21 @@ export default function HelpPage() {
         <div key={section.titleKey}>
           <SectionTitle>{t(section.titleKey)}</SectionTitle>
           <Card>
-            {section.items.map((item) => (
-              // Native disclosure: free keyboard/screen-reader semantics and
-              // correct RTL marker placement, no JS state to get wrong.
-              <details key={item.q} style={{ padding: "var(--space-sm) 0" }}>
-                <summary style={{ cursor: "pointer", fontWeight: 600, minHeight: "var(--size-touch)", display: "flex", alignItems: "center" }}>
-                  {t(item.q)}
-                </summary>
-                <p style={{ margin: "var(--space-sm) 0" }}>{t(item.a)}</p>
+            {/* Always expanded — nothing hidden behind an interaction. A
+                disclosure widget is itself a hurdle for the docs/01 target
+                user, and scanning is what section headings are for. */}
+            {section.items.map((item, index) => (
+              <div
+                key={item.q}
+                style={{
+                  padding: "var(--space-sm) 0",
+                  borderTop: index === 0 ? undefined : "1px solid var(--color-border)",
+                }}
+              >
+                <strong style={{ display: "block", marginBottom: "var(--space-xs)" }}>{t(item.q)}</strong>
+                <p style={{ margin: "0 0 var(--space-sm)" }}>{t(item.a)}</p>
                 <ReadAloud segments={[{ audio: item.audio }]} />
-              </details>
+              </div>
             ))}
           </Card>
         </div>

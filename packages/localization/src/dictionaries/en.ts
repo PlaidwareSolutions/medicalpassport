@@ -126,6 +126,7 @@ export const en = {
 
   "welcome.title": "Welcome",
   "welcome.get_started": "Get started",
+  "welcome.take_tour": "Take a tour",
   "welcome.choose_language": "Choose your language",
 
   "auth.phone_label": "Mobile number",

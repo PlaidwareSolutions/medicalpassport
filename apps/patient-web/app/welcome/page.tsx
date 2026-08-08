@@ -48,14 +48,18 @@ export default function WelcomePage() {
         {t("welcome.get_started")}
       </Button>
 
+      {/* Screen 1 secondary action: the public tour — a warm look at what
+          the app does before asking anyone to sign in. Help itself stays
+          reachable from Profile and from the tour's destination screens. */}
+      <Link href="/tour">
+        <Button variant="secondary" fullWidth>
+          {t("welcome.take_tour")}
+        </Button>
+      </Link>
+
       <p style={{ textAlign: "center", fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
         {t("app.not_a_doctor")}
       </p>
-
-      {/* Screen 1 secondary action: Help is reachable before signing in. */}
-      <Link href="/help" style={{ textAlign: "center", color: "var(--color-info)", textDecoration: "underline", minHeight: "var(--size-touch)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-        {t("help.title")}
-      </Link>
     </main>
   );
 }

@@ -125,6 +125,7 @@ export const ur: Record<keyof typeof en, string> = {
 
   "welcome.title": "خوش آمدید",
   "welcome.get_started": "شروع کریں",
+  "welcome.take_tour": "ایپ کی سیر کریں",
   "welcome.choose_language": "اپنی زبان منتخب کریں",
 
   "auth.phone_label": "موبائل نمبر",

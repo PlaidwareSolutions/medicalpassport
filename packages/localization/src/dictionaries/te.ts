@@ -125,6 +125,7 @@ export const te: Record<keyof typeof en, string> = {
 
   "welcome.title": "స్వాగతం",
   "welcome.get_started": "ప్రారంభించండి",
+  "welcome.take_tour": "యాప్ పరిచయం చూడండి",
   "welcome.choose_language": "మీ భాషను ఎంచుకోండి",
 
   "auth.phone_label": "మొబైల్ నంబర్",

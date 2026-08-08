@@ -125,6 +125,7 @@ export const hi: Record<keyof typeof en, string> = {
 
   "welcome.title": "स्वागत है",
   "welcome.get_started": "शुरू करें",
+  "welcome.take_tour": "ऐप की सैर करें",
   "welcome.choose_language": "अपनी भाषा चुनें",
 
   "auth.phone_label": "मोबाइल नंबर",

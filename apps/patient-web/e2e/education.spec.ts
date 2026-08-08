@@ -65,11 +65,12 @@ test.describe("help screen", () => {
   // (docs/07 shared defaults exempt it from auth).
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("public, answers open, emergency boundary present, tour replay works", async ({ page }) => {
+  test("public, answers always visible, emergency boundary present, tour replay works", async ({ page }) => {
     await page.goto("/help");
     await expect(page.getByRole("heading", { name: "Help" })).toBeVisible();
 
-    await page.getByText("Which medicines am I taking now?").click();
+    // Answers are permanently expanded — visible without any interaction.
+    await expect(page.getByText("Which medicines am I taking now?")).toBeVisible();
     await expect(page.getByText("Open Medicines from the bottom bar", { exact: false })).toBeVisible();
 
     await expect(page.getByText("Call 112 or your doctor right away", { exact: false })).toBeVisible();
