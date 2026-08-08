@@ -62,6 +62,15 @@ export const te: Record<keyof typeof en, string> = {
   "guide.install.ios_step3": "“Add” నొక్కండి.",
   "guide.install.dismiss": "వద్దు, ధన్యవాదాలు",
 
+  "tour.card1_title": "మీ మందులు, ఒకే చోట",
+  "tour.card1_body": "మీరు వేసుకునే ప్రతి మందు — ఎంత, ఎప్పుడు అనేదానితో సహా — ఎప్పుడూ ఈ ఫోన్‌లో మీతోనే.",
+  "tour.card2_title": "సమయానికి గుర్తు చేస్తాం",
+  "tour.card2_body": "మందు వేసుకునే సమయం వచ్చినప్పుడు యాప్ మోగించి మీకు గుర్తు చేయగలదు.",
+  "tour.card3_title": "ఏ డాక్టర్‌కైనా చూపించండి",
+  "tour.card3_body": "క్లినిక్‌లో యాప్ తెరవండి — డాక్టర్ అన్నీ చూస్తారు, కాగితాలు మోసుకెళ్లాల్సిన అవసరం లేదు.",
+  "tour.step": "దశ {current} / {total}",
+  "tour.done": "మొదలుపెడదాం",
+
   "welcome.title": "స్వాగతం",
   "welcome.get_started": "ప్రారంభించండి",
   "welcome.choose_language": "మీ భాషను ఎంచుకోండి",

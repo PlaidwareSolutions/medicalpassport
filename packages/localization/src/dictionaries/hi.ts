@@ -62,6 +62,15 @@ export const hi: Record<keyof typeof en, string> = {
   "guide.install.ios_step3": "“Add” दबाएँ।",
   "guide.install.dismiss": "नहीं, धन्यवाद",
 
+  "tour.card1_title": "आपकी दवाएँ, एक जगह",
+  "tour.card1_body": "आपकी हर दवा — कितनी और कब लेनी है — हमेशा आपके इस फ़ोन में आपके साथ।",
+  "tour.card2_title": "हम समय पर याद दिलाएँगे",
+  "tour.card2_body": "दवा लेने का समय होने पर ऐप घंटी बजाकर आपको याद दिला सकता है।",
+  "tour.card3_title": "किसी भी डॉक्टर को दिखाएँ",
+  "tour.card3_body": "क्लिनिक में ऐप खोलें — डॉक्टर सब कुछ देख लेंगे, काग़ज़ साथ रखने की ज़रूरत नहीं।",
+  "tour.step": "चरण {current} / {total}",
+  "tour.done": "चलिए शुरू करें",
+
   "welcome.title": "स्वागत है",
   "welcome.get_started": "शुरू करें",
   "welcome.choose_language": "अपनी भाषा चुनें",

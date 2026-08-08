@@ -41,6 +41,7 @@ export function screenRoutes(): string[] {
     "/share/new",
     "/sync/conflicts",
     "/timeline",
+    "/tour",
     "/visit",
     "/welcome",
   ];

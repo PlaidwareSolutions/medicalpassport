@@ -43,6 +43,23 @@ test.describe("notification permission education", () => {
   });
 });
 
+test.describe("first-run tour", () => {
+  test("continue walks all three cards to Home; skip exits immediately", async ({ page }) => {
+    await page.goto("/tour");
+    await expect(page.getByRole("heading", { name: "Your medicines, in one place" })).toBeVisible();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "We remind you on time" })).toBeVisible();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Show it to any doctor" })).toBeVisible();
+    await page.getByRole("button", { name: "Let's begin", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+
+    await page.goto("/tour");
+    await page.getByRole("button", { name: "Skip for now", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+  });
+});
+
 test.describe("install education", () => {
   test.beforeEach(async ({ context }) => {
     // Headless Chromium never fires beforeinstallprompt on its own —

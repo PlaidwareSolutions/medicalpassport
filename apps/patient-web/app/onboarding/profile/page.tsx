@@ -28,7 +28,10 @@ export default function CreateProfilePage() {
         preferredLocale: locale,
       });
       await refresh();
-      router.replace("/");
+      // First profile created = the account's one first run: show the tour.
+      // (This screen is only reachable with zero profiles, so no flag is
+      // needed anywhere and re-logins can never see the tour again.)
+      router.replace("/tour");
     } catch (err) {
       setError(
         err instanceof ApiError

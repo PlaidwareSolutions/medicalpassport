@@ -67,6 +67,9 @@ export const GUIDANCE_AUDIO_ENTRIES = {
   "install.ios_steps": {
     sourceKeys: ["guide.install.ios_title", "guide.install.ios_step1", "guide.install.ios_step2", "guide.install.ios_step3"],
   },
+  "tour.1": { sourceKeys: ["tour.card1_title", "tour.card1_body"] },
+  "tour.2": { sourceKeys: ["tour.card2_title", "tour.card2_body"] },
+  "tour.3": { sourceKeys: ["tour.card3_title", "tour.card3_body"] },
 } as const satisfies Record<string, GuidanceAudioEntry>;
 
 export type GuidanceAudioId = keyof typeof GUIDANCE_AUDIO_ENTRIES;

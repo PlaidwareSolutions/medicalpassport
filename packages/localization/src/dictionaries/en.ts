@@ -63,6 +63,15 @@ export const en = {
   "guide.install.ios_step3": "Tap “Add”.",
   "guide.install.dismiss": "No thanks",
 
+  "tour.card1_title": "Your medicines, in one place",
+  "tour.card1_body": "Every medicine you take, with how much and when — always with you on this phone.",
+  "tour.card2_title": "We remind you on time",
+  "tour.card2_body": "The app can ring and remind you when it is time to take a medicine.",
+  "tour.card3_title": "Show it to any doctor",
+  "tour.card3_body": "At the clinic, open the app and the doctor sees everything — no papers to carry.",
+  "tour.step": "Step {current} of {total}",
+  "tour.done": "Let's begin",
+
   "welcome.title": "Welcome",
   "welcome.get_started": "Get started",
   "welcome.choose_language": "Choose your language",

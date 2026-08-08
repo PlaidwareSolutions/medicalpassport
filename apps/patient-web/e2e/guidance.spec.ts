@@ -39,6 +39,7 @@ function expectedAudio(route: string): GuidanceAudioId | null {
   if (route === "/share") return "screen.share";
   if (route === "/sync/conflicts") return "screen.sync_conflicts";
   if (route === "/timeline") return "screen.timeline";
+  if (route === "/tour") return "tour.1";
   if (route === "/visit") return "screen.visit";
   return null;
 }
