@@ -21,6 +21,7 @@ export function screenRoutes(): string[] {
     "/caregivers",
     "/caregivers/invitations",
     "/caregivers/new",
+    "/help",
     "/login",
     "/medicines",
     `/medicines/${fixture.medicationId}`,

@@ -15,7 +15,7 @@ const DISMISS_KEY = "medpass_a2hs_dismissed";
  * install prompt; iOS gets the manual Safari steps (no API exists there).
  * The same content stays reachable later from the Help screen.
  */
-export function InstallEducationCard() {
+export function InstallEducationCard({ context = "home" }: { context?: "home" | "help" }) {
   const { t } = useI18n();
   const { availability, promptInstall } = useInstallPrompt();
   const [dismissed, setDismissed] = useState(() => {
@@ -27,7 +27,9 @@ export function InstallEducationCard() {
   });
   const [showIosSteps, setShowIosSteps] = useState(false);
 
-  if (dismissed || availability === "none") return null;
+  // On Help the topic stays reachable even after a Home dismissal — help is
+  // where someone goes to change their mind — and carries no dismiss button.
+  if ((context === "home" && dismissed) || availability === "none") return null;
 
   function dismiss() {
     try {
@@ -70,9 +72,11 @@ export function InstallEducationCard() {
           </Button>
         )}
         {showIosSteps ? <ReadAloud segments={[{ audio: "install.ios_steps" }]} /> : null}
-        <Button fullWidth variant="secondary" onClick={dismiss}>
-          {t("guide.install.dismiss")}
-        </Button>
+        {context === "home" ? (
+          <Button fullWidth variant="secondary" onClick={dismiss}>
+            {t("guide.install.dismiss")}
+          </Button>
+        ) : null}
       </div>
     </Card>
   );

@@ -170,6 +170,13 @@ export default function ProfilePage() {
         </Card>
       </Link>
 
+      {/* docs/06 sitemap: Help lives under Profile (screen 41). */}
+      <Link href="/help">
+        <Card>
+          <strong>{t("help.open")}</strong>
+        </Card>
+      </Link>
+
       {activeProfile?.relationship !== "caregiver" ? (
         <Link href="/caregivers">
           <Card>

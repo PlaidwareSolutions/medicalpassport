@@ -60,6 +60,25 @@ test.describe("first-run tour", () => {
   });
 });
 
+test.describe("help screen", () => {
+  // A fresh, signed-out context: help must be reachable before any login
+  // (docs/07 shared defaults exempt it from auth).
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("public, answers open, emergency boundary present, tour replay works", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("heading", { name: "Help" })).toBeVisible();
+
+    await page.getByText("Which medicines am I taking now?").click();
+    await expect(page.getByText("Open Medicines from the bottom bar", { exact: false })).toBeVisible();
+
+    await expect(page.getByText("Call 112 or your doctor right away", { exact: false })).toBeVisible();
+
+    await page.getByText("See how the app works again").click();
+    await expect(page.getByRole("heading", { name: "Your medicines, in one place" })).toBeVisible();
+  });
+});
+
 test.describe("install education", () => {
   test.beforeEach(async ({ context }) => {
     // Headless Chromium never fires beforeinstallprompt on its own —

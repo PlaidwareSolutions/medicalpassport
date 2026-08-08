@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
 import { Button, Card } from "@medpass/ui-web";
@@ -50,6 +51,11 @@ export default function WelcomePage() {
       <p style={{ textAlign: "center", fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
         {t("app.not_a_doctor")}
       </p>
+
+      {/* Screen 1 secondary action: Help is reachable before signing in. */}
+      <Link href="/help" style={{ textAlign: "center", color: "var(--color-info)", textDecoration: "underline", minHeight: "var(--size-touch)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        {t("help.title")}
+      </Link>
     </main>
   );
 }

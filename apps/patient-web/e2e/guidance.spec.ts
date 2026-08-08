@@ -26,6 +26,7 @@ function expectedAudio(route: string): GuidanceAudioId | null {
   if (route === "/blood-sugar") return "screen.blood_sugar";
   if (route === "/caregivers") return "screen.caregivers";
   if (route === "/caregivers/invitations") return "screen.caregiver_invitations";
+  if (route === "/help") return "screen.help";
   if (route === "/medicines") return "screen.medicines";
   if (route === "/medicines/confirm-type") return "screen.confirm_type";
   if (/^\/medicines\/[^/]+$/.test(route)) return "screen.medicine_detail";
