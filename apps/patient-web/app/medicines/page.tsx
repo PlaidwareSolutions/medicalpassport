@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button, Card, Chip, PillSpinner, Tabs } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { DoseVisual } from "../../components/DoseVisual";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
@@ -54,14 +55,20 @@ export default function MedicinesPage() {
       {stillLoading ? (
         <PillSpinner label={t("common.loading")} />
       ) : shown.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--color-text-muted)" }}>{t("meds.empty")}</p>
-          {tab === "current" ? (
-            <Link href="/add">
-              <Button fullWidth>{t("home.add_first")}</Button>
-            </Link>
-          ) : null}
-        </Card>
+        tab === "current" ? (
+          <EmptyState
+            glyph="tablet"
+            titleKey="meds.empty_title"
+            bodyKey="meds.empty_body"
+            audioId="empty.meds"
+            cta={{ labelKey: "home.add_first", href: "/add" }}
+          />
+        ) : (
+          // An empty "previous" tab is just an empty history — nothing to teach.
+          <Card>
+            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>{t("meds.empty_title")}</p>
+          </Card>
+        )
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
           {shown.map((m) => (

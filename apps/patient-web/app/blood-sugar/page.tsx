@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Banner, Button, Card, ChoiceGrid, PillSpinner, Tabs, TextInput } from "@medpass/ui-web";
 import { GLUCOSE_READING_CONTEXTS, type GlucoseReadingContext } from "@medpass/domain";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import {
   addCheckupRecord,
@@ -72,9 +73,12 @@ function ReadingsTab() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 && !showForm ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("bloodsugar.readings_empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="drop"
+          titleKey="bloodsugar.readings_empty_title"
+          bodyKey="bloodsugar.readings_empty_body"
+          audioId="empty.bloodsugar_readings"
+        />
       ) : null}
 
       {items && items.length > 0 ? (
@@ -211,9 +215,12 @@ function CheckupsTab() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 && !showForm ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("bloodsugar.checkups_empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="drop"
+          titleKey="bloodsugar.checkups_empty_title"
+          bodyKey="bloodsugar.checkups_empty_body"
+          audioId="empty.bloodsugar_checkups"
+        />
       ) : null}
 
       {items && items.length > 0 ? (

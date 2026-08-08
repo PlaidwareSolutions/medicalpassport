@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
 import { usePrescriptions } from "../../lib/prescriptions";
@@ -23,9 +24,13 @@ export default function PrescriptionsPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("prescriptions.empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="prescription"
+          titleKey="prescriptions.empty_title"
+          bodyKey="prescriptions.empty_body"
+          audioId="empty.prescriptions"
+          cta={{ labelKey: "prescriptions.add", href: "/prescriptions/new" }}
+        />
       ) : null}
 
       {items && items.length > 0 ? (

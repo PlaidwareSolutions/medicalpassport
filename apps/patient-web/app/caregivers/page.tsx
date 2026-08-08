@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { CaregiverAccessEventDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { fetchCaregiverAccessLog, isCaregiverActive, revokeCaregiver, useCaregivers } from "../../lib/caregivers";
 import { useI18n } from "../../lib/i18n";
@@ -61,9 +62,13 @@ export default function CaregiversPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("caregiver.list_empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="people"
+          titleKey="caregiver.list_empty_title"
+          bodyKey="caregiver.list_empty_body"
+          audioId="empty.caregivers"
+          cta={{ labelKey: "caregiver.invite_button", href: "/caregivers/new" }}
+        />
       ) : null}
 
       {items && items.length > 0 ? (

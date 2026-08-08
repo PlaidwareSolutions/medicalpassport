@@ -6,6 +6,7 @@ import { reportAnalyteById } from "@medpass/domain";
 import { Banner, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AnalytePicker } from "../../../components/AnalytePicker";
 import { AppShell } from "../../../components/AppShell";
+import { EmptyState } from "../../../components/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { useReportValueHistory } from "../../../lib/reports";
@@ -51,9 +52,12 @@ function ValueHistory() {
           {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
           {items && items.length === 0 ? (
-            <Card>
-              <span style={{ color: "var(--color-text-muted)" }}>{t("reports.history_empty")}</span>
-            </Card>
+            <EmptyState
+              glyph="report"
+              titleKey="reports.history_empty_title"
+              bodyKey="reports.history_empty_body"
+              audioId="empty.report_history"
+            />
           ) : null}
 
           {items && items.length > 0 ? (

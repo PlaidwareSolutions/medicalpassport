@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
 import { useReports } from "../../lib/reports";
@@ -29,9 +30,13 @@ export default function ReportsPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("reports.empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="report"
+          titleKey="reports.empty_title"
+          bodyKey="reports.empty_body"
+          audioId="empty.reports"
+          cta={{ labelKey: "reports.add", href: "/reports/new" }}
+        />
       ) : null}
 
       {items && items.length > 0 ? (

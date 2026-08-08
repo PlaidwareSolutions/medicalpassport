@@ -12,7 +12,17 @@
  * text labels").
  */
 
-export type GuideGlyphName = "speaker";
+export type GuideGlyphName =
+  | "speaker"
+  | "tablet"
+  | "bell"
+  | "shield"
+  | "people"
+  | "prescription"
+  | "report"
+  | "share"
+  | "drop"
+  | "check";
 
 const SIZE_EM = { sm: "1em", md: "1.35em", lg: "3em" } as const;
 export type GuideGlyphSize = keyof typeof SIZE_EM;
@@ -34,6 +44,91 @@ function paths(name: GuideGlyphName) {
           />
           <path d="M66 38a17 17 0 010 24" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
           <path d="M78 27a34 34 0 010 46" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+        </>
+      );
+    case "tablet":
+      // Same scored round pill as MedicineGlyph — one shape, one meaning.
+      return (
+        <>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="10" />
+          <line x1="24" y1="50" x2="76" y2="50" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+        </>
+      );
+    case "bell":
+      return (
+        <>
+          <path
+            d="M50 12a26 26 0 0126 26v18l8 12H16l8-12V38a26 26 0 0126-26z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="9"
+            strokeLinejoin="round"
+          />
+          <path d="M42 76a8 8 0 0016 0" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+        </>
+      );
+    case "shield":
+      return (
+        <>
+          <path
+            d="M50 10l32 12v24c0 22-14 36-32 44C32 82 18 68 18 46V22z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="9"
+            strokeLinejoin="round"
+          />
+          <path d="M35 50l11 11 20-24" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      );
+    case "people":
+      // One person in front, one behind — "someone helping you".
+      return (
+        <>
+          <circle cx="38" cy="32" r="14" fill="none" stroke="currentColor" strokeWidth="9" />
+          <path d="M14 84c0-15 11-26 24-26s24 11 24 26" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+          <circle cx="72" cy="36" r="11" fill="none" stroke="currentColor" strokeWidth="8" />
+          <path d="M68 84c1-12 8-20 18-21" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        </>
+      );
+    case "prescription":
+      // Paper with a folded corner and writing lines — the doctor's chit.
+      return (
+        <>
+          <path d="M26 10h34l16 16v64H26z" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />
+          <path d="M60 10v16h16" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />
+          <line x1="36" y1="48" x2="66" y2="48" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+          <line x1="36" y1="62" x2="66" y2="62" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        </>
+      );
+    case "report":
+      // Same paper, but carrying a result line instead of prose — a chart
+      // means numbers, which is how a lab report differs from a chit.
+      return (
+        <>
+          <path d="M26 10h34l16 16v64H26z" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />
+          <path d="M60 10v16h16" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />
+          <path d="M34 68l12-14 8 8 14-18" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      );
+    case "share":
+      // Three connected dots — the shape every share sheet already uses.
+      return (
+        <>
+          <circle cx="26" cy="50" r="11" fill="none" stroke="currentColor" strokeWidth="8" />
+          <circle cx="74" cy="24" r="11" fill="none" stroke="currentColor" strokeWidth="8" />
+          <circle cx="74" cy="76" r="11" fill="none" stroke="currentColor" strokeWidth="8" />
+          <line x1="36" y1="45" x2="64" y2="29" stroke="currentColor" strokeWidth="8" />
+          <line x1="36" y1="55" x2="64" y2="71" stroke="currentColor" strokeWidth="8" />
+        </>
+      );
+    case "drop":
+      // Same droplet as MedicineGlyph — here it means a blood-sugar test.
+      return <path d="M50 12C30 40 24 54 24 64a26 26 0 0052 0c0-10-6-24-26-52z" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />;
+    case "check":
+      return (
+        <>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="9" />
+          <path d="M33 52l12 12 22-26" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
         </>
       );
   }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Banner, Button, Card, Chip, PillSpinner, TextInput } from "@medpass/ui-web";
 import { ChoiceGrid } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { addAllergy, useAllergies } from "../../lib/allergies";
 import { useI18n } from "../../lib/i18n";
@@ -47,9 +48,7 @@ export default function AllergiesPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 && !showForm ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("allergy.empty")}</span>
-        </Card>
+        <EmptyState glyph="shield" titleKey="allergy.empty_title" bodyKey="allergy.empty_body" audioId="empty.allergies" />
       ) : null}
 
       {items && items.length > 0 ? (

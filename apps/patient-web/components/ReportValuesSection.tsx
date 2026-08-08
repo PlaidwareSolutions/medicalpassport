@@ -6,6 +6,7 @@ import { reportAnalyteById } from "@medpass/domain";
 import { Banner, Button, Card, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AnalytePicker } from "./AnalytePicker";
 import { useI18n } from "../lib/i18n";
+import { EmptyState } from "./EmptyState";
 
 /**
  * The structured-values block on a report detail screen (docs/07 screen 44):
@@ -81,9 +82,12 @@ export function ReportValuesSection({
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       {values.length === 0 && !showForm ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("reports.values_empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="report"
+          titleKey="reports.values_empty_title"
+          bodyKey="reports.values_empty_body"
+          audioId="empty.report_values"
+        />
       ) : null}
 
       {values.length > 0 ? (

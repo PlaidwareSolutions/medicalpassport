@@ -1,6 +1,7 @@
 "use client";
 import { Banner, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { DoseCard } from "../../components/DoseCard";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
@@ -22,9 +23,13 @@ export default function TimelinePage() {
       {!data && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {data && data.items.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, color: "var(--color-text-muted)" }}>{t("timeline.empty")}</p>
-        </Card>
+        <EmptyState
+          glyph="bell"
+          titleKey="timeline.empty_title"
+          bodyKey="timeline.empty_body"
+          audioId="empty.timeline"
+          cta={{ labelKey: "home.add_first", href: "/add" }}
+        />
       ) : null}
 
       {data

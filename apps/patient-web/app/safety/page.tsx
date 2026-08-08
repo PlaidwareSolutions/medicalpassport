@@ -1,6 +1,7 @@
 "use client";
 import { Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { FindingCard } from "../../components/FindingCard";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
@@ -26,9 +27,9 @@ export default function SafetyPage() {
       {!items && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && open.length === 0 ? (
-        <Card tone="info">
-          <span style={{ color: "var(--color-text-muted)" }}>{t("safety.empty")}</span>
-        </Card>
+        // The caveat sentence is clinically load-bearing (docs/02): "none
+        // found" must never read as "none exist".
+        <EmptyState glyph="shield" titleKey="safety.empty_title" bodyKey="safety.empty_body" audioId="empty.safety" tone="info" />
       ) : null}
 
       {open.length > 0 ? (

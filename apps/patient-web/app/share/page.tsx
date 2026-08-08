@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ShareAccessEventDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
 import { fetchAccessLog, revokeShare, useShares } from "../../lib/sharing";
@@ -51,9 +52,13 @@ export default function SharesPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("share.empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="share"
+          titleKey="share.empty_title"
+          bodyKey="share.empty_body"
+          audioId="empty.share"
+          cta={{ labelKey: "share.create", href: "/share/new" }}
+        />
       ) : null}
 
       {items && items.length > 0 ? (

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Banner, Button, Card, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { EmptyState } from "../../../components/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { resolveConflict, useConflicts } from "../../../lib/conflicts";
@@ -36,7 +37,12 @@ export default function SyncConflictsPage() {
       <PageHeader title={t("sync.conflicts_title")} readAloud={[{ audio: "screen.sync_conflicts" }]} />
 
       {items.length === 0 ? (
-        <Banner tone="info">{t("sync.conflicts_empty")}</Banner>
+        <EmptyState
+          glyph="check"
+          titleKey="sync.conflicts_empty_title"
+          bodyKey="sync.conflicts_empty_body"
+          audioId="empty.sync_conflicts"
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
           {items.map((c) => {

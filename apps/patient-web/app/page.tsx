@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Banner, Button, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../components/AppShell";
+import { EmptyState } from "../components/EmptyState";
 import { CaregiverAlertCard } from "../components/CaregiverAlertCard";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
@@ -46,13 +47,13 @@ export default function HomePage() {
       {medications === undefined && !medError ? <PillSpinner label={t("common.loading")} /> : null}
 
       {noMedicinesAtAll ? (
-        <Card>
-          <strong>{t("home.empty_title")}</strong>
-          <p style={{ margin: 0, color: "var(--color-text-muted)" }}>{t("home.empty_body")}</p>
-          <Link href="/add">
-            <Button fullWidth>{t("home.add_first")}</Button>
-          </Link>
-        </Card>
+        <EmptyState
+          glyph="tablet"
+          titleKey="home.empty_title"
+          bodyKey="home.empty_body"
+          audioId="empty.home"
+          cta={{ labelKey: "home.add_first", href: "/add" }}
+        />
       ) : null}
 
       {glucoseReadings ? (

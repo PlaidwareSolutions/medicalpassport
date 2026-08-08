@@ -4,6 +4,7 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 
 ## Shared defaults (apply to every screen unless overridden)
 
+- **Empty states are teaching states** (built, self-guiding UX chunk 3): a screen with nothing to show explains *why it exists* — glyph + plain-language purpose sentence + listen button + at most one action (`components/EmptyState.tsx`) — because elders learn in context at the moment of need, not from tours. Exceptions, deliberate: transient search feedback, sub-lists (access log), and the clinical-block "no approved content" fallbacks, whose wording is docs/02 contract copy.
 - **Loading:** skeleton placeholders matching final layout; no spinners longer than 300 ms without a skeleton; never block on non-critical data.
 - **Error:** plain-language message + "Try again" primary button; error reference code (opaque); never raw technical text; errors reported without PHI.
 - **Offline:** persistent banner "You're offline — showing saved information"; cached data rendered where available; writes queue where supported, otherwise disabled with explanation.

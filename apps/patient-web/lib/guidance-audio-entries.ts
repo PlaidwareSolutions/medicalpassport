@@ -44,6 +44,22 @@ export const GUIDANCE_AUDIO_ENTRIES = {
   "screen.claim_invitations": { sourceKeys: ["guide.screen.claim_invitations"] },
   "screen.sync_conflicts": { sourceKeys: ["guide.screen.sync_conflicts"] },
   "screen.offline": { sourceKeys: ["guide.screen.offline"] },
+  "empty.home": { sourceKeys: ["home.empty_title", "home.empty_body"] },
+  "empty.meds": { sourceKeys: ["meds.empty_title", "meds.empty_body"] },
+  "empty.timeline": { sourceKeys: ["timeline.empty_title", "timeline.empty_body"] },
+  "empty.safety": { sourceKeys: ["safety.empty_title", "safety.empty_body"] },
+  "empty.allergies": { sourceKeys: ["allergy.empty_title", "allergy.empty_body"] },
+  "empty.prescriptions": { sourceKeys: ["prescriptions.empty_title", "prescriptions.empty_body"] },
+  "empty.reports": { sourceKeys: ["reports.empty_title", "reports.empty_body"] },
+  "empty.report_history": { sourceKeys: ["reports.history_empty_title", "reports.history_empty_body"] },
+  "empty.report_values": { sourceKeys: ["reports.values_empty_title", "reports.values_empty_body"] },
+  "empty.share": { sourceKeys: ["share.empty_title", "share.empty_body"] },
+  "empty.caregivers": { sourceKeys: ["caregiver.list_empty_title", "caregiver.list_empty_body"] },
+  "empty.caregiver_invitations": { sourceKeys: ["caregiver.invitations_empty_title", "caregiver.invitations_empty_body"] },
+  "empty.claim_invitations": { sourceKeys: ["caregiver.claim_invitations_empty_title", "caregiver.claim_invitations_empty_body"] },
+  "empty.bloodsugar_readings": { sourceKeys: ["bloodsugar.readings_empty_title", "bloodsugar.readings_empty_body"] },
+  "empty.bloodsugar_checkups": { sourceKeys: ["bloodsugar.checkups_empty_title", "bloodsugar.checkups_empty_body"] },
+  "empty.sync_conflicts": { sourceKeys: ["sync.conflicts_empty_title", "sync.conflicts_empty_body"] },
 } as const satisfies Record<string, GuidanceAudioEntry>;
 
 export type GuidanceAudioId = keyof typeof GUIDANCE_AUDIO_ENTRIES;

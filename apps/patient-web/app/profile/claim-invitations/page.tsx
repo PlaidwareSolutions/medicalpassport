@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Banner, Button, Card, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { EmptyState } from "../../../components/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
 import { claimProfile, useClaimInvitations } from "../../../lib/profiles";
@@ -44,9 +45,12 @@ export default function ClaimInvitationsPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
-        <Card>
-          <span style={{ color: "var(--color-text-muted)" }}>{t("caregiver.claim_invitations_empty")}</span>
-        </Card>
+        <EmptyState
+          glyph="people"
+          titleKey="caregiver.claim_invitations_empty_title"
+          bodyKey="caregiver.claim_invitations_empty_body"
+          audioId="empty.claim_invitations"
+        />
       ) : null}
 
       {items && items.length > 0 ? (
