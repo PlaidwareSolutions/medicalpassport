@@ -142,7 +142,7 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("profile.title")} />
+      <PageHeader title={t("profile.title")} readAloud={[{ audio: "screen.profile" }]} />
 
       <ProfileDetailsSettings />
 

@@ -20,7 +20,7 @@ export default function SafetyPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("safety.title")} />
+      <PageHeader title={t("safety.title")} readAloud={[{ audio: "screen.safety" }]} />
 
       {error ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
       {!items && !error ? <PillSpinner label={t("common.loading")} /> : null}

@@ -283,7 +283,7 @@ export default function BloodSugarPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("bloodsugar.title")} />
+      <PageHeader title={t("bloodsugar.title")} readAloud={[{ audio: "screen.blood_sugar" }]} />
       {/* Real tablist semantics (was a pair of plain Buttons with no
           role=tab/aria-selected) + reflow-safe wrapping (docs/33). */}
       <Tabs

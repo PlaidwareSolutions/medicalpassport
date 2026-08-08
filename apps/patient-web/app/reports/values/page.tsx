@@ -33,7 +33,7 @@ function ValueHistory() {
 
   return (
     <AppShell>
-      <PageHeader title={t("reports.history_title")} />
+      <PageHeader title={t("reports.history_title")} readAloud={[{ audio: "screen.report_values" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       {!selected ? (

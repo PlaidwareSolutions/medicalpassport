@@ -38,7 +38,7 @@ export default function HomePage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("nav.home")} />
+      <PageHeader title={t("nav.home")} readAloud={[{ audio: "screen.home" }]} />
 
       {medError || timelineError ? <Card tone="danger">{t("common.error_generic")}</Card> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}

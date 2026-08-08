@@ -137,7 +137,7 @@ function AddMedicationForm() {
 
   return (
     <AppShell>
-      <PageHeader title={t("add.title")} />
+      <PageHeader title={t("add.title")} readAloud={[{ audio: "screen.add" }]} />
       {prescriptionId ? <Banner tone="info">{t("add.from_prescription")}</Banner> : null}
       {error ? <Banner tone="danger">{error}</Banner> : null}
 

@@ -13,7 +13,7 @@ export default function PrescriptionsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("prescriptions.title")} />
+      <PageHeader title={t("prescriptions.title")} readAloud={[{ audio: "screen.prescriptions" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       <Link href="/prescriptions/new">

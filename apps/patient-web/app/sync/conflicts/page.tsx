@@ -33,7 +33,7 @@ export default function SyncConflictsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("sync.conflicts_title")} />
+      <PageHeader title={t("sync.conflicts_title")} readAloud={[{ audio: "screen.sync_conflicts" }]} />
 
       {items.length === 0 ? (
         <Banner tone="info">{t("sync.conflicts_empty")}</Banner>

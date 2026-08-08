@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { PageHeader } from "../../../components/PageHeader";
 import { acceptInvitation, useCaregiverInvitations } from "../../../lib/caregivers";
 import { useI18n } from "../../../lib/i18n";
 import { useSession } from "../../../lib/session";
@@ -38,7 +39,7 @@ export default function CaregiverInvitationsPage() {
 
   return (
     <AppShell>
-      <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-sm)" }}>{t("caregiver.invitations_title")}</h1>
+      <PageHeader title={t("caregiver.invitations_title")} readAloud={[{ audio: "screen.caregiver_invitations" }]} />
       {error || acceptError ? <Banner tone="danger">{acceptError ?? t("common.error_generic")}</Banner> : null}
 
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}

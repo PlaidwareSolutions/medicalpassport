@@ -41,7 +41,7 @@ export default function SharesPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("share.view_all")} />
+      <PageHeader title={t("share.view_all")} readAloud={[{ audio: "screen.share" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       <Link href="/share/new">

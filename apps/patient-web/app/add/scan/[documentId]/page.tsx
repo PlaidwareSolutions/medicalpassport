@@ -189,7 +189,7 @@ export default function ReviewExtractionPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("review.title")} style={{ margin: "0 0 var(--space-xs)" }} />
+      <PageHeader title={t("review.title")} readAloud={[{ audio: "screen.scan" }]} style={{ margin: "0 0 var(--space-xs)" }} />
       <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-md)" }}>{t("review.subtitle")}</p>
 
       {submitError ? <Banner tone="danger">{submitError}</Banner> : null}

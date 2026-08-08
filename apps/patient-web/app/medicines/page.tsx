@@ -32,7 +32,7 @@ export default function MedicinesPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("nav.medicines")} />
+      <PageHeader title={t("nav.medicines")} readAloud={[{ audio: "screen.medicines" }]} />
       {unconfirmed.length > 0 ? (
         <Link href="/medicines/confirm-type" style={{ textDecoration: "none" }}>
           <Card tone="info">

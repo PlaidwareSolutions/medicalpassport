@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Banner, Button, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { ReadAloud } from "../../components/ReadAloud";
 import { VisitSummarySections } from "../../components/VisitSummarySections";
 import { useI18n } from "../../lib/i18n";
 import { downloadVisitSummaryPdf, useVisitSummary } from "../../lib/sharing";
@@ -50,6 +51,9 @@ export default function VisitModePage() {
       <p style={{ margin: "0 0 var(--space-sm)", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
         {t("visit.generated_at", { time: new Date(data.generatedAt).toLocaleString() })}
       </p>
+      <div style={{ margin: "0 0 var(--space-sm)" }}>
+        <ReadAloud size="md" segments={[{ audio: "screen.visit" }]} />
+      </div>
 
       {downloadError ? <Banner tone="danger">{downloadError}</Banner> : null}
 

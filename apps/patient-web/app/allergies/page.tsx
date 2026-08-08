@@ -41,7 +41,7 @@ export default function AllergiesPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("allergy.title")} />
+      <PageHeader title={t("allergy.title")} readAloud={[{ audio: "screen.allergies" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}

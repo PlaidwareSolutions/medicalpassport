@@ -1,5 +1,6 @@
 "use client";
 import { Button } from "@medpass/ui-web";
+import { ReadAloud } from "../../components/ReadAloud";
 import { useI18n } from "../../lib/i18n";
 
 /** Offline navigation fallback served by the service worker (docs/07 shared defaults). */
@@ -10,6 +11,11 @@ export default function OfflinePage() {
       <div aria-hidden="true" style={{ fontSize: "3rem" }}>📴</div>
       <h1 style={{ fontSize: "var(--font-title)", margin: 0 }}>{t("offline.title")}</h1>
       <p style={{ color: "var(--color-text-muted)", margin: 0 }}>{t("offline.body")}</p>
+      {/* Guidance audio rides the SW's CacheFirst runtime cache, so a
+          previously played explanation still plays with no network. */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <ReadAloud size="md" segments={[{ audio: "screen.offline" }]} />
+      </div>
       <Button fullWidth onClick={() => window.location.reload()}>
         {t("common.retry")}
       </Button>

@@ -51,7 +51,7 @@ export default function CaregiversPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("caregiver.list_title")} />
+      <PageHeader title={t("caregiver.list_title")} readAloud={[{ audio: "screen.caregivers" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       <Link href="/caregivers/new">

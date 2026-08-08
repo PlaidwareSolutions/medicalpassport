@@ -13,7 +13,7 @@ export default function ReportsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("reports.title")} />
+      <PageHeader title={t("reports.title")} readAloud={[{ audio: "screen.reports" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       <Link href="/reports/new">

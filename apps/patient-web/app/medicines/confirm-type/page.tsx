@@ -69,7 +69,7 @@ export default function ConfirmMedicineTypePage() {
   if (!current) {
     return (
       <AppShell>
-        <PageHeader title={t("confirmtype.title")} />
+        <PageHeader title={t("confirmtype.title")} readAloud={[{ audio: "screen.confirm_type" }]} />
         <Card tone="info">
           <strong>{t("confirmtype.all_done")}</strong>
         </Card>
@@ -82,7 +82,7 @@ export default function ConfirmMedicineTypePage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("confirmtype.title")} />
+      <PageHeader title={t("confirmtype.title")} readAloud={[{ audio: "screen.confirm_type" }]} />
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
 
       <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>

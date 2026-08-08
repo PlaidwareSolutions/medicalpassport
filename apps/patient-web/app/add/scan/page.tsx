@@ -90,7 +90,7 @@ export default function ScanDocumentPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("scan.title")} />
+      <PageHeader title={t("scan.title")} readAloud={[{ audio: "screen.scan" }]} />
       <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-md)" }}>{t("scan.intro")}</p>
 
       {error ? <Banner tone="danger">{error}</Banner> : null}

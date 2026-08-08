@@ -7,7 +7,6 @@ import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/
 import { AppShell } from "../../../components/AppShell";
 import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
 import { PageHeader } from "../../../components/PageHeader";
-import { ReadAloud } from "../../../components/ReadAloud";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { invalidateMedicationData, instructionSummary, useMedication } from "../../../lib/medications";
@@ -100,6 +99,7 @@ export default function MedicineDetailPage() {
       <PageHeader
         title={displayName}
         right={<Chip tone={statusTone}>{t(`meds.status.${medication.status}` as never)}</Chip>}
+        readAloud={[{ audio: "screen.medicine_detail" }, { text: spokenSummary }]}
       />
       <Link href={`/medicines/${medication.id}/edit`}>
         <Button variant="secondary" fullWidth>
@@ -141,7 +141,6 @@ export default function MedicineDetailPage() {
             {t("meds.quantity_remaining", { count: medication.quantityOnHand, unit: medication.instruction?.doseUnit ?? "" })}
           </div>
         ) : null}
-        <ReadAloud size="md" segments={[{ audio: "screen.medicine_detail" }, { text: spokenSummary }]} />
       </Card>
 
       {/* The two "used for" blocks are always separate (docs/02 principle 3). */}
