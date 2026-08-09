@@ -89,6 +89,13 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --filter @medpass/patient-web exec playwright install --with-deps chromium
 
+      # --with-deps ships CJK/Thai/emoji fonts but no Indic ones, so Telugu
+      # rendered via a wider fallback and four te reflow tests measured
+      # ~337px against the 321px gate — metrics no real Indian phone has.
+      # Noto core gives the runner the same shaping real devices use.
+      - name: Install Indic fonts
+        run: sudo apt-get install -y --no-install-recommends fonts-noto-core
+
       # Accessibility gate (docs/33 engineering-enforcement table): reflow at
       # 320px × 200% across every screen and locale, plus axe-core with zero
       # serious/critical violations. Playwright boots the built API + web
