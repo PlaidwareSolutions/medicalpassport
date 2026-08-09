@@ -20,6 +20,9 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     storageState: "e2e/.auth/storage-state.json",
+    // A CI-only failure is undebuggable from list output alone; the trace
+    // carries DOM snapshots, console, and network for the retry attempt.
+    trace: "on-first-retry",
   },
   webServer: [
     {

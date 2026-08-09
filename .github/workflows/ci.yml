@@ -91,6 +91,15 @@ jobs:
       - name: Accessibility suite (reflow + axe)
         run: pnpm --filter @medpass/patient-web test:e2e
 
+      - name: Upload Playwright failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: apps/patient-web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   deploy-staging:
     # Railway deploy hook (docs/25): fill in RAILWAY_TOKEN + service IDs when
     # the Railway projects exist (Requires platform configuration).
