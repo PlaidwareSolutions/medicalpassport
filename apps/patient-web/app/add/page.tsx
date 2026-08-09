@@ -7,9 +7,11 @@ import { DOSE_UNITS, type DoseUnit } from "@medpass/domain";
 import { defaultDoseUnitForForm } from "@medpass/medication-terminology";
 import { Banner, Button, Card, ChoiceGrid, PillSpinner, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
+import { DoctorPicker } from "../../components/DoctorPicker";
 import { PageHeader } from "../../components/PageHeader";
 import { api } from "../../lib/api";
 import { createMedication } from "../../lib/medications";
+import { ensurePractitioner } from "../../lib/practitioners";
 import { useI18n } from "../../lib/i18n";
 
 type Frequency = "OD" | "OD_AFTERNOON" | "BD" | "TDS" | "SOS" | "HS" | "PATTERN" | "WEEKLY" | "FORTNIGHTLY" | "MONTHLY";
@@ -45,6 +47,7 @@ function AddMedicationForm() {
   const [food, setFood] = useState<Food | undefined>("any");
   const [reason, setReason] = useState("");
   const [prescriber, setPrescriber] = useState("");
+  const [prescriberSpeciality, setPrescriberSpeciality] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [quantityOnHand, setQuantityOnHand] = useState("");
   const [criticalEscalation, setCriticalEscalation] = useState(false);
@@ -89,6 +92,10 @@ function AddMedicationForm() {
     setBusy(true);
     setError(undefined);
     try {
+      // Best-effort: a typed speciality needs its own (online-only) create;
+      // the name itself still rides the medication payload, so failure here
+      // must never block an offline-queued save.
+      await ensurePractitioner(prescriber, prescriberSpeciality).catch(() => undefined);
       const { queuedOffline } = await createMedication({
         ...(selected ? { productId: selected.id } : { enteredName: manualName.trim() }),
         source: selected ? "search" : "manual",
@@ -294,7 +301,14 @@ function AddMedicationForm() {
           <SectionTitle>{t("add.reason_label")}</SectionTitle>
           <TextInput label={t("add.reason_label")} value={reason} onChange={(e) => setReason(e.target.value)} />
           <div style={{ height: "var(--space-sm)" }} />
-          <TextInput label={t("add.prescriber_label")} value={prescriber} onChange={(e) => setPrescriber(e.target.value)} />
+          <DoctorPicker
+            label={t("add.prescriber_label")}
+            value={prescriber}
+            onChange={(name, speciality) => {
+              setPrescriber(name);
+              setPrescriberSpeciality(speciality ?? "");
+            }}
+          />
           <div style={{ height: "var(--space-sm)" }} />
           <TextInput
             label={t("add.duration_label")}

@@ -4,6 +4,7 @@ import { ERROR_CODES, REPORT_ANALYTE_IDS, reportAnalyteById } from "@medpass/dom
 import { parseReportNumericValue, type AddReportValueInput, type CreateReportInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
+import { PractitionersService } from "../practitioners/practitioners.service";
 
 interface Actor {
   userId: string;
@@ -60,26 +61,14 @@ type Tx = Parameters<Parameters<PrismaService["$transaction"]>[0]>[0];
  */
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Same case-insensitive per-profile dedup prescriptions use, so a doctor
-   * named on a report and on a prescription resolves to one record.
-   */
-  private async resolvePractitioner(tx: Tx, profileId: string, practitionerName: string | undefined): Promise<string | null> {
-    const displayName = practitionerName?.trim();
-    if (!displayName) return null;
-    const existing = await tx.practitioner.findFirst({
-      where: { createdByProfileId: profileId, displayName: { equals: displayName, mode: "insensitive" }, deletedAt: null },
-    });
-    if (existing) return existing.id;
-    const created = await tx.practitioner.create({ data: { displayName, createdByProfileId: profileId } });
-    return created.id;
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly practitioners: PractitionersService,
+  ) {}
 
   async create(profileId: string, input: CreateReportInput, actor: Actor) {
     const report = await this.prisma.$transaction(async (tx) => {
-      const practitionerId = await this.resolvePractitioner(tx, profileId, input.practitionerName);
+      const practitionerId = await this.practitioners.resolve(tx, profileId, input.practitionerName);
       const created = await tx.medicalReport.create({
         data: {
           patientProfileId: profileId,

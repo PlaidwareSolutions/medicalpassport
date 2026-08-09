@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { ApiError, type AuthorizeUploadResponseDto } from "@medpass/api-client";
 import { Banner, Button, Card, PillSpinner, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { DoctorPicker } from "../../../components/DoctorPicker";
 import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
+import { ensurePractitioner } from "../../../lib/practitioners";
 import { createPrescription } from "../../../lib/prescriptions";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -29,6 +31,7 @@ export default function NewPrescriptionPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [practitionerName, setPractitionerName] = useState("");
+  const [practitionerSpeciality, setPractitionerSpeciality] = useState("");
   const [prescribedAt, setPrescribedAt] = useState(() => toDateOnly(new Date()));
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -63,6 +66,7 @@ export default function NewPrescriptionPage() {
     setError(undefined);
     try {
       setStage("saving");
+      await ensurePractitioner(practitionerName, practitionerSpeciality).catch(() => undefined);
       const prescription = await createPrescription({
         ...(practitionerName.trim() ? { practitionerName: practitionerName.trim() } : {}),
         ...(prescribedAt ? { prescribedAt: new Date(prescribedAt).toISOString() } : {}),
@@ -94,11 +98,13 @@ export default function NewPrescriptionPage() {
       ) : (
         <>
           <Card>
-            <TextInput
+            <DoctorPicker
               label={t("prescriptions.doctor_label")}
-              placeholder={t("prescriptions.doctor_placeholder")}
               value={practitionerName}
-              onChange={(e) => setPractitionerName(e.target.value)}
+              onChange={(name, speciality) => {
+                setPractitionerName(name);
+                setPractitionerSpeciality(speciality ?? "");
+              }}
             />
             <div style={{ height: "var(--space-sm)" }} />
             <TextInput

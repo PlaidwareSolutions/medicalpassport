@@ -4,6 +4,7 @@ import { CLINICAL_CONTENT_KINDS, ERROR_CODES, type ClinicalContentKind, type Loc
 import type { CreateMedicationInput, RecordRefillInput, UpdateMedicationInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
+import { PractitionersService } from "../practitioners/practitioners.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 import { ClinicalContentLookupService, CLINICAL_CONTENT_DTO_KEYS, type ClinicalContentEntry } from "../clinical-content/clinical-content-lookup.service";
@@ -37,6 +38,7 @@ export class MedicationsService {
     private readonly scheduling: SchedulingService,
     private readonly safety: SafetyEvaluationService,
     private readonly clinicalContent: ClinicalContentLookupService,
+    private readonly practitioners: PractitionersService,
   ) {}
 
   async list(profileId: string, status?: string) {
@@ -103,25 +105,6 @@ export class MedicationsService {
     return { byIngredientId, byProductId };
   }
 
-  /**
-   * Resolves a typed prescriber name to a `Practitioner` row, reusing this
-   * profile's existing record for the same name rather than inserting a
-   * duplicate every time (which is what this did before — two medicines from
-   * the same doctor produced two unrelated rows, making any per-doctor view
-   * meaningless). An empty/whitespace-only name means "no prescriber": it
-   * returns null to clear the link, rather than creating an unnamed record.
-   */
-  private async resolvePractitioner(tx: Tx, profileId: string, prescriberName: string): Promise<string | null> {
-    const displayName = prescriberName.trim();
-    if (!displayName) return null;
-    const existing = await tx.practitioner.findFirst({
-      where: { createdByProfileId: profileId, displayName: { equals: displayName, mode: "insensitive" }, deletedAt: null },
-    });
-    if (existing) return existing.id;
-    const created = await tx.practitioner.create({ data: { displayName, createdByProfileId: profileId } });
-    return created.id;
-  }
-
   /** Confirms a prescription reference belongs to this profile before linking to it. */
   private async requirePrescription(tx: Tx, profileId: string, prescriptionId: string) {
     const prescription = await tx.prescription.findFirst({
@@ -160,7 +143,7 @@ export class MedicationsService {
       // directly, so linking can never mint a duplicate Practitioner row).
       let practitionerId: string | null = null;
       if (input.prescriberName !== undefined) {
-        practitionerId = await this.resolvePractitioner(tx, profileId, input.prescriberName);
+        practitionerId = await this.practitioners.resolve(tx, profileId, input.prescriberName);
       } else if (prescription) {
         practitionerId = prescription.practitionerId;
       }
@@ -357,7 +340,7 @@ export class MedicationsService {
         // value — including the empty string a cleared input sends — created a
         // fresh Practitioner row, so clearing produced an unnamed record and
         // left the medicine still linked to a prescriber.
-        const practitionerId = await this.resolvePractitioner(tx, profileId, input.prescriberName);
+        const practitionerId = await this.practitioners.resolve(tx, profileId, input.prescriberName);
         await tx.patientMedication.update({ where: { id }, data: { practitionerId } });
       }
 

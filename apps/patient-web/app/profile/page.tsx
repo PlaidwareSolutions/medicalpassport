@@ -170,6 +170,12 @@ export default function ProfilePage() {
         </Card>
       </Link>
 
+      <Link href="/doctors">
+        <Card>
+          <strong>{t("profile.doctors")}</strong>
+        </Card>
+      </Link>
+
       {/* docs/06 sitemap: Help lives under Profile (screen 41). */}
       <Link href="/help">
         <Card>

@@ -402,6 +402,15 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Acceptance (values):** a qualitative entry ("Negative", "<5.7") records and displays verbatim with no numeric twin; the printed range shows exactly as transcribed with no comparison or colour anywhere; `other` requires a name and never appears in history; deleting a value leaves the report and its files untouched; a `view_medications`-only caregiver reads values but cannot add or delete.
 - **Acceptance:** a report saved with only its kind still files and displays; deleting a report hides it but leaves its uploaded files retrievable with their foreign key intact (this app never cascades a soft-delete); a `view_medications`-only caregiver gets 403 on create and delete; an undated report still appears in the doctor-visit summary window rather than being silently dropped.
 
+### 45. My doctors
+- **Objective:** one standard place for the doctors a patient sees, so the same doctor is one record across medicines, prescriptions, and test reports — entered once, picked everywhere. Reachable from Profile.
+- **Picker, not a registry:** every doctor field (add/edit medicine, new prescription, new report) shows the profile's existing doctors as one-tap choices with a "new doctor" option that still accepts free text inline (plus an optional speciality) — nobody is routed through a separate registration flow mid-task. The forms keep submitting the same plain name string; the server's case-insensitive per-profile dedup does the rest.
+- **Manage (`/doctors`):** usage-annotated list (medicine/prescription/report counts, most-used first). Rename propagates to every linked record at once (all reads join the doctor's `display_name`); renaming onto another doctor's existing name is rejected toward merge. Merge repoints every link onto the chosen surviving record then retires the duplicate — the cleanup for near-duplicate spellings ("Dr. Sharma"/"Dr Sharma") dedup can't catch. Delete only when nothing references the record.
+- **Access:** same `view_profile`/`edit_profile` scopes as prescriptions/reports.
+- **Audit:** `practitioner.created`, `practitioner.updated`, `practitioner.merged`, `practitioner.deleted`.
+- **Out of scope (this pass):** phone numbers, organizations, and any global verified directory (docs/13's "patient-scoped entries in MVP" stands); doctor records on the visit-summary share (names already appear via the records that cite them).
+- **Acceptance:** a doctor typed on a medicine, a prescription, and a report with case/whitespace variations is one record; a rename shows on every linked record's next read; merge moves all three link kinds and the merged-away record disappears from list and picker; deleting a linked doctor is refused with a message pointing at merge; another profile's doctors are invisible and untouchable.
+
 ---
 
 ## Cross-screen acceptance pack

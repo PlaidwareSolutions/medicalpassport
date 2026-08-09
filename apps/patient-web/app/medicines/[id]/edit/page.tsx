@@ -5,8 +5,10 @@ import { ApiError } from "@medpass/api-client";
 import { DOSE_UNITS, type DoseUnit } from "@medpass/domain";
 import { Banner, Button, ChoiceGrid, PillSpinner, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
+import { DoctorPicker } from "../../../../components/DoctorPicker";
 import { PageHeader } from "../../../../components/PageHeader";
 import { updateMedication, useMedication } from "../../../../lib/medications";
+import { ensurePractitioner } from "../../../../lib/practitioners";
 import { useI18n } from "../../../../lib/i18n";
 
 type Frequency = "OD" | "OD_AFTERNOON" | "BD" | "TDS" | "SOS" | "HS" | "PATTERN" | "WEEKLY" | "FORTNIGHTLY" | "MONTHLY";
@@ -32,10 +34,9 @@ export default function EditMedicationPage() {
   const [food, setFood] = useState<Food | undefined>();
   const [reason, setReason] = useState("");
   const [prescriber, setPrescriber] = useState("");
-  // The API creates a fresh Practitioner record whenever prescriberName is
-  // sent at all (docs/13 "patient-scoped prescriber records" — there's no
-  // dedup/reuse by name) — only send it when it actually changed, so saving
-  // an unrelated field (dose, reason, etc.) doesn't spawn a duplicate row.
+  const [prescriberSpeciality, setPrescriberSpeciality] = useState("");
+  // Only send prescriberName when it actually changed, so saving an
+  // unrelated field (dose, reason, etc.) doesn't touch the doctor link.
   const [initialPrescriber, setInitialPrescriber] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [quantityOnHand, setQuantityOnHand] = useState("");
@@ -68,6 +69,8 @@ export default function EditMedicationPage() {
     setBusy(true);
     setError(undefined);
     try {
+      // Best-effort (see Add): failure must never block an offline-queued save.
+      await ensurePractitioner(prescriber, prescriberSpeciality).catch(() => undefined);
       const { queuedOffline } = await updateMedication(medication, {
         patientReason: reason.trim(),
         ...(prescriber.trim() !== initialPrescriber ? { prescriberName: prescriber.trim() } : {}),
@@ -211,7 +214,14 @@ export default function EditMedicationPage() {
       <SectionTitle>{t("add.reason_label")}</SectionTitle>
       <TextInput label={t("add.reason_label")} value={reason} onChange={(e) => setReason(e.target.value)} />
       <div style={{ height: "var(--space-sm)" }} />
-      <TextInput label={t("add.prescriber_label")} value={prescriber} onChange={(e) => setPrescriber(e.target.value)} />
+      <DoctorPicker
+        label={t("add.prescriber_label")}
+        value={prescriber}
+        onChange={(name, speciality) => {
+          setPrescriber(name);
+          setPrescriberSpeciality(speciality ?? "");
+        }}
+      />
       <div style={{ height: "var(--space-sm)" }} />
       <TextInput
         label={t("add.duration_label")}

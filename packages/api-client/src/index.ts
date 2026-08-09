@@ -247,6 +247,22 @@ export interface PatientMedicationDto {
   createdAt: string;
 }
 
+/**
+ * One of the profile's doctors ("My doctors") — the shared record behind
+ * every prescriber/doctor field on medicines, prescriptions, and reports.
+ * Renaming it propagates to all of them; the counts power the manage
+ * screen's usage display and the delete-only-when-unused rule.
+ */
+export interface PractitionerDto {
+  id: string;
+  displayName: string;
+  speciality: string | null;
+  medicationCount: number;
+  prescriptionCount: number;
+  reportCount: number;
+  createdAt: string;
+}
+
 /** One doctor visit's prescription record (docs/07 screen 43). */
 export interface PrescriptionDto {
   id: string;

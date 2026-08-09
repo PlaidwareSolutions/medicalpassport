@@ -4,6 +4,7 @@ export * from "./caregiver.js";
 export * from "./claim.js";
 export * from "./consent.js";
 export * from "./medication.js";
+export * from "./practitioner.js";
 export * from "./prescription.js";
 export * from "./report.js";
 export * from "./report-value.js";

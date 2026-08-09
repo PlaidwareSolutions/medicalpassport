@@ -4,6 +4,7 @@ import { ERROR_CODES } from "@medpass/domain";
 import type { CreatePrescriptionInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
+import { PractitionersService } from "../practitioners/practitioners.service";
 
 interface Actor {
   userId: string;
@@ -24,27 +25,14 @@ type Tx = Parameters<Parameters<PrismaService["$transaction"]>[0]>[0];
  */
 @Injectable()
 export class PrescriptionsService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Reuses this profile's existing record for the same doctor name rather
-   * than inserting a duplicate — the same rule medications.service.ts
-   * applies, so a doctor typed in either place resolves to one row.
-   */
-  private async resolvePractitioner(tx: Tx, profileId: string, practitionerName: string | undefined): Promise<string | null> {
-    const displayName = practitionerName?.trim();
-    if (!displayName) return null;
-    const existing = await tx.practitioner.findFirst({
-      where: { createdByProfileId: profileId, displayName: { equals: displayName, mode: "insensitive" }, deletedAt: null },
-    });
-    if (existing) return existing.id;
-    const created = await tx.practitioner.create({ data: { displayName, createdByProfileId: profileId } });
-    return created.id;
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly practitioners: PractitionersService,
+  ) {}
 
   async create(profileId: string, input: CreatePrescriptionInput, actor: Actor) {
     const prescription = await this.prisma.$transaction(async (tx) => {
-      const practitionerId = await this.resolvePractitioner(tx, profileId, input.practitionerName);
+      const practitionerId = await this.practitioners.resolve(tx, profileId, input.practitionerName);
       const created = await tx.prescription.create({
         data: {
           patientProfileId: profileId,

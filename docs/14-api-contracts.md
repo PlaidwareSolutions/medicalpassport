@@ -49,6 +49,10 @@ Base: `https://api.example.com/v1`. OpenAPI generated from NestJS decorators is 
 ### Prescription records
 | Endpoint | Notes |
 |---|---|
+| `GET/POST /profiles/:id/practitioners` | "My doctors": usage-annotated list (medicine/prescription/report counts, most-used first) / explicit create with optional `speciality` — creating an existing name (case-insensitive) updates that record instead of duplicating. Scopes: `view_profile`/`edit_profile`. |
+| `PATCH /practitioners/:id` | Rename and/or set `speciality` (empty string clears). A rename propagates to every linked medicine/prescription/report. Renaming onto another doctor's name is rejected (400) toward merge. |
+| `POST /practitioners/:id/merge` | Repoints all medicine/prescription/report links onto `targetId`, then soft-deletes `:id` — the cleanup for near-duplicate spellings dedup can't catch. |
+| `DELETE /practitioners/:id` | Soft delete, refused (400) while any record still references the doctor. |
 | `GET/POST /profiles/:id/prescriptions` | List (newest visit first, with file/medicine counts) / create. All body fields optional: `practitionerName` (deduped per profile, case-insensitive), `prescribedAt`, `notes`. Scopes: `view_profile`/`edit_profile`. |
 | `GET/DELETE /prescriptions/:id` | Detail (attached documents + linked medicines) / soft delete. Deleting never cascades — documents and medicines keep their `prescription_id` and stay intact; reads stop surfacing the deleted parent. |
 | `POST /medications/:id/confirm-dose-unit` | Records the patient's answer to "what kind of medicine is this?" for an instruction whose unit the app defaulted rather than asked about. Body `{ doseUnit }` only — confirming a type is never a route to editing a dose. Same unit → stamps `dose_unit_confirmed_at` in place (nothing clinical changed, so no history entry); different unit → supersedes copy-on-write. Scope: `edit_medications`. |

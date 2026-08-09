@@ -5,9 +5,11 @@ import { ApiError, type AuthorizeUploadResponseDto } from "@medpass/api-client";
 import { MEDICAL_REPORT_KINDS, type MedicalReportKind } from "@medpass/domain";
 import { Banner, Button, Card, ChoiceGrid, PillSpinner, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { DoctorPicker } from "../../../components/DoctorPicker";
 import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
+import { ensurePractitioner } from "../../../lib/practitioners";
 import { createReport } from "../../../lib/reports";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -38,6 +40,7 @@ export default function NewReportPage() {
   const [label, setLabel] = useState("");
   const [facilityName, setFacilityName] = useState("");
   const [practitionerName, setPractitionerName] = useState("");
+  const [practitionerSpeciality, setPractitionerSpeciality] = useState("");
   const [testedAt, setTestedAt] = useState(() => toDateOnly(new Date()));
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -72,6 +75,7 @@ export default function NewReportPage() {
     setError(undefined);
     try {
       setStage("saving");
+      await ensurePractitioner(practitionerName, practitionerSpeciality).catch(() => undefined);
       const report = await createReport({
         kind,
         ...(label.trim() ? { label: label.trim() } : {}),
@@ -129,11 +133,13 @@ export default function NewReportPage() {
               onChange={(e) => setFacilityName(e.target.value)}
             />
             <div style={{ height: "var(--space-sm)" }} />
-            <TextInput
+            <DoctorPicker
               label={t("reports.doctor_label")}
-              placeholder={t("reports.doctor_placeholder")}
               value={practitionerName}
-              onChange={(e) => setPractitionerName(e.target.value)}
+              onChange={(name, speciality) => {
+                setPractitionerName(name);
+                setPractitionerSpeciality(speciality ?? "");
+              }}
             />
             <div style={{ height: "var(--space-sm)" }} />
             <TextInput label={t("reports.date_label")} type="date" value={testedAt} onChange={(e) => setTestedAt(e.target.value)} />
