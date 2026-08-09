@@ -285,6 +285,7 @@ export const ur: Record<keyof typeof en, string> = {
   "prescriptions.new_title": "نسخہ شامل کریں",
   "prescriptions.unnamed_doctor": "ڈاکٹر درج نہیں",
   "prescriptions.no_date": "تاریخ درج نہیں",
+  "prescriptions.count": "{count} نسخہ/نسخے",
   "prescriptions.document_count": "{count} فائلیں",
   "prescriptions.medication_count": "{count} دوائیں",
   "prescriptions.doctor_label": "ڈاکٹر کا نام (اختیاری)",

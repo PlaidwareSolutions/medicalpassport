@@ -60,7 +60,16 @@ export class PrescriptionsService {
       where: { patientProfileId: profileId, deletedAt: null },
       include: {
         practitioner: true,
-        _count: { select: { documents: true, medications: true } },
+        // A failed upload's stub (marked deleted by cleanup-abandoned-uploads)
+        // and a deleted medicine must not inflate the list's counts — the
+        // broken-CORS era proved a "1 file(s)" chip over a dead stub reads
+        // as a duplicate record, not as debris.
+        _count: {
+          select: {
+            documents: { where: { status: { not: "deleted" } } },
+            medications: { where: { deletedAt: null } },
+          },
+        },
       },
       // Newest visit first; a record with no date recorded falls back to when
       // it was filed rather than sinking to the bottom of the list forever.
@@ -82,7 +91,11 @@ export class PrescriptionsService {
       where: { id, patientProfileId: profileId, deletedAt: null },
       include: {
         practitioner: true,
-        documents: { orderBy: { createdAt: "asc" }, include: { storedObject: { select: { status: true } } } },
+        documents: {
+          where: { status: { not: "deleted" } },
+          orderBy: { createdAt: "asc" },
+          include: { storedObject: { select: { status: true } } },
+        },
         medications: {
           where: { deletedAt: null },
           orderBy: { createdAt: "desc" },

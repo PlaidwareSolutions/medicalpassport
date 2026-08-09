@@ -193,6 +193,25 @@ describe("Prescriptions e2e", () => {
     await auth(tokenB, profileA)(request(app.getHttpServer()).delete(`/v1/prescriptions/${prescriptionId}`)).expect(403);
   });
 
+  it("a failed upload's deleted stub doesn't count as a file in list or detail", async () => {
+    // The broken-CORS era pattern: authorize-upload creates the document
+    // row, the browser PUT dies, and cleanup-abandoned-uploads later marks
+    // the never-completed stub deleted. The record must then honestly show
+    // zero files, not advertise a dead one.
+    const rx = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/prescriptions"))
+      .send({ practitionerName: "Dr. Stub" })
+      .expect(201);
+    const upload = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/documents/authorize-upload"))
+      .send({ kind: "prescription", prescriptionId: rx.body.id, contentType: "image/png", sizeBytes: 1234 })
+      .expect(201);
+    await prisma.prescriptionDocument.update({ where: { id: upload.body.documentId }, data: { status: "deleted" } });
+
+    const list = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/prescriptions")).expect(200);
+    expect(list.body.items.find((p: { id: string }) => p.id === rx.body.id).documentCount).toBe(0);
+    const detail = await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/prescriptions/${rx.body.id}`)).expect(200);
+    expect(detail.body.documents).toHaveLength(0);
+  });
+
   it("deleting a prescription hides it but leaves its linked medicine intact", async () => {
     await auth(tokenA, profileA)(request(app.getHttpServer()).delete(`/v1/prescriptions/${prescriptionId}`)).expect(204);
 

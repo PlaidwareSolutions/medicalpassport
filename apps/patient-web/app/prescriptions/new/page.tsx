@@ -38,6 +38,10 @@ export default function NewPrescriptionPage() {
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<"idle" | "saving" | "uploading">("idle");
   const [error, setError] = useState<string | undefined>();
+  // A failed upload leaves the record already created; retrying must reuse
+  // it, not file a duplicate — the broken-CORS era left one orphaned
+  // prescription per retry before this existed.
+  const createdIdRef = useRef<string | undefined>(undefined);
 
   function pickFile(f: File | undefined) {
     setError(undefined);
@@ -67,17 +71,22 @@ export default function NewPrescriptionPage() {
     try {
       setStage("saving");
       await ensurePractitioner(practitionerName, practitionerSpeciality).catch(() => undefined);
-      const prescription = await createPrescription({
-        ...(practitionerName.trim() ? { practitionerName: practitionerName.trim() } : {}),
-        ...(prescribedAt ? { prescribedAt: new Date(prescribedAt).toISOString() } : {}),
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
-      });
+      let prescriptionId = createdIdRef.current;
+      if (!prescriptionId) {
+        const prescription = await createPrescription({
+          ...(practitionerName.trim() ? { practitionerName: practitionerName.trim() } : {}),
+          ...(prescribedAt ? { prescribedAt: new Date(prescribedAt).toISOString() } : {}),
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
+        });
+        prescriptionId = prescription.id;
+        createdIdRef.current = prescriptionId;
+      }
 
       if (files.length > 0) {
         setStage("uploading");
-        for (const file of files) await uploadOne(file, prescription.id);
+        for (const file of files) await uploadOne(file, prescriptionId);
       }
-      router.replace(`/prescriptions/${prescription.id}`);
+      router.replace(`/prescriptions/${prescriptionId}`);
     } catch (err) {
       setError(err instanceof ApiError ? (err.problem.errors?.[0]?.message ?? err.problem.title) : t("scan.upload_error"));
       setStage("idle");

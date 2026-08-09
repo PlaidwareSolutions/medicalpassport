@@ -47,6 +47,9 @@ export default function NewReportPage() {
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<"idle" | "saving" | "uploading">("idle");
   const [error, setError] = useState<string | undefined>();
+  // Same retry rule as prescriptions/new: a failed upload leaves the record
+  // already created; retrying must reuse it, not file a duplicate.
+  const createdIdRef = useRef<string | undefined>(undefined);
 
   function pickFile(f: File | undefined) {
     setError(undefined);
@@ -76,20 +79,25 @@ export default function NewReportPage() {
     try {
       setStage("saving");
       await ensurePractitioner(practitionerName, practitionerSpeciality).catch(() => undefined);
-      const report = await createReport({
-        kind,
-        ...(label.trim() ? { label: label.trim() } : {}),
-        ...(facilityName.trim() ? { facilityName: facilityName.trim() } : {}),
-        ...(practitionerName.trim() ? { practitionerName: practitionerName.trim() } : {}),
-        ...(testedAt ? { testedAt: new Date(testedAt).toISOString() } : {}),
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
-      });
+      let reportId = createdIdRef.current;
+      if (!reportId) {
+        const report = await createReport({
+          kind,
+          ...(label.trim() ? { label: label.trim() } : {}),
+          ...(facilityName.trim() ? { facilityName: facilityName.trim() } : {}),
+          ...(practitionerName.trim() ? { practitionerName: practitionerName.trim() } : {}),
+          ...(testedAt ? { testedAt: new Date(testedAt).toISOString() } : {}),
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
+        });
+        reportId = report.id;
+        createdIdRef.current = reportId;
+      }
 
       if (files.length > 0) {
         setStage("uploading");
-        for (const file of files) await uploadOne(file, report.id);
+        for (const file of files) await uploadOne(file, reportId);
       }
-      router.replace(`/reports/${report.id}`);
+      router.replace(`/reports/${reportId}`);
     } catch (err) {
       setError(err instanceof ApiError ? (err.problem.errors?.[0]?.message ?? err.problem.title) : t("scan.upload_error"));
       setStage("idle");

@@ -98,7 +98,9 @@ export class ReportsService {
   async list(profileId: string) {
     const reports = await this.prisma.medicalReport.findMany({
       where: { patientProfileId: profileId, deletedAt: null },
-      include: { practitioner: true, _count: { select: { documents: true } } },
+      // Same rule as prescriptions: a failed upload's deleted stub must not
+      // count as a file in the list.
+      include: { practitioner: true, _count: { select: { documents: { where: { status: { not: "deleted" } } } } } },
       // Newest test first; one with no date recorded falls back to when it was
       // filed rather than sinking to the bottom of the list forever.
       orderBy: [{ testedAt: "desc" }, { createdAt: "desc" }],
@@ -121,7 +123,11 @@ export class ReportsService {
       where: { id, patientProfileId: profileId, deletedAt: null },
       include: {
         practitioner: true,
-        documents: { orderBy: { createdAt: "asc" }, include: { storedObject: { select: { status: true } } } },
+        documents: {
+          where: { status: { not: "deleted" } },
+          orderBy: { createdAt: "asc" },
+          include: { storedObject: { select: { status: true } } },
+        },
         values: { where: { deletedAt: null } },
       },
     });

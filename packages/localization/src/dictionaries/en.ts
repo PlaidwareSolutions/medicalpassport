@@ -290,6 +290,7 @@ export const en = {
   "prescriptions.new_title": "Add a prescription",
   "prescriptions.unnamed_doctor": "Doctor not recorded",
   "prescriptions.no_date": "Date not recorded",
+  "prescriptions.count": "{count} prescription(s)",
   "prescriptions.document_count": "{count} file(s)",
   "prescriptions.medication_count": "{count} medicine(s)",
   "prescriptions.doctor_label": "Doctor's name (optional)",

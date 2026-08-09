@@ -1,8 +1,8 @@
 "use client";
-import { useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import type { PrescriptionDto } from "@medpass/api-client";
-import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
+import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
@@ -12,10 +12,12 @@ import { usePrescriptions } from "../../lib/prescriptions";
 /**
  * Screen 43 (docs/07): the standing archive of prescriptions, grouped by
  * doctor — "everything Dr. X prescribed" is the question this screen
- * answers now that doctors are shared records. Groups are ordered by their
- * most recent visit (the API list is already newest-first, so first
- * appearance is recency); prescriptions with no doctor recorded gather in
- * one group at the end.
+ * answers now that doctors are shared records. Groups collapse to one row
+ * per doctor (name + how many prescriptions), expanding on tap — a patient
+ * with years of visits scans a short list of doctors, not a wall of dates.
+ * Groups are ordered by their most recent visit (the API list is already
+ * newest-first, so first appearance is recency); prescriptions with no
+ * doctor recorded gather in one group at the end.
  */
 export default function PrescriptionsPage() {
   const { t } = useI18n();
@@ -54,28 +56,59 @@ export default function PrescriptionsPage() {
         />
       ) : null}
 
-      {items && items.length > 0
-        ? groups.map((group) => (
-            <div key={group.name ?? "__unnamed__"}>
-              <SectionTitle>{group.name ?? t("prescriptions.unnamed_doctor")}</SectionTitle>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-                {group.prescriptions.map((p) => (
-                  <Link key={p.id} href={`/prescriptions/${p.id}`}>
-                    <Card>
-                      <strong>
-                        {p.prescribedAt ? new Date(p.prescribedAt).toLocaleDateString() : t("prescriptions.no_date")}
-                      </strong>
-                      <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)", flexWrap: "wrap" }}>
-                        <Chip>{t("prescriptions.document_count", { count: p.documentCount })}</Chip>
-                        <Chip>{t("prescriptions.medication_count", { count: p.medicationCount })}</Chip>
-                      </div>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))
-        : null}
+      {items && items.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          {groups.map((group) => (
+            <DoctorGroup
+              key={group.name ?? "__unnamed__"}
+              name={group.name ?? t("prescriptions.unnamed_doctor")}
+              prescriptions={group.prescriptions}
+            />
+          ))}
+        </div>
+      ) : null}
     </AppShell>
+  );
+}
+
+function DoctorGroup({ name, prescriptions }: { name: string; prescriptions: PrescriptionDto[] }) {
+  const { t } = useI18n();
+  const regionId = useId();
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div>
+      <Card>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={regionId}
+          onClick={() => setExpanded((v) => !v)}
+          style={{ all: "unset", cursor: "pointer", display: "flex", width: "100%", alignItems: "center", gap: "var(--space-sm)" }}
+        >
+          <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+          <strong style={{ flex: 1 }}>{name}</strong>
+          <Chip>{t("prescriptions.count", { count: prescriptions.length })}</Chip>
+        </button>
+      </Card>
+      {expanded ? (
+        <div
+          id={regionId}
+          style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", marginTop: "var(--space-sm)", marginInlineStart: "var(--space-md)" }}
+        >
+          {prescriptions.map((p) => (
+            <Link key={p.id} href={`/prescriptions/${p.id}`}>
+              <Card>
+                <strong>{p.prescribedAt ? new Date(p.prescribedAt).toLocaleDateString() : t("prescriptions.no_date")}</strong>
+                <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)", flexWrap: "wrap" }}>
+                  <Chip>{t("prescriptions.document_count", { count: p.documentCount })}</Chip>
+                  <Chip>{t("prescriptions.medication_count", { count: p.medicationCount })}</Chip>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

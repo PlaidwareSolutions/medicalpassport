@@ -285,6 +285,7 @@ export const hi: Record<keyof typeof en, string> = {
   "prescriptions.new_title": "पर्चा जोड़ें",
   "prescriptions.unnamed_doctor": "डॉक्टर दर्ज नहीं",
   "prescriptions.no_date": "तारीख़ दर्ज नहीं",
+  "prescriptions.count": "{count} पर्ची/पर्चियाँ",
   "prescriptions.document_count": "{count} फ़ाइल",
   "prescriptions.medication_count": "{count} दवाइयाँ",
   "prescriptions.doctor_label": "डॉक्टर का नाम (वैकल्पिक)",

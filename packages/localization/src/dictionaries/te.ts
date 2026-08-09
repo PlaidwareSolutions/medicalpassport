@@ -285,6 +285,7 @@ export const te: Record<keyof typeof en, string> = {
   "prescriptions.new_title": "ప్రిస్క్రిప్షన్ జోడించండి",
   "prescriptions.unnamed_doctor": "డాక్టర్ నమోదు కాలేదు",
   "prescriptions.no_date": "తేదీ నమోదు కాలేదు",
+  "prescriptions.count": "{count} ప్రిస్క్రిప్షన్(లు)",
   "prescriptions.document_count": "{count} ఫైల్‌లు",
   "prescriptions.medication_count": "{count} మందులు",
   "prescriptions.doctor_label": "డాక్టర్ పేరు (ఐచ్ఛికం)",
