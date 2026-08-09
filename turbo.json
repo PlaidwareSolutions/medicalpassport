@@ -20,6 +20,7 @@
         "OTP_DEV_FIXED_CODE",
         "OTP_HASH_PEPPER",
         "SESSION_TOKEN_PEPPER",
+        "ADMIN_PASSWORD_PEPPER",
         "FIELD_ENCRYPTION_KEY",
         "OTP_TRANSPORT",
         "PORT"
