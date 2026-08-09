@@ -2,7 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # foundation is the working branch BOTH Railway environments deploy from
+    # (.railway/*.ts track it), so it is exactly the ref that needs gating —
+    # discovered the hard way: with [main] only, CI had never run once, and
+    # every "CI will catch it" assumption was resting on local runs.
+    branches: [main, foundation]
   pull_request:
 
 jobs:
