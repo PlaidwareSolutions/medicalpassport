@@ -3,7 +3,15 @@ import type { VapidPublicKeyDto } from "@medpass/api-client";
 import { api, getActiveProfileId } from "./api";
 
 export function pushSupported(): boolean {
-  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
+  // Notification included: a browser exposing PushManager but not the
+  // Notification API (seen in some headless/embedded builds) would otherwise
+  // render the enable flow and then throw inside enablePush.
+  return (
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
 }
 
 /** Standard VAPID-key conversion — applicationServerKey must be a Uint8Array. */

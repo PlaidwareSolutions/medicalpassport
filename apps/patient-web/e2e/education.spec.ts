@@ -1,5 +1,24 @@
 import { expect, test } from "@playwright/test";
 
+// Never fails — prints the browser's capability surface into the run log so
+// an environment-dependent failure (like a headless build missing an API)
+// is diagnosed from facts, not theories.
+test("environment probe (diagnostic)", async ({ page }) => {
+  await page.goto("/");
+  console.log(
+    "env-probe:",
+    await page.evaluate(() =>
+      JSON.stringify({
+        notification: typeof Notification,
+        notificationPermission: typeof Notification !== "undefined" ? Notification.permission : null,
+        pushManager: "PushManager" in window,
+        serviceWorker: "serviceWorker" in navigator,
+        userAgent: navigator.userAgent,
+      }),
+    ),
+  );
+});
+
 /**
  * Screens 37/38 (docs/07): the OS notification prompt may only ever fire
  * after the in-app explainer's Continue, and add-to-home-screen education is
@@ -12,12 +31,26 @@ import { expect, test } from "@playwright/test";
 test.describe("notification permission education", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
-      (window as unknown as { __permissionPrompts: number }).__permissionPrompts = 0;
-      const original = Notification.requestPermission.bind(Notification);
-      Notification.requestPermission = () => {
-        (window as unknown as { __permissionPrompts: number }).__permissionPrompts += 1;
-        return original();
-      };
+      const w = window as unknown as { __permissionPrompts: number; Notification?: unknown };
+      w.__permissionPrompts = 0;
+      if ("Notification" in window) {
+        const original = Notification.requestPermission.bind(Notification);
+        Notification.requestPermission = () => {
+          w.__permissionPrompts += 1;
+          return original();
+        };
+      } else {
+        // Some headless builds ship PushManager without Notification; stub a
+        // deterministic one so the education flow renders and the counter
+        // still proves prompt ordering.
+        w.Notification = {
+          permission: "default",
+          requestPermission: () => {
+            w.__permissionPrompts += 1;
+            return Promise.resolve("denied");
+          },
+        };
+      }
     });
   });
 
@@ -83,9 +116,13 @@ test.describe("help screen", () => {
 test.describe("install education", () => {
   test.beforeEach(async ({ context }) => {
     // Headless Chromium never fires beforeinstallprompt on its own —
-    // synthesize one so the "native" path renders.
+    // synthesize one. Re-fire for a few seconds because on a slow runner the
+    // app bundle (whose module scope registers the capture listener) can
+    // evaluate AFTER window.load; a single dispatch then vanishes unheard.
+    // Real Chrome has no such race: its genuine event fires from browser
+    // heuristics well after the page settles.
     await context.addInitScript(() => {
-      window.addEventListener("load", () => {
+      const fire = () => {
         const event = new Event("beforeinstallprompt") as Event & {
           prompt: () => Promise<void>;
           userChoice: Promise<{ outcome: string }>;
@@ -93,13 +130,19 @@ test.describe("install education", () => {
         event.prompt = () => Promise.resolve();
         event.userChoice = Promise.resolve({ outcome: "accepted" });
         window.dispatchEvent(event);
+      };
+      window.addEventListener("load", () => {
+        fire();
+        const interval = setInterval(fire, 500);
+        setTimeout(() => clearInterval(interval), 8000);
       });
     });
   });
 
   test("card shows on Home with medicines, and No thanks dismisses forever", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Put this app on your home screen")).toBeVisible();
+    // Generous timeout: the synthetic prompt may land on a later re-fire.
+    await expect(page.getByText("Put this app on your home screen")).toBeVisible({ timeout: 15000 });
 
     await page.getByRole("button", { name: "No thanks", exact: true }).click();
     await expect(page.getByText("Put this app on your home screen")).toHaveCount(0);
