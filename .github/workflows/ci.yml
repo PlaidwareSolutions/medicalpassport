@@ -30,6 +30,9 @@ jobs:
       DATABASE_URL: postgresql://medpass:medpass@localhost:5432/medpass
       OTP_HASH_PEPPER: ci-otp-pepper-not-secret
       SESSION_TOKEN_PEPPER: ci-session-pepper-not-secret
+      # Added when the admin-password feature made this required — CI had
+      # never run, so the gap surfaced only on the first real execution.
+      ADMIN_PASSWORD_PEPPER: ci-admin-pepper-not-secret
       FIELD_ENCRYPTION_KEY: ci-field-key-not-secret-32bytes!
       OTP_TRANSPORT: log
       OTP_DEV_FIXED_CODE: "000000"
