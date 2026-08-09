@@ -36,6 +36,11 @@ jobs:
       FIELD_ENCRYPTION_KEY: ci-field-key-not-secret-32bytes!
       OTP_TRANSPORT: log
       OTP_DEV_FIXED_CODE: "000000"
+      # Without this the API serves no CORS headers and every browser-side
+      # /v1 call in the Playwright suite dies cross-origin (:3000 → :4000).
+      # Found via CI-only education failures: most suites assert shell-level
+      # UI and masked it; the education tests need API-backed state.
+      CORS_ORIGINS: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
         with:
