@@ -1,0 +1,276 @@
+{
+  "$comment": "Machine-readable storyboard manifest driving Session 9 (edit/transcode/poster/captions/publish). Raw sources: artifacts/marketing-media/raw/<id>.webm at 390x844 WebM, en-IN, Asia/Kolkata, synthetic 'Asha Demo' account. Final filenames follow docs/landing-page/SPEC.md §9 hash-versioned pattern at publish time.",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "rawFormat": "webm",
+  "locale": "en",
+  "timezone": "Asia/Kolkata",
+  "recordings": [
+    {
+      "id": "r1-hero-sources",
+      "title": "Hero source montage (raw beats)",
+      "landingSection": "S1",
+      "gate": "none",
+      "finalDurationTargetSec": 15,
+      "startingState": "Seeded account: home with due doses",
+      "actions": [
+        "home hold",
+        "medicines list hold",
+        "timeline hold",
+        "listen tap"
+      ],
+      "endingState": "listen playing on /help",
+      "script": "e2e-marketing/r1-hero-sources.spec.ts",
+      "finalTarget": "video/hero/hero-passport-en",
+      "note": "Modular: a sharing beat is appended ONLY after Stage 7 clears (OD-LP-10).",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/hero/hero-passport-en.webm",
+        "webmKB": 250,
+        "mp4": "artifacts/marketing-media/candidates/hero/hero-passport-en.mp4",
+        "mp4KB": 273,
+        "poster": "artifacts/marketing-media/candidates/posters/hero-passport-en.jpg",
+        "posterKB": 44,
+        "durationSec": 12.2,
+        "dimensions": "390x844",
+        "codecs": "h264(crf22)/vp9(crf34)",
+        "fps": 25,
+        "audioTrack": "none (silent by policy)",
+        "transcript": "The Medicine Passport home screen shows medicines due now. A medicine is found by search and reviewed before saving. Today's timeline lists morning and night doses. A guidance passage is read aloud. A family caregiver's bounded permissions are shown.",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/hero-passport-en.a3e0a5f1.mp4",
+          "webm": "https://assets.medidocs.app/video/en/hero-passport-en.16d58f34.webm",
+          "poster": "https://assets.medidocs.app/images/posters/hero-passport-en.c0df6573.jpg"
+        }
+      }
+    },
+    {
+      "id": "r2-add-medicine",
+      "title": "Add a medicine (search → review → confirm → saved)",
+      "landingSection": "S4",
+      "gate": "none",
+      "finalDurationTargetSec": 10,
+      "startingState": "/add empty search",
+      "actions": [
+        "type 'Dolo'",
+        "select Dolo 650",
+        "pick 'Only when needed'",
+        "reason 'Fever'",
+        "Save medicine",
+        "appears in passport"
+      ],
+      "endingState": "medicines list with Dolo 650",
+      "script": "e2e-marketing/r2-add-medicine.spec.ts",
+      "finalTarget": "video/know/add-medicine-en",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/add-medicine/add-medicine-en.webm",
+        "webmKB": 148,
+        "mp4": "artifacts/marketing-media/candidates/add-medicine/add-medicine-en.mp4",
+        "mp4KB": 192,
+        "poster": "artifacts/marketing-media/candidates/posters/add-medicine-en.jpg",
+        "posterKB": 45,
+        "durationSec": 6.6,
+        "dimensions": "390x844",
+        "codecs": "h264(crf22)/vp9(crf34)",
+        "fps": 25,
+        "audioTrack": "none (silent by policy)",
+        "transcript": "The patient searches for a medicine by name, selects it from the results, reviews the type, amount, frequency and food instruction with typing-free pickers, adds the reason, and saves. The medicine then appears in their Medicine Passport.",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/add-medicine-en.67b56dd5.mp4",
+          "webm": "https://assets.medidocs.app/video/en/add-medicine-en.d0381719.webm",
+          "poster": "https://assets.medidocs.app/images/posters/add-medicine-en.a51fb204.jpg"
+        }
+      }
+    },
+    {
+      "id": "r3-timeline",
+      "title": "Today's timeline + taken dose",
+      "landingSection": "S5",
+      "gate": "none",
+      "finalDurationTargetSec": 10,
+      "startingState": "/timeline with morning+night slots (Amlong, Glyciphage)",
+      "actions": [
+        "timeline hold",
+        "tap Taken",
+        "recorded state"
+      ],
+      "endingState": "dose recorded",
+      "script": "e2e-marketing/r3-timeline.spec.ts",
+      "finalTarget": "video/remember/timeline-en",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/timeline/timeline-en.webm",
+        "webmKB": 73,
+        "mp4": "artifacts/marketing-media/candidates/timeline/timeline-en.mp4",
+        "mp4KB": 141,
+        "poster": "artifacts/marketing-media/candidates/posters/timeline-en.jpg",
+        "posterKB": 44,
+        "durationSec": 9,
+        "dimensions": "390x844",
+        "codecs": "h264(crf22)/vp9(crf34)",
+        "fps": 25,
+        "audioTrack": "none (silent by policy)",
+        "transcript": "From the home screen, the patient opens today's full schedule. Today's medicines are grouped by morning and night. The patient marks a dose as taken and the timeline shows it as recorded.",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/timeline-en.2204f6d7.mp4",
+          "webm": "https://assets.medidocs.app/video/en/timeline-en.529316b5.webm",
+          "poster": "https://assets.medidocs.app/images/posters/timeline-en.4085e022.jpg"
+        }
+      }
+    },
+    {
+      "id": "r4-listen",
+      "title": "Read-aloud interaction (English)",
+      "landingSection": "S6",
+      "gate": "translation-review for any non-English variant; en ungated",
+      "finalDurationTargetSec": 8,
+      "startingState": "/help with Listen buttons",
+      "actions": [
+        "tap Listen",
+        "playing state",
+        "tap Stop"
+      ],
+      "endingState": "stopped",
+      "script": "e2e-marketing/r4-listen.spec.ts",
+      "finalTarget": "video/listen/listen-en",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/listen/listen-en.webm",
+        "webmKB": 39,
+        "mp4": "artifacts/marketing-media/candidates/listen/listen-en.mp4",
+        "mp4KB": 41,
+        "poster": "artifacts/marketing-media/candidates/posters/listen-en.jpg",
+        "posterKB": 47,
+        "durationSec": 4.8,
+        "dimensions": "390x844",
+        "codecs": "h264(crf22)/vp9(crf34)",
+        "fps": 25,
+        "audioTrack": "none (silent by policy)",
+        "transcript": "On the help screen, the patient taps Listen. The control changes to Stop while the guidance is read aloud, then the patient stops playback. (The demonstration video itself is silent.)",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/listen-en.98e6cb18.mp4",
+          "webm": "https://assets.medidocs.app/video/en/listen-en.8fc86907.webm",
+          "poster": "https://assets.medidocs.app/images/posters/listen-en.d7a0c7bd.jpg"
+        }
+      }
+    },
+    {
+      "id": "r5-offline",
+      "title": "Offline view + record + resync",
+      "landingSection": "S7",
+      "gate": "none",
+      "finalDurationTargetSec": 12,
+      "startingState": "settled SW, /timeline online",
+      "actions": [
+        "setOffline",
+        "cached data visible",
+        "tap Taken (queued offline)",
+        "setOnline",
+        "sync resolves"
+      ],
+      "endingState": "synced",
+      "script": "e2e-marketing/r5-offline.spec.ts",
+      "finalTarget": "video/offline/offline-en",
+      "note": "No reminder fires offline (MKT-043).",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/offline/offline-en.webm",
+        "webmKB": 107,
+        "mp4": "artifacts/marketing-media/candidates/offline/offline-en.mp4",
+        "mp4KB": 197,
+        "poster": "artifacts/marketing-media/candidates/posters/offline-en.jpg",
+        "posterKB": 41,
+        "durationSec": 7.1,
+        "dimensions": "390x844",
+        "codecs": "h264(crf22)/vp9(crf34)",
+        "fps": 25,
+        "audioTrack": "none (silent by policy)",
+        "transcript": "With the network disconnected, saved medicine information stays visible and an offline notice appears. The patient records a dose, which is saved on the device. When the connection returns, the change syncs automatically.",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/offline-en.5b6d43bb.mp4",
+          "webm": "https://assets.medidocs.app/video/en/offline-en.9bdda7d7.webm",
+          "poster": "https://assets.medidocs.app/images/posters/offline-en.8adbc7c5.jpg"
+        }
+      }
+    },
+    {
+      "id": "r6-caregiver",
+      "title": "Caregiver invite + bounded scopes",
+      "landingSection": "S8",
+      "gate": "none",
+      "finalDurationTargetSec": 10,
+      "startingState": "/caregivers",
+      "actions": [
+        "management screen",
+        "invite form",
+        "synthetic phone",
+        "scopes visible"
+      ],
+      "endingState": "scopes shown",
+      "script": "e2e-marketing/r6-caregiver.spec.ts",
+      "finalTarget": "video/caregiver/caregiver-en",
+      "note": "Local log transport — no SMS/voice ever sent; invitee phone synthetic.",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/caregiver/caregiver-en.webm",
+        "webmKB": 88,
+        "mp4": "artifacts/marketing-media/candidates/caregiver/caregiver-en.mp4",
+        "mp4KB": 91,
+        "poster": "artifacts/marketing-media/candidates/posters/caregiver-en.jpg",
+        "posterKB": 50,
+        "durationSec": 6.2,
+        "dimensions": "390x844",
+        "codecs": "h264(crf22)/vp9(crf34)",
+        "fps": 25,
+        "audioTrack": "none (silent by policy)",
+        "transcript": "From caregiver management, the patient opens a new invitation, enters the caregiver's number, and reviews exactly what the caregiver will be allowed to do — bounded permissions chosen by the patient.",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/caregiver-en.4f23cb7b.mp4",
+          "webm": "https://assets.medidocs.app/video/en/caregiver-en.25477234.webm",
+          "poster": "https://assets.medidocs.app/images/posters/caregiver-en.5247baf5.jpg"
+        }
+      }
+    },
+    {
+      "id": "r7-share-doctor",
+      "title": "Share with a doctor (QR / time-limited link)",
+      "landingSection": "S9 + /for-clinics/ C3",
+      "gate": "STAGE-7-SECURITY — DO NOT RECORD until the professional unit clears (OD-LP-10 addendum)",
+      "finalDurationTargetSec": 10,
+      "startingState": "documented only; no script exists yet",
+      "actions": [
+        "share/new",
+        "sections+expiry",
+        "QR fullscreen",
+        "revoke"
+      ],
+      "endingState": "n/a",
+      "script": null,
+      "finalTarget": "video/share/share-doctor-en"
+    }
+  ],
+  "candidateExtras": {
+    "og": {
+      "status": "PUBLISHED",
+      "file": "artifacts/marketing-media/candidates/og/og-home-en.jpg",
+      "dimensions": "1200x630",
+      "note": "Lockup + tagline + free chip + authentic product UI (current claim-clean footage); MP monogram deliberately absent",
+      "published": {
+        "url": "https://assets.medidocs.app/images/og/og-home-en.a50d39e4.jpg"
+      }
+    },
+    "audio": {
+      "status": "PUBLISHED",
+      "file": "artifacts/marketing-media/candidates/audio/hear-medicine-passport-en.mp3",
+      "source": "shipped in-app guidance MP3 screen.home.en (Chirp3-HD-Achernar)",
+      "spokenText": "This is your home screen. It shows which medicines to take now, and anything that needs your attention.",
+      "policy": "user-initiated only, never autoplay",
+      "published": {
+        "url": "https://assets.medidocs.app/audio/en/hear-medicine-passport-en.929abc46.mp3"
+      }
+    }
+  }
+}

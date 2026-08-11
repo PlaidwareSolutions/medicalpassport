@@ -1,0 +1,169 @@
+{
+  "origin": "https://assets.medidocs.app",
+  "publishedAt": "2026-08-11T14:37:57.188Z",
+  "assets": {
+    "r1-hero-sources": {
+      "sourceRecording": "r1-hero-sources",
+      "landingSection": "S1",
+      "transcript": "The Medicine Passport home screen shows medicines due now. A medicine is found by search and reviewed before saving. Today's timeline lists morning and night doses. A guidance passage is read aloud. A family caregiver's bounded permissions are shown.",
+      "durationSec": 12.2,
+      "dimensions": "390x844",
+      "mp4": {
+        "url": "https://assets.medidocs.app/video/en/hero-passport-en.a3e0a5f1.mp4",
+        "hash": "a3e0a5f1",
+        "bytes": 274612,
+        "mime": "video/mp4"
+      },
+      "webm": {
+        "url": "https://assets.medidocs.app/video/en/hero-passport-en.16d58f34.webm",
+        "hash": "16d58f34",
+        "bytes": 247552,
+        "mime": "video/webm"
+      },
+      "poster": {
+        "url": "https://assets.medidocs.app/images/posters/hero-passport-en.c0df6573.jpg",
+        "hash": "c0df6573",
+        "bytes": 45190,
+        "mime": "image/jpeg"
+      }
+    },
+    "r2-add-medicine": {
+      "sourceRecording": "r2-add-medicine",
+      "landingSection": "S4",
+      "transcript": "The patient searches for a medicine by name, selects it from the results, reviews the type, amount, frequency and food instruction with typing-free pickers, adds the reason, and saves. The medicine then appears in their Medicine Passport.",
+      "durationSec": 6.6,
+      "dimensions": "390x844",
+      "mp4": {
+        "url": "https://assets.medidocs.app/video/en/add-medicine-en.67b56dd5.mp4",
+        "hash": "67b56dd5",
+        "bytes": 208189,
+        "mime": "video/mp4"
+      },
+      "webm": {
+        "url": "https://assets.medidocs.app/video/en/add-medicine-en.d0381719.webm",
+        "hash": "d0381719",
+        "bytes": 168135,
+        "mime": "video/webm"
+      },
+      "poster": {
+        "url": "https://assets.medidocs.app/images/posters/add-medicine-en.a51fb204.jpg",
+        "hash": "a51fb204",
+        "bytes": 46463,
+        "mime": "image/jpeg"
+      }
+    },
+    "r3-timeline": {
+      "sourceRecording": "r3-timeline",
+      "landingSection": "S5",
+      "transcript": "From the home screen, the patient opens today's full schedule. Today's medicines are grouped by morning and night. The patient marks a dose as taken and the timeline shows it as recorded.",
+      "durationSec": 9,
+      "dimensions": "390x844",
+      "mp4": {
+        "url": "https://assets.medidocs.app/video/en/timeline-en.2204f6d7.mp4",
+        "hash": "2204f6d7",
+        "bytes": 145275,
+        "mime": "video/mp4"
+      },
+      "webm": {
+        "url": "https://assets.medidocs.app/video/en/timeline-en.529316b5.webm",
+        "hash": "529316b5",
+        "bytes": 75173,
+        "mime": "video/webm"
+      },
+      "poster": {
+        "url": "https://assets.medidocs.app/images/posters/timeline-en.4085e022.jpg",
+        "hash": "4085e022",
+        "bytes": 45891,
+        "mime": "image/jpeg"
+      }
+    },
+    "r4-listen": {
+      "sourceRecording": "r4-listen",
+      "landingSection": "S6",
+      "transcript": "On the help screen, the patient taps Listen. The control changes to Stop while the guidance is read aloud, then the patient stops playback. (The demonstration video itself is silent.)",
+      "durationSec": 4.8,
+      "dimensions": "390x844",
+      "mp4": {
+        "url": "https://assets.medidocs.app/video/en/listen-en.98e6cb18.mp4",
+        "hash": "98e6cb18",
+        "bytes": 42412,
+        "mime": "video/mp4"
+      },
+      "webm": {
+        "url": "https://assets.medidocs.app/video/en/listen-en.8fc86907.webm",
+        "hash": "8fc86907",
+        "bytes": 40956,
+        "mime": "video/webm"
+      },
+      "poster": {
+        "url": "https://assets.medidocs.app/images/posters/listen-en.d7a0c7bd.jpg",
+        "hash": "d7a0c7bd",
+        "bytes": 48172,
+        "mime": "image/jpeg"
+      }
+    },
+    "r5-offline": {
+      "sourceRecording": "r5-offline",
+      "landingSection": "S7",
+      "transcript": "With the network disconnected, saved medicine information stays visible and an offline notice appears. The patient records a dose, which is saved on the device. When the connection returns, the change syncs automatically.",
+      "durationSec": 7.1,
+      "dimensions": "390x844",
+      "mp4": {
+        "url": "https://assets.medidocs.app/video/en/offline-en.5b6d43bb.mp4",
+        "hash": "5b6d43bb",
+        "bytes": 202697,
+        "mime": "video/mp4"
+      },
+      "webm": {
+        "url": "https://assets.medidocs.app/video/en/offline-en.9bdda7d7.webm",
+        "hash": "9bdda7d7",
+        "bytes": 110398,
+        "mime": "video/webm"
+      },
+      "poster": {
+        "url": "https://assets.medidocs.app/images/posters/offline-en.8adbc7c5.jpg",
+        "hash": "8adbc7c5",
+        "bytes": 42957,
+        "mime": "image/jpeg"
+      }
+    },
+    "r6-caregiver": {
+      "sourceRecording": "r6-caregiver",
+      "landingSection": "S8",
+      "transcript": "From caregiver management, the patient opens a new invitation, enters the caregiver's number, and reviews exactly what the caregiver will be allowed to do — bounded permissions chosen by the patient.",
+      "durationSec": 6.2,
+      "dimensions": "390x844",
+      "mp4": {
+        "url": "https://assets.medidocs.app/video/en/caregiver-en.4f23cb7b.mp4",
+        "hash": "4f23cb7b",
+        "bytes": 128529,
+        "mime": "video/mp4"
+      },
+      "webm": {
+        "url": "https://assets.medidocs.app/video/en/caregiver-en.25477234.webm",
+        "hash": "25477234",
+        "bytes": 119287,
+        "mime": "video/webm"
+      },
+      "poster": {
+        "url": "https://assets.medidocs.app/images/posters/caregiver-en.5247baf5.jpg",
+        "hash": "5247baf5",
+        "bytes": 49345,
+        "mime": "image/jpeg"
+      }
+    },
+    "og": {
+      "url": "https://assets.medidocs.app/images/og/og-home-en.a50d39e4.jpg",
+      "hash": "a50d39e4",
+      "bytes": 174529,
+      "mime": "image/jpeg"
+    },
+    "audio": {
+      "url": "https://assets.medidocs.app/audio/en/hear-medicine-passport-en.929abc46.mp3",
+      "hash": "929abc46",
+      "bytes": 26400,
+      "mime": "audio/mpeg",
+      "spokenText": "This is your home screen. It shows which medicines to take now, and anything that needs your attention."
+    }
+  }
+}

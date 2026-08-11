@@ -8,6 +8,8 @@
     "start": "next start -p 3000",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:e2e": "playwright test",
+    "marketing:record": "playwright test --config=playwright.marketing.config.ts",
+    "marketing:record:add-medicine": "playwright test --config=playwright.marketing.config.ts e2e-marketing/r2-add-medicine.spec.ts",
     "test": "vitest run",
     "generate:audio": "tsx scripts/generate-guidance-audio.mts"
   },

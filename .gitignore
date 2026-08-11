@@ -35,3 +35,7 @@ apps/patient-web/playwright-report/
 # logs
 *.log
 .claude/
+artifacts/
+
+# Wrangler local simulator state (miniflare sqlite) — never source
+.wrangler/

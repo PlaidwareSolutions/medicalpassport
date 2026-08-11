@@ -1,0 +1,47 @@
+# Security + cache headers for the static marketing site, consumed by
+# Cloudflare Workers Static Assets (repo-tracked per Session 6 — next.config
+# headers() does not apply under output:"export").
+#
+# CSP honesty note (verified against the real export this session): Next's
+# static output emits inline bootstrap <script> tags (RSC payload) and the
+# app injects one inline <style> block, so script-src/style-src carry
+# 'unsafe-inline'. There are NO nonces/hashes (impossible for prebuilt static
+# HTML) and no eval anywhere in the chunks (verified) — 'unsafe-eval' is
+# deliberately absent. Documented future additions, added only when each
+# feature actually ships (do not loosen preemptively):
+#   - assets.medidocs.app        -> img-src/media-src (marketing media, S9 era)
+#   - challenges.cloudflare.com  -> script-src + frame-src (Turnstile, lead form)
+#   - static.cloudflareinsights.com -> script-src (Cloudflare Web Analytics)
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://assets.medidocs.app; font-src 'self'; connect-src 'self'; media-src 'self' https://assets.medidocs.app; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Fingerprinted build assets: content-hashed filenames, safe to cache forever.
+# (`! Cache-Control` detaches the /* value first — Workers Static Assets
+# APPENDS matching rules rather than overriding; verified live this session.)
+/_next/static/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+# Stable-name metadata: fresh-ish, never immutable.
+/icon.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=86400
+/robots.txt
+  ! Cache-Control
+  Cache-Control: public, max-age=3600
+/sitemap.xml
+  ! Cache-Control
+  Cache-Control: public, max-age=3600
+
+# ── Staging indexing protection (Session 7 §0) ──────────────────────────────
+# Host-scoped: matches ONLY the staging hostname, so the production apex can
+# never inherit noindex from this rule. Paired with the MARKETING_ENV=staging
+# build flag that makes staging's robots.txt disallow-all and its sitemap
+# empty. Production cutover needs NO change here — the rule simply never
+# matches medidocs.app.
+https://staging.medidocs.app/*
+  X-Robots-Tag: noindex, nofollow, noarchive

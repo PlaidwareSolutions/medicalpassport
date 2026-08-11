@@ -1,0 +1,22 @@
+# Cloudflare Workers Static Assets deployment for the marketing site
+# (Session 6 — docs/landing-page/infrastructure.md).
+#
+# STAGING ONLY. This file intentionally defines no production apex/www
+# configuration at all — medidocs.app / www.medidocs.app cutover is a later,
+# explicit launch action (SPEC Sessions 16–17); with no production target in
+# this file, no wrangler invocation can deploy the apex accidentally.
+#
+# Assets-only Worker: no `main` script, no runtime code — Cloudflare serves
+# the Next.js static export directly, honoring public/_headers.
+name = "medidocs-marketing-staging"
+compatibility_date = "2026-08-01"
+account_id = "db356ac44b40bc2b194b6838d03eb84b"
+
+[assets]
+directory = "./out"
+html_handling = "auto-trailing-slash"
+not_found_handling = "404-page"
+
+[[routes]]
+pattern = "staging.medidocs.app"
+custom_domain = true

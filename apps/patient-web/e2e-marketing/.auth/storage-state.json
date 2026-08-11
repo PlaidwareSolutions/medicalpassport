@@ -1,0 +1,35 @@
+{
+  "cookies": [
+    {
+      "name": "medpass_session",
+      "value": "L527iT6V80Z7SM_yVpB-4is38olppuT-Ahk4f_Pq8UE",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1786501768,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "medpass_refresh",
+      "value": "AvFim6cWQZYLXDCMtUQZq5pHUestwUFhS5ZMCeO7YhA",
+      "domain": "localhost",
+      "path": "/v1/auth",
+      "expires": 1789050568,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "medpass_device_trust",
+      "value": "fuoVnt9ibdPRS5uLQms4e4-qnVK8eK4I51ru9Jcbvk0",
+      "domain": "localhost",
+      "path": "/v1/auth",
+      "expires": 1821018568,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

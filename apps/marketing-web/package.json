@@ -1,0 +1,26 @@
+{
+  "name": "@medpass/marketing-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3002",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "deploy:staging": "MARKETING_ENV=staging next build && wrangler deploy"
+  },
+  "dependencies": {
+    "@medpass/design-tokens": "workspace:*",
+    "next": "15.5.20",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.2",
+    "wrangler": "4.105.0"
+  }
+}

@@ -1,0 +1,346 @@
+<title>Medicine Passport — Session 4 visual direction</title>
+<style>
+  /* ---------- review chrome (deliberately quiet, slate-neutral, single-theme) ---------- */
+  :root{
+    --c-bg:#232826; --c-panel:#2c3230; --c-text:#e8ebe9; --c-dim:#9aa5a0; --c-line:#3a423f;
+    /* ---------- marketing tokens under review (docs/landing-page/05 §3) ---------- */
+    --mkt-primary:#0f6b54; --mkt-primary-hover:#0c5745; --mkt-primary-pressed:#094636;
+    --mkt-soft:#e3f2ed; --mkt-ink:#1a1f1d; --mkt-muted:#52605b;
+    --mkt-paper:#fbfaf7; --mkt-surface:#ffffff; --mkt-hairline:#d8ded9;
+    --mkt-border-control:#8a8e8c; --mkt-clay:#b65c32; --mkt-sand:#e8dcc7;
+    --stack:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans","Noto Sans Devanagari","Noto Sans Telugu","Noto Nastaliq Urdu",sans-serif;
+  }
+  html,body{margin:0;padding:0}
+  body{background:var(--c-bg);color:var(--c-text);font-family:var(--stack);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 24px 96px}
+  .intro h1{font-size:22px;font-weight:750;margin:0 0 6px;letter-spacing:-.01em}
+  .intro p{color:var(--c-dim);font-size:14px;max-width:70ch;margin:0 0 4px}
+  .mock{margin-top:56px}
+  .mock>.tag{display:flex;gap:10px;align-items:baseline;border-bottom:1px solid var(--c-line);padding-bottom:8px;margin-bottom:20px}
+  .tag b{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--c-text)}
+  .tag span{font-size:12.5px;color:var(--c-dim)}
+  .note{font-size:12.5px;color:var(--c-dim);margin-top:14px;max-width:78ch}
+  .row{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .deskframe{border:1px solid var(--c-line);border-radius:10px;overflow-x:auto;background:var(--c-panel)}
+  .deskframe .inner{min-width:960px}
+  .phone{width:392px;max-width:100%;border:1px solid var(--c-line);border-radius:14px;overflow:hidden;background:var(--c-panel)}
+
+  /* ---------- marketing primitives ---------- */
+  .m{font-family:var(--stack);color:var(--mkt-ink)}
+  .m *{box-sizing:border-box}
+  .ground-paper{background:var(--mkt-paper)}
+  .ground-white{background:var(--mkt-surface)}
+  .cta{display:inline-block;background:var(--mkt-primary);color:#fff;border:0;border-radius:12px;
+       min-height:48px;padding:13px 22px;font:700 17px/1.2 var(--stack);text-decoration:none;cursor:pointer}
+  .cta:hover{background:var(--mkt-primary-hover)}
+  .cta.invert{background:#fff;color:var(--mkt-primary)}
+  .cta.wide{display:block;width:100%;text-align:center}
+  .ghost{color:var(--mkt-primary);font:600 16px/1.2 var(--stack);text-decoration:none}
+  .ghost:hover{text-decoration:underline}
+  .chip{display:inline-block;background:var(--mkt-soft);color:var(--mkt-ink);border-radius:999px;
+        padding:8px 14px;font:600 14px/1.2 var(--stack)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0;list-style:none}
+  .lockup{font-weight:800;color:var(--mkt-primary);font-size:19px;letter-spacing:-.01em;line-height:1.1}
+  .lockup small{display:block;font-weight:500;color:var(--mkt-muted);font-size:12px;letter-spacing:0;margin-top:2px}
+
+  /* app screen mock (placeholder for real captures — Sessions 8/9) */
+  .appframe{border:1.5px solid rgba(26,31,29,.16);border-radius:28px;background:var(--mkt-surface);
+            padding:8px;box-shadow:0 12px 32px rgba(26,31,29,.10)}
+  .appscr{border-radius:21px;overflow:hidden;background:#f5f7f6;font-size:13px}
+  .appscr .ahead{background:var(--mkt-primary);color:#fff;padding:12px 14px;font-weight:700;font-size:14px}
+  .appscr .adate{padding:10px 14px 4px;color:var(--mkt-muted);font-weight:600;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
+  .acard{background:#fff;margin:8px 10px;border:1px solid #e4e8e6;border-radius:14px;padding:12px 12px 10px}
+  .acard .nm{font-weight:750;font-size:15px}
+  .acard .st{display:inline-block;background:var(--mkt-soft);border-radius:6px;padding:2px 7px;font-weight:650;font-size:11px;margin-left:6px;vertical-align:2px}
+  .acard .meta{color:var(--mkt-muted);font-size:12px;margin-top:3px}
+  .acard .listen{margin-top:8px;display:inline-flex;gap:6px;align-items:center;color:var(--mkt-primary);font-weight:650;font-size:12px}
+  .anav{display:flex;justify-content:space-around;background:#fff;border-top:1px solid #e4e8e6;padding:9px 0;color:var(--mkt-muted);font-size:10.5px;font-weight:600}
+  .anav b{color:var(--mkt-primary)}
+
+  /* M1 mobile hero */
+  .mhero{padding:18px 20px 30px}
+  .mhero .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:26px}
+  .loc{border:1px solid var(--mkt-hairline);border-radius:999px;padding:5px 12px;font:600 13px var(--stack);color:var(--mkt-ink);background:var(--mkt-surface)}
+  .mhero h1{font-size:32px;line-height:1.15;letter-spacing:-.015em;font-weight:800;margin:0 0 12px;text-wrap:balance}
+  .mhero .sub{font-size:17px;line-height:1.6;color:var(--mkt-muted);margin:0 0 18px;max-width:34ch}
+  .mhero .chips{margin-bottom:20px}
+  .mhero .see{margin-top:14px}
+  .mhero .media{margin:26px auto 0;width:250px}
+
+  /* M2 story card */
+  .story{background:var(--mkt-surface);border:1px solid var(--mkt-hairline);border-radius:16px;overflow:hidden;width:340px;max-width:100%}
+  .story .ill{aspect-ratio:3/2;background:var(--mkt-paper);display:block;width:100%}
+  .story .body{padding:18px 18px 16px}
+  .story h3{font-size:20px;line-height:1.3;margin:0 0 8px;font-weight:700}
+  .story p{font-size:15.5px;line-height:1.55;color:var(--mkt-ink);margin:0 0 12px}
+  .listenbtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--mkt-hairline);background:var(--mkt-surface);
+             border-radius:999px;padding:8px 14px;font:650 13.5px var(--stack);color:var(--mkt-primary);cursor:pointer}
+
+  /* M3 product row (P2) */
+  .prow{display:grid;grid-template-columns:5fr 7fr;gap:64px;align-items:center;padding:72px 56px}
+  .prow h2{font-size:36px;line-height:1.15;font-weight:750;letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance}
+  .prow p{font-size:18px;line-height:1.6;margin:0 0 18px;max-width:58ch}
+  .fact{display:flex;gap:8px;flex-wrap:wrap}
+  .prow .appframe{max-width:290px;margin:0 auto}
+
+  /* M4 free panel */
+  .free{background:var(--mkt-primary);color:#fff;text-align:center;padding:76px 32px}
+  .free .in{max-width:720px;margin:0 auto}
+  .free h2{color:#fff;font-size:36px;font-weight:800;letter-spacing:-.01em;margin:0 0 16px;text-wrap:balance}
+  .free p{color:#fff;font-size:18px;line-height:1.65;margin:0 auto 22px;max-width:58ch}
+  .free .chips{justify-content:center;margin-bottom:26px}
+  .free .chip{background:rgba(255,255,255,.14);color:#fff}
+
+  /* M5 trust */
+  .trust{padding:72px 56px}
+  .trust h2{font-size:36px;font-weight:750;letter-spacing:-.01em;line-height:1.2;margin:0 0 30px;max-width:24ch;text-wrap:balance}
+  .tcols{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .tcard{background:var(--mkt-surface);border:1px solid var(--mkt-hairline);border-radius:16px;padding:26px 28px}
+  .tcard h3{font-size:20px;font-weight:700;margin:0 0 14px}
+  .tcard ul{list-style:none;margin:0;padding:0}
+  .tcard li{font-size:16.5px;line-height:1.5;padding:7px 0 7px 30px;position:relative}
+  .does li::before{content:"✓";position:absolute;left:0;color:var(--mkt-primary);font-weight:800}
+  .not li::before{content:"–";position:absolute;left:0;color:var(--mkt-muted);font-weight:800}
+
+  /* M6 desktop hero (P1) */
+  .dhero{padding:26px 56px 72px}
+  .dhero .nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:58px}
+  .dhero .nav .links{display:flex;gap:26px;align-items:center;font:600 15px var(--stack);color:var(--mkt-muted)}
+  .dhero .grid{display:grid;grid-template-columns:55fr 45fr;gap:48px;align-items:center}
+  .dhero h1{font-size:54px;line-height:1.08;font-weight:800;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance}
+  .dhero .sub{font-size:19px;line-height:1.6;color:var(--mkt-muted);margin:0 0 22px;max-width:48ch}
+  .dhero .actions{display:flex;gap:22px;align-items:center;margin-top:22px}
+  .qr{background:var(--mkt-surface);border:1px solid var(--mkt-hairline);border-radius:14px;padding:12px;display:flex;gap:12px;align-items:center;max-width:250px}
+  .qr .code{width:64px;height:64px;flex:none}
+  .qr span{font:500 13px/1.4 var(--stack);color:var(--mkt-muted)}
+  .dhero .appframe{max-width:280px;margin:0 auto}
+</style>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>Medicine Passport · marketing visual direction</h1>
+    <p>Session 4 gate review — six representative mockups rendered in the proposed design system (docs/landing-page/05-marketing-design-system.md). App screens and the illustration are hand-built placeholders; real captures arrive in Sessions 8–9. The dark surround is review chrome, not the site.</p>
+  </div>
+
+  <!-- ============ M1 mobile hero, both grounds ============ -->
+  <section class="mock">
+    <div class="tag"><b>M1 · Mobile hero</b><span>S1 · 390px · decision 1: warm paper (left) vs pure white (right)</span></div>
+    <div class="row">
+      <div class="phone" aria-label="Mobile hero on warm paper">
+        <div class="m ground-paper mhero">
+          <div class="top">
+            <div class="lockup">Medicine Passport<small>by MediDocs</small></div>
+            <span class="loc">EN</span>
+          </div>
+          <h1>Your medicines. One place. In your language.</h1>
+          <p class="sub">Keep track of what you take, why you take it, when to take it, and what to show your doctor — wherever you go.</p>
+          <ul class="chips">
+            <li class="chip">Free for patients</li>
+            <li class="chip">No app to install</li>
+            <li class="chip">App languages: English · हिंदी · తెలుగు · اردو</li>
+          </ul>
+          <a class="cta wide" href="#0">Create my free Medicine Passport</a>
+          <div class="see"><a class="ghost" href="#0">See how it works ↓</a></div>
+          <div class="media">
+            <div class="appframe"><div class="appscr">
+              <div class="ahead">Medicine Passport</div>
+              <div class="adate">Today · Morning</div>
+              <div class="acard"><span class="nm">Metfor 500</span><span class="st">500 mg</span>
+                <div class="meta">After food · 8:00 AM · Dr. Rao</div>
+                <div class="listen">▶ Listen</div></div>
+              <div class="acard"><span class="nm">Telmis 40</span><span class="st">40 mg</span>
+                <div class="meta">Before food · 8:00 AM · Dr. Mehta</div>
+                <div class="listen">▶ Listen</div></div>
+              <div class="anav"><b>Home</b><span>Timeline</span><span>Add</span><span>Share</span><span>Profile</span></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+      <div class="phone" aria-label="Mobile hero on pure white">
+        <div class="m ground-white mhero">
+          <div class="top">
+            <div class="lockup">Medicine Passport<small>by MediDocs</small></div>
+            <span class="loc">EN</span>
+          </div>
+          <h1>Your medicines. One place. In your language.</h1>
+          <p class="sub">Keep track of what you take, why you take it, when to take it, and what to show your doctor — wherever you go.</p>
+          <ul class="chips">
+            <li class="chip">Free for patients</li>
+            <li class="chip">No app to install</li>
+            <li class="chip">App languages: English · हिंदी · తెలుగు · اردو</li>
+          </ul>
+          <a class="cta wide" href="#0">Create my free Medicine Passport</a>
+          <div class="see"><a class="ghost" href="#0">See how it works ↓</a></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Chip three is the product-language statement ("App languages:" prefix), visually distinct from the EN locale chip top-right — per the OD-LP-4 addendum. Sticky-header CTA appears only after this hero CTA scrolls away.</p>
+  </section>
+
+  <!-- ============ M2 problem story card ============ -->
+  <section class="mock">
+    <div class="tag"><b>M2 · Problem story card</b><span>S2 Story B · corrected neutral wording · illustration style sample</span></div>
+    <div class="m story">
+      <svg class="ill" viewBox="0 0 360 240" role="img" aria-label="Two medicine strips with different labels casting the same shadow">
+        <rect width="360" height="240" fill="#fbfaf7"/>
+        <ellipse cx="180" cy="196" rx="118" ry="10" fill="#e8dcc7"/>
+        <g transform="translate(58,74) rotate(-8)">
+          <rect x="0" y="0" width="118" height="64" rx="10" fill="#ffffff" stroke="#1a1f1d" stroke-width="2.5"/>
+          <circle cx="24" cy="22" r="9" fill="#e3f2ed" stroke="#1a1f1d" stroke-width="2"/>
+          <circle cx="52" cy="22" r="9" fill="#e3f2ed" stroke="#1a1f1d" stroke-width="2"/>
+          <circle cx="80" cy="22" r="9" fill="#e3f2ed" stroke="#1a1f1d" stroke-width="2"/>
+          <rect x="14" y="42" width="66" height="8" rx="4" fill="#0f6b54"/>
+        </g>
+        <g transform="translate(192,84) rotate(6)">
+          <rect x="0" y="0" width="118" height="64" rx="10" fill="#ffffff" stroke="#1a1f1d" stroke-width="2.5"/>
+          <circle cx="24" cy="22" r="9" fill="#e3f2ed" stroke="#1a1f1d" stroke-width="2"/>
+          <circle cx="52" cy="22" r="9" fill="#e3f2ed" stroke="#1a1f1d" stroke-width="2"/>
+          <circle cx="80" cy="22" r="9" fill="#e3f2ed" stroke="#1a1f1d" stroke-width="2"/>
+          <rect x="14" y="42" width="66" height="8" rx="4" fill="#b65c32"/>
+        </g>
+        <path d="M96 52 q10 -18 26 -8" fill="none" stroke="#52605b" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round"/>
+        <path d="M262 60 q-8 -20 -26 -12" fill="none" stroke="#52605b" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round"/>
+      </svg>
+      <div class="body">
+        <h3>Two names, one ingredient</h3>
+        <p>Doctor A prescribes one brand. Doctor B prescribes another. Two different brand names may contain the same ingredient — and there's no easy way for a family to tell.</p>
+        <button class="listenbtn" type="button">▶ Listen</button>
+      </div>
+    </div>
+    <p class="note">Illustration style sample: flat warm minimalism — ink line work, green + clay + sand fills only (illustration-only colors, decision 2), no faces here; the canonical set is commissioned in Session 8. The listen button is the site-wide opt-in narration pattern.</p>
+  </section>
+
+  <!-- ============ M3 product row (P2 desktop) ============ -->
+  <section class="mock">
+    <div class="tag"><b>M3 · Product row</b><span>S4 Know · pattern P2 · desktop ≥900px</span></div>
+    <div class="deskframe"><div class="inner m ground-paper">
+      <div class="prow">
+        <div class="appframe"><div class="appscr">
+          <div class="ahead">Review what was read</div>
+          <div class="adate">From your prescription photo</div>
+          <div class="acard"><span class="nm">Telmis 40</span>
+            <div class="meta">Frequency: once daily — <b style="color:var(--mkt-primary)">Confirm?</b></div></div>
+          <div class="acard"><span class="nm">Before food</span>
+            <div class="meta">Food instruction — <b style="color:var(--mkt-primary)">Confirm?</b></div></div>
+          <div class="anav"><span>Home</span><span>Timeline</span><b>Add</b><span>Share</span><span>Profile</span></div>
+        </div></div>
+        <div>
+          <h2>Know what you're taking.</h2>
+          <p>Add medicines your way: photograph a prescription and confirm what Medicine Passport reads — you check every detail before it's saved. Or find your medicine by search, or enter it yourself.</p>
+          <div class="fact">
+            <span class="chip">Photo</span><span class="chip">Search</span><span class="chip">Type it in</span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <p class="note">Media column 5/12, copy 7/12, 64px gap; the phone frame is deliberately generic and quieter than the app UI inside it. Video clips replace the static mock in Session 9; captions render as a pill at the frame's lower edge.</p>
+  </section>
+
+  <!-- ============ M4 free panel ============ -->
+  <section class="mock">
+    <div class="tag"><b>M4 · Free panel</b><span>S10 · the page's only full-bleed color moment · wording GATED-BUSINESS/LEGAL</span></div>
+    <div class="deskframe"><div class="inner m free">
+      <div class="in">
+        <h2>Medicine Passport is free for patients.</h2>
+        <p>Your medicine information belongs to you. Medicine Passport is free for patients to create, maintain and share. We plan to sustain MediDocs through services and partnerships with healthcare organizations — not by charging patients for access to their own medicine information.</p>
+        <ul class="chips">
+          <li class="chip">No advertising in the patient experience</li>
+          <li class="chip">Identifiable health information is never sold</li>
+          <li class="chip">No paywall on your own record</li>
+        </ul>
+        <a class="cta invert" href="#0">Create my free Medicine Passport</a>
+      </div>
+    </div></div>
+    <p class="note">White on #0f6b54 measures 6.46:1; chip text on the 14%-white chip fill measures 4.74:1 — both AA. The middle chip ships only when its business/legal approval flag is set.</p>
+  </section>
+
+  <!-- ============ M5 trust ============ -->
+  <section class="mock">
+    <div class="tag"><b>M5 · Trust section</b><span>S11 · does / does-not · desktop 2-col</span></div>
+    <div class="deskframe"><div class="inner m ground-paper trust">
+      <h2>Built to help you understand your medicines — not to replace your doctor.</h2>
+      <div class="tcols">
+        <div class="tcard does">
+          <h3>Medicine Passport does</h3>
+          <ul>
+            <li>Keep your medicine information organized — and yours.</li>
+            <li>Explain medicines in plain language where approved information is available.</li>
+            <li>Point out things worth asking your doctor about.</li>
+            <li>Let you share on your terms, and see every access.</li>
+          </ul>
+        </div>
+        <div class="tcard not">
+          <h3>Medicine Passport does not</h3>
+          <ul>
+            <li>It does not diagnose or prescribe.</li>
+            <li>It does not tell you to start or stop a medicine.</li>
+            <li>It does not substitute one medicine for another.</li>
+            <li>It does not declare any medicine "safe".</li>
+            <li>It does not replace doctors or pharmacists.</li>
+          </ul>
+        </div>
+      </div>
+    </div></div>
+    <p class="note">Meaning carried by wording and glyph, never color alone. Two of the "does" lines are gated (clinical / security) and drop from the list with clean seams if unapproved at launch.</p>
+  </section>
+
+  <!-- ============ M6 desktop hero (P1) ============ -->
+  <section class="mock">
+    <div class="tag"><b>M6 · Desktop hero</b><span>S1 · pattern P1 · 55/45 split · QR card</span></div>
+    <div class="deskframe"><div class="inner m ground-paper dhero">
+      <div class="nav">
+        <div class="lockup">Medicine Passport<small>by MediDocs</small></div>
+        <div class="links"><span>For doctors &amp; clinics</span><span>Help</span><span class="loc">EN</span></div>
+      </div>
+      <div class="grid">
+        <div>
+          <h1>Your medicines. One place. In your language.</h1>
+          <p class="sub">Keep track of what you take, why you take it, when to take it, and what to show your doctor — wherever you go.</p>
+          <ul class="chips">
+            <li class="chip">Free for patients</li>
+            <li class="chip">No app to install</li>
+            <li class="chip">App languages: English · हिंदी · తెలుగు · اردو</li>
+          </ul>
+          <div class="actions">
+            <a class="cta" href="#0">Create my free Medicine Passport</a>
+            <a class="ghost" href="#0">See how it works ↓</a>
+          </div>
+          <div class="actions">
+            <div class="qr">
+              <svg class="code" viewBox="0 0 64 64" aria-hidden="true">
+                <rect width="64" height="64" fill="#fff"/>
+                <g fill="#1a1f1d">
+                  <rect x="4" y="4" width="16" height="16"/><rect x="44" y="4" width="16" height="16"/><rect x="4" y="44" width="16" height="16"/>
+                  <rect x="8" y="8" width="8" height="8" fill="#fff"/><rect x="48" y="8" width="8" height="8" fill="#fff"/><rect x="8" y="48" width="8" height="8" fill="#fff"/>
+                  <rect x="28" y="8" width="4" height="4"/><rect x="34" y="14" width="4" height="4"/><rect x="28" y="22" width="6" height="6"/>
+                  <rect x="44" y="28" width="4" height="4"/><rect x="52" y="32" width="4" height="4"/><rect x="28" y="34" width="4" height="4"/>
+                  <rect x="36" y="40" width="6" height="6"/><rect x="46" y="46" width="4" height="4"/><rect x="54" y="52" width="4" height="4"/>
+                  <rect x="28" y="50" width="4" height="4"/><rect x="34" y="56" width="4" height="4"/><rect x="8" y="28" width="4" height="4"/>
+                  <rect x="16" y="34" width="4" height="4"/>
+                </g>
+              </svg>
+              <span>Scan to open on your phone</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="appframe"><div class="appscr">
+            <div class="ahead">Medicine Passport</div>
+            <div class="adate">Today · Morning</div>
+            <div class="acard"><span class="nm">Metfor 500</span><span class="st">500 mg</span>
+              <div class="meta">After food · 8:00 AM · Dr. Rao</div>
+              <div class="listen">▶ Listen</div></div>
+            <div class="acard"><span class="nm">Telmis 40</span><span class="st">40 mg</span>
+              <div class="meta">Before food · 8:00 AM · Dr. Mehta</div>
+              <div class="listen">▶ Listen</div></div>
+            <div class="acard"><span class="nm">Ecosprin 75</span><span class="st">75 mg</span>
+              <div class="meta">After food · 9:00 PM · Dr. Rao</div>
+              <div class="listen">▶ Listen</div></div>
+            <div class="anav"><b>Home</b><span>Timeline</span><span>Add</span><span>Share</span><span>Profile</span></div>
+          </div></div>
+        </div>
+      </div>
+    </div></div>
+    <p class="note">Header CTA is absent here by design — it appears (sticky) only after this hero CTA leaves view. QR is a placeholder pattern; the real code targets app.medidocs.app/?src=website. Medicine names shown are fictional seeded demo data.</p>
+  </section>
+</div>
