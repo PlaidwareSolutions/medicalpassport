@@ -139,11 +139,15 @@ export function instructionSummary(
 ): string {
   const i = m.instruction;
   if (!i) return "";
-  const freq = t(`frequency.${i.frequencyCode.toLowerCase()}` as never);
+  // A recorded pattern IS the frequency (the "1-0-1" shorthand every Indian
+  // prescription uses); repeating the picker's teaching label ("Custom
+  // pattern (e.g. 1-0-1)") in front of it read as "Custom pattern
+  // (e.g. 1-0-1) 1-0-1" — the picker keeps its example, displays show the
+  // chosen value alone. The morning/night chips beside it carry the meaning.
+  const freq = i.pattern ? i.pattern : t(`frequency.${i.frequencyCode.toLowerCase()}` as never);
   const food = t(`food.${i.foodInstruction}` as never);
   const unit = t(`unit.${i.doseUnit}` as never);
-  const pattern = i.pattern ? ` ${i.pattern}` : "";
-  return `${formatDoseAmount(Number(i.doseQuantity))} ${unit} · ${freq}${pattern} · ${food}`;
+  return `${formatDoseAmount(Number(i.doseQuantity))} ${unit} · ${freq} · ${food}`;
 }
 
 /**
@@ -177,10 +181,10 @@ export function scheduleSummary(
 ): string {
   const i = m.instruction;
   if (!i) return "";
-  const freq = t(`frequency.${i.frequencyCode.toLowerCase()}` as never);
+  // Same pattern-first rule as instructionSummary above.
+  const freq = i.pattern ? i.pattern : t(`frequency.${i.frequencyCode.toLowerCase()}` as never);
   const food = t(`food.${i.foodInstruction}` as never);
-  const pattern = i.pattern ? ` ${i.pattern}` : "";
-  return `${freq}${pattern} · ${food}`;
+  return `${freq} · ${food}`;
 }
 
 async function patchCachedMedication(profileId: string, id: string, patch: EditMedicationPatch): Promise<void> {

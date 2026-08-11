@@ -22,6 +22,12 @@ const nextConfig = {
         { key: "X-Frame-Options", value: "DENY" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
+        // The whole PWA is private/authenticated — nothing here should ever
+        // be indexed. This is the confidentiality control for the public
+        // share route /s/<token>: a bearer-token URL, if ever discovered by
+        // a crawler, must not surface in search results (Stage-7 security
+        // review). robots.txt alone is not sufficient for bearer links.
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
       ],
     },
     {

@@ -33,7 +33,6 @@ export interface VisitSummaryDto {
   allergies?: Array<{ label: string; severity: string; reactionNote: string | null }>;
   conditions?: Array<{ label: string; note: string | null }>;
   currentMedications?: Array<{
-    id: string;
     name: string;
     ingredients: string[];
     strengthLabel: string | null;
@@ -175,7 +174,9 @@ export class VisitSummaryService {
       summary.currentMedications = meds.map((m) => {
         const instruction = m.instructions[0];
         return {
-          id: m.id,
+          // No internal medication id on this payload: it also feeds the
+          // unauthenticated public share path, and the recipient never needs
+          // the DB identifier (Stage-7 security review, data minimization).
           name: m.product?.brand?.name ?? m.enteredName,
           ingredients: m.product?.ingredients.map((i) => i.ingredient.name) ?? [],
           strengthLabel: m.product?.strengthLabel ?? null,

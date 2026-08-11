@@ -66,8 +66,8 @@ export function VisitSummarySections({ data, concernTones = true }: { data: Visi
         <>
           <SectionTitle>{t("meds.current")}</SectionTitle>
           <div style={COLUMN}>
-            {data.currentMedications.map((m) => (
-              <Card key={m.id}>
+            {data.currentMedications.map((m, i) => (
+              <Card key={i}>
                 <strong style={{ fontSize: "var(--font-large)" }}>{m.name}</strong>
                 <span style={MUTED_SMALL}>
                   {m.ingredients.join(" + ")} {m.strengthLabel ?? ""}

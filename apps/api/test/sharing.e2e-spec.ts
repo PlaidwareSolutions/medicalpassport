@@ -115,6 +115,32 @@ describe("Sharing e2e", () => {
       expect.arrayContaining([expect.objectContaining({ name: "Sharing Test Medicine" })]),
     );
     expect(publicRes.headers["cache-control"]).toContain("no-store");
+    // Data minimization (Stage-7 security review): the internal medication DB
+    // id must never appear on the unauthenticated public payload.
+    expect(publicRes.body.currentMedications.every((m: { id?: string }) => m.id === undefined)).toBe(true);
+  });
+
+  it("does not let another patient revoke or read the access log of someone else's share (IDOR)", async () => {
+    // A second, unrelated patient — no caregiver relationship to profileId.
+    const ATTACKER_PHONE = "+919000000302";
+    await request(app.getHttpServer()).post("/v1/auth/otp/request").send({ phone: ATTACKER_PHONE }).expect(202);
+    const verify = await request(app.getHttpServer())
+      .post("/v1/auth/otp/verify")
+      .send({ phone: ATTACKER_PHONE, code: CODE, device: { kind: "browser" } })
+      .expect(201);
+    const attackerToken = verify.body.token as string;
+    const attackerProfile = await auth(attackerToken)(request(app.getHttpServer()).post("/v1/profiles"))
+      .send({ displayName: "Attacker", yearOfBirth: 1990, preferredLocale: "en" })
+      .expect(201);
+    const attackerProfileId = attackerProfile.body.id as string;
+
+    // The victim's shareId is owner-scoped: the attacker gets a 404 (never a
+    // 403 that would confirm the share exists) on both revoke and access log.
+    await auth(attackerToken, attackerProfileId)(request(app.getHttpServer()).post(`/v1/shares/${shareId}/revoke`)).expect(404);
+    await auth(attackerToken, attackerProfileId)(request(app.getHttpServer()).get(`/v1/shares/${shareId}/accesses`)).expect(404);
+
+    // And the victim's share is still live (the attacker changed nothing).
+    await request(app.getHttpServer()).get(`/v1/public/shares/${shareToken}`).expect(200);
   });
 
   it("respects selective sections — a medications-only share omits allergies", async () => {

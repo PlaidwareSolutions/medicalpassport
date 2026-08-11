@@ -461,7 +461,6 @@ export interface VisitSummaryDto {
   allergies?: Array<{ label: string; severity: string; reactionNote: string | null }>;
   conditions?: Array<{ label: string; note: string | null }>;
   currentMedications?: Array<{
-    id: string;
     name: string;
     ingredients: string[];
     strengthLabel: string | null;
