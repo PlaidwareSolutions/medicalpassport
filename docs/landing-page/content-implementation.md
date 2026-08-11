@@ -15,10 +15,10 @@
 | S6 | Accessible | **Rendered** | Bounded read-aloud wording ("guidance throughout the app…"); 4 language cards (ur card `dir="rtl"`); language names only — no unreviewed translations |
 | S7 | Offline | **Rendered** | "Reminders need a connection." as emphasized body text |
 | S8 | Caregiving | **Rendered** | All claims verified/ungated; variant CTA to standard app URL |
-| S9 | Share | **Not rendered — professional unit** | GATE(SECURITY); no output, no placeholder |
+| S9 | Share | **RENDERED (Session 10)** — Stage 7 CLEARED | Real share media (r7); precise revocation wording. See [professional-unit-and-leads.md](professional-unit-and-leads.md) |
 | S10 | Free | **Rendered — partially gated** | OD-LP-1 approved framing; chips: no-ads + no-paywall; *never-sold chip GATE(BUSINESS/LEGAL)* |
 | S11 | Trust | **Rendered — partially gated** | Does-list rebuilt from ungated verified claims (organized/timeline/offline/caregiving); *"worth asking" GATE(CLINICAL)*, *"share on your terms" GATE(SECURITY)* |
-| S12 | Professional bridge | **Not rendered — professional unit** | GATE(SECURITY); page seams S11 → S13 |
+| S12 | Professional bridge | **RENDERED (Session 10)** — Stage 7 CLEARED | Bridge band → /for-clinics/; no outcome statistics |
 | S13 | FAQ | **Rendered — partially gated** | 9 Q&As always visible; Q5 (doctor account) GATE(SECURITY) absent; Q6 = honest negative only; Q9/Q10 caregiver-framed |
 | S14 | Final CTA | **Rendered** | CTA + desktop QR |
 

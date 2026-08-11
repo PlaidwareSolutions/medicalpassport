@@ -82,7 +82,7 @@ Checked and **no finding**: token entropy, token-at-rest hashing, IDOR (owner-sc
 
 ## I. Fixes (files + regression tests)
 
-- **F1** — `apps/patient-web/next.config.mjs`: added `X-Robots-Tag: noindex, nofollow` to the app-wide header block (the whole PWA is private/authenticated). *Config verified by build; applies on the next patient-web deploy — not yet live on staging (no deploy this session).*
+- **F1** — `apps/patient-web/next.config.mjs`: added `X-Robots-Tag: noindex, nofollow` to the app-wide header block (the whole PWA is private/authenticated). **Deployed and live-verified (Session 10, 2026-08-12):** `staging-app.medidocs.app/s/<token>` returns `x-robots-tag: noindex, nofollow` + `cache-control: private, no-store`; app root also noindex; login renders, API green — no regression.
 - **F2** — removed `id` from `currentMedications` in `apps/api/.../visit-summary.service.ts`, the `VisitSummaryDto` in `packages/api-client/src/index.ts` and `apps/worker/.../visit-summary-html.ts`, and switched the React key to index in `VisitSummarySections.tsx`. Regression: `sharing.e2e-spec.ts` now asserts every `currentMedications` row has `id === undefined`.
 - **F3** — `sharing.e2e-spec.ts` new case: a second unrelated patient gets **404** on `POST /shares/:id/revoke` and `GET /shares/:id/accesses` for the victim's share, and the victim's share stays live.
 
