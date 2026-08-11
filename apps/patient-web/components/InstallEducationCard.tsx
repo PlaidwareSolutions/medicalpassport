@@ -13,9 +13,12 @@ const DISMISS_KEY = "medpass_a2hs_dismissed";
  * after the patient has something worth coming back to (the caller gates on
  * ≥1 medicine), dismissible forever, never a nag. Android gets the real
  * install prompt; iOS gets the manual Safari steps (no API exists there).
- * The same content stays reachable later from the Help screen.
+ * The same content stays reachable later from the Help screen, and greets
+ * first-time visitors on the public welcome screen (no dismiss there —
+ * the page itself is transient, and a tap-through must not suppress the
+ * Home card later).
  */
-export function InstallEducationCard({ context = "home" }: { context?: "home" | "help" }) {
+export function InstallEducationCard({ context = "home" }: { context?: "home" | "help" | "welcome" }) {
   const { t } = useI18n();
   const { availability, promptInstall } = useInstallPrompt();
   const [dismissed, setDismissed] = useState(() => {

@@ -6,7 +6,7 @@ import published from "./published-media.json";
  * A missing entry means that media is still deferred/gated and the section
  * keeps its PlaceholderMedia.
  */
-type PublishedFile = { url: string; hash: string; bytes: number; mime: string };
+type PublishedFile = { url: string; hash?: string; bytes?: number; mime?: string };
 type PublishedVideoAsset = {
   transcript?: string;
   mp4?: PublishedFile;

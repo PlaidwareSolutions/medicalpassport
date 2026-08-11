@@ -331,7 +331,7 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Unsupported:** no install prompt available → instructions or hide.
 - **Analytics:** `a2hs_shown/accepted/dismissed`.
 - **Acceptance:** never blocks or nags; shown at most rarely and only after value delivered.
-- **Built (self-guiding UX chunk 4):** `InstallEducationCard` on Home, gated on ≥1 medicine ∧ install actually available (captured `beforeinstallprompt`, or iOS Safari manual steps) ∧ not previously dismissed (`medpass_a2hs_dismissed`, forever); glyph + benefit line + listen button; `beforeinstallprompt` captured at module scope in `lib/install-prompt.ts` because Chrome can fire it before hydration and never refires. e2e (`education.spec.ts`) proves render + forever-dismissal with a synthesized prompt event. Analytics events remain TODO comments (no client emitter exists).
+- **Built (self-guiding UX chunk 4):** `InstallEducationCard` on Home, gated on ≥1 medicine ∧ install actually available (captured `beforeinstallprompt`, or iOS Safari manual steps) ∧ not previously dismissed (`medpass_a2hs_dismissed`, forever); glyph + benefit line + listen button; `beforeinstallprompt` captured at module scope in `lib/install-prompt.ts` because Chrome can fire it before hydration and never refires. e2e (`education.spec.ts`) proves render + forever-dismissal with a synthesized prompt event. Analytics events remain TODO comments (no client emitter exists). Also offered on the public welcome screen (screen 1) with no dismiss button — the page is transient, and tapping past it must not suppress the Home card later.
 
 ### 38. Browser-permission education
 - **Objective:** pre-permission explanation before every browser prompt (camera, mic, notifications).

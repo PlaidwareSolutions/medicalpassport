@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
 import { Button, Card } from "@medpass/ui-web";
+import { InstallEducationCard } from "../../components/InstallEducationCard";
 import { useI18n } from "../../lib/i18n";
 
 /** Screens 1–2: Welcome + language selection (docs/07). Public, zero-install. */
@@ -56,6 +57,10 @@ export default function WelcomePage() {
           {t("welcome.take_tour")}
         </Button>
       </Link>
+
+      {/* Screen 37's install education, offered right at the door — hides
+          itself when already installed or when the browser can't. */}
+      <InstallEducationCard context="welcome" />
 
       <p style={{ textAlign: "center", fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
         {t("app.not_a_doctor")}

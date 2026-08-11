@@ -90,34 +90,35 @@ async function verify(key, file) {
 }
 
 const manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
-const published = { origin: PUBLIC_ORIGIN, publishedAt: new Date().toISOString(), assets: {} };
 
+// Upload only APPROVED assets this run; PUBLISHED ones already live on R2 and
+// keep their manifest `published` URLs. (Never rebuild the site's media map
+// from just this run's uploads — that once dropped every already-published
+// asset and blanked the homepage videos.)
 for (const r of manifest.recordings) {
   const c = r.candidate;
-  if (!c) continue;
-  if (c.status !== "APPROVED") {
-    console.log(`skip ${r.id} (status ${c.status})`);
+  if (!c || c.status !== "APPROVED") {
+    if (c) console.log(`skip ${r.id} (status ${c.status})`);
     continue;
   }
   console.log(`publishing ${r.id} …`);
-  const entry = { sourceRecording: r.id, landingSection: r.landingSection, transcript: c.transcript, durationSec: c.durationSec, dimensions: c.dimensions };
+  const uploaded = {};
   for (const [field, kind] of [["mp4", "video"], ["webm", "video"], ["poster", "poster"]]) {
     const file = resolve(ROOT, c[field]);
     const h = hash8(file);
     const key = keyFor(kind, file, h);
     put(key, file);
     await verify(key, file);
-    entry[field] = { url: `${PUBLIC_ORIGIN}/${key}`, hash: h, bytes: readFileSync(file).length, mime: MIME[extname(file)] };
+    uploaded[field] = `${PUBLIC_ORIGIN}/${key}`;
   }
-  published.assets[r.id] = entry;
-  c.published = { mp4: entry.mp4.url, webm: entry.webm.url, poster: entry.poster.url };
+  c.published = uploaded;
   c.status = "PUBLISHED";
 }
 
 for (const [name, kind] of [["og", "og"], ["audio", "audio"]]) {
   const x = manifest.candidateExtras?.[name];
   if (!x || x.status !== "APPROVED") {
-    console.log(`skip extra ${name} (status ${x?.status})`);
+    if (x) console.log(`skip extra ${name} (status ${x.status})`);
     continue;
   }
   const file = resolve(ROOT, x.file);
@@ -125,13 +126,35 @@ for (const [name, kind] of [["og", "og"], ["audio", "audio"]]) {
   const key = keyFor(kind, file, h);
   put(key, file);
   await verify(key, file);
-  published.assets[name] = { url: `${PUBLIC_ORIGIN}/${key}`, hash: h, bytes: readFileSync(file).length, mime: MIME[extname(file)], ...(x.spokenText ? { spokenText: x.spokenText } : {}) };
   x.published = { url: `${PUBLIC_ORIGIN}/${key}` };
   x.status = "PUBLISHED";
+}
+
+// The site media map is the SINGLE SOURCE OF TRUTH derived from every asset
+// that has a `published` record in the manifest — this run's uploads plus all
+// previously-published ones — so re-running never drops a live asset.
+const published = { origin: PUBLIC_ORIGIN, publishedAt: new Date().toISOString(), assets: {} };
+for (const r of manifest.recordings) {
+  const c = r.candidate;
+  if (!c?.published) continue;
+  published.assets[r.id] = {
+    landingSection: r.landingSection,
+    transcript: c.transcript,
+    durationSec: c.durationSec,
+    dimensions: c.dimensions,
+    mp4: { url: c.published.mp4 },
+    webm: { url: c.published.webm },
+    poster: { url: c.published.poster },
+  };
+}
+for (const name of ["og", "audio"]) {
+  const x = manifest.candidateExtras?.[name];
+  if (!x?.published) continue;
+  published.assets[name] = { url: x.published.url, ...(x.spokenText ? { spokenText: x.spokenText } : {}) };
 }
 
 if (!DRY) {
   writeFileSync(OUT, JSON.stringify(published, null, 2));
   writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2));
-  console.log(`\nwrote ${OUT} and updated manifest statuses`);
+  console.log(`\nwrote ${OUT} (${Object.keys(published.assets).length} assets) and updated manifest statuses`);
 }
