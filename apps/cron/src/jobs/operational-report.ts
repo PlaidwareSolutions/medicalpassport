@@ -13,14 +13,21 @@ const WINDOW_HOURS = 24;
 runJob("operational-report", async ({ prisma, log }) => {
   const since = new Date(Date.now() - WINDOW_HOURS * 60 * 60 * 1000);
 
-  const [failedJobs, dlqAddedToday, dlqOutstanding, attemptsByStatus, latestBackup, latestRestoreTest] = await Promise.all([
-    prisma.backgroundJob.count({ where: { status: "failed", completedAt: { gte: since } } }),
-    prisma.deadLetterJob.count({ where: { failedAt: { gte: since } } }),
-    prisma.deadLetterJob.count({ where: { replayedAt: null } }),
-    prisma.notificationAttempt.groupBy({ by: ["channel", "status"], where: { attemptedAt: { gte: since } }, _count: true }),
-    prisma.backupExecution.findFirst({ orderBy: { startedAt: "desc" } }),
-    prisma.restoreTest.findFirst({ orderBy: { startedAt: "desc" } }),
-  ]);
+  const [failedJobs, dlqAddedToday, dlqOutstanding, attemptsByStatus, latestBackup, latestRestoreTest, newLeads, newLeadsToday] =
+    await Promise.all([
+      prisma.backgroundJob.count({ where: { status: "failed", completedAt: { gte: since } } }),
+      prisma.deadLetterJob.count({ where: { failedAt: { gte: since } } }),
+      prisma.deadLetterJob.count({ where: { replayedAt: null } }),
+      prisma.notificationAttempt.groupBy({ by: ["channel", "status"], where: { attemptedAt: { gte: since } }, _count: true }),
+      prisma.backupExecution.findFirst({ orderBy: { startedAt: "desc" } }),
+      prisma.restoreTest.findFirst({ orderBy: { startedAt: "desc" } }),
+      // Professional leads awaiting operational follow-up (OD-LP-2) — until a
+      // real notification recipient is configured (OD-LP-7), this daily line
+      // is how new leads are surfaced. Only the count is logged here; the
+      // contact details are queried operationally, never logged (§21).
+      prisma.professionalLead.count({ where: { status: "new" } }),
+      prisma.professionalLead.count({ where: { createdAt: { gte: since } } }),
+    ]);
 
   const reminderPipeline = attemptsByStatus.reduce<Record<string, number>>((acc, row) => {
     acc[`${row.channel}_${row.status}`] = row._count;
@@ -37,6 +44,8 @@ runJob("operational-report", async ({ prisma, log }) => {
     latestRestoreTest: latestRestoreTest
       ? { id: latestRestoreTest.id, status: latestRestoreTest.status, completedAt: latestRestoreTest.completedAt }
       : null,
+    professionalLeadsNew: newLeads,
+    professionalLeadsLast24h: newLeadsToday,
   };
 
   // One line, clearly labeled, easy to grep/alert on in Railway's log viewer

@@ -9,14 +9,16 @@
 # HTML) and no eval anywhere in the chunks (verified) — 'unsafe-eval' is
 # deliberately absent. Documented future additions, added only when each
 # feature actually ships (do not loosen preemptively):
-#   - assets.medidocs.app        -> img-src/media-src (marketing media, S9 era)
-#   - challenges.cloudflare.com  -> script-src + frame-src (Turnstile, lead form)
-#   - static.cloudflareinsights.com -> script-src (Cloudflare Web Analytics)
+#   - assets.medidocs.app        -> img-src/media-src (marketing media, S9 era) [DONE]
+#   - challenges.cloudflare.com  -> script-src + frame-src (Turnstile, lead form) [DONE, Session 10]
+#   - staging-api./api.medidocs.app -> connect-src (lead form POST) [DONE, Session 10]
+# Still deliberately BLOCKED (Session 11 decision, not this session):
+#   - static.cloudflareinsights.com -> Cloudflare Web Analytics beacon
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://assets.medidocs.app; font-src 'self'; connect-src 'self'; media-src 'self' https://assets.medidocs.app; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://assets.medidocs.app; font-src 'self'; connect-src 'self' https://staging-api.medidocs.app https://api.medidocs.app; media-src 'self' https://assets.medidocs.app; frame-src https://challenges.cloudflare.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
   Cache-Control: public, max-age=0, must-revalidate
 
 # Fingerprinted build assets: content-hashed filenames, safe to cache forever.

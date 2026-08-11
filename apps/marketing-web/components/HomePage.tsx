@@ -1,4 +1,5 @@
 import type { MarketingLocale } from "../lib/locales";
+import { PROFESSIONAL_UNIT_ENABLED } from "../lib/release-flags";
 import {
   Hero,
   Problem,
@@ -8,8 +9,10 @@ import {
   Accessible,
   Offline,
   Caregiving,
+  Share,
   Free,
   Trust,
+  ProfessionalBridge,
   Faq,
   FinalCta,
 } from "./sections";
@@ -35,10 +38,10 @@ export function HomePage({ locale }: { locale: MarketingLocale }) {
       <Accessible locale={locale} />
       <Offline locale={locale} />
       <Caregiving locale={locale} />
-      {/* GATE(SECURITY): S9 Share renders here with the professional unit */}
+      {PROFESSIONAL_UNIT_ENABLED ? <Share locale={locale} /> : null}
       <Free locale={locale} />
       <Trust locale={locale} />
-      {/* GATE(SECURITY): S12 professional bridge renders here with the unit */}
+      {PROFESSIONAL_UNIT_ENABLED ? <ProfessionalBridge locale={locale} /> : null}
       <Faq locale={locale} />
       <FinalCta locale={locale} />
     </>

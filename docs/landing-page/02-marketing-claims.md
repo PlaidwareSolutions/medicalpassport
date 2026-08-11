@@ -72,11 +72,11 @@ Schema per [SPEC.md](SPEC.md) §44, plus an Evidence column. Rules: every safety
 
 | Claim ID | Public claim | Feature source | Production verified | Clinical/legal review | Approved wording | Evidence |
 |---|---|---|---|---|---|---|
-| MKT-060 | Share your medicine list with a doctor via QR or a time-limited link | Share links + QR | **Yes** | Security (Stage 7 review gate) | Pending | `sharing.service.ts` (1h/24h/7d UI, 30d server cap, token stored as SHA-256 hash), `qrcode` in `share/new` |
-| MKT-061 | The doctor doesn't need an account or app | Public share view | **Yes** | Security (Stage 7) | Pending | `GET /public/shares/:token` is `@Public()`; `/s/[token]` renders outside the app shell |
-| MKT-062 | Download or hand over a PDF summary | PDF export | **Yes (bounded)** — English-only rendering today | Security (Stage 7) | Pending | `visit-summary-pdf.service.ts`, Puppeteer render in worker; regenerated per request, never stored |
-| MKT-063 | Send a text summary through your own WhatsApp | WhatsApp share intent | **Yes (bounded)** — patient-initiated `wa.me` share of generated text from their own phone; English-only; **not** WhatsApp delivery by the platform | Security (Stage 7) | Pending | `visit-summary-text.ts`, `lib/sharing.ts` |
-| MKT-064 | You can revoke a share at any time, and see when it was accessed | Revocation + access events | **Yes** | Security (Stage 7) | Pending | `revoke()`, `ShareAccessEvent` (records success, expired, revoked attempts), patient-visible access list |
+| MKT-060 | Share your medicine list with a doctor via QR or a link you set the lifetime of | Share links + QR | **Yes** | **Security — CLEARED 2026-08-12** (stage7 review PASS) | **Approved** (S9/C-pages) | `sharing.service.ts` (1h/24h/7d UI, 30d server cap, 256-bit token stored as SHA-256 hash), `qrcode` in `share/new` |
+| MKT-061 | The doctor needs no MediDocs account and nothing to install | Public share view | **Yes** | **Security — CLEARED** | **Approved** | `GET /public/shares/:token` is `@Public()`; `/s/[token]` renders outside the app shell |
+| MKT-062 | A PDF when paper is easier (English) | PDF export | **Yes (bounded)** — English-only | **Security — CLEARED** | **Approved (bounded)** — C3 says "(English)" | `visit-summary-pdf.service.ts`, Puppeteer render in worker; regenerated per request, never stored |
+| MKT-063 | Send a text summary through your own WhatsApp | WhatsApp share intent | **Yes (bounded)** — patient-initiated `wa.me` from their own phone; English-only; **not** platform WhatsApp delivery | **Security — CLEARED**, but **not used** in current S9/C copy | Available, unused | `visit-summary-text.ts`, `lib/sharing.ts` |
+| MKT-064 | You can stop the link at any time, and see when it was opened. Stopping a link ends future access through it — it cannot recall a copy already downloaded | Revocation + access events | **Yes** | **Security — CLEARED** | **Approved** — precise wording enforced in S9/C5; never "remotely erase" | `revoke()` (server-enforced), `ShareAccessEvent`, patient-visible access list. Downloaded-PDF caveat is inherent |
 | MKT-065 | WhatsApp/SMS messages sent by Medicine Passport (reminders, summaries) | — | **Blocked — DO NOT CLAIM** | — | **PROHIBITED** | SMS delivery Telnyx/DLT platform-blocked (docs/22 Stage 4); WhatsApp Business API nonexistent (OD-10) |
 
 ## 8. Trust & privacy claims (SPEC §21, §28)
@@ -84,7 +84,7 @@ Schema per [SPEC.md](SPEC.md) §44, plus an Evidence column. Rules: every safety
 | Claim ID | Public claim | Feature source | Production verified | Clinical/legal review | Approved wording | Evidence |
 |---|---|---|---|---|---|---|
 | MKT-070 | Not a doctor — helps you understand and organize; decisions stay with your healthcare professional | Product boundaries | **Yes** (it's a boundary statement, and the product enforces it) | Clinical (wording), Legal/Privacy (OD-LP-6) | Pending | docs/02; every safety finding carries professional-referral wording |
-| MKT-071 | Sharing is consent-driven, time-bounded, revocable, and logged | Consent + audit | **Yes** | Legal/Privacy (OD-LP-6), Security (Stage 7) | Pending | Consent cascade (`consents.controller.ts`), share mechanics above, audit chain |
+| MKT-071 | Sharing is patient-created, time-bounded, revocable, and logged | Consent + audit | **Yes** | **Security — CLEARED**; Legal/Privacy (OD-LP-6) for any published privacy page | **Approved** (C5) | Consent cascade (`consents.controller.ts`), share mechanics above, audit chain |
 | MKT-072 | No advertising in the patient experience; identifiable patient health information is never sold; no paywall on your own record | Business/privacy posture | **Yes** — principles established by OD-LP-1 ruling 2026-08-11 | Legal/Privacy (OD-LP-6) for published wording | Pending | Three principles now committed (OD-LP-1); copy must use this bounded form, not vaguer "data never sold" phrasing |
 | MKT-073 | Export your data or delete your account | — | **No — DO NOT CLAIM** | — | **PROHIBITED until built** | No export or deletion endpoint/UI exists (full route sweep, audit §3); docs/18's flow is a plan. Also constrains `/privacy` drafting |
 | MKT-074 | Specific regulatory-compliance assertions (e.g., "DPDP-compliant") | — | **No — DO NOT CLAIM** | Legal/Privacy (OD-LP-6) | **PROHIBITED until legal review rules** | docs/29 legal/DPDP review and DPO designation are open; describe practices, don't assert certifications |
@@ -93,7 +93,7 @@ Schema per [SPEC.md](SPEC.md) §44, plus an Evidence column. Rules: every safety
 
 | Claim ID | Public claim | Feature source | Production verified | Clinical/legal review | Approved wording | Evidence |
 |---|---|---|---|---|---|---|
-| MKT-080 | A structured, patient-confirmed medication view in seconds — no new software for the clinic | Share view | **Yes** | Security (Stage 7) | Pending | Same evidence as MKT-060/061; "patient-confirmed" is accurate (every OCR field human-confirmed, entries patient-owned) |
+| MKT-080 | A structured, patient-confirmed medication summary in seconds — nothing to install | Share view | **Yes** | **Security — CLEARED** | **Approved** (C1/C3) | Same evidence as MKT-060/061; "patient-confirmed" accurate (every OCR field human-confirmed, entries patient-owned). **No** outcome/efficiency claims (MKT-081 prohibition still enforced on C-pages) |
 | MKT-081 | Clinical-outcome or efficiency statistics (time saved, errors reduced, adherence improved) | — | **No — DO NOT CLAIM** | — | **PROHIBITED** — no study exists; SPEC §25 bans unsupported statistics | No measurement has ever been made; also MKT-090 |
 
 ## 10. Cross-cutting prohibitions (apply to every section)

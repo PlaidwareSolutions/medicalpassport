@@ -156,7 +156,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build static export (staging flavor — disallow-all robots, empty sitemap)
         if: steps.creds.outputs.ok == 'true'
-        run: MARKETING_ENV=staging pnpm --filter @medpass/marketing-web build
+        env:
+          MARKETING_ENV: staging
+          NEXT_PUBLIC_LEAD_API_URL: https://staging-api.medidocs.app/v1/public/leads
+        run: pnpm --filter @medpass/marketing-web build
       - name: Verify export output
         if: steps.creds.outputs.ok == 'true'
         run: |

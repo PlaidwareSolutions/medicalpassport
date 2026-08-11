@@ -112,6 +112,17 @@ export const apiEnvShape = {
    * custom suspicion-scoring needed on this side.
    */
   TURNSTILE_SECRET_KEY: z.string().optional(),
+  /**
+   * Professional lead form (OD-LP-2). Separate from the patient Turnstile
+   * secret because the lead widget lives on the marketing domain, not
+   * app.medidocs.app — falls back to skipping verification when unset (the
+   * same optional-vendor pattern as every other external dependency here),
+   * so local dev and tests need no Cloudflare account.
+   */
+  LEAD_TURNSTILE_SECRET_KEY: z.string().optional(),
+  /** Where new professional leads are emailed. Unset = leads persist only
+   *  (retrieved via the operational query in docs) until OD-LP-7 is finalized. */
+  LEAD_NOTIFY_EMAIL: z.string().optional(),
 } as const;
 
 export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;

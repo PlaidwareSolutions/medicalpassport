@@ -10,5 +10,9 @@
  * href exists anywhere in the emitted output. Flipping this to true is a
  * deliberate release act, permitted only after Stage 7 security review clears
  * the sharing implementation and claims (docs/landing-page/01-decisions.md).
+ *
+ * ENABLED 2026-08-12: Stage 7 security review PASSED
+ * (docs/landing-page/stage7-sharing-security-review.md). The flag is retained
+ * (not removed) so the unit can still be built OFF if ever needed.
  */
-export const PROFESSIONAL_UNIT_ENABLED = false;
+export const PROFESSIONAL_UNIT_ENABLED = true;

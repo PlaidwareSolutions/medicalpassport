@@ -1941,3 +1941,37 @@ model ClinicalContentTranslation {
   @@unique([versionId, locale])
   @@map("clinical_content_translations")
 }
+
+// ---- Professional lead capture (OD-LP-2, marketing /for-clinics/) ----
+// Business contact information ONLY — never patient/health data. The API
+// schema is `.strict()`, so nothing outside these columns is ever stored.
+
+enum ProfessionalRole {
+  doctor
+  pharmacist
+  clinic_owner
+  hospital_admin
+  care_coordinator
+  other
+}
+
+model ProfessionalLead {
+  id               String           @id @default(uuid()) @db.Uuid
+  name             String
+  organization     String
+  role             ProfessionalRole
+  city             String
+  email            String?
+  phone            String?
+  message          String?
+  consentToContact Boolean          @map("consent_to_contact")
+  /// Controlled attribution enum value (e.g. "website-for-clinics"), never a
+  /// caller-supplied free string.
+  source           String
+  /// Operational triage state; leads persist regardless of notification.
+  status           String           @default("new")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt])
+  @@map("professional_leads")
+}

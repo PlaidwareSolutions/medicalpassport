@@ -120,6 +120,23 @@ export const en = {
   "care.cta": "Create a Medicine Passport for my family",
   "care.media_label": "Inviting a caregiver and choosing permissions",
 
+  // S9 share (Stage 7 CLEARED 2026-08-12). Revocation wording is precise:
+  // future link access can be stopped; already-downloaded copies cannot.
+  "share.h2": "Bring your medicine list to the appointment — not a folder of paper.",
+  "share.body":
+    "Create a share with a QR code or a link that lasts as long as you choose. The doctor opens a structured summary on their own device — no MediDocs account, nothing to install. You can stop the link at any time, and see when it was opened.",
+  "share.chip_qr": "QR or link",
+  "share.chip_expires": "You set how long it lasts",
+  "share.chip_no_account": "No doctor account",
+  "share.chip_revocable": "Stop the link any time",
+  "share.media_label": "Creating a share, and the summary a doctor sees",
+
+  // S12 professional bridge.
+  "bridge.h2": "Are you a doctor, pharmacist or clinic?",
+  "bridge.body":
+    "See how a patient-held Medicine Passport can make medication information easier to review when the patient chooses to share it.",
+  "bridge.cta": "Medicine Passport for healthcare professionals",
+
   // S10 free (MKT-001 + OD-LP-1 approved framing; MKT-006 prohibition
   // honored; never-sold chip MKT-072 business/legal-gated and absent).
   "free.h2": "Medicine Passport is free for patients.",
@@ -181,6 +198,67 @@ export const en = {
   "final.h2": "Take your medicine information with you.",
   "final.sub": "Start your Medicine Passport today.",
   "final.qr": "Scan to open on your phone",
+
+  // ── /for-clinics/ (C1–C7), Stage 7 CLEARED ──────────────────────────────
+  "clinics.meta_title": "Medicine Passport for doctors & clinics | MediDocs",
+  "clinics.meta_description":
+    "A free, patient-held medication record. When a patient shares it, you see a structured, patient-confirmed summary in seconds — no account, nothing to install.",
+  "clinics.c1_h1": "A clearer medication picture, brought by the patient.",
+  "clinics.c1_body":
+    "Medicine Passport is a free, patient-held medication record. When a patient shares it, you see a structured, patient-confirmed summary — in seconds, with nothing to install. The patient owns and controls the record.",
+  "clinics.c1_cta": "Bring Medicine Passport to your patients",
+  "clinics.c1_secondary": "See what patients use",
+  "clinics.c2_h2": "“What medicines are you taking?” shouldn't be the hardest question of the visit.",
+  "clinics.c2_body":
+    "Medication information arrives as loose prescriptions, discharge summaries, photographs and memory. Piecing it together takes time the consultation doesn't have.",
+  "clinics.c3_h2": "A structured list, not a shoebox of paper.",
+  "clinics.c3_body":
+    "Current medicines with ingredients, strengths and instructions; recorded allergies; recent changes — as the patient confirmed them. Built live at the moment of access, not a stale export. A PDF when paper is easier (English).",
+  "clinics.c3_media_label": "The summary a doctor sees when a patient shares",
+  "clinics.c4_h2": "No doctor account. No software to install.",
+  "clinics.c4_step1": "Your patient presents a QR code or a link.",
+  "clinics.c4_step2": "You open their patient-shared summary.",
+  "clinics.c5_h2": "Access the patient grants — and can take away.",
+  "clinics.c5_body":
+    "Shares are created by the patient, last as long as the patient chooses, and the patient can stop the link at any time. Every access is recorded and visible to the patient. Stopping a link ends future access through it — it can't recall a copy already downloaded.",
+  "clinics.c5_chip_patient": "Patient creates the share",
+  "clinics.c5_chip_expires": "Time-limited",
+  "clinics.c5_chip_revocable": "Patient can stop the link",
+  "clinics.c5_chip_logged": "Every access recorded",
+  "clinics.c6_h2": "Better inputs to the decisions you already make.",
+  "clinics.c6_tile1": "Easier access to patient-supplied medication information.",
+  "clinics.c6_tile2": "A structured, ingredient-level view.",
+  "clinics.c6_tile3": "Fewer handwritten pages to interpret.",
+  "clinics.c6_tile4": "Patient-controlled information exchange.",
+  "clinics.c7_h2": "Bring Medicine Passport to your patients.",
+  "clinics.c7_body": "Tell us who you are — we'll help you introduce Medicine Passport at your clinic or pharmacy.",
+
+  // Lead form (OD-LP-2). Never collects patient/health data.
+  "lead.name": "Name",
+  "lead.organization": "Organization / clinic",
+  "lead.role": "Role",
+  "lead.role_doctor": "Doctor",
+  "lead.role_pharmacist": "Pharmacist",
+  "lead.role_clinic_owner": "Clinic owner",
+  "lead.role_hospital_admin": "Hospital administrator",
+  "lead.role_care_coordinator": "Care coordinator",
+  "lead.role_other": "Other",
+  "lead.role_placeholder": "Select your role",
+  "lead.city": "City",
+  "lead.email": "Email",
+  "lead.phone": "Phone",
+  "lead.contact_hint": "Enter an email or a phone number (at least one).",
+  "lead.message": "Message (optional)",
+  "lead.no_patient_data": "Please do not include patient or medical information.",
+  "lead.consent": "I agree to be contacted by MediDocs about Medicine Passport.",
+  "lead.submit": "Send",
+  "lead.submitting": "Sending…",
+  "lead.success_title": "Thanks — we'll be in touch.",
+  "lead.success_body": "We've received your details.",
+  "lead.error_generic": "Something went wrong. Please try again.",
+  "lead.error_contact": "Please provide an email or a phone number.",
+  "lead.error_consent": "Please agree to be contacted so we can reply.",
+  "lead.required": "required",
 
   "footer.privacy": "Privacy",
   "footer.terms": "Terms",

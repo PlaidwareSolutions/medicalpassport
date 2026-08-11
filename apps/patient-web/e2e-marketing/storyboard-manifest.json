@@ -238,7 +238,7 @@
       "id": "r7-share-doctor",
       "title": "Share with a doctor (QR / time-limited link)",
       "landingSection": "S9 + /for-clinics/ C3",
-      "gate": "STAGE-7-SECURITY — DO NOT RECORD until the professional unit clears (OD-LP-10 addendum)",
+      "gate": "STAGE-7 CLEARED 2026-08-12",
       "finalDurationTargetSec": 10,
       "startingState": "documented only; no script exists yet",
       "actions": [
@@ -248,8 +248,29 @@
         "revoke"
       ],
       "endingState": "n/a",
-      "script": null,
-      "finalTarget": "video/share/share-doctor-en"
+      "script": "e2e-marketing/r7-share-doctor.spec.ts",
+      "finalTarget": "video/share/share-doctor-en",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/share/share-doctor-en.webm",
+        "webmKB": 80,
+        "mp4": "artifacts/marketing-media/candidates/share/share-doctor-en.mp4",
+        "mp4KB": 80,
+        "poster": "artifacts/marketing-media/candidates/posters/share-doctor-en.jpg",
+        "posterKB": 36,
+        "durationSec": 4.1,
+        "dimensions": "390x844",
+        "codecs": "h264(crf22)/vp9(crf34)",
+        "fps": 25,
+        "audioTrack": "none (silent by policy)",
+        "transcript": "The patient chooses what to include and how long the link lasts, then creates a share. The doctor opens a structured Medicine Passport summary on their own device — current medicines with ingredients and instructions, recent changes, and a PDF option. The QR/link screen and the share token are deliberately not shown in this clip.",
+        "note": "QR-ready screen excluded from permanent media (renders the plaintext share link + a localhost dev URL — Session 10 §6 bearer-token caution). QR/link mechanism carried by S9/C3 copy.",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/share-doctor-en.1634e36a.mp4",
+          "webm": "https://assets.medidocs.app/video/en/share-doctor-en.a80188ec.webm",
+          "poster": "https://assets.medidocs.app/images/posters/share-doctor-en.59ee4166.jpg"
+        }
+      }
     }
   ],
   "candidateExtras": {

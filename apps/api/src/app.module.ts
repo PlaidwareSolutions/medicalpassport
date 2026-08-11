@@ -52,6 +52,8 @@ import { SafetyEvaluationService } from "./modules/safety/safety-evaluation.serv
 import { SharingController } from "./modules/sharing/sharing.controller";
 import { SharingService } from "./modules/sharing/sharing.service";
 import { VisitSummaryService } from "./modules/sharing/visit-summary.service";
+import { LeadsController } from "./modules/leads/leads.controller";
+import { LeadsService } from "./modules/leads/leads.service";
 import { VisitSummaryPdfService } from "./modules/sharing/visit-summary-pdf.service";
 import { DocumentsController } from "./modules/documents/documents.controller";
 import { DocumentsService } from "./modules/documents/documents.service";
@@ -95,6 +97,7 @@ const OTP_SENDER = "OTP_SENDER";
     SchedulingController,
     SafetyController,
     SharingController,
+    LeadsController,
     DocumentsController,
     DevStorageController,
     ExtractionController,
@@ -122,6 +125,7 @@ const OTP_SENDER = "OTP_SENDER";
     TimelineService,
     SafetyEvaluationService,
     SharingService,
+    LeadsService,
     VisitSummaryService,
     VisitSummaryPdfService,
     DocumentsService,

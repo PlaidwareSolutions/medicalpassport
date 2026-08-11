@@ -330,9 +330,20 @@ export function Caregiving({ locale }: { locale: MarketingLocale }) {
   );
 }
 
-// GATE(SECURITY / OD-LP-10 addendum): S9 Share — the entire section is part of
-// the professional release unit and is not implemented here while
-// PROFESSIONAL_UNIT_ENABLED is false. Content: 04 §S9. No output is emitted.
+// ── S9 ── Share with a doctor (Stage 7 CLEARED 2026-08-12) ──────────────────
+export function Share({ locale }: { locale: MarketingLocale }) {
+  return (
+    <MediaRow
+      locale={locale}
+      id="s9-share"
+      assetId="r7-share-doctor"
+      titleKey="share.h2"
+      bodyKey="share.body"
+      mediaLabelKey="share.media_label"
+      chips={["share.chip_qr", "share.chip_expires", "share.chip_no_account", "share.chip_revocable"]}
+    />
+  );
+}
 
 // ── S10 ─────────────────────────────────────────────────────────────────────
 export function Free({ locale }: { locale: MarketingLocale }) {
@@ -395,8 +406,26 @@ export function Trust({ locale }: { locale: MarketingLocale }) {
   );
 }
 
-// GATE(SECURITY / OD-LP-10 addendum): S12 professional bridge — part of the
-// professional release unit; no output, no placeholder, no navigation link.
+// ── S12 ── Professional bridge (Stage 7 CLEARED) ────────────────────────────
+export function ProfessionalBridge({ locale }: { locale: MarketingLocale }) {
+  return (
+    <section className="mkt-section" aria-labelledby="s12-title" style={{ background: "var(--mkt-surface)", textAlign: "center" }}>
+      <div className="mkt-container-text">
+        <h2 id="s12-title" style={{ fontSize: "1.375rem" }}>
+          {t(locale, "bridge.h2")}
+        </h2>
+        <p className="mkt-muted" style={{ marginTop: "10px", maxWidth: "56ch", marginInline: "auto" }}>
+          {t(locale, "bridge.body")}
+        </p>
+        <p style={{ marginTop: "18px" }}>
+          <a href="/for-clinics/" style={{ fontWeight: 700 }}>
+            {t(locale, "bridge.cta")} →
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
 
 // ── S13 ─────────────────────────────────────────────────────────────────────
 export function Faq({ locale }: { locale: MarketingLocale }) {
