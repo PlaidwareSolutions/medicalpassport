@@ -66,6 +66,10 @@ button{font:inherit}
 @media (min-width:900px){.mkt-hero-grid{grid-template-columns:55fr 45fr}}
 /* P2 alternating media row (05 §5): copy first in DOM = reading order kept on mobile */
 .mkt-p2{display:grid;gap:40px;grid-template-columns:1fr;align-items:center}
+/* Grid children default to min-width:auto and refuse to shrink below their
+   content's min-content width, overflowing the viewport at 320px. Let them
+   shrink so long text wraps instead. */
+.mkt-p2>*,.mkt-hero-grid>*{min-width:0}
 @media (min-width:900px){
   .mkt-p2{grid-template-columns:7fr 5fr;gap:64px}
   .mkt-p2.mkt-media-left .mkt-p2-copy{order:2}
@@ -111,10 +115,10 @@ button{font:inherit}
   padding:4px 12px;font-size:0.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .mkt-ph-play{width:44px;height:44px;border-radius:999px;background:var(--mkt-primary);color:#fff;
   display:flex;align-items:center;justify-content:center;font-size:1rem}
-/* Language strip (S6) */
-.mkt-langs{display:grid;grid-auto-flow:column;grid-auto-columns:130px;gap:14px;overflow-x:auto;
-  padding-block:8px;-webkit-overflow-scrolling:touch}
-@media (min-width:900px){.mkt-langs{grid-auto-columns:1fr;overflow:visible}}
+/* Language strip (S6): 2×2 on mobile, 4-across on desktop — no horizontal
+   scroll (an overflow-x grid here escaped its container at 320px). */
+.mkt-langs{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-block:8px}
+@media (min-width:900px){.mkt-langs{grid-template-columns:repeat(4,1fr)}}
 .mkt-lang-card{background:var(--mkt-surface);border:1px solid var(--mkt-hairline);border-radius:14px;
   padding:14px;display:flex;flex-direction:column;gap:10px;min-height:120px}
 .mkt-lang-card b{font-size:1.125rem}

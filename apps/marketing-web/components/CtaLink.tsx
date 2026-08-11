@@ -17,7 +17,9 @@ const base: CSSProperties = {
   lineHeight: 1.3,
   textDecoration: "none",
   textAlign: "center",
-  whiteSpace: "nowrap",
+  // No nowrap + cap at container width: long labels (the caregiving variant
+  // CTA) wrap instead of overflowing the 320px viewport.
+  maxWidth: "100%",
 };
 
 export function CtaLink({

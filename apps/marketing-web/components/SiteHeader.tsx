@@ -66,7 +66,10 @@ export function SiteHeader({ locale }: { locale: MarketingLocale }) {
         </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "18px" }} aria-label="Site">
           {PROFESSIONAL_UNIT_ENABLED ? (
-            <a className="mkt-muted mkt-nav-quiet" href="/for-clinics/" style={{ textDecoration: "none", fontWeight: 600, fontSize: "0.9375rem" }}>
+            // Desktop-only so the narrow (320px) mobile header doesn't overflow
+            // with the sticky CTA — mobile reaches /for-clinics/ via the S12
+            // bridge and footer (professional nav is secondary, §23).
+            <a className="mkt-muted mkt-nav-quiet mkt-desktop-only" href="/for-clinics/" style={{ textDecoration: "none", fontWeight: 600, fontSize: "0.9375rem" }}>
               {t(locale, "nav.for_clinics")}
             </a>
           ) : null}
