@@ -156,11 +156,12 @@ Backend consent infrastructure is real: `Consent` + `ConsentEvent` ledger; API `
 | Sessions | **30 days past expiry** | `cleanup-expired-sessions` cron | OK |
 | Abandoned/quarantined uploads | **7 days** | `cleanup-abandoned-uploads` cron | OK |
 | Scheduled doses | **24 months** | `retention-cleanup` cron | OK |
-| **Core health data** (medicines, reports, allergies, conditions, glucose, checkups, dose events) | **Indefinite** — no policy | none | **`RETENTION POLICY DECISION REQUIRED` [BD]** |
-| **Documents in R2** | **Indefinite** | none | **`RETENTION POLICY DECISION REQUIRED` [BD]** |
-| Professional leads | Indefinite | none | `RETENTION POLICY DECISION REQUIRED` [BD] |
-| Backups | **[BD] undefined rotation** | daily create; no documented purge | `RETENTION POLICY DECISION REQUIRED` [BD] |
-| Audit log | Indefinite (integrity) | append-only | Justifiable; document it |
+| **Core health data** (medicines, reports, allergies, conditions, glucose, checkups, dose events) | **Policy: while account active** (owner ruling #2) | soft-delete; **erasure job not yet built** | Implement erasure removal within 30 days of request |
+| **Documents in R2** | **Policy: while required by patient/account** (ruling #2) | delete status; **erasure job not yet built** | Implement erasure |
+| Professional leads | **Policy: 24 months after last meaningful interaction** (ruling #2) | **not yet built** | Implement lead-retention cron |
+| Backups | **Policy: expire within ~90 days; no restore for ordinary use post-deletion** (ruling #2) | daily create; **purge policy not yet enforced** | Enforce backup rotation |
+| Audit / security records | **Policy: 24 months** (ruling #2, counsel may adjust) | append-only; **no 24-mo purge yet** | Reconcile integrity vs. purge with counsel |
+| Audit log integrity chain | Retained for integrity | append-only | Justifiable; documented |
 
 ---
 

@@ -149,7 +149,7 @@ None manufactured — each cites evidence.
 
 ## 11. OD-LP-6 — legal/privacy approval model
 
-**OD-LP-6 — `APPROVED PROCESS / FINAL SIGN-OFF OPEN`.** Process: (1) engineering/product verify the drafts describe the real product and data flows [done this session]; (2) business owner approves business commitments; (3) qualified Indian privacy/legal **counsel** reviews applicable law and approves the final Privacy Policy and Terms; (4) only then may the `DRAFT — LEGAL REVIEW REQUIRED` banner and placeholders be removed; (5) production launch stays blocked until sign-off is documented. **OD-LP-6 is NOT closed by Claude producing drafts.**
+**OD-LP-6 — `APPROVED PROCESS / FINAL SIGN-OFF OPEN`.** Process: (1) engineering/product verify the drafts describe the real product and data flows [done this session]; (2) business owner approves business commitments [**done** — owner rulings #2/#3/#5/#6, [session12-owner-rulings.md](session12-owner-rulings.md)]; (3) qualified Indian privacy/legal **counsel** reviews applicable law and approves the final Privacy Policy and Terms [**packet assembled** — [counsel-brief.md](counsel-brief.md); engagement pending, ruling #7]; (4) only then may the `DRAFT — LEGAL REVIEW REQUIRED` banner and placeholders be removed; (5) production launch stays blocked until sign-off is documented. **OD-LP-6 is NOT closed by Claude producing drafts.**
 
 ---
 
@@ -159,11 +159,11 @@ Recorded here rather than in `02-marketing-claims.md`, which is being edited by 
 
 | Claim | Technically verified? | Business approval | Legal approval | Publish on production? |
 |---|---|---|---|---|
-| **No advertising in the patient experience** | Yes — no ad system/vendor exists [EV] | Required (OD-LP-1 principle stated) | Required | **Gated** — draft states it; keep gated until approved |
-| **Identifiable patient health information is not sold** | Yes — no sale/monetization path exists [EV] | **Required** — do not auto-publish "we will never sell your data" (SPEC §34) | Required | **Gated** — draft uses bounded wording; keep gated |
+| **"We do not show advertising in the patient Medicine Passport experience"** | Yes — no ad system/vendor exists [EV] | **APPROVED** (owner ruling #6) | Pending counsel | **Gated on legal only** — bounded wording adopted as business policy |
+| **"We do not sell identifiable patient health information"** | Yes — no sale/monetization path exists [EV] | **APPROVED** (ruling #6 — chosen over the over-absolute "never sell your data") | Pending counsel | **Gated on legal only** — bounded wording adopted |
 | **You control your record / sharing** | Yes — patient-controlled shares, expiry, revoke [EV] | OK | Review wording | Allowed with Stage-7 bounds |
 | **Revocation stops future access (not retroactive erasure of downloaded copies)** | Yes — Stage-7 verified [EV] | OK | Review wording | **Locked bounded wording — do not weaken** |
 | **Deletion / erasure** | **No account-wide erasure exists** [EV] | Owner must define process | Legal must approve wording | **Gated** — draft promises only request-based deletion, no absolutes |
 | **Security wording** (concrete controls) | Controls verified [EV]; no "bank-grade"/"fully secure" | OK | Review | Allowed as concrete-controls language only |
-| **Free for patients** | No paywall exists [EV] | OD-LP-1 bounded ruling | Copy review | Allowed with OD-LP-1 bounds |
+| **"Free for patients to create, maintain and access their core Medicine Passport"** | No paywall exists [EV] | **APPROVED** (ruling #6) | Pending counsel | **Gated on legal only** — exact bounded wording adopted |
 | DPDP/HIPAA/GDPR/ISO/SOC2/ABDM "compliant/certified" | **No** — none verified | — | — | **PROHIBITED** (SPEC §47) |

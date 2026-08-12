@@ -27,7 +27,9 @@ Four public addresses, **one actively-monitored operational inbox** via aliases/
 | `security@medidocs.app` | Vulnerability & incident reports | → shared ops inbox (security queue) | `OWNER REQUIRED` (eng) | `OWNER REQUIRED` | Ticket + incident log | → owner + counsel if personal data affected |
 | `partnerships@medidocs.app` | Professional/clinic inquiries | → shared ops inbox → existing lead flow | `OWNER REQUIRED` | `OWNER REQUIRED` | Existing `ProfessionalLead` register | → business owner |
 
-**Provisioning options (owner decides; do not execute in Session 12):** Cloudflare Email Routing (aliases → an existing inbox; lightest, no Workspace) *or* Google Workspace group. Requires apex DNS + MX, which is a launch activity.
+**Provisioning decision (owner ruling #4):** use the **existing Google Workspace** (not Cloudflare Email Routing). Add `medidocs.app` to Workspace and create the four addresses, initially routing to one monitored inbox/group, with privacy and security messages **distinguishable by the address they arrived through**. Requires apex DNS + MX (a launch activity). **Not executed this session** (SPEC §42 — no email infra provisioned without explicit authorization; requires the apex).
+
+**Owners required before launch (all currently `OWNER REQUIRED`):** Primary owner (owner or a named operating owner), one named Backup owner, a designated Privacy/grievance owner, a designated Security-escalation owner. **Publish no address until it is created and inbound + outbound mail is proven.**
 
 ### Staging placeholder rule
 
@@ -52,7 +54,14 @@ Handles: access, correction, erasure, consent withdrawal, complaint/grievance, g
 Flow: **intake → create ticket/reference → verify identity appropriately → categorize → assign → investigate → act → communicate outcome → escalate if needed → retain the request record.**
 
 - **Identity verification:** match the request to the account (e.g., OTP to the registered phone) before disclosing or changing data; never over-collect to "verify."
-- **Erasure today:** because there is **no account-wide deletion feature** (verified — inventory §7), an erasure request is currently a **manual operational process**: locate the account, soft-delete/purge profile-linked records, remove R2 documents, and record what was done and what is retained for legal/security reasons (audit log is retained by design). **This process and its owner are not yet established → P0/P1 gap.** Do not promise instant or absolute deletion.
+- **Erasure — approved manual V1 process (owner ruling #3):** because there is **no account-wide deletion feature** (verified — inventory §7), an erasure request is fulfilled by this operational process:
+  1. privacy request received → **verify identity** (e.g., OTP to the registered phone);
+  2. identify the user's account/profile/data;
+  3. **invalidate sessions and active shares**;
+  4. remove eligible **active** database records and private R2 objects;
+  5. **record completion of the request without retaining the deleted health content**;
+  6. allow backups to **expire under the ~90-day backup policy** (no restore for ordinary use post-deletion).
+  Active-system removal targets **within 30 days**. Self-service deletion is a later build. **Still needed: a named owner and a written runbook.** Do not promise instant or absolute deletion.
 - **Backups:** erasure must state that encrypted backups roll off per the (to-be-defined) backup retention window rather than being individually edited.
 - **Deadlines:** **do not state statutory response deadlines** — DPDP grievance timelines attach at Phase-3 (14 May 2027) and their exact figures require counsel. The business **may** set internal service targets (e.g., acknowledge within N business days) as a **[BD]** choice, labelled as an internal target, not a legal deadline.
 

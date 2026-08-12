@@ -18,20 +18,20 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 ## Operations
 | Gate | State | Note |
 |---|---|---|
-| `support@` provisioned + owner | **BLOCKED / PENDING OWNER** | No MX; owner unnamed (OD-LP-7) |
-| `privacy@` (grievance) provisioned + owner | **BLOCKED / PENDING OWNER** | Grievance officer required |
-| `security@` provisioned + owner | **BLOCKED / PENDING OWNER** | — |
+| `support@` provisioned + owner | **BLOCKED / PENDING OWNER** | Mechanism chosen: **Google Workspace** (ruling #4); no MX yet; owner unnamed |
+| `privacy@` (grievance) provisioned + owner | **BLOCKED / PENDING OWNER** | Google Workspace; grievance officer required |
+| `security@` provisioned + owner | **BLOCKED / PENDING OWNER** | Google Workspace; security-escalation owner required |
 | `partnerships@` provisioned + owner | **BLOCKED / PENDING OWNER** | Routes into existing lead flow |
-| Primary + backup owners named | **PENDING OWNER** | Continuity requirement |
-| Ticket/tracking mechanism chosen | **PENDING OWNER** | V1 can be lightweight |
+| Primary + backup owners named | **PENDING OWNER** | Continuity requirement (ruling #4) |
+| Prove inbound + outbound mail before publishing addresses | **PENDING PRODUCTION PROVISIONING** | Publish no address until proven (ruling #4) |
 
 ## Privacy / product
 | Gate | State | Note |
 |---|---|---|
-| Data-principal rights workflow (access/correction/erasure/withdrawal) | **BLOCKED** | No operational process yet (inventory §7) |
-| Retention policy for core health data / documents / leads / backups | **PENDING OWNER** | Undefined today (inventory §8) |
-| Children / guardian-consent approach | **PENDING OWNER / PRODUCT** | No verifiable-guardian mechanism (inventory §9) |
-| Account erasure capability or process | **BLOCKED** | No feature and no process (inventory §7) |
+| Data-principal rights workflow (access/correction/erasure/withdrawal) | **PENDING OWNER** | Erasure process approved (ruling #3); still needs owner + runbook |
+| Retention policy for core health data / documents / leads / backups | **PENDING LEGAL + ENG** | **Policy approved** (ruling #2); counsel to confirm; erasure/lead/backup purge jobs not yet built |
+| Children / guardian-consent approach | **PENDING PRODUCT** | **Policy approved** (ruling #5); design done ([children-guardian-remediation-design.md](children-guardian-remediation-design.md)); patient-app implementation pending |
+| Account erasure capability or process | **PENDING OWNER** | **Manual process approved** (ruling #3); needs owner + runbook; self-service later |
 | Consent + DPDP-style notice verified in app | **PENDING PRODUCT** | Ledger exists; notice unverified (review §4) |
 
 ## Security
@@ -58,7 +58,7 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 | Gate | State | Note |
 |---|---|---|
 | Clinical claim gate (Stage-6) | **PENDING** | Safety claims stay gated until clinical validation |
-| Privacy/business claims (no-ads, never-sell, deletion, security wording) | **PENDING OWNER/LEGAL** | See review; keep gated until approved |
+| Privacy/business claims (free, no-ads, no-sale) | **PENDING LEGAL** | **Business-approved** (ruling #6); bounded wording in drafts; publication gated on counsel |
 | English content final | **PASS (staging)** | Homepage/for-clinics live; legal pages draft |
 | Locale gates (hi/te/ur, non-English recordings) | **N/A this launch** | English-first; translations deferred |
 
@@ -73,11 +73,13 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 
 ---
 
-## Top launch blockers (P0)
-1. **Legal entity** unresolved (Legal).
-2. **Privacy Policy + Terms** counsel sign-off (OD-LP-6, Legal).
-3. **Grievance/privacy + security contact** provisioned with owners (OD-LP-7, Operations/Security).
-4. **Erasure** capability or operational process (Privacy/product).
-5. **Rights request workflow** operationalized (Privacy/product).
+## Top launch blockers (P0) — after owner rulings ([session12-owner-rulings.md](session12-owner-rulings.md))
+1. **Legal entity** — owner to supply exact registered entity (ruling #1). *Still open.*
+2. **Counsel sign-off** on Privacy Policy + Terms (OD-LP-6) — packet assembled ([counsel-brief.md](counsel-brief.md)); engagement pending.
+3. **Contacts provisioned + owners named** (OD-LP-7) — Google Workspace chosen (ruling #4); mailboxes/owners still pending.
+4. **Erasure** — manual process *approved* (ruling #3); needs a named owner + runbook, plus the removal/retention cron jobs (ruling #2).
+5. **Children/guardian V1** — policy *approved* (ruling #5); patient-app implementation pending (design done).
+
+**Resolved to policy this session (no longer "undefined"):** retention schedule (ruling #2), erasure process (#3), children policy (#5), the three business claims (#6). Each still has a counsel and/or engineering follow-through above.
 
 Production Cloudflare provisioning + apex cutover are **later launch activities**, intentionally not performed this session.

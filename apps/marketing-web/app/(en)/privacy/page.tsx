@@ -157,9 +157,10 @@ export default function Page() {
           <li><strong>Telnyx</strong> — to deliver your one-time sign-in code by call or message. It receives your phone number for that purpose.</li>
         </ul>
         <p style={p}>
-          These providers act on our instructions. We do not sell your identifiable health information,
-          and we do not show advertising inside the patient experience.
-          {" "}<em>(This commitment is being finalized in review.)</em>
+          These providers act on our instructions. <strong>We do not sell identifiable patient health
+          information</strong>, and <strong>we do not show advertising in the patient Medicine Passport
+          experience</strong>. <em>(These commitments are our policy; their final published wording is
+          under legal review.)</em>
         </p>
       </LegalSectionBlock>
 
@@ -183,11 +184,16 @@ export default function Page() {
       </LegalSectionBlock>
 
       <LegalSectionBlock id="retention" title="How long we keep your information">
-        <p style={p}>
-          We keep your record for as long as your account is active so it is there when you need it.
-          Some technical data is cleared automatically (for example, old sign-in codes and expired
-          sessions). We are finalizing clear retention periods for other information and will state them
-          here. [RETENTION PERIODS — TO BE CONFIRMED.]
+        <p style={p}>We keep information only as long as we need it:</p>
+        <ul>
+          <li>Your profile and medicine/health records: while your account is active, so they are there when you need them.</li>
+          <li>Your documents: while you or your account still need them.</li>
+          <li>If you ask us to delete your data: we remove it from our active systems within <strong>30 days</strong>.</li>
+          <li>Secure backups: any deleted data ages out of backups within about <strong>90 days</strong>, and we do not restore it for ordinary use after deletion (only if genuinely required for disaster recovery, security, or the law).</li>
+          <li>Some technical data is cleared automatically — for example, old sign-in codes and expired sessions.</li>
+        </ul>
+        <p className="mkt-muted" style={{ ...p, fontSize: "0.875rem" }}>
+          These periods are our current policy and are still being confirmed with legal review.
         </p>
       </LegalSectionBlock>
 
@@ -209,19 +215,24 @@ export default function Page() {
       <LegalSectionBlock id="deletion" title="Deleting your information">
         <p style={p}>
           You can delete individual records in the app. To delete your whole account and record, you can
-          send us a request and we will action it. We will confirm what was deleted and note anything we
-          must keep for legal or security reasons. Please note that securely-held backups are replaced
-          over time rather than edited one by one, so a copy may persist briefly in a backup before it is
-          rotated out. We do not promise instant or absolute deletion.
+          send us a request. We will confirm it is you, sign you out everywhere, stop any active shares,
+          and remove your eligible records and documents from our active systems within 30 days. We will
+          confirm what was deleted and note anything we must keep for legal or security reasons. Copies in
+          our secure backups age out within about 90 days and are not restored for ordinary use. We do not
+          promise instant or absolute deletion.
         </p>
       </LegalSectionBlock>
 
       <LegalSectionBlock id="children" title="Children and guardians">
         <p style={p}>
-          A parent or guardian may keep a record for a child they are responsible for. Indian law sets
-          specific requirements for the personal data of people under 18, including verifiable consent
-          from a parent or lawful guardian. Our approach to this is being finalized with legal review
-          before launch. [CHILDREN/GUARDIAN APPROACH — UNDER REVIEW.]
+          A child's Medicine Passport is meant to be set up and managed by a parent or lawful guardian.
+          Medicine Passport is not intended for a person under 18 to run as their own adult account, and
+          we do not target advertising at children or track them for behavioural profiling.
+        </p>
+        <p style={p}>
+          Indian law sets specific requirements for the personal data of people under 18, including
+          verifiable consent from a parent or lawful guardian. We are strengthening how we confirm a
+          parent or guardian's role, and will describe it fully here before launch.
         </p>
       </LegalSectionBlock>
 

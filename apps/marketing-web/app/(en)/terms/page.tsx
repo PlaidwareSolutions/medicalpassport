@@ -73,9 +73,10 @@ export default function Page() {
 
       <LegalSectionBlock id="eligibility" title="Who can use it">
         <p style={p}>
-          You should be old enough under applicable law to create an account, and you must provide
-          accurate information. Requirements relating to minors and guardians are described in our
-          Privacy Policy and are being finalized before launch.
+          You must provide accurate information to use Medicine Passport. Medicine Passport is for adults.
+          A person under 18 should not create or run their own adult account; a child's Medicine Passport
+          is set up and managed by a parent or lawful guardian. Requirements relating to children and
+          guardians are described in our Privacy Policy and are being finalized before launch.
         </p>
       </LegalSectionBlock>
 
@@ -123,11 +124,11 @@ export default function Page() {
 
       <LegalSectionBlock id="free" title="Free for patients">
         <p style={p}>
-          Medicine Passport is free for patients. You are not charged to create, maintain, access, or
-          share your own Medicine Passport. We plan to sustain MediDocs through services and partnerships
-          with healthcare organizations rather than by charging patients for access to their own
-          medicine information. <em>(Final wording of this commitment is under business and legal
-          review.)</em>
+          Medicine Passport is free for patients to create, maintain and access their core Medicine
+          Passport. Sharing your record with a doctor or pharmacist is included at no charge. We plan to
+          sustain MediDocs through services and partnerships with healthcare organizations rather than by
+          charging patients for access to their own medicine information.
+          {" "}<em>(The final published wording of this commitment is under legal review.)</em>
         </p>
       </LegalSectionBlock>
 
