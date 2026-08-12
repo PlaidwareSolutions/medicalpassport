@@ -85,6 +85,16 @@ describe("Sharing e2e", () => {
         instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" },
       })
       .expect(201);
+
+    // A pattern-scheduled medicine, to prove the doctor-facing summary shows
+    // the schedule "1-0-1" and never the internal "PATTERN 1-0-1" prefix.
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({
+        enteredName: "Pattern Test Medicine",
+        source: "manual",
+        instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "PATTERN", pattern: "1-0-1", foodInstruction: "after" },
+      })
+      .expect(201);
   });
 
   it("builds a doctor-visit summary live, including the medicine and allergy just added", async () => {
@@ -118,6 +128,11 @@ describe("Sharing e2e", () => {
     // Data minimization (Stage-7 security review): the internal medication DB
     // id must never appear on the unauthenticated public payload.
     expect(publicRes.body.currentMedications.every((m: { id?: string }) => m.id === undefined)).toBe(true);
+
+    // Doctor-facing schedule shows "1-0-1", never the internal "PATTERN" enum.
+    const patternMed = publicRes.body.currentMedications.find((m: { name: string }) => m.name === "Pattern Test Medicine");
+    expect(patternMed.instructionSummary).toContain("1-0-1");
+    expect(patternMed.instructionSummary).not.toContain("PATTERN");
   });
 
   it("does not let another patient revoke or read the access log of someone else's share (IDOR)", async () => {

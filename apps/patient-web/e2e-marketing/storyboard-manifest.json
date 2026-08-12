@@ -264,11 +264,11 @@
         "fps": 25,
         "audioTrack": "none (silent by policy)",
         "transcript": "The patient chooses what to include and how long the link lasts, then creates a share. The doctor opens a structured Medicine Passport summary on their own device — current medicines with ingredients and instructions, recent changes, and a PDF option. The QR/link screen and the share token are deliberately not shown in this clip.",
-        "note": "QR-ready screen excluded from permanent media (renders the plaintext share link + a localhost dev URL — Session 10 §6 bearer-token caution). QR/link mechanism carried by S9/C3 copy.",
+        "note": "Re-recorded after the PATTERN display fix (Session 11). QR-ready screen still excluded (plaintext link + localhost).",
         "published": {
-          "mp4": "https://assets.medidocs.app/video/en/share-doctor-en.1634e36a.mp4",
-          "webm": "https://assets.medidocs.app/video/en/share-doctor-en.a80188ec.webm",
-          "poster": "https://assets.medidocs.app/images/posters/share-doctor-en.59ee4166.jpg"
+          "mp4": "https://assets.medidocs.app/video/en/share-doctor-en.53fb42b6.mp4",
+          "webm": "https://assets.medidocs.app/video/en/share-doctor-en.89ab064b.webm",
+          "poster": "https://assets.medidocs.app/images/posters/share-doctor-en.000e22be.jpg"
         }
       }
     }

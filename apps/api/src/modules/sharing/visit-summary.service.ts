@@ -180,8 +180,13 @@ export class VisitSummaryService {
           name: m.product?.brand?.name ?? m.enteredName,
           ingredients: m.product?.ingredients.map((i) => i.ingredient.name) ?? [],
           strengthLabel: m.product?.strengthLabel ?? null,
+          // A recorded pattern IS the schedule ("1-0-1"); show it directly on
+          // this doctor-facing summary rather than the internal enum prefix
+          // ("PATTERN 1-0-1"). Non-pattern codes (OD/BD/…) are standard
+          // clinical shorthand and stay as-is. Same rule as patient-web's
+          // instructionSummary.
           instructionSummary: instruction
-            ? `${instruction.doseQuantity} ${instruction.doseUnit} · ${instruction.frequencyCode}${instruction.pattern ? ` ${instruction.pattern}` : ""} · ${instruction.foodInstruction}`
+            ? `${instruction.doseQuantity} ${instruction.doseUnit} · ${instruction.pattern ?? instruction.frequencyCode} · ${instruction.foodInstruction}`
             : "",
           prescriberName: m.practitioner?.displayName ?? null,
           startDate: m.startDate?.toISOString().slice(0, 10) ?? null,

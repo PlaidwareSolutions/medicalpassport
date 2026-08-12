@@ -1,6 +1,6 @@
 {
   "origin": "https://assets.medidocs.app",
-  "publishedAt": "2026-08-11T22:36:18.680Z",
+  "publishedAt": "2026-08-11T23:39:03.555Z",
   "assets": {
     "r1-hero-sources": {
       "landingSection": "S1",
@@ -98,13 +98,13 @@
       "durationSec": 4.1,
       "dimensions": "390x844",
       "mp4": {
-        "url": "https://assets.medidocs.app/video/en/share-doctor-en.1634e36a.mp4"
+        "url": "https://assets.medidocs.app/video/en/share-doctor-en.53fb42b6.mp4"
       },
       "webm": {
-        "url": "https://assets.medidocs.app/video/en/share-doctor-en.a80188ec.webm"
+        "url": "https://assets.medidocs.app/video/en/share-doctor-en.89ab064b.webm"
       },
       "poster": {
-        "url": "https://assets.medidocs.app/images/posters/share-doctor-en.59ee4166.jpg"
+        "url": "https://assets.medidocs.app/images/posters/share-doctor-en.000e22be.jpg"
       }
     },
     "og": {
