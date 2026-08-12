@@ -74,6 +74,7 @@ export const AUDIT_ACTIONS = [
   "notification.channel_revoked",
   "data.export_requested",
   "data.deletion_requested",
+  "account.erased",
   "admin.audit_searched",
   "admin.login_succeeded",
   "admin.login_failed",
