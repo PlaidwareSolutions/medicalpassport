@@ -32,6 +32,10 @@ model User {
   email           String?
   preferredLocale String     @default("en") @map("preferred_locale")
   status          UserStatus @default(active)
+  /// Controlled first-party acquisition source (OD-LP-8): "website" or null.
+  /// Set once at account creation (first-touch), never overwritten. Never a
+  /// referrer/UTM/free string, never health data.
+  acquisitionSource String? @map("acquisition_source")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

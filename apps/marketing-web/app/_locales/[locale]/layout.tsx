@@ -5,6 +5,7 @@ import { t } from "../../../lib/i18n";
 import { direction, isMarketingLocale, PUBLISHED_LOCALES } from "../../../lib/locales";
 import { SiteHeader } from "../../../components/SiteHeader";
 import { SiteFooter } from "../../../components/SiteFooter";
+import { AnalyticsBeacon } from "../../../components/AnalyticsBeacon";
 
 /**
  * Root layout for non-English published locales (/hi/, /te/, /ur/).
@@ -45,6 +46,7 @@ export default async function LocaleLayout({
         <SiteHeader locale={locale} />
         <main id="main">{children}</main>
         <SiteFooter locale={locale} />
+        <AnalyticsBeacon />
       </body>
     </html>
   );

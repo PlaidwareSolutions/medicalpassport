@@ -10,6 +10,17 @@ import { LEAD_API_URL, LEAD_TURNSTILE_SITEKEY } from "../lib/lead-api";
 // pulls in zod/the validation package.
 const PROFESSIONAL_ROLES = ["doctor", "pharmacist", "clinic_owner", "hospital_admin", "care_coordinator", "other"] as const;
 
+/** Reset the Turnstile widget (if present) so the next submit gets a fresh,
+ *  single-use token. No-op when Turnstile isn't loaded. */
+function resetTurnstile() {
+  const ts = (globalThis as { turnstile?: { reset: () => void } }).turnstile;
+  try {
+    ts?.reset();
+  } catch {
+    /* widget not ready — ignore */
+  }
+}
+
 /**
  * Professional lead form (C7 / OD-LP-2). Business contact info only — the
  * form never asks for and the API never stores patient/health data (the
@@ -91,10 +102,15 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
       });
       if (!res.ok) throw new Error(String(res.status));
       form.reset();
+      resetTurnstile();
       setStatus("success");
     } catch {
       setStatus("error");
       setError(t(locale, "lead.error_generic"));
+      // A Turnstile token is single-use; after any failed submit, reset the
+      // widget so the next attempt gets a fresh token instead of reusing a
+      // spent/expired one.
+      resetTurnstile();
     }
   }
 

@@ -159,6 +159,11 @@ jobs:
         env:
           MARKETING_ENV: staging
           NEXT_PUBLIC_LEAD_API_URL: https://staging-api.medidocs.app/v1/public/leads
+          # Cloudflare Turnstile PUBLIC test sitekey (always-passes, visible) —
+          # pairs with the api's LEAD_TURNSTILE_SECRET_KEY test secret on
+          # medpass-dev. Swap both for a real medidocs-marketing-leads-staging
+          # widget once a Turnstile-scoped Cloudflare token is available.
+          NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY: 1x00000000000000000000AA
         run: pnpm --filter @medpass/marketing-web build
       - name: Verify export output
         if: steps.creds.outputs.ok == 'true'

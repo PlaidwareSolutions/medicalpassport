@@ -3,6 +3,7 @@ import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import type { OtpSender } from "@medpass/notifications";
 import type { DeviceLoginInput, OtpRequestInput, OtpVerifyInput } from "@medpass/validation";
+import { normalizeAcquisitionSource } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import {
@@ -137,6 +138,11 @@ export class AuthService {
             phoneCiphertext: encryptField(input.phone),
             phoneVerifiedAt: new Date(),
             preferredLocale: input.locale ?? "en",
+            // First-touch acquisition attribution (OD-LP-8): recorded only on
+            // account creation, so a returning patient revisiting the
+            // marketing page can never overwrite it. Normalised to the known
+            // "website" value or null — never an arbitrary string.
+            acquisitionSource: normalizeAcquisitionSource(input.acquisitionSource),
           },
         });
       } else if (input.locale && input.locale !== user.preferredLocale) {

@@ -120,6 +120,10 @@ export const apiEnvShape = {
    * so local dev and tests need no Cloudflare account.
    */
   LEAD_TURNSTILE_SECRET_KEY: z.string().optional(),
+  /** Defense-in-depth (Session 11): comma-separated hostnames the lead
+   *  Turnstile token must have been minted for (e.g. "medidocs.app"). Unset =
+   *  no hostname check (test keys / local). */
+  LEAD_TURNSTILE_HOSTNAMES: z.string().optional(),
   /** Where new professional leads are emailed. Unset = leads persist only
    *  (retrieved via the operational query in docs) until OD-LP-7 is finalized. */
   LEAD_NOTIFY_EMAIL: z.string().optional(),

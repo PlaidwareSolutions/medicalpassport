@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ApiError, type OtpTransportDto } from "@medpass/api-client";
 import { Banner, Button, TextInput, TurnstileWidget } from "@medpass/ui-web";
 import { api } from "../../lib/api";
+import { getAcquisitionSource } from "../../lib/acquisition";
 import { useI18n } from "../../lib/i18n";
 import { useSession } from "../../lib/session";
 
@@ -89,7 +90,7 @@ export default function LoginPage() {
     setBusyAction("verify");
     setError(undefined);
     try {
-      await api.post("/auth/otp/verify", { phone, code, device: { kind: "browser" }, locale, rememberDevice });
+      await api.post("/auth/otp/verify", { phone, code, device: { kind: "browser" }, locale, rememberDevice, acquisitionSource: getAcquisitionSource() });
       await refresh();
       router.replace("/");
     } catch (err) {

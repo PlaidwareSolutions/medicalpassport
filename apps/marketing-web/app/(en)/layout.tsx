@@ -3,6 +3,7 @@ import { marketingStyles } from "../../lib/marketing-styles";
 import { t } from "../../lib/i18n";
 import { SiteHeader } from "../../components/SiteHeader";
 import { SiteFooter } from "../../components/SiteFooter";
+import { AnalyticsBeacon } from "../../components/AnalyticsBeacon";
 
 /**
  * English root layout ("/", "/privacy/", "/terms/"). Non-English published
@@ -22,6 +23,7 @@ export default function EnLayout({ children }: { children: ReactNode }) {
         <SiteHeader locale="en" />
         <main id="main">{children}</main>
         <SiteFooter locale="en" />
+        <AnalyticsBeacon />
       </body>
     </html>
   );

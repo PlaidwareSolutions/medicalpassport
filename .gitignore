@@ -39,3 +39,6 @@ artifacts/
 
 # Wrangler local simulator state (miniflare sqlite) — never source
 .wrangler/
+
+# Marketing-recording auth state (session tokens) — never source
+apps/patient-web/e2e-marketing/.auth/

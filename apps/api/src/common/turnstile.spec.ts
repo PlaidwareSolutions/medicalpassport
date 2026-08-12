@@ -42,4 +42,19 @@ describe("verifyTurnstile", () => {
     global.fetch = jest.fn().mockResolvedValue({ json: async () => Promise.reject(new Error("not json")) });
     await expect(verifyTurnstile("secret", "a-token", undefined)).resolves.toBe(false);
   });
+
+  it("accepts when the siteverify hostname matches an expected hostname", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ success: true, hostname: "staging.medidocs.app" }) });
+    await expect(verifyTurnstile("secret", "tok", undefined, ["staging.medidocs.app", "medidocs.app"])).resolves.toBe(true);
+  });
+
+  it("rejects a token minted for an unexpected hostname (defense-in-depth)", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ success: true, hostname: "evil.example.com" }) });
+    await expect(verifyTurnstile("secret", "tok", undefined, ["medidocs.app"])).resolves.toBe(false);
+  });
+
+  it("skips the hostname check when the response carries no hostname (test keys)", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ success: true }) });
+    await expect(verifyTurnstile("secret", "tok", undefined, ["medidocs.app"])).resolves.toBe(true);
+  });
 });

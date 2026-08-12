@@ -13,21 +13,41 @@ const WINDOW_HOURS = 24;
 runJob("operational-report", async ({ prisma, log }) => {
   const since = new Date(Date.now() - WINDOW_HOURS * 60 * 60 * 1000);
 
-  const [failedJobs, dlqAddedToday, dlqOutstanding, attemptsByStatus, latestBackup, latestRestoreTest, newLeads, newLeadsToday] =
-    await Promise.all([
-      prisma.backgroundJob.count({ where: { status: "failed", completedAt: { gte: since } } }),
-      prisma.deadLetterJob.count({ where: { failedAt: { gte: since } } }),
-      prisma.deadLetterJob.count({ where: { replayedAt: null } }),
-      prisma.notificationAttempt.groupBy({ by: ["channel", "status"], where: { attemptedAt: { gte: since } }, _count: true }),
-      prisma.backupExecution.findFirst({ orderBy: { startedAt: "desc" } }),
-      prisma.restoreTest.findFirst({ orderBy: { startedAt: "desc" } }),
-      // Professional leads awaiting operational follow-up (OD-LP-2) — until a
-      // real notification recipient is configured (OD-LP-7), this daily line
-      // is how new leads are surfaced. Only the count is logged here; the
-      // contact details are queried operationally, never logged (§21).
-      prisma.professionalLead.count({ where: { status: "new" } }),
-      prisma.professionalLead.count({ where: { createdAt: { gte: since } } }),
-    ]);
+  const [
+    failedJobs,
+    dlqAddedToday,
+    dlqOutstanding,
+    attemptsByStatus,
+    latestBackup,
+    latestRestoreTest,
+    newLeads,
+    newLeadsToday,
+    websiteAccounts,
+    websiteAccountsToday,
+    websiteActivated,
+  ] = await Promise.all([
+    prisma.backgroundJob.count({ where: { status: "failed", completedAt: { gte: since } } }),
+    prisma.deadLetterJob.count({ where: { failedAt: { gte: since } } }),
+    prisma.deadLetterJob.count({ where: { replayedAt: null } }),
+    prisma.notificationAttempt.groupBy({ by: ["channel", "status"], where: { attemptedAt: { gte: since } }, _count: true }),
+    prisma.backupExecution.findFirst({ orderBy: { startedAt: "desc" } }),
+    prisma.restoreTest.findFirst({ orderBy: { startedAt: "desc" } }),
+    // Professional leads awaiting operational follow-up (OD-LP-2) — until a
+    // real notification recipient is configured (OD-LP-7), this daily line
+    // is how new leads are surfaced. Only the count is logged here; the
+    // contact details are queried operationally, never logged (§21).
+    prisma.professionalLead.count({ where: { status: "new" } }),
+    prisma.professionalLead.count({ where: { createdAt: { gte: since } } }),
+    // OD-LP-8 acquisition funnel — aggregate counts only, no patient identity:
+    // accounts first-attributed to the marketing website, and how many of
+    // those have activated (own a profile with at least one medicine). No
+    // medicine name/health content is ever read into this — only existence.
+    prisma.user.count({ where: { acquisitionSource: "website" } }),
+    prisma.user.count({ where: { acquisitionSource: "website", createdAt: { gte: since } } }),
+    prisma.user.count({
+      where: { acquisitionSource: "website", ownedProfiles: { some: { medications: { some: { deletedAt: null } } } } },
+    }),
+  ]);
 
   const reminderPipeline = attemptsByStatus.reduce<Record<string, number>>((acc, row) => {
     acc[`${row.channel}_${row.status}`] = row._count;
@@ -46,6 +66,11 @@ runJob("operational-report", async ({ prisma, log }) => {
       : null,
     professionalLeadsNew: newLeads,
     professionalLeadsLast24h: newLeadsToday,
+    // OD-LP-8 funnel (aggregate): website-attributed accounts, new in window,
+    // and how many have created at least one medicine (activation).
+    websiteAttributedAccounts: websiteAccounts,
+    websiteAttributedAccountsLast24h: websiteAccountsToday,
+    websiteAttributedActivated: websiteActivated,
   };
 
   // One line, clearly labeled, easy to grep/alert on in Railway's log viewer

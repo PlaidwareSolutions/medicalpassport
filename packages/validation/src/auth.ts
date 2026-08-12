@@ -30,8 +30,21 @@ export const otpVerifySchema = z.object({
   locale: z.enum(SUPPORTED_LOCALES).optional(),
   /** "Remember this device" checkbox (docs/24 ADR-14), checked by default. */
   rememberDevice: z.boolean().default(true),
+  /**
+   * Privacy-safe first-party acquisition attribution (OD-LP-8). Only the
+   * controlled `website` value is recognised; anything else is ignored (never
+   * a free-text analytics field). Persisted once, at account creation only
+   * (first-touch). Never a phone number, health data, referrer, or UTM.
+   */
+  acquisitionSource: z.string().max(32).optional(),
 });
 export type OtpVerifyInput = z.infer<typeof otpVerifySchema>;
+
+/** The only recognised acquisition source in V1; unknown → null (§24). */
+export const KNOWN_ACQUISITION_SOURCES = ["website"] as const;
+export function normalizeAcquisitionSource(value: string | undefined): "website" | null {
+  return value && (KNOWN_ACQUISITION_SOURCES as readonly string[]).includes(value) ? "website" : null;
+}
 
 export const refreshSchema = z.object({
   refreshToken: z.string().min(20).max(512),
