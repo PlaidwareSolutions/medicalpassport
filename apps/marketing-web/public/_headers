@@ -12,13 +12,17 @@
 #   - assets.medidocs.app        -> img-src/media-src (marketing media, S9 era) [DONE]
 #   - challenges.cloudflare.com  -> script-src + frame-src (Turnstile, lead form) [DONE, Session 10]
 #   - staging-api./api.medidocs.app -> connect-src (lead form POST) [DONE, Session 10]
-# Still deliberately BLOCKED (Session 11 decision, not this session):
-#   - static.cloudflareinsights.com -> Cloudflare Web Analytics beacon
+#   - static.cloudflareinsights.com -> script-src (Web Analytics beacon.min.js) [DONE, Session 11]
+#   - cloudflareinsights.com         -> connect-src (Web Analytics RUM POST)   [DONE, Session 11]
+# These origins are here for our deliberate manual beacon (components/
+# AnalyticsBeacon.tsx). NOTE: a pre-existing medidocs.app site still auto-injects
+# its own beacon at the edge onto this subdomain (a duplicate) until that site is
+# switched to Manual in the dashboard — see docs/landing-page/analytics-and-attribution.md §C.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://assets.medidocs.app; font-src 'self'; connect-src 'self' https://staging-api.medidocs.app https://api.medidocs.app; media-src 'self' https://assets.medidocs.app; frame-src https://challenges.cloudflare.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://assets.medidocs.app; font-src 'self'; connect-src 'self' https://staging-api.medidocs.app https://api.medidocs.app https://cloudflareinsights.com; media-src 'self' https://assets.medidocs.app; frame-src https://challenges.cloudflare.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
   Cache-Control: public, max-age=0, must-revalidate
 
 # Fingerprinted build assets: content-hashed filenames, safe to cache forever.

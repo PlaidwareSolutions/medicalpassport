@@ -1,20 +1,25 @@
 # Landing Page — Session 11: Analytics, Attribution & Turnstile
 
-**Date:** 2026-08-12 · **Status:** code complete + deployed to staging; some live activation blocked on Cloudflare credential scope (below). Production apex untouched.
+**Date:** 2026-08-12 · **Status:** code complete + deployed to staging. **Live activation done** for real Turnstile and the manual Web Analytics beacon (verified below). One residual dashboard item remains (disable the pre-existing `medidocs.app` automatic beacon so staging isn't double-counted). Production apex untouched.
 
 Implements OD-LP-8's V1 model and closes the two Session-10 items (Turnstile, share-display). **No general analytics platform, no third-party trackers, no Workers Analytics Engine, no custom-event pipeline.**
 
-## Credential constraint (read first)
+## Credential note
 
-The Cloudflare access available this session (the Session-6 wrangler OAuth) has **no Turnstile scope and no Web Analytics scope** (both API calls return auth errors), and no separate Cloudflare API token is present. So this session could **not**: create a real Turnstile widget, create a Web Analytics site/token, or disable the zone's automatic beacon injection. Everything is built to activate the moment those are provisioned; the exact blocked steps are called out below.
+Activation used a **scoped Cloudflare API token** (`medpass-marketing-turnstile-analytics`, permission **Account → Turnstile → Edit** only) to create the real Turnstile widget, plus a **dashboard-created Web Analytics site** for `staging.medidocs.app` (its public site token). Cloudflare exposes **no API-token Edit permission for Web Analytics** (Account Analytics is Read-only), so site creation and automatic-injection settings are dashboard-only. The Turnstile API token is a secret — never committed, stored session-private and used inline. Sitekey and Web-Analytics site token are public (baked into the build).
 
 ## A. Turnstile (professional lead form)
 
 **Code — complete and tested.** The lead endpoint is now **fail-closed**: in `production`/`staging` a missing `LEAD_TURNSTILE_SECRET_KEY` makes `POST /v1/public/leads` return `503` rather than silently accepting bot traffic (§7); local/test may run without it. Server-side `verifyTurnstile` calls Cloudflare Siteverify and, as defense-in-depth, validates the returned `hostname` against `LEAD_TURNSTILE_HOSTNAMES` when set (skipped when the response carries none, e.g. test keys). The client resets the single-use widget after any failed submit so retries get a fresh token. Turnstile loads **only** on `/for-clinics/`, never the patient homepage (§34).
 
-**Staging live — test keys.** Because a real widget can't be provisioned (no scope), staging uses Cloudflare's **public test keys** to prove the full path end-to-end (widget → token → Siteverify → accept): sitekey `1x00000000000000000000AA` (build env `NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY`), secret `1x0000000000000000000000000000000AA` (set on the medpass-dev `api` service as `LEAD_TURNSTILE_SECRET_KEY`, value never committed). These always-pass — they verify plumbing, not real bot-blocking.
+**Staging live — REAL widget (test keys removed).** The real `medidocs-marketing-leads-staging` widget is created and enforcing: **managed** mode, authorizing **only** `staging.medidocs.app` + `localhost` (never `app./api./admin.`). Public sitekey `0x4AAAAAAENvjHC21DQmacb9` is baked into the marketing build (`NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY`, verified in the deployed for-clinics JS chunk); the widget secret is set on the medpass-dev `api` service as `LEAD_TURNSTILE_SECRET_KEY` (value never committed), and `LEAD_TURNSTILE_HOSTNAMES=staging.medidocs.app` turns on hostname enforcement.
 
-**Remaining (blocked on a Turnstile-scoped Cloudflare token / dashboard):** create `medidocs-marketing-leads-staging` (domains: `staging.medidocs.app`) and `-production` (domains: `medidocs.app`) widgets — authorizing **only** those hostnames, never `app./api./admin.`; swap the test sitekey/secret for the real ones; set `LEAD_TURNSTILE_HOSTNAMES=staging.medidocs.app` (then `medidocs.app`) to turn on hostname enforcement. Managed mode. Production widget stays uncreated until launch.
+**Live verification (2026-08-12):**
+- Real widget renders on `/for-clinics/` — a live `challenges.cloudflare.com` challenge frame loads (managed-mode, ~13 sub-requests). No CSP violations.
+- **Real secret proven enforcing, not the always-pass test secret:** a POST to `/v1/public/leads` with a *bogus* `turnstileToken` now returns **400 `turnstile_failed`** (the test secret would have accepted it → 201). Token-less POST also 400 (fail-closed). This is the decisive discriminator that Siteverify is running against the real widget secret.
+- **Happy-path (human) still pending:** managed mode challenges automated/headless browsers, so a real successful submit (widget solved by a person → 201 + `ProfessionalLead` row) can't be produced headlessly. One manual completion by a human on `staging.medidocs.app/for-clinics/` is the last confirmation — not a bypass, just the nature of a real anti-bot widget.
+
+**Remaining for production launch:** create the `-production` widget (domain `medidocs.app` only), swap the sitekey/secret, set `LEAD_TURNSTILE_HOSTNAMES=medidocs.app`. Not created until launch.
 
 Variable names (values never here): `LEAD_TURNSTILE_SECRET_KEY` (api, secret), `LEAD_TURNSTILE_HOSTNAMES` (api), `NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY` (marketing build, public).
 
@@ -26,9 +31,11 @@ Root cause: `visit-summary.service.ts` built `instructionSummary` as `"<dose> ·
 
 **Approved role only:** aggregate marketing-site traffic + Core Web Vitals. No custom events, no CTA/form events, no manual beacon POSTs.
 
-**Built:** a deliberate, manual beacon component (`components/AnalyticsBeacon.tsx`) that renders the official Cloudflare snippet **only** on marketing-web and **only** when `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN` is set. It is **dormant** today (no token) — renders nothing, page unaffected. Never in patient-web, never on `/s/<token>` share pages (§32/§33).
+**Built:** a deliberate, manual beacon component (`components/AnalyticsBeacon.tsx`) that renders the official Cloudflare snippet **only** on marketing-web and **only** when `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN` is set. Never in patient-web, never on `/s/<token>` share pages (§32/§33).
 
-**Not enabled live (blocked on scope).** The zone currently auto-injects a beacon that CSP **blocks** (Cloudflare adds it; `script-src`/`connect-src` deliberately exclude `cloudflareinsights`). Per §17/§18 I did **not** add those CSP origins, because doing so would enable that *uncontrolled* auto-injected beacon. Activation (all needing a Web-Analytics-scoped credential / dashboard): (1) create a **staging** Web Analytics site for `staging.medidocs.app` and a separate **production** site for `medidocs.app` (§19); (2) **disable automatic injection** for the marketing hostname so only the manual snippet runs; (3) set `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN` (staging token) in the build; (4) add exactly `https://static.cloudflareinsights.com` to `script-src` and `https://cloudflareinsights.com` to `connect-src` in `public/_headers`. No wildcards.
+**Live on staging (2026-08-12).** A dedicated **staging** Web Analytics site was created in the dashboard for `staging.medidocs.app` (manual install). Its public token `3e2da448…` is baked into the staging build; the manual beacon renders (verified server-rendered in the deployed HTML) and reports to `cloudflareinsights.com/cdn-cgi/rum`. CSP was opened by exactly two origins — `https://static.cloudflareinsights.com` (`script-src`) and `https://cloudflareinsights.com` (`connect-src`), no wildcards. Browser check: beacon loads with **no CSP errors**.
+
+**⚠ Residual: duplicate auto-injection (needs one dashboard toggle).** A **pre-existing** `medidocs.app` Web Analytics site is set to **automatic** injection, and Cloudflare's edge injects *its* beacon (token `9bb7272d…`) onto the `staging.medidocs.app` subdomain too. So the live browser currently sees **two** beacons — our deliberate manual one (in our HTML) and the edge-injected one (not in our HTML). To make only the deliberate beacon run (§18/§36), the pre-existing `medidocs.app` site must be switched from **Automatic** to **Manual** in the dashboard (Analytics & Logs → Web Analytics → that site → Manage → disable automatic installation). That also removes the uncontrolled beacon from `app./admin.medidocs.app`, which §32/§33 want analytics-free anyway. Until then staging RUM is double-counted (harmless test data). **Production launch requires this toggle done first**, plus a separate production site for `medidocs.app` (§19) with only the manual snippet.
 
 ## D. First-party acquisition attribution
 
@@ -42,7 +49,7 @@ Root cause: `visit-summary.service.ts` built `instructionSummary` as `"<dose> ·
 
 | Stage | Source | Measurable? |
 |---|---|---|
-| Marketing traffic | Cloudflare Web Analytics | **After** analytics activation (blocked on scope) |
+| Marketing traffic | Cloudflare Web Analytics | **Live on staging** (manual beacon) — pending the auto-injection toggle for a clean single count |
 | Website-attributed accounts | `User.acquisitionSource = 'website'` count | **Yes** |
 | …new in window | same, `createdAt` window | **Yes** |
 | Activation (≥1 medicine) | website accounts owning a profile with ≥1 medication | **Yes** |
