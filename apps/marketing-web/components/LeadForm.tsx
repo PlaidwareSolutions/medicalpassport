@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { t } from "../lib/i18n";
 import type { MarketingLocale } from "../lib/locales";
 import { LEAD_API_URL, LEAD_TURNSTILE_SITEKEY } from "../lib/lead-api";
+
+type TurnstileApi = {
+  render: (el: HTMLElement, opts: { sitekey: string; callback?: (t: string) => void }) => string;
+  reset: (id?: string) => void;
+};
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
 
 // Kept in sync with packages/validation `PROFESSIONAL_ROLES` (the server is
 // authoritative). Inlined rather than imported so the client bundle never
@@ -13,9 +23,8 @@ const PROFESSIONAL_ROLES = ["doctor", "pharmacist", "clinic_owner", "hospital_ad
 /** Reset the Turnstile widget (if present) so the next submit gets a fresh,
  *  single-use token. No-op when Turnstile isn't loaded. */
 function resetTurnstile() {
-  const ts = (globalThis as { turnstile?: { reset: () => void } }).turnstile;
   try {
-    ts?.reset();
+    window.turnstile?.reset();
   } catch {
     /* widget not ready — ignore */
   }
@@ -66,6 +75,29 @@ const roleKey: Record<(typeof PROFESSIONAL_ROLES)[number], Parameters<typeof t>[
 export function LeadForm({ locale }: { locale: MarketingLocale }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>("");
+  const turnstileRef = useRef<HTMLDivElement | null>(null);
+
+  // Explicit render: the Turnstile script auto-renders on load, but this
+  // client-rendered widget div mounts after hydration — after the script has
+  // already run — so we render it ourselves once `window.turnstile` is ready.
+  useEffect(() => {
+    if (!LEAD_TURNSTILE_SITEKEY) return;
+    let done = false;
+    const id = setInterval(() => {
+      const el = turnstileRef.current;
+      if (window.turnstile && el && !el.hasChildNodes()) {
+        window.turnstile.render(el, { sitekey: LEAD_TURNSTILE_SITEKEY });
+        done = true;
+        clearInterval(id);
+      }
+    }, 150);
+    // Give up quietly after ~10s — the form still submits (server enforces).
+    const stop = setTimeout(() => !done && clearInterval(id), 10_000);
+    return () => {
+      clearInterval(id);
+      clearTimeout(stop);
+    };
+  }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -174,7 +206,7 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
         <input name="consentToContact" type="checkbox" required style={{ width: "22px", height: "22px", marginTop: "2px", flex: "none" }} />
         <span style={{ fontSize: "0.9375rem" }}>{t(locale, "lead.consent")}</span>
       </label>
-      {LEAD_TURNSTILE_SITEKEY ? <div className="cf-turnstile" data-sitekey={LEAD_TURNSTILE_SITEKEY} /> : null}
+      {LEAD_TURNSTILE_SITEKEY ? <div ref={turnstileRef} /> : null}
       {error ? (
         <p role="alert" style={{ color: "var(--color-danger)", fontWeight: 600, fontSize: "0.9375rem" }}>
           {error}
