@@ -31,3 +31,20 @@ export function isMarketingLocale(value: string): value is MarketingLocale {
 export function localePath(locale: MarketingLocale): string {
   return locale === "en" ? "" : `/${locale}`;
 }
+
+/**
+ * Locales whose ROUTES are emitted in THIS build (the publication gate is the
+ * emitted route set, not the presence of a dictionary):
+ *   - production build → only PUBLISHED_LOCALES (professionally reviewed);
+ *   - staging build (MARKETING_ENV=staging) → all MARKETING_LOCALES, so
+ *     reviewers can see the draft hi/te/ur candidates. Staging stays globally
+ *     noindexed, and a production build never emits an unreviewed locale.
+ */
+export function buildLocales(): readonly MarketingLocale[] {
+  return process.env.MARKETING_ENV === "staging" ? MARKETING_LOCALES : PUBLISHED_LOCALES;
+}
+
+/** Non-English locales to statically generate in this build. */
+export function nonEnglishBuildLocales(): MarketingLocale[] {
+  return buildLocales().filter((l) => l !== "en");
+}

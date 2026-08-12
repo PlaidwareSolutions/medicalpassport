@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { t } from "../lib/i18n";
+import { en } from "../lib/dictionaries/en";
 import type { MarketingLocale } from "../lib/locales";
 import { LEAD_API_URL, LEAD_TURNSTILE_SITEKEY } from "../lib/lead-api";
+
+// /for-clinics/ is English-only V1 (§16). Sourcing strings directly from the
+// English dictionary (rather than the multi-locale `t`) keeps this client
+// bundle from shipping the hi/te/ur dictionaries (§44). Signature mirrors
+// `t(locale, key)` so existing call sites and `Parameters<typeof t>` are unchanged.
+const t = (_locale: MarketingLocale, key: keyof typeof en): string => en[key];
 
 type TurnstileApi = {
   render: (el: HTMLElement, opts: { sitekey: string; callback?: (t: string) => void }) => string;

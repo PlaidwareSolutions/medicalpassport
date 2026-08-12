@@ -2,25 +2,22 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { marketingStyles } from "../../../lib/marketing-styles";
 import { t } from "../../../lib/i18n";
-import { direction, isMarketingLocale, PUBLISHED_LOCALES } from "../../../lib/locales";
+import { buildLocales, direction, isMarketingLocale, nonEnglishBuildLocales, PUBLISHED_LOCALES } from "../../../lib/locales";
 import { SiteHeader } from "../../../components/SiteHeader";
 import { SiteFooter } from "../../../components/SiteFooter";
 import { AnalyticsBeacon } from "../../../components/AnalyticsBeacon";
+import { ReviewBanner } from "../../../components/ReviewBanner";
 
 /**
- * Root layout for non-English published locales (/hi/, /te/, /ur/).
+ * Root layout for non-English locale routes (/hi/, /te/, /ur/), emitting
+ * correct static `lang`/`dir` per locale (RTL for Urdu). Session 13.
  *
- * PARKED as a Next.js private folder (`_locales` is excluded from routing)
- * because `output: "export"` rejects a dynamic route whose
- * generateStaticParams returns [] — verified empirically this session — and
- * no non-English marketing locale is published yet (OD-LP-4). The code stays
- * typechecked and review-current. ACTIVATION, when the first reviewed locale
- * ships: (1) add the reviewed dictionary to lib/i18n.ts, (2) add the locale
- * to PUBLISHED_LOCALES, (3) rename `app/_locales` → `app/(locales)`. Routes
- * then emit with correct static lang/dir, including RTL for Urdu.
+ * Publication gate: production emits only PUBLISHED_LOCALES; staging emits the
+ * draft candidates too (buildLocales()). A draft (not-yet-reviewed) locale
+ * shows a review banner and is never produced by a production build.
  */
 export function generateStaticParams(): { locale: string }[] {
-  return PUBLISHED_LOCALES.filter((l) => l !== "en").map((locale) => ({ locale }));
+  return nonEnglishBuildLocales().map((locale) => ({ locale }));
 }
 
 export const dynamicParams = false;
@@ -33,7 +30,8 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  if (!isMarketingLocale(locale) || !PUBLISHED_LOCALES.includes(locale)) notFound();
+  if (!isMarketingLocale(locale) || !buildLocales().includes(locale)) notFound();
+  const isDraft = !PUBLISHED_LOCALES.includes(locale);
   return (
     <html lang={locale} dir={direction(locale)}>
       <head>
@@ -43,7 +41,8 @@ export default async function LocaleLayout({
         <a className="mkt-skip" href="#main">
           {t(locale, "nav.skip")}
         </a>
-        <SiteHeader locale={locale} />
+        {isDraft ? <ReviewBanner locale={locale} /> : null}
+        <SiteHeader locale={locale} availableLocales={buildLocales()} />
         <main id="main">{children}</main>
         <SiteFooter locale={locale} />
         <AnalyticsBeacon />

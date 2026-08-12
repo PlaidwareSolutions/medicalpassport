@@ -7,7 +7,8 @@
     "dev": "next dev -p 3002",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:legal": "node scripts/check-legal-placeholders.mjs",
-    "deploy:staging": "MARKETING_ENV=staging NEXT_PUBLIC_LEAD_API_URL=https://staging-api.medidocs.app/v1/public/leads NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY=0x4AAAAAAENvjHC21DQmacb9 NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=3e2da44839cb46aaa28e6567ca8c3d4f next build && MARKETING_ENV=staging node scripts/check-legal-placeholders.mjs && wrangler deploy"
+    "check:locales": "node scripts/check-locales.mjs",
+    "deploy:staging": "node scripts/check-locales.mjs && MARKETING_ENV=staging NEXT_PUBLIC_LEAD_API_URL=https://staging-api.medidocs.app/v1/public/leads NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY=0x4AAAAAAENvjHC21DQmacb9 NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=3e2da44839cb46aaa28e6567ca8c3d4f next build && MARKETING_ENV=staging node scripts/check-legal-placeholders.mjs && wrangler deploy"
   },
   "dependencies": {
     "@medpass/design-tokens": "workspace:*",
