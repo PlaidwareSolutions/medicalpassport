@@ -60,7 +60,7 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 | Clinical claim gate (Stage-6) | **PENDING** | Safety claims stay gated until clinical validation |
 | Privacy/business claims (free, no-ads, no-sale) | **PENDING LEGAL** | **Business-approved** (ruling #6); bounded wording in drafts; publication gated on counsel |
 | English content final | **PASS (staging)** | Homepage/for-clinics live; legal pages draft |
-| Locale gates (hi/te/ur, non-English recordings) | **N/A this launch** | English-first; translations deferred |
+| Locale gates (hi/te/ur marketing) | **PENDING REVIEW** | Draft candidates live on staging (`/hi /te /ur`, noindexed, Session 13); **professional review required** before publishing; production stays **en-only** until REVIEWED. Non-English legal pages, video and audio remain deferred. |
 
 ## Launch execution
 | Gate | State | Note |
