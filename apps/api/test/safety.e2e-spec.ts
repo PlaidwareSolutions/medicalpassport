@@ -67,7 +67,7 @@ describe("Safety e2e", () => {
     token = verify.body.token;
 
     const profile = await auth(token)(request(app.getHttpServer()).post("/v1/profiles"))
-      .send({ displayName: "Safety Test", preferredLocale: "en" })
+      .send({ displayName: "Safety Test", yearOfBirth: 1985, preferredLocale: "en" })
       .expect(201);
     profileId = profile.body.id;
   });
