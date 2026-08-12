@@ -80,7 +80,11 @@ export default defineRailway(() => {
       PORT: "4000",
       DATABASE_URL: db.env.DATABASE_URL,
       OTP_TRANSPORT: "voice",
-      CORS_ORIGINS: "https://app.medidocs.app,https://admin.medidocs.app",
+      // `https://medidocs.app` is the marketing-site origin, added so the
+      // /for-clinics/ lead form is not CORS-blocked at production launch (same
+      // fix as staging). It authorizes CORS only; it does not serve or cut over
+      // the apex. Add `https://www.medidocs.app` too if www serves the site.
+      CORS_ORIGINS: "https://app.medidocs.app,https://admin.medidocs.app,https://medidocs.app",
       // Set out-of-band via `railway variable set --stdin` (docs/28: secrets
       // only in Railway variables) — preserve() tells apply not to touch them.
       OTP_HASH_PEPPER: preserve(),

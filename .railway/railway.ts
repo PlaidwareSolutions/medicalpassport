@@ -67,8 +67,11 @@ export default defineRailway(() => {
       DATABASE_URL: db.env.DATABASE_URL,
       OTP_TRANSPORT: "log",
       OTP_DEV_FIXED_CODE: "000000",
+      // Includes the marketing site origin (staging.medidocs.app) so the
+      // /for-clinics/ lead form's browser fetch to /v1/public/leads is not
+      // CORS-blocked — it is a distinct origin from the patient/admin apps.
       CORS_ORIGINS:
-        "https://staging-app.medidocs.app,https://staging-admin.medidocs.app,https://patient-web-production-6da0.up.railway.app",
+        "https://staging-app.medidocs.app,https://staging-admin.medidocs.app,https://patient-web-production-6da0.up.railway.app,https://staging.medidocs.app",
       // Set out-of-band via `railway variable set --stdin` (docs/28: secrets
       // only in Railway variables) — preserve() tells apply not to touch them.
       OTP_HASH_PEPPER: preserve(),
