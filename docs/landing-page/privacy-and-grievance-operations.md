@@ -6,33 +6,48 @@ Defines how support, privacy requests, grievances, security reports, and profess
 
 ---
 
-## 1. OD-LP-7 — public contact architecture · **STILL OPEN**
+## 1. OD-LP-7 — public contact architecture · **STILL OPEN** (owners set; provisioning pending)
 
-**Verified state (2026-08-12):** the four intended addresses are **NOT provisioned.**
-- `dig MX medidocs.app` → **no MX records**; `dig A medidocs.app` → **no apex A record**; no SPF/TXT. The apex is entirely unconfigured (consistent with "not launched").
-- Grep of the whole repo → **no `@medidocs.app` address anywhere** (only `support@example.com` placeholder in a VAPID default and test fixtures).
+**Verified state (2026-08-13):** the four intended addresses are **NOT provisioned.**
+- `dig MX medidocs.app` → **no MX records**; `dig A medidocs.app` → **no apex A record**; no SPF/TXT. The apex is entirely unconfigured.
+- No Google Workspace admin tooling or credentials are available to this session (no `gcloud`, no GAM, no service-account creds), so provisioning **cannot** be done automatically here.
 
-So `support@`, `privacy@`, `security@`, `partnerships@` **@medidocs.app do not work today**. Per SPEC §35/§42 they must **not** appear on the live public site until verified operational.
+So `support@`, `privacy@`, `security@`, `partnerships@` **@medidocs.app do not work today**. They must **not** appear on the live public site until verified operational (SPEC §35/§42).
 
-> **OD-LP-7 — `OPEN — OWNER/ROUTING REQUIRED`.** Missing: (a) a decision to provision the mailboxes/aliases (email infra not to be created without explicit authorization, SPEC §42), (b) named **primary + backup owners**, (c) a tracking mechanism. Naming addresses is not closing OD-LP-7.
+> **`EMAIL PROVISIONING — MANUAL ADMIN ACTION REQUIRED`.** Per SPEC §17, provisioning is not fabricated; the exact admin steps are below. **OD-LP-7 remains `OPEN`** until all four addresses have working routing, a primary owner, a backup, tracking, and **verified test delivery** (SPEC §19).
 
-### Minimal V1 mailbox model (proposed — needs owner + provisioning)
+### Ownership + routing model (owner ruling)
 
-Four public addresses, **one actively-monitored operational inbox** via aliases/groups. Do not invent people — `OWNER REQUIRED` where unresolved.
+| Public address | Purpose | Routes to (primary) | Backup / continuity | Tracking | Escalation |
+|---|---|---|---|---|---|
+| `support@medidocs.app` | Account/app help | **solutions@plaidware.com** | **kfnawaz@gmail.com** | Ticket/reference log | → privacy (data request) / security (incident) |
+| `privacy@medidocs.app` | Rights & grievance | **solutions@plaidware.com** | **kfnawaz@gmail.com** | Request register | → counsel / owner |
+| `security@medidocs.app` | Vulnerability & incident | **solutions@plaidware.com** | **kfnawaz@gmail.com** | Incident log | → owner + counsel if personal data affected |
+| `partnerships@medidocs.app` | Professional/clinic inquiries | **solutions@plaidware.com** → existing lead flow | **kfnawaz@gmail.com** | Existing `ProfessionalLead` register | → business owner |
 
-| Public address | Purpose | Routing destination | Primary owner | Backup | Tracking | Escalation |
-|---|---|---|---|---|---|---|
-| `support@medidocs.app` | Account/app help | → shared ops inbox | `OWNER REQUIRED` | `OWNER REQUIRED` | Ticket/reference log | → privacy (if data request) / security (if incident) |
-| `privacy@medidocs.app` | Rights & grievance | → shared ops inbox (privacy queue) | `OWNER REQUIRED` (grievance officer) | `OWNER REQUIRED` | Ticket + request register | → counsel / owner |
-| `security@medidocs.app` | Vulnerability & incident reports | → shared ops inbox (security queue) | `OWNER REQUIRED` (eng) | `OWNER REQUIRED` | Ticket + incident log | → owner + counsel if personal data affected |
-| `partnerships@medidocs.app` | Professional/clinic inquiries | → shared ops inbox → existing lead flow | `OWNER REQUIRED` | `OWNER REQUIRED` | Existing `ProfessionalLead` register | → business owner |
+Privacy and security messages must stay **distinguishable by the address they arrived through**, even if all route to one monitored inbox. The backup personal address (`kfnawaz@gmail.com`) is for **continuity/escalation only** and must **not** be exposed publicly.
 
-**Provisioning decision (owner ruling #4):** use the **existing Google Workspace** (not Cloudflare Email Routing). Add `medidocs.app` to Workspace and create the four addresses, initially routing to one monitored inbox/group, with privacy and security messages **distinguishable by the address they arrived through**. Requires apex DNS + MX (a launch activity). **Not executed this session** (SPEC §42 — no email infra provisioned without explicit authorization; requires the apex).
+### Preferred implementation — Google Workspace (manual admin steps)
 
-**Owners required before launch (all currently `OWNER REQUIRED`):** Primary owner (owner or a named operating owner), one named Backup owner, a designated Privacy/grievance owner, a designated Security-escalation owner. **Publish no address until it is created and inbound + outbound mail is proven.**
+Use the **existing Google Workspace** (not Cloudflare Email Routing — do not switch platforms without approval). Steps for a Workspace admin:
+1. **Add + verify the domain** `medidocs.app` in Workspace (Admin console → Domains → Add a domain, as a secondary domain or domain alias as appropriate) via the TXT verification record.
+2. **Publish MX** for `medidocs.app` pointing to Google (`smtp.google.com`, or the standard Google MX set), plus **SPF** (`v=spf1 include:_spdf.google.com ~all` / Google's current include) and **DKIM** + **DMARC** records.
+3. **Create the four addresses** as **Groups** (recommended — gives routing + membership + audit) or user aliases:
+   `support@`, `privacy@`, `security@`, `partnerships@medidocs.app`.
+4. **Routing:** add `solutions@plaidware.com` as the primary member/owner of each group; add `kfnawaz@gmail.com` as a backup member for continuity/escalation.
+5. **Keep queues distinguishable** (separate groups, or labels/filters keyed on the To: address).
+6. Confirm outbound replies can be sent **as** the public address without exposing internal addresses.
+
+*(Apex DNS/MX for `medidocs.app` is itself a launch activity — see the production-provisioning gate.)*
+
+### Verification before an address is launch-ready (SPEC §18) — do for each of the four
+1. inbound message from an external account is received by the primary owner;
+2. backup/escalation behaves as configured;
+3. a reply can be sent as the public address without exposing internal addresses;
+4. no bounce; 5. no mail loop.
+Record results (no patient content). Only after this may staging show the address.
 
 ### Staging placeholder rule
-
 Until an address is verified operational, the live site shows **no** contact email. Draft legal pages use a visible reviewer placeholder — `[CONTACT: privacy channel — NOT YET PROVISIONED — OD-LP-7]` — never a fake working address (SPEC §42).
 
 ---
@@ -97,4 +112,6 @@ Minimal breach workflow: **detection → containment → evidence preservation �
 ## 7. What this unblocks / still blocks
 
 - **Unblocked (design done):** routing model, SOP shapes, escalation paths, the placeholder rule for the site.
-- **Still blocked (owner/provisioning):** the actual mailboxes/aliases, apex DNS+MX (launch activity), named primary/backup owners, a grievance officer, and a chosen tracking tool. These keep **OD-LP-7 OPEN** and are launch gates.
+- **Still blocked (owner/provisioning):** the actual mailboxes/aliases and apex DNS+MX (manual admin action / launch activity), and a chosen tracking tool. Owners are set (primary `solutions@plaidware.com`, backup `kfnawaz@gmail.com`). These keep **OD-LP-7 OPEN** and are launch gates.
+
+> **Titles (SPEC §20):** do not label anyone "Data Protection Officer" or "Grievance Officer" unless the business formally designates that role. Until then use **"privacy/grievance contact"** in public-facing wording (counsel-reviewed). The erasure mechanism referenced in §3 is documented in [retention-and-erasure.md](retention-and-erasure.md) (§3 — identity-verification boundary + sequence).

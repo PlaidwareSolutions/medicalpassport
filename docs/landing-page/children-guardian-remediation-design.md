@@ -1,6 +1,8 @@
-# Children & Guardian — Product Remediation Design
+# Children & Guardian — Product Remediation Design + V1 Status
 
-**Session 12 · 2026-08-13 · DESIGN ONLY (not implemented this session).**
+**Session 12 design; V1 shipped after Session 12. · Updated 2026-08-13.**
+
+> **PRODUCT POLICY APPROVED — COUNSEL REVIEW PENDING.** Working launch policy: a person under 18 does not independently establish/manage Medicine Passport as an adult account holder; a child's Medicine Passport is managed through an adult parent/lawful-guardian relationship. Generic caregiver access is **not** equated with lawful guardianship. Counsel to review; verifiable parental consent (DPDP Rule 10, ~14 May 2027) is future work (§ below).
 
 Implements owner ruling #5 ([session12-owner-rulings.md](session12-owner-rulings.md)): a person under 18 does not run their own adult account; a child's Medicine Passport is set up and managed by an adult parent/lawful guardian. Grounded in the real data model (`User`, `PatientProfile.yearOfBirth`, `PatientProfile.dependentRelationship`, `CaregiverRelationship`). Not legal advice.
 
@@ -30,5 +32,16 @@ DPDP (from 14 May 2027) requires **verifiable** parental/lawful-guardian consent
 - **Caregiver ≠ lawful guardian.** The attestation captures the guardian claim explicitly; the generic caregiver-invite flow stays as-is for adult-to-adult delegation.
 - Keep it minimal and honest — the draft Privacy Policy/Terms state the *intended* adult-managed policy; do not claim enforcement the code does not yet do until V1 ships.
 
-## 6. Implementation status & effort
-**Not implemented in Session 12.** This is a **patient-app engineering task** touching onboarding/auth (age gate), profile creation (dependent + attestation), and the schema (additive fields) — plus tests. Recommended as a dedicated PR before launch. Estimated: small-to-medium (no external identity vendor for V1). Launch-gating (owner ruling #5).
+## 6. Implementation status — **V1 SHIPPED** (PR #1, merged to `foundation`, deployed staging + prod)
+
+The launch-minimum V1 (§2) is implemented and live:
+- **Self profile requires year of birth and blocks under-18** → `403 self_account_minor` (an under-18 cannot run their own adult account). `apps/api/src/modules/profiles/profiles.controller.ts` + `createSelfProfileSchema`.
+- **Guardian attestation required for a child dependent** (relationship `child`, or birth year <18) → `400 guardian_attestation_required`; stores `guardianAttestedByUserId/_At/_Version`. Migration `20260813120000` (additive).
+- **No independent child signup path**; dependent designation retained; **no targeted advertising / behavioural tracking of children** (consistent with product philosophy — no ad system; marketing analytics never runs in the patient app).
+- Client: onboarding requires a valid birth year; add-dependent shows a required parent/guardian attestation checkbox for children.
+- Tests: 10 e2e cases pass against a real DB (7 children-guardian + 3 updated); typecheck/build green.
+
+Domain helper `isMinorByBirthYear` uses **year-only** granularity (a documented approximation).
+
+## 7. Future — verifiable parental/guardian consent (DPDP Rule 10, ~14 May 2027)
+The V1 **attestation checkbox does not, by itself, satisfy** the future DPDP requirement for *verifiable* parental/lawful-guardian consent. Counsel + product must determine the eventual verification method (e.g., tying consent to a verified adult identity signal already in the system, or an out-of-band step) **before** Rule 10 commences. Do **not** claim the checkbox is verifiable consent. Do not build a national identity/KYC service now.
