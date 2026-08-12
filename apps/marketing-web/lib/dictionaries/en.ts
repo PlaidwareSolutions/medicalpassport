@@ -268,6 +268,9 @@ export const en = {
   "footer.privacy": "Privacy",
   "footer.terms": "Terms",
   "footer.language": "Language",
+  // Non-English locales link to the English legal pages (§51); this word marks
+  // the linked page's language for the reader (e.g. "Privacy (English)").
+  "footer.english": "English",
 
   "media.placeholder_badge": "Preview",
 
@@ -278,4 +281,7 @@ export const en = {
 
   "notfound.title": "This page doesn't exist.",
   "notfound.home": "Go to the home page",
+
+  // Staging-only indicator on draft (unreviewed) locale routes (Session 13).
+  "review.banner": "Draft translation — under review",
 } as const;

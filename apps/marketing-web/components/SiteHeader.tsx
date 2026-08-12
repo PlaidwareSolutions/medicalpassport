@@ -1,36 +1,30 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { t } from "../lib/i18n";
 import { PUBLISHED_LOCALES, localePath, type MarketingLocale } from "../lib/locales";
 import { PROFESSIONAL_UNIT_ENABLED } from "../lib/release-flags";
 import { CtaLink } from "./CtaLink";
+import { HeaderStickyCta } from "./HeaderStickyCta";
+import { LocaleSwitcher } from "./LocaleSwitcher";
 
-export const HERO_CTA_SENTINEL_ID = "hero-cta-sentinel";
+// Re-exported for the Hero section, which places the sentinel this observes.
+export { HERO_CTA_SENTINEL_ID } from "./HeaderStickyCta";
 
 /**
- * Sticky header. The CTA appears only after the hero's own CTA leaves view
- * (approved wireframe rule); pages without a hero sentinel show it always.
- * Locale UI: static chip while exactly one marketing locale is published
- * (a one-entry dropdown reads as broken — wireframes §7.2); becomes a menu
- * when the second reviewed locale publishes.
+ * Sticky header — a SERVER component so all copy is localized at build time and
+ * the multilingual dictionaries never ship to the client (§44). The only client
+ * behaviour (revealing the CTA after the hero CTA scrolls away) lives in the
+ * tiny HeaderStickyCta wrapper, which receives the already-rendered CTA.
+ *
+ * Locale UI: a static chip while exactly one marketing locale is offered (a
+ * one-entry menu reads as broken — wireframes §7.2); a real language switcher
+ * once this build emits more than one locale (staging drafts, or published).
  */
-export function SiteHeader({ locale }: { locale: MarketingLocale }) {
-  const [showCta, setShowCta] = useState(false);
-
-  useEffect(() => {
-    const sentinel = document.getElementById(HERO_CTA_SENTINEL_ID);
-    if (!sentinel) {
-      setShowCta(true);
-      return;
-    }
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry) setShowCta(!entry.isIntersecting);
-    });
-    io.observe(sentinel);
-    return () => io.disconnect();
-  }, []);
-
+export function SiteHeader({
+  locale,
+  availableLocales = PUBLISHED_LOCALES,
+}: {
+  locale: MarketingLocale;
+  availableLocales?: readonly MarketingLocale[];
+}) {
   return (
     <header
       style={{
@@ -66,9 +60,6 @@ export function SiteHeader({ locale }: { locale: MarketingLocale }) {
         </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "18px" }} aria-label="Site">
           {PROFESSIONAL_UNIT_ENABLED ? (
-            // Desktop-only so the narrow (320px) mobile header doesn't overflow
-            // with the sticky CTA — mobile reaches /for-clinics/ via the S12
-            // bridge and footer (professional nav is secondary, §23).
             <a className="mkt-muted mkt-nav-quiet mkt-desktop-only" href="/for-clinics/" style={{ textDecoration: "none", fontWeight: 600, fontSize: "0.9375rem" }}>
               {t(locale, "nav.for_clinics")}
             </a>
@@ -80,7 +71,9 @@ export function SiteHeader({ locale }: { locale: MarketingLocale }) {
           >
             {t(locale, "nav.help")}
           </a>
-          {PUBLISHED_LOCALES.length > 1 ? null : (
+          {availableLocales.length > 1 ? (
+            <LocaleSwitcher locale={locale} availableLocales={availableLocales} />
+          ) : (
             <span
               aria-label={t(locale, "footer.language")}
               style={{
@@ -95,7 +88,9 @@ export function SiteHeader({ locale }: { locale: MarketingLocale }) {
               {locale.toUpperCase()}
             </span>
           )}
-          {showCta ? <CtaLink locale={locale} short /> : null}
+          <HeaderStickyCta>
+            <CtaLink locale={locale} short />
+          </HeaderStickyCta>
         </nav>
       </div>
     </header>

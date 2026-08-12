@@ -136,6 +136,22 @@ button{font:inherit}
 @media (min-width:768px){.mkt-desktop-only{display:inline}}
 .mkt-desktop-flex{display:none}
 @media (min-width:900px){.mkt-desktop-flex{display:flex}}
+/* Locale switcher (§28) — native <details> disclosure, RTL-aware, keyboard accessible. */
+.mkt-lang{position:relative}
+.mkt-lang-summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--mkt-hairline);border-radius:999px;padding:5px 12px;font-weight:600;
+  font-size:0.8125rem;background:var(--mkt-surface);min-height:var(--size-touch);box-sizing:border-box}
+.mkt-lang-summary::-webkit-details-marker{display:none}
+.mkt-lang-summary:focus-visible{outline:2px solid var(--mkt-primary);outline-offset:2px}
+.mkt-lang-caret{font-size:0.7rem;color:var(--mkt-muted)}
+.mkt-lang[open] .mkt-lang-caret{transform:rotate(180deg)}
+.mkt-lang-menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:20;margin:0;
+  list-style:none;padding:6px;min-width:160px;background:var(--mkt-surface);
+  border:1px solid var(--mkt-hairline);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.10)}
+.mkt-lang-item{display:block;padding:10px 12px;border-radius:8px;text-decoration:none;
+  color:var(--mkt-ink);font-weight:600;font-size:0.9375rem}
+.mkt-lang-item:hover{background:var(--mkt-soft)}
+.mkt-lang-item[aria-current="true"]{background:var(--mkt-soft);color:var(--mkt-primary)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;
     transition-duration:0.01ms!important;scroll-behavior:auto!important}
