@@ -59,7 +59,7 @@ Intentionally omitted: per-page clickstream, CTA-hover/section events, a precise
 
 ## F. Privacy boundary (§31)
 
-- **Cloudflare Web Analytics** receives only the service's standard browser/performance signals — no custom data, and it's dormant until activated.
+- **Cloudflare Web Analytics** receives only the service's standard browser/performance signals — no custom data. Live on staging; a single deliberate beacon only.
 - **First-party product data** holds `acquisitionSource = website` (or null) on the user — nothing else marketing-related.
 - **Lead system** holds professional business-contact fields.
 - **No marketing analytics system ever receives** medicine names, diagnoses, prescriptions, reports, glucose, allergies, caregiver health data, or lead email/phone/message. Lead fields never go to analytics, URLs, or logs; the ops report logs only aggregate counts.
@@ -69,3 +69,20 @@ Intentionally omitted: per-page clickstream, CTA-hover/section events, a precise
 - Analytics: unset `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN` → beacon renders nothing.
 - Turnstile: it's fail-closed by design; to intentionally disable lead collection, that's a product decision, not an env toggle. The test keys can be swapped/removed on the medpass-dev api service.
 - Attribution: the `User.acquisitionSource` column is additive and nullable; ignoring it is harmless.
+
+## H. Closeout verification (2026-08-12)
+
+**Turnstile widget** — restricted to `staging.medidocs.app` only (managed mode); `localhost` removed. Local/automated dev uses Cloudflare public test keys, keeping real vs. test credentials cleanly separated.
+
+**Lead-submit failure root cause = CORS (not the phone field).** A human test solved the widget ("Success!") but the submit showed the generic error. Investigation:
+- The phone `17133533453` (no `+`) **passes** validation — the regex `^\+?[0-9 ()-]{6,20}$` makes `+` optional — and the controller validates *before* Turnstile, so phone was never implicated.
+- The api logs showed **no** POST from the user (only curl tests, which bypass CORS). The browser preflight from `https://staging.medidocs.app` returned 204 **without** `access-control-allow-origin`, while the patient-app origin got it. Root cause: the marketing origin was missing from the api's `CORS_ORIGINS` (it lists the patient/admin app origins only). The browser blocked the POST before it was sent.
+- **Fix:** added `https://staging.medidocs.app` to `CORS_ORIGINS` on the medpass-dev `api` service (live) and in `.railway/railway.ts`; added `https://medidocs.app` to `.railway/railway.prod.ts` as launch-prep (file only, not applied). Verified live: preflight now returns `access-control-allow-origin: https://staging.medidocs.app`, and a real cross-origin `fetch()` from the marketing browser origin now completes (reads a `turnstile_failed` 400 for a bogus token) instead of throwing a CORS error. The happy-path 201 still needs one human widget solve (managed mode challenges automation).
+
+**Lead-form error UX** — the form no longer collapses every failure into one generic line. It parses the ApiProblem (`code` + `errors[]`, the api serializes Zod issues under `errors`) and shows: field-level messages beside the offending field with `aria-invalid` (verified live for both `email` → "Enter a valid email address." and `phone` → "Enter a valid phone number…"), a "please complete the verification" message for `turnstile_failed`, a wait-and-retry message for `rate_limited`, and the generic message only as a true fallback. The rest of the form is preserved on error (verified: a filled name survives a rejected submit), and the single-use Turnstile token is kept on validation errors (server checks Turnstile after validation) but reset on `turnstile_failed`/generic. Server-side validation and Turnstile are unchanged — the fix is presentation only.
+
+**Web Analytics (after the user switched the `medidocs.app` site to Manual)** — verified by real browser/network inspection:
+- `staging.medidocs.app/for-clinics/`: exactly **one** beacon, our staging token `3e2da448…`; the old auto-injected token `9bb7272d…` is gone; RUM POST → **204**; **zero** CSP violations.
+- `app.medidocs.app` and `admin.medidocs.app`: **no** beacon script, **no** `cloudflareinsights.com` requests, **no** RUM — the edge auto-injection is off everywhere.
+
+Production launch still needs: a separate `medidocs.app` Web Analytics site (manual) + `-production` Turnstile widget, and the prod api `CORS_ORIGINS` line applied.

@@ -72,9 +72,23 @@ const roleKey: Record<(typeof PROFESSIONAL_ROLES)[number], Parameters<typeof t>[
   other: "lead.role_other",
 };
 
+// Friendly, localized copy for the fields users most often trip on. For any
+// other field the server's own message is shown verbatim (still accurate, just
+// less polished) — so a new server-side rule never regresses to a blank field.
+const fieldMessageKey: Partial<Record<string, Parameters<typeof t>[1]>> = {
+  email: "lead.error_email",
+  phone: "lead.error_phone",
+  consentToContact: "lead.error_consent",
+};
+
+// The API's ApiProblem serializes Zod field issues under `errors` (see
+// api/src/common/errors.ts) — each `{ path, message }`.
+type LeadProblem = { code?: string; errors?: { path?: string; message?: string }[] };
+
 export function LeadForm({ locale }: { locale: MarketingLocale }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const turnstileRef = useRef<HTMLDivElement | null>(null);
 
   // Explicit render: the Turnstile script auto-renders on load, but this
@@ -102,16 +116,20 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     const form = e.currentTarget;
     const data = new FormData(form);
     const email = String(data.get("email") ?? "").trim();
     const phone = String(data.get("phone") ?? "").trim();
+    // Client-side pre-checks (mirror the server's `.refine`/consent rules) so
+    // the two most common mistakes are caught without a round-trip.
     if (!email && !phone) {
+      setFieldErrors({ email: t(locale, "lead.error_contact"), phone: t(locale, "lead.error_contact") });
       setError(t(locale, "lead.error_contact"));
       return;
     }
     if (data.get("consentToContact") !== "on") {
-      setError(t(locale, "lead.error_consent"));
+      setFieldErrors({ consentToContact: t(locale, "lead.error_consent") });
       return;
     }
     setStatus("submitting");
@@ -132,16 +150,49 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
           ...(token ? { turnstileToken: token } : {}),
         }),
       });
-      if (!res.ok) throw new Error(String(res.status));
-      form.reset();
+      if (res.ok) {
+        form.reset();
+        resetTurnstile();
+        setStatus("success");
+        return;
+      }
+      // Non-2xx: translate the server's structured ApiProblem into targeted,
+      // field-level feedback instead of one opaque "something went wrong".
+      const problem = (await res.json().catch(() => null)) as LeadProblem | null;
+      const code = problem?.code;
+      setStatus("error");
+
+      if (code === "validation_failed" && Array.isArray(problem?.errors)) {
+        const next: Record<string, string> = {};
+        for (const d of problem.errors) {
+          const field = String(d?.path ?? "").split(".")[0];
+          if (!field) continue;
+          const key = fieldMessageKey[field];
+          next[field] = key ? t(locale, key) : d?.message || t(locale, "lead.error_generic");
+        }
+        setFieldErrors(next);
+        setError(t(locale, "lead.error_fix_fields"));
+        // The server validates the body BEFORE Turnstile, so the token was
+        // never spent — keep it; the user can fix the field and resubmit
+        // without re-solving the widget.
+        return;
+      }
+      if (code === "turnstile_failed") {
+        setError(t(locale, "lead.error_turnstile"));
+        resetTurnstile(); // token spent/expired — get a fresh one
+        return;
+      }
+      if (res.status === 429 || code === "rate_limited") {
+        setError(t(locale, "lead.error_rate_limited"));
+        return;
+      }
+      setError(t(locale, "lead.error_generic"));
       resetTurnstile();
-      setStatus("success");
     } catch {
+      // Network/transport failure (offline, DNS, CORS) — the response was never
+      // readable, so reset the widget and show the generic message.
       setStatus("error");
       setError(t(locale, "lead.error_generic"));
-      // A Turnstile token is single-use; after any failed submit, reset the
-      // widget so the next attempt gets a fresh token instead of reusing a
-      // spent/expired one.
       resetTurnstile();
     }
   }
@@ -155,19 +206,36 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
     );
   }
 
+  const errStyle: React.CSSProperties = {
+    display: "block",
+    color: "var(--color-danger)",
+    fontSize: "0.8125rem",
+    fontWeight: 600,
+    marginTop: "6px",
+  };
+  const fieldError = (name: string) =>
+    fieldErrors[name] ? (
+      <span role="alert" style={errStyle}>
+        {fieldErrors[name]}
+      </span>
+    ) : null;
+  const invalid = (name: string) => (fieldErrors[name] ? true : undefined);
+
   return (
     <form onSubmit={onSubmit} noValidate style={{ display: "grid", gap: "16px" }}>
       <label>
         {label(locale, "lead.name", true)}
-        <input name="name" required maxLength={120} autoComplete="name" style={field} />
+        <input name="name" required maxLength={120} autoComplete="name" aria-invalid={invalid("name")} style={field} />
+        {fieldError("name")}
       </label>
       <label>
         {label(locale, "lead.organization", true)}
-        <input name="organization" required maxLength={160} autoComplete="organization" style={field} />
+        <input name="organization" required maxLength={160} autoComplete="organization" aria-invalid={invalid("organization")} style={field} />
+        {fieldError("organization")}
       </label>
       <label>
         {label(locale, "lead.role", true)}
-        <select name="role" required defaultValue="" style={field}>
+        <select name="role" required defaultValue="" aria-invalid={invalid("role")} style={field}>
           <option value="" disabled>
             {t(locale, "lead.role_placeholder")}
           </option>
@@ -177,19 +245,23 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
             </option>
           ))}
         </select>
+        {fieldError("role")}
       </label>
       <label>
         {label(locale, "lead.city", true)}
-        <input name="city" required maxLength={120} autoComplete="address-level2" style={field} />
+        <input name="city" required maxLength={120} autoComplete="address-level2" aria-invalid={invalid("city")} style={field} />
+        {fieldError("city")}
       </label>
       <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "1fr" }}>
         <label>
           {label(locale, "lead.email")}
-          <input name="email" type="email" maxLength={254} autoComplete="email" style={field} />
+          <input name="email" type="email" maxLength={254} autoComplete="email" aria-invalid={invalid("email")} style={field} />
+          {fieldError("email")}
         </label>
         <label>
           {label(locale, "lead.phone")}
-          <input name="phone" type="tel" maxLength={20} autoComplete="tel" style={field} />
+          <input name="phone" type="tel" maxLength={20} autoComplete="tel" aria-invalid={invalid("phone")} style={field} />
+          {fieldError("phone")}
         </label>
       </div>
       <p className="mkt-muted" style={{ fontSize: "0.8125rem", marginTop: "-8px" }}>
@@ -197,15 +269,17 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
       </p>
       <label>
         {label(locale, "lead.message")}
-        <textarea name="message" maxLength={2000} rows={3} style={{ ...field, resize: "vertical" }} />
+        <textarea name="message" maxLength={2000} rows={3} aria-invalid={invalid("message")} style={{ ...field, resize: "vertical" }} />
+        {fieldError("message")}
         <span className="mkt-muted" style={{ display: "block", fontSize: "0.8125rem", marginTop: "6px" }}>
           {t(locale, "lead.no_patient_data")}
         </span>
       </label>
       <label style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-        <input name="consentToContact" type="checkbox" required style={{ width: "22px", height: "22px", marginTop: "2px", flex: "none" }} />
+        <input name="consentToContact" type="checkbox" required aria-invalid={invalid("consentToContact")} style={{ width: "22px", height: "22px", marginTop: "2px", flex: "none" }} />
         <span style={{ fontSize: "0.9375rem" }}>{t(locale, "lead.consent")}</span>
       </label>
+      {fieldError("consentToContact")}
       {LEAD_TURNSTILE_SITEKEY ? <div ref={turnstileRef} /> : null}
       {error ? (
         <p role="alert" style={{ color: "var(--color-danger)", fontWeight: 600, fontSize: "0.9375rem" }}>

@@ -26,7 +26,7 @@ export const en = {
   "hero.h1": "Your medicines. One place. In your language.",
   "hero.sub":
     "Keep track of what you take, why you take it, when to take it, and what to show your doctor — wherever you go.",
-  "hero.chip_free": "Free for patients",
+  "hero.chip_free": "Free for all patients",
   "hero.chip_no_install": "No app to install",
   "hero.chip_languages": "App languages: English · हिंदी · తెలుగు · اردو",
   "hero.cta": "Create my free Medicine Passport",
@@ -139,12 +139,12 @@ export const en = {
 
   // S10 free (MKT-001 + OD-LP-1 approved framing; MKT-006 prohibition
   // honored; never-sold chip MKT-072 business/legal-gated and absent).
-  "free.h2": "Medicine Passport is free for patients.",
+  "free.h2": "Medicine Passport is free for all patients.",
   // Session 7 correction A: "share" removed from public free-wording while the
   // Stage 7 sharing gate is OFF; the approved "…and share" wording returns
   // through the gate when Stage 7 clears.
   "free.body":
-    "Your medicine information belongs to you. Medicine Passport is free for patients to create, maintain and access. We plan to sustain MediDocs through services and partnerships with healthcare organizations — not by charging patients for access to their own medicine information.",
+    "Your medicine information belongs to you. Medicine Passport is free for all patients to create, maintain and access. We plan to sustain MediDocs through services and partnerships with healthcare organizations — not by charging patients for access to their own medicine information.",
   "free.chip_no_ads": "No advertising in the patient experience",
   "free.chip_no_paywall": "No paywall on your own record",
 
@@ -166,7 +166,7 @@ export const en = {
   "faq.h2": "Questions families actually ask.",
   "faq.q1": "Is Medicine Passport really free?",
   "faq.a1":
-    "Yes — free for patients to create, maintain and access. We plan to sustain MediDocs through services and partnerships with healthcare organizations, not by charging patients.",
+    "Yes — free for all patients to create, maintain and access. We plan to sustain MediDocs through services and partnerships with healthcare organizations, not by charging patients.",
   "faq.q2": "Do I need to install an app?",
   "faq.a2":
     "No. Medicine Passport works in your phone's browser. You can add it to your home screen if you like, but you never have to.",
@@ -258,6 +258,11 @@ export const en = {
   "lead.error_generic": "Something went wrong. Please try again.",
   "lead.error_contact": "Please provide an email or a phone number.",
   "lead.error_consent": "Please agree to be contacted so we can reply.",
+  "lead.error_fix_fields": "Please fix the highlighted fields and try again.",
+  "lead.error_turnstile": "Please complete the verification below and try again.",
+  "lead.error_rate_limited": "You've submitted a few times already. Please wait a minute and try again.",
+  "lead.error_phone": "Enter a valid phone number, e.g. +1 713 555 0199.",
+  "lead.error_email": "Enter a valid email address.",
   "lead.required": "required",
 
   "footer.privacy": "Privacy",
