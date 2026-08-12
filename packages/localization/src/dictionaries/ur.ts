@@ -581,6 +581,8 @@ export const ur: Record<keyof typeof en, string> = {
   "caregiver.dependent_year_label": "سالِ پیدائش (اختیاری)",
   "caregiver.dependent_relationship_label": "ان سے آپ کا رشتہ",
   "caregiver.dependent_create": "پروفائل بنائیں",
+  // TODO(i18n): translate — children V1, English placeholder (falls back to en at runtime)
+  "caregiver.guardian_attestation": "I confirm I am the parent or lawful guardian of this child.",
   "caregiver.last_used": "آخری استعمال {time}",
   "caregiver.never_used": "ابھی تک استعمال نہیں ہوا",
   "caregiver.access_log_toggle": "رسائی کی تاریخ دیکھیں",

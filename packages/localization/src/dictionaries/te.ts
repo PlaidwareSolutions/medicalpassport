@@ -581,6 +581,8 @@ export const te: Record<keyof typeof en, string> = {
   "caregiver.dependent_year_label": "పుట్టిన సంవత్సరం (ఐచ్ఛికం)",
   "caregiver.dependent_relationship_label": "వారితో మీ సంబంధం",
   "caregiver.dependent_create": "ప్రొఫైల్‌ను సృష్టించండి",
+  // TODO(i18n): translate — children V1, English placeholder (falls back to en at runtime)
+  "caregiver.guardian_attestation": "I confirm I am the parent or lawful guardian of this child.",
   "caregiver.last_used": "చివరిసారి ఉపయోగించింది {time}",
   "caregiver.never_used": "ఇంకా ఉపయోగించలేదు",
   "caregiver.access_log_toggle": "యాక్సెస్ చరిత్రను చూడండి",

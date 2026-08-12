@@ -18,13 +18,20 @@ export default function CreateProfilePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
+  // Children V1: year of birth is required for the account holder's own profile
+  // so the server can apply the age gate (a person under 18 cannot run their own
+  // adult account). If the server rejects with a minor block, its message is shown.
+  const currentYear = new Date().getFullYear();
+  const yearNum = Number(year);
+  const yearValid = /^\d{4}$/.test(year) && yearNum >= currentYear - 120 && yearNum <= currentYear;
+
   async function save() {
     setBusy(true);
     setError(undefined);
     try {
       await api.post("/profiles", {
         displayName: name,
-        ...(year ? { yearOfBirth: Number(year) } : {}),
+        yearOfBirth: yearNum,
         preferredLocale: locale,
       });
       await refresh();
@@ -55,7 +62,7 @@ export default function CreateProfilePage() {
         value={year}
         onChange={(e) => setYear(e.target.value)}
       />
-      <Button fullWidth loading={busy} disabled={busy || name.trim().length === 0} onClick={() => void save()}>
+      <Button fullWidth loading={busy} disabled={busy || name.trim().length === 0 || !yearValid} onClick={() => void save()}>
         {t("common.continue")}
       </Button>
     </main>

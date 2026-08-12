@@ -35,8 +35,17 @@ export default function AddDependentPage() {
   const [name, setName] = useState("");
   const [year, setYear] = useState("");
   const [relationship, setRelationship] = useState<Relationship | undefined>();
+  const [guardianAttestation, setGuardianAttestation] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+
+  // Children V1: a child dependent (relationship "child", or a birth year that
+  // indicates under 18) requires an explicit parent/lawful-guardian attestation
+  // before it can be created. Mirrors the server rule (profiles.controller.ts).
+  const currentYear = new Date().getFullYear();
+  const yearNum = Number(year);
+  const yearIsMinor = /^\d{4}$/.test(year) && currentYear - yearNum < 18;
+  const needsGuardian = relationship === "child" || yearIsMinor;
 
   const [createdProfileId, setCreatedProfileId] = useState<string | undefined>();
   const [phone, setPhone] = useState("+91");
@@ -52,6 +61,7 @@ export default function AddDependentPage() {
         ...(year ? { yearOfBirth: Number(year) } : {}),
         preferredLocale: locale,
         relationship,
+        ...(needsGuardian ? { guardianAttestation } : {}),
       });
       await refresh();
       setCreatedProfileId(res.id);
@@ -160,8 +170,25 @@ export default function AddDependentPage() {
         onChange={setRelationship}
       />
 
+      {needsGuardian ? (
+        <label style={{ display: "flex", gap: "var(--space-sm)", alignItems: "flex-start", marginTop: "var(--space-md)" }}>
+          <input
+            type="checkbox"
+            checked={guardianAttestation}
+            onChange={(e) => setGuardianAttestation(e.target.checked)}
+            style={{ width: 22, height: 22, marginTop: 2, flex: "none" }}
+          />
+          <span>{t("caregiver.guardian_attestation")}</span>
+        </label>
+      ) : null}
+
       <div style={{ marginTop: "var(--space-lg)" }}>
-        <Button fullWidth loading={busy} disabled={busy || name.trim().length === 0 || !relationship} onClick={() => void create()}>
+        <Button
+          fullWidth
+          loading={busy}
+          disabled={busy || name.trim().length === 0 || !relationship || (needsGuardian && !guardianAttestation)}
+          onClick={() => void create()}
+        >
           {t("caregiver.dependent_create")}
         </Button>
       </div>

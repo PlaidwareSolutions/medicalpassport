@@ -8,6 +8,8 @@ export async function createDependent(input: {
   yearOfBirth?: number;
   preferredLocale: string;
   relationship: CaregiverRelationshipKind;
+  /** Children V1: required by the server for a child dependent (parent/lawful-guardian attestation). */
+  guardianAttestation?: boolean;
 }) {
   return api.post<{ id: string; displayName: string; rowVersion: number }>("/profiles/dependents", input);
 }

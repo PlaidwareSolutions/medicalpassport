@@ -588,6 +588,7 @@ export const en = {
   "caregiver.dependent_year_label": "Year of birth (optional)",
   "caregiver.dependent_relationship_label": "Your relationship to them",
   "caregiver.dependent_create": "Create profile",
+  "caregiver.guardian_attestation": "I confirm I am the parent or lawful guardian of this child.",
   "caregiver.last_used": "Last used {time}",
   "caregiver.never_used": "Not used yet",
   "caregiver.access_log_toggle": "View access history",

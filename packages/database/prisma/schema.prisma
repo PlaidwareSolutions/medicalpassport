@@ -160,6 +160,15 @@ model PatientProfile {
   claimInvitedAt          DateTime? @map("claim_invited_at") @db.Timestamptz(6)
   claimInviteExpiresAt    DateTime? @map("claim_invite_expires_at") @db.Timestamptz(6)
 
+  /// Parent/lawful-guardian attestation for a child dependent (children V1,
+  /// docs/landing-page/children-guardian-remediation-design.md). Set when an
+  /// adult creates a profile for a person under 18 and attests they are the
+  /// parent or lawful guardian. Null for adult profiles. This is a product
+  /// attestation, not statutory verifiable consent (that is future work).
+  guardianAttestedByUserId   String?   @map("guardian_attested_by_user_id") @db.Uuid
+  guardianAttestedAt         DateTime? @map("guardian_attested_at") @db.Timestamptz(6)
+  guardianAttestationVersion String?   @map("guardian_attestation_version")
+
   rowVersion Int       @default(0) @map("row_version")
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
