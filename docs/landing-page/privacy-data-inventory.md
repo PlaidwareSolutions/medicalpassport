@@ -89,7 +89,7 @@ Only vendors the *current* implementation actually uses. "Location" = where proc
 
 - **Technical location:** Railway (Postgres + app) and Cloudflare R2 (documents/backups) regions are **not established from code/config**. `UNKNOWN — VERIFY WITH VENDOR/CONTRACT`. Do **not** claim "data stays in India" — it is unverified.
 - **Contractual region:** `UNKNOWN — VERIFY` for each vendor.
-- **Legal permissibility:** DPDP cross-border provisions are Phase-2 (from 14 Nov 2026) — government may notify restricted countries. `COUNSEL REVIEW REQUIRED` on transfer position and any localization expectation for health data. [LI][CA]
+- **Legal permissibility:** DPDP cross-border transfer (Rule 15) commences in the **eighteen-month** phase (~14 May 2027), not the one-year phase (corrected — see compliance-review §2); government may notify restricted countries. `COUNSEL REVIEW REQUIRED` on transfer position and any localization expectation for health data. [LI][CA]
 
 ---
 

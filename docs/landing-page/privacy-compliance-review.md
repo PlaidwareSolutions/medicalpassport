@@ -18,32 +18,41 @@ Factual basis: [privacy-data-inventory.md](privacy-data-inventory.md).
   - PIB press note "DPDP Rules, 2025 Notified" (NoteId 156054).
 - **Gazette notification establishing the Data Protection Board of India** — effective on publication (13–14 Nov 2025).
 
+- **DPDP Rules 2025, Rule 1(2)** — the Rules' own commencement schedule (which rules commence on which of the three dates); this is the authority for the corrected mapping in §2.
+
 **Secondary (interpretation/context only — clearly labelled, not relied on for conclusions):**
 - Wikipedia, "Digital Personal Data Protection Rules, 2025" (for the phased-schedule summary).
-- Law-firm commentary (Shardul Amarchand Mangaldas; S.S. Rana; Khurana & Khurana) — for the G.S.R. number and phasing narrative.
+- Compliance/law-firm commentary corroborating the Rule 1(2) buckets (Rules 1,2,17–21 immediate; Rule 4 at one year; Rules 3,5–16,22–23 at eighteen months).
 
-> The **exact rule-to-commencement-date mapping** and the interpretation of each obligation for MediDocs's facts **require counsel + the Gazette text** [CA]. The phasing below is the reported schedule, sufficient for readiness planning, not for legal reliance.
+> The **exact calendar dates** and the interpretation of each obligation for MediDocs's facts **require counsel + the Gazette text** [CA]. The rule-to-phase buckets in §2 are the Rules' own Rule 1(2) schedule.
 
 ---
 
-## 2. Phased commencement — as of 2026-08-12
+## 2. Phased commencement — corrected (Session 12.5)
 
-The DPDP Rules 2025 roll out over ~18 months in three phases. **Today (Aug 2026) we are between Phase 1 and Phase 2.**
+> **Correction to Session 12.** The Session-12 draft placed Consent Manager, cross-border, and Significant Data Fiduciary obligations all in the one-year phase. That was too broad. The Rules' own commencement schedule (**Rule 1(2) of the DPDP Rules, 2025**) maps rules to three dates, and only **Rule 4 (Consent Manager)** is in the one-year phase; **cross-border (Rule 15)** and **Significant Data Fiduciary (Rule 12)** are in the **eighteen-month** substantive group, not the one-year phase.
 
-| Provision / obligation | Source | Commencement | Effective date | Relevant to MediDocs? | Notes |
+**Authoritative mapping (Rule 1(2), DPDP Rules 2025; notified 14 Nov 2025, G.S.R. 846(E)):**
+- **Immediate — on publication (~14 Nov 2025):** Rules **1, 2, 17–21** (short title, definitions, Data Protection Board machinery, appeals, procedure).
+- **One year (~14 Nov 2026):** Rule **4** (Consent Manager registration/obligations) — **only**.
+- **Eighteen months (~14 May 2027):** Rules **3, 5–16, 22, 23** — the large substantive Data Fiduciary group (notice, security safeguards Rule 6, breach Rule 7, retention/erasure Rule 8, verifiable child consent Rule 10, **SDF Rule 12**, rights, **cross-border Rule 15**, grievance).
+
+*(Exact calendar day — 13 vs 14 Nov / May — and the precise per-rule reading for MediDocs's facts remain [CA]. The rule-to-date buckets above are the Rules' own schedule.)*
+
+| Provision / obligation | Rule | Phase | Effective ~ | Relevant to MediDocs? | Notes |
 |---|---|---|---|---|---|
-| Data Protection Board of India established; definitions; Board machinery | DPDP Rules 2025 Phase 1 | **In force** | 14 Nov 2025 | Yes (regulator exists) | Board is operational now |
-| Consent Manager registration framework | Phase 2 | **Future** | ~14 Nov 2026 | Only if MediDocs became a Consent Manager (it is not) | Not applicable unless registered |
-| Cross-border transfer / restricted-country mechanism | Phase 2 | **Future** | ~14 Nov 2026 | **Yes** (R2/Railway location unverified) | Watch item; [CA] |
-| Significant Data Fiduciary (SDF) obligations | Phase 2 | **Future** | ~14 Nov 2026 | Only if **government-notified** as SDF | Health data at scale *could* attract notification; not designated [LI] |
-| **Consent notice** (standalone, clear, itemized purpose; multilingual) | Phase 3 | **Future** | **14 May 2027** | **Yes** | Proactive readiness |
-| **Data Principal rights** (access, correction, erasure, grievance, nomination) + grievance handling | Phase 3 | **Future** | 14 May 2027 | **Yes** | Proactive readiness |
-| **Personal data breach** notification (Board + affected individuals; ~72-hour detailed report) | Phase 3 | **Future** | 14 May 2027 | **Yes** | Proactive readiness |
-| **Verifiable parental/guardian consent** for children (<18); no child-targeted ads | Phase 3 | **Future** | 14 May 2027 | **Yes** | Significant gap |
-| Reasonable **security safeguards** (Rule 6) | Phase 3 | **Future** | 14 May 2027 | **Yes** | Many controls already exist |
-| Retention limitation / erasure on purpose completion | Phase 3 | **Future** | 14 May 2027 | **Yes** | Retention undefined for core data |
+| Data Protection Board; definitions; Board machinery | 1,2,17–21 | Immediate | **In force** (14 Nov 2025) | Yes (regulator + complaints exist now) | Operational now |
+| Consent Manager registration framework | 4 | **One year** | ~14 Nov 2026 | Only if MediDocs became a Consent Manager (it is not) | The **only** one-year item |
+| Notice to Data Principal | 3 | Eighteen months | ~14 May 2027 | **Yes** | Proactive readiness |
+| Reasonable security safeguards | 6 | Eighteen months | ~14 May 2027 | **Yes** | Many controls already exist |
+| Personal data breach notification (~72-hr detailed report) | 7 | Eighteen months | ~14 May 2027 | **Yes** | Proactive readiness |
+| Retention limitation / erasure on purpose completion | 8 | Eighteen months | ~14 May 2027 | **Yes** | V1 policy now set (§ retention) |
+| Verifiable parental/guardian consent for children (<18); no child-targeted processing | 10 | Eighteen months | ~14 May 2027 | **Yes** | V1 attestation shipped; verifiable consent is future |
+| **Significant Data Fiduciary** additional obligations | **12** | **Eighteen months** | ~14 May 2027 | Only if **government-notified** as SDF | Not designated; do not self-declare [CA] |
+| Data-Principal rights + grievance | 13–14 | Eighteen months | ~14 May 2027 | **Yes** | Proactive readiness |
+| **Cross-border** transfer / restricted-country mechanism | **15** | **Eighteen months** | ~14 May 2027 | **Yes** (R2/Railway location unverified) | Was mis-placed at one year in S12 [CA] |
 
-**Consequence for wording:** because the substantive Data-Fiduciary obligations commence **14 May 2027**, most items below are **PROACTIVE READINESS**, not **CURRENT LEGAL REQUIREMENT** — *except* obligations arising under other laws already in force (see §5). Any MediDocs operation continuing on/after 14 May 2027 (virtually certain) must be compliant by then, so building now is prudent, not premature. **Do not tell the owner "you must do X today" on DPDP grounds alone unless the provision is in force or another current law creates the duty.**
+**Consequence for wording (unchanged):** the substantive Data-Fiduciary obligations commence in the **eighteen-month** phase (~14 May 2027), so most items are **PROACTIVE READINESS**, not **CURRENT LEGAL REQUIREMENT** — *except* duties under other laws already in force (see §5). Any MediDocs operation continuing on/after ~14 May 2027 (virtually certain) must be compliant by then. **Do not tell the owner "you must do X today" on DPDP grounds alone unless the provision is in force or another current law creates the duty.**
 
 ---
 
