@@ -74,7 +74,7 @@ describe("Telnyx delivery-status webhook e2e", () => {
     userId = verify.body.user.id;
 
     const profile = await auth(token)(request(app.getHttpServer()).post("/v1/profiles"))
-      .send({ displayName: "Telnyx Webhook Test", preferredLocale: "en" })
+      .send({ displayName: "Telnyx Webhook Test", yearOfBirth: 1985, preferredLocale: "en" })
       .expect(201);
     profileId = profile.body.id;
   });

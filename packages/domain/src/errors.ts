@@ -25,6 +25,10 @@ export const ERROR_CODES = {
   MFA_INVALID: "mfa_invalid",
   ADMIN_LOCKED: "admin_locked",
   MAKER_CHECKER_CONFLICT: "maker_checker_conflict",
+  /** A person under 18 may not run their own adult account (children V1). */
+  SELF_ACCOUNT_MINOR: "self_account_minor",
+  /** A child dependent requires an explicit parent/lawful-guardian attestation. */
+  GUARDIAN_ATTESTATION_REQUIRED: "guardian_attestation_required",
   INTERNAL: "internal_error",
 } as const;
 

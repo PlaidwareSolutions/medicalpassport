@@ -1,13 +1,17 @@
 import { Body, Controller, Get, Patch, Post, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
-import { CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES } from "@medpass/domain";
+import { CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES, isMinorByBirthYear } from "@medpass/domain";
 import {
   allergySchema,
   conditionSchema,
   createDependentSchema,
   createProfileSchema,
+  createSelfProfileSchema,
   updateProfileSchema,
 } from "@medpass/validation";
+
+/** Children V1 attestation version stamped on child dependents (audit/provenance). */
+const GUARDIAN_ATTESTATION_VERSION = "v1-2026-08";
 import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
@@ -94,8 +98,20 @@ export class ProfilesController {
 
   @Post()
   async create(@Body() body: unknown, @Req() req: ApiRequest) {
-    const input = parseWith(createProfileSchema, body);
+    const input = parseWith(createSelfProfileSchema, body);
     const userId = req.auth!.userId;
+
+    // Children V1 age gate: a person under 18 may not run their own adult
+    // account. A child's Medicine Passport must be set up by a parent or lawful
+    // guardian (as a dependent). Year-of-birth is required for the self profile
+    // (createSelfProfileSchema) precisely so this check can run.
+    if (isMinorByBirthYear(input.yearOfBirth)) {
+      throw new ApiProblem(
+        ERROR_CODES.SELF_ACCOUNT_MINOR,
+        "A parent or lawful guardian must set up a child's Medicine Passport.",
+        403,
+      );
+    }
 
     const existingSelf = await this.prisma.patientProfile.findFirst({
       where: { ownerUserId: userId, claimedByUserId: null, deletedAt: null },
@@ -142,6 +158,24 @@ export class ProfilesController {
   async createDependent(@Body() body: unknown, @Req() req: ApiRequest) {
     const input = parseWith(createDependentSchema, body);
     const userId = req.auth!.userId;
+
+    // Children V1: a child dependent (relationship "child", or a birth year that
+    // indicates under 18) requires an explicit parent/lawful-guardian
+    // attestation. Adult dependents (e.g. an elderly parent) are unaffected.
+    const isChild =
+      input.relationship === "child" ||
+      (input.yearOfBirth != null && isMinorByBirthYear(input.yearOfBirth));
+    if (isChild && input.guardianAttestation !== true) {
+      throw new ApiProblem(
+        ERROR_CODES.GUARDIAN_ATTESTATION_REQUIRED,
+        "Please confirm you are the parent or lawful guardian of this child.",
+        400,
+      );
+    }
+    const attested = isChild
+      ? { guardianAttestedByUserId: userId, guardianAttestedAt: new Date(), guardianAttestationVersion: GUARDIAN_ATTESTATION_VERSION }
+      : {};
+
     return this.prisma.$transaction(async (tx) => {
       const profile = await tx.patientProfile.create({
         data: {
@@ -155,6 +189,7 @@ export class ProfilesController {
           // caregiver relationship's own `relationship` value if this
           // profile is later claimed (apps/api/.../claims/claims.controller.ts).
           dependentRelationship: input.relationship,
+          ...attested,
         },
       });
       const consent = await tx.consent.create({
