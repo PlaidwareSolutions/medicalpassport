@@ -1,0 +1,29 @@
+# Production marketing Worker — CONTROLLED SOFT LAUNCH (Session 19).
+#
+# Separate runtime from staging (medidocs-marketing-staging) so the two never
+# share config (§31). Serves the English soft-launch artifact (built via
+# `pnpm build:soft-launch`) on the production apex. The apex Custom Domain is
+# attached at cutover; www is a separate Cloudflare Redirect Rule (NOT a route
+# here — this Worker must not serve a second copy of the site on www, §37).
+#
+# Assets-only Worker: no runtime script — Cloudflare serves the static export
+# directly, honouring out/_headers (which, in soft-launch mode, carries the
+# apex + www X-Robots-Tag noindex injected by scripts/apply-soft-launch-headers.mjs).
+#
+# Deploy (after build:soft-launch succeeds and apex access is available):
+#   wrangler deploy -c wrangler.production.toml
+name = "medidocs-marketing-production"
+compatibility_date = "2026-08-01"
+account_id = "db356ac44b40bc2b194b6838d03eb84b"
+
+[assets]
+directory = "./out"
+html_handling = "auto-trailing-slash"
+not_found_handling = "404-page"
+
+# Apex Custom Domain. Requires Cloudflare Zone/DNS access on the deploy
+# credential; if the credential lacks it, attach medidocs.app to this Worker
+# from the dashboard (Workers & Pages → this Worker → Custom Domains).
+[[routes]]
+pattern = "medidocs.app"
+custom_domain = true

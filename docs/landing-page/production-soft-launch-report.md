@@ -1,0 +1,85 @@
+# Controlled Production Soft-Launch — Execution Report
+
+**Session 19 · 2026-08-13.** Authorized action: cut over the production marketing infrastructure (`https://medidocs.app`) as a **controlled soft launch** (real infra, real apex, but global `noindex`, English-only, legal still draft), while governance continues in parallel.
+
+## Status: **CUTOVER NOT COMPLETED — engineering READY, provisioning BLOCKED on access**
+
+`https://medidocs.app` is **NOT live**. The soft-launch **engineering** is complete, verified, and committed. The **provisioning/cutover** steps could not be performed by the available agent tooling and are documented below as precise operator actions. Nothing was fabricated; no production infrastructure was mutated.
+
+- **RC frozen:** `medidocs-marketing-rc1` (`cc0db64`). Soft-launch mode added on top at `0f431a7` (this session; RC1 unmoved, §75).
+- **Deployed:** nothing to production this session.
+
+---
+
+## Capability assessment (why provisioning is blocked)
+
+The available Cloudflare credential (wrangler OAuth, `solutions@plaidware.com`, account `db356ac44b40bc2b194b6838d03eb84b`) has: `workers/workers_routes/workers_scripts/pages (write)`, `ssl_certs (write)`, `zone (READ)`, `account/user (read)`, `email_routing/email_sending (write)`. It does **NOT** have: **Turnstile edit**, **Web Analytics edit**, **Zone/DNS edit**, or **Rulesets/redirect edit**. No `CLOUDFLARE_API_TOKEN` is present in the environment.
+
+Therefore these steps require a **MANUAL CLOUDFLARE DASHBOARD ACTION** (or a broader-scoped credential), per §18:
+- create the production Turnstile widget;
+- create the production Web Analytics site;
+- attach the apex DNS / Workers Custom Domain (needs DNS edit);
+- create the `www → apex` redirect rule.
+
+Without the production Turnstile sitekey + Web-Analytics token, a valid soft-launch artifact **cannot be built** (`check:soft-launch` requires them), so the apex is not attached (correct order: provision before apex, §44).
+
+---
+
+## What WAS completed (engineering)
+
+**Soft-launch release mode + guard** (`0f431a7`), verified:
+- `MARKETING_RELEASE_MODE=soft-launch` (`lib/release-mode.ts`).
+- `build:soft-launch` = check-locales → build → prune drafts → inject apex/www `X-Robots-Tag: noindex` into `out/_headers` → check-claims → `check:soft-launch`.
+- `check:soft-launch` (18 checks, all pass with production env): production Turnstile (set/not-test/not-staging), production API origin, production WA token, apex canonical, en-only, no staging/localhost leak, no draft locales, **noindex ON** (apex header + crawlable robots + empty sitemap + page meta), and legal **still draft**.
+- `robots.txt` soft-launch = `Allow: /` with **no sitemap advertised**; `sitemap.xml` empty (§11/§12).
+- **Final-launch gate preserved:** `build:production` still BLOCKS on `check:legal` (14 markers) and stays indexable — **no soft-launch noindex leaks into it** (verified: 0 apex/www rules in the production `_headers`).
+- Production Worker config `wrangler.production.toml` (`medidocs-marketing-production`, apex custom domain) — separate from staging (§31).
+
+---
+
+## Safety findings (important for whoever executes the Railway apply)
+
+1. **`railway config plan` DEFAULTS to `.railway/railway.ts` (the DEV config).** Run against the prod-linked project it produced a **dangerous** plan: *move the production database region*, *set `api.OTP_DEV_FIXED_CODE` on prod*, and overwrite preserved prod secrets (CORS, Turnstile keys, R2 prefixes) with dev values — "2 add / 28 change / 1 destroy". **Always pass `--file .railway/railway.prod.ts` for prod.** The correct prod plan is clean: **"2 add, 1 change, 0 destroy"** — set `api.CORS_ORIGINS` (adds `medidocs.app`, preserves app/admin) + create `cron-cleanup-professional-leads` + `cron-ensure-backup-lifecycle`.
+2. **`preserve()`-on-new-service footgun.** The two new cron services declare `FIELD_ENCRYPTION_KEY: preserve()` (required, `min(32)`) and, for `cron-ensure-backup-lifecycle`, `R2_ACCESS_KEY_ID/SECRET: preserve()`. On a **new** service `preserve()` resolves to **unset**, so the crons would **fail at `loadEnv`** until those secrets are set (copy from an existing cron service). Set them immediately after `config apply`.
+
+Because of (2), the Railway apply was **not** performed this session — it would create broken crons that need secrets the agent must not manufacture.
+
+---
+
+## Exact remaining actions (operator runbook)
+
+Follow [production-launch-runbook.md](production-launch-runbook.md) Phases 1–13. Concrete Session-19 specifics:
+
+### 1. Production Turnstile — MANUAL CLOUDFLARE DASHBOARD ACTION
+Create widget `medidocs-marketing-leads-production`, **Managed**, hostname **`medidocs.app` only** (not localhost/staging/app/www). Then:
+- public **sitekey** → build env `NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY`;
+- **secret** → Railway **prod api** `LEAD_TURNSTILE_SECRET_KEY` (server-only; never commit/log);
+- `LEAD_TURNSTILE_HOSTNAMES=medidocs.app` on the prod api.
+
+### 2. Production Web Analytics — MANUAL CLOUDFLARE DASHBOARD ACTION
+Create a **separate** Web Analytics site for `medidocs.app`, **manual JS snippet** (keep automatic zone-wide injection **OFF**, §19/§20). Token → build env `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN`.
+
+### 3. Railway prod IaC — `railway config apply --file .railway/railway.prod.ts`
+Review the clean plan (CORS + 2 crons), apply, then **set the new crons' `preserve()` secrets** (`FIELD_ENCRYPTION_KEY` on both; `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` on `cron-ensure-backup-lifecycle`) from an existing cron service. Verify each cron starts (no `loadEnv` failure) and `cleanup-professional-leads` schedule = `0 5 * * *`. Verify prod API CORS: `medidocs.app` → ACAO; evil → none; app/admin preserved (§28).
+
+### 4. Build + deploy
+`NEXT_PUBLIC_LEAD_API_URL=https://api.medidocs.app/v1/public/leads NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY=<prod> NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=<prod> pnpm build:soft-launch` → then `wrangler deploy -c wrangler.production.toml`.
+
+### 5. Apex + www — MANUAL CLOUDFLARE DASHBOARD ACTION (deploy token lacks DNS/zone edit)
+Attach `medidocs.app` as a Workers Custom Domain on `medidocs-marketing-production`; add `www.medidocs.app` + a Redirect Rule `www → https://medidocs.app` (301, preserve path+query). Verify TLS, one-hop redirect, no loop.
+
+### 6. Smoke + noindex verification
+Run the runbook smoke matrix; confirm `X-Robots-Tag: noindex` on apex `/ /for-clinics/ /privacy/ /terms/`; robots crawlable-no-sitemap; exactly one WA beacon on marketing and **zero** on app/admin/share; do **not** enable indexing or submit a sitemap (§72).
+
+---
+
+## Unchanged / verified this session
+- **Backup 90-day R2 lifecycle:** re-verified intact (`expire-postgres-backups`, Enabled, multipart-abort preserved). Untouched.
+- **Subdomains:** app/api/admin/assets/staging independent; prod API `postgres:ok`; no `x-powered-by`. Apex/www still unresolved (no external change since Session 16).
+- **Staging** remains available (draft hi/te/ur review), §64.
+
+## Governance — CONTINUING IN PARALLEL, DOES NOT INVALIDATE THE (pending) TECHNICAL CUTOVER
+Legal entity · counsel (OD-LP-6) · governing law/venue · public mailboxes (OD-LP-7) · erasure operator · native-language review. **Final public/indexed launch: NOT YET AUTHORIZED.** `build:production` + `check:legal` remain the strict gate and still BLOCK.
+
+## Rollback readiness
+Marketing rollback stays Cloudflare-only (unbind the apex custom domain); app/api/admin/assets independent. Turnstile never fails open. See runbook Rollback + triggers.
