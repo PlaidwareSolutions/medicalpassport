@@ -143,3 +143,14 @@ Full-system revalidation passed: typechecks 7/7; builds all pass; cron 13/13 + p
 **Remaining deployment-state item (non-blocking):** `cleanup-professional-leads` cron implemented + tested but **not yet operationally scheduled** — instantiating it needs a full prod IaC apply that would also apply the prohibited production marketing CORS, so it is deferred to the provisioning phase (nothing is deletable for 24 months). This is a deployment step, **not** an engineering gap.
 
 **Overall: NO-GO FOR CUTOVER** until governance (legal entity, counsel, mailboxes, erasure operator, native-language review) and production provisioning (Turnstile/WA/CORS/apex/www) are cleared.
+
+## Status after Session 19 (controlled production soft launch — authorized)
+
+The owner authorized a **controlled production soft launch** (real apex infra, but global noindex, English-only, legal-draft retained) with governance continuing in parallel. See [production-soft-launch-report.md](production-soft-launch-report.md) and [go-no-go.md](go-no-go.md).
+
+- **Soft-launch engineering: COMPLETE + verified** — `MARKETING_RELEASE_MODE=soft-launch`, `build:soft-launch`, `check:soft-launch` (production config + global noindex header/meta + crawlable-no-sitemap robots + empty sitemap + legal-still-draft). Production Worker config `wrangler.production.toml` added (separate from staging).
+- **Final-launch gate PRESERVED** — `build:production` + `check:legal` still BLOCK (14 markers); no soft-launch noindex leaks into the indexable production build.
+- **Cutover execution: BLOCKED on provisioning access** — the agent Cloudflare credential lacks Turnstile / Web-Analytics / DNS / redirect edit scopes, and the Railway new-cron services need `preserve()` secrets set post-creation. **`https://medidocs.app` is NOT live.** Nothing was mutated in production. Exact operator steps documented.
+- **Safety findings:** `railway config plan` defaults to the **dev** config (would move the prod DB + set dev-fixed-OTP on prod) — always use `--file .railway/railway.prod.ts` (correct plan = CORS + 2 crons, 0 destroy); the two new cron services need `FIELD_ENCRYPTION_KEY` (+ R2 secrets for lifecycle) set after creation.
+
+**Search indexability: OFF by design.** **Final public / indexed launch: NOT YET AUTHORIZED** (governance open).

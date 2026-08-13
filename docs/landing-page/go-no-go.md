@@ -13,6 +13,19 @@ Engineering is ready; governance and production-provisioning gates remain (both 
 > GOVERNANCE: DEFERRED/OPEN   PRODUCTION PROVISIONING: NOT STARTED   CUTOVER: NO-GO
 > ```
 
+> **Session 19 update (2026-08-13) — two intentionally separate gates:**
+>
+> **Technical Production Cutover (controlled soft launch)** — **AUTHORIZED; engineering READY; execution BLOCKED on provisioning access.** The soft-launch release mode + guard (`build:soft-launch` / `check:soft-launch`) are built and verified (production config + global noindex + legal-draft retained). The cutover itself was **not** executed: the available agent Cloudflare credential lacks Turnstile/Web-Analytics/DNS/redirect edit scopes, and the Railway new-cron services need `preserve()` secrets set post-creation. Exact operator steps: [production-soft-launch-report.md](production-soft-launch-report.md). `https://medidocs.app` is **not live**.
+>
+> **Final Public / Indexed Launch** — **NO-GO** (governance open: legal entity, counsel, mailboxes, erasure operator, native-language review). `build:production` + `check:legal` still BLOCK. This is not a contradiction with the cutover gate — they are deliberately separate; even once the soft launch is live it stays **noindexed** and legally draft.
+>
+> ```
+> ENGINEERING: COMPLETE                 RC1: FROZEN
+> PRODUCTION SOFT LAUNCH: READY (execution blocked on provisioning access)
+> SEARCH INDEXABILITY: OFF (by design)  GOVERNANCE: OPEN
+> FINAL PUBLIC LAUNCH: NOT YET AUTHORIZED
+> ```
+
 ---
 
 ## Layer 1 — Engineering GO: **YES** (with residual P2)
