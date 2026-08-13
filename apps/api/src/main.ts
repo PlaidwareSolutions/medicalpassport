@@ -13,6 +13,7 @@ async function bootstrap(): Promise<void> {
   });
 
   app.use(cookieParser());
+  app.disable("x-powered-by"); // SEC-2 (Session 15): no framework disclosure
   app.set("trust proxy", true); // CF-Connecting-IP / X-Forwarded-For via Cloudflare
   app.setGlobalPrefix("v1", { exclude: ["healthz", "readyz"] });
   app.enableShutdownHooks();

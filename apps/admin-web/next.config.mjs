@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@medpass/design-tokens", "@medpass/ui-web"],
+  // SEC-2 (Session 15): suppress the framework-identifying X-Powered-By header.
+  poweredByHeader: false,
   headers: async () => [
     {
       source: "/:path*",

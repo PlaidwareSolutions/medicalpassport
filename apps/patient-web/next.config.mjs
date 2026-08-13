@@ -15,6 +15,8 @@ const withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@medpass/ui-web", "@medpass/design-tokens"],
+  // SEC-2 (Session 15): suppress the framework-identifying X-Powered-By header.
+  poweredByHeader: false,
   headers: async () => [
     {
       source: "/:path*",
