@@ -134,7 +134,10 @@ html{scroll-padding-top:6rem}
 @media (prefers-reduced-motion: no-preference){
   @supports (animation-timeline: view()){
     .mkt-reveal{animation:mkt-rise both;animation-timeline:view();animation-range:entry 0% entry 35%}
-    @keyframes mkt-rise{from{opacity:.001;transform:translateY(8px)}to{opacity:1;transform:none}}
+    /* Transform-only rise (no opacity fade): the scroll-driven mid-animation
+       state must never drop text below contrast — otherwise axe flags the
+       transient faint state as a color-contrast failure (Session 18). */
+    @keyframes mkt-rise{from{transform:translateY(8px)}to{transform:none}}
   }
 }
 .mkt-desktop-only{display:none}
