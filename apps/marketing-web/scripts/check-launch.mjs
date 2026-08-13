@@ -95,11 +95,12 @@ if (existsSync(out)) {
       else if (n.endsWith(".html")) htmls.push(p);
     }
   })(out);
+  const leakMarkers = [STAGING.apiHost, STAGING.host, STAGING.waToken, STAGING.sitekey, "localhost"];
   const leaked = htmls.filter((p) => {
     const h = readFileSync(p, "utf8");
-    return h.includes(STAGING.apiHost) || h.includes(STAGING.host) || h.includes(STAGING.waToken);
+    return leakMarkers.some((m) => h.includes(m));
   });
-  check("output.no-staging-leak", leaked.length === 0, `staging refs found in: ${leaked.map((p) => p.slice(out.length + 1)).join(", ")}`);
+  check("output.no-staging-leak", leaked.length === 0, `staging/localhost refs found in: ${leaked.map((p) => p.slice(out.length + 1)).join(", ")}`);
   const draftRoutes = ["hi", "te", "ur"].filter((l) => existsSync(join(out, l)));
   check("output.no-draft-locales", draftRoutes.length === 0, `unreviewed locale routes emitted: ${draftRoutes.join(", ")}`);
 

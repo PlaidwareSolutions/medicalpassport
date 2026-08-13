@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { direction, isLocale, t as translate, type Locale, type MessageKey } from "@medpass/localization";
+import { direction, t as translate, type Locale, type MessageKey } from "@medpass/localization";
+import { pickInitialLocale, readLangParam } from "./locale-handoff";
 
 const LOCALE_STORAGE_KEY = "medpass_locale";
 
@@ -20,8 +21,24 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (isLocale(stored)) setLocaleState(stored);
+    // Precedence (Session 17): an explicit stored preference wins; otherwise a
+    // valid marketing ?lang= hint initializes and persists; otherwise English.
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    } catch {
+      /* storage blocked (private mode) — fall back to the hint/default */
+    }
+    const langParam = readLangParam(window.location.search);
+    const { locale: initial, persist } = pickInitialLocale({ stored, langParam });
+    setLocaleState(initial);
+    if (persist) {
+      try {
+        window.localStorage.setItem(LOCALE_STORAGE_KEY, initial);
+      } catch {
+        /* best-effort persistence */
+      }
+    }
   }, []);
 
   useEffect(() => {

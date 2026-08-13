@@ -1,7 +1,7 @@
 import QRCode from "qrcode";
 import { t } from "../lib/i18n";
 import type { MarketingLocale } from "../lib/locales";
-import { APP_CTA_URL } from "./CtaLink";
+import { appCtaUrl } from "./CtaLink";
 
 /**
  * Desktop QR card (S1/S14). Generated at BUILD time by an async server
@@ -12,7 +12,7 @@ import { APP_CTA_URL } from "./CtaLink";
  * mkt-desktop-only pattern (mobile users tap the CTA instead).
  */
 export async function QrCard({ locale }: { locale: MarketingLocale }) {
-  const svg = await QRCode.toString(APP_CTA_URL, {
+  const svg = await QRCode.toString(appCtaUrl(locale), {
     type: "svg",
     margin: 0,
     color: { dark: "#1a1f1d", light: "#ffffff" },
@@ -32,7 +32,7 @@ export async function QrCard({ locale }: { locale: MarketingLocale }) {
     >
       <div style={{ width: "64px", height: "64px", flex: "none" }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />
       <a
-        href={APP_CTA_URL}
+        href={appCtaUrl(locale)}
         className="mkt-muted"
         style={{ fontSize: "0.8125rem", fontWeight: 500, textDecoration: "none", lineHeight: 1.4 }}
       >
