@@ -50,3 +50,21 @@ Route families audited: `/`, `/for-clinics/`, `/privacy/`, `/terms/`, `/hi/`, `/
 
 ## Launch impact
 No accessibility or performance **launch blocker** remains for the marketing site. The remaining P0 launch blockers are unchanged and non-engineering: legal entity, counsel approval, mailbox provisioning (OD-LP-6/7), plus native-language review of the draft locales. See [launch-governance-checklist.md](launch-governance-checklist.md).
+
+---
+
+## PERF-1 reassessment (Session 16, 2026-08-13)
+
+Re-measured the live English homepage under a consistent Slow-4G lab profile (Chromium CDP: 400 kbps down, 400 ms RTT, 390 px and 1280 px), capturing the **actual LCP element**, not an assumed one.
+
+| Profile | LCP | LCP element | CLS |
+|---|---|---|---|
+| Fast/default (lab) | ~304 ms | `<h1>` hero heading (text) | 0.000 |
+| **Slow-4G (lab), 390 px** | **~770 ms** | `<h1>` hero heading (text), rendered area 26,025 px² | 0.000 |
+| **Slow-4G (lab), 1280 px** | **~770 ms** | `<h1>` hero heading (text), rendered area 70,380 px² | 0.000 |
+
+**Finding — the Session-14 hypothesis is corrected.** The LCP element is the **hero H1 text**, not the hero media. Because there is **no marketing webfont** (system stack), the H1 paints from inline critical CSS almost immediately, even on Slow-4G. The 44 KB hero poster (`hero-passport-en…jpg`, `immutable` 1-yr cache) *does* download but has a smaller rendered area than the H1 on both mobile and desktop, so it never becomes the LCP. The earlier "~4.5 s LCP, media dominates" figure was a mis-attribution to the poster.
+
+**Decision:** **no hero optimization performed.** Slow-4G LCP (~770 ms) is already well under the 2.5 s target and is text, not media — a poster tweak would not materially change it, and Session 16 is a freeze. The hero media stays as-is (poster 44 KB; MP4 268 KB / WebM 242 KB lazy, gated by reduced-motion/Save-Data, off the LCP path). CLS remains **0**. First Load JS unchanged (104 KB `/`, 111 KB `/for-clinics/`). Field p75 (real CWV) still to be confirmed post-launch.
+
+*(Lab measurements — not field Core Web Vitals.)*

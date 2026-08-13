@@ -132,6 +132,16 @@ Live headless capture. The **only** cross-origin hosts contacted, anywhere:
 4. **CLM-1/2/3 (governance, not defects):** the free/no-ads business claims and any clinical wording stay **publication-gated** — production must remain en-only and behind counsel sign-off before these go public. Already reflected in the launch-governance checklist; no code change needed, the gates enforce it.
 5. **Claims ledger (`02-marketing-claims.md`)** is owned by a concurrent session and was **not** edited here; this audit is the Session-15 reconciliation of record and cross-references it.
 
+## SEC-1 / SEC-2 closure (Session 16, 2026-08-13)
+
+| ID | Status | Detail |
+|---|---|---|
+| SEC-1 | **RESOLVED** | Next.js `15.5.20 → 15.5.21` (patient/admin/marketing; single version, no skew; lockfile churn is next-family only). `pnpm audit` no longer reports the App-Router DoS / Server-Actions SSRF / rewrites SSRF advisories. Deployed to staging **and** prod via `foundation`; both apps report `ready`/`postgres:ok`. **Not a Next 16 migration.** |
+| SEC-2 | **RESOLVED** | `poweredByHeader:false` (patient + admin Next), `app.disable("x-powered-by")` (Nest/Express API). Live-verified **absent** on staging + prod, patient app **and** API (it was present in the S15 audit). |
+| SEC-3 (residual) | **ACCEPTED / INFO** | Remaining `pnpm audit` highs are transitive build-toolchain deps pulled through `next@15.5.21` — `sharp@0.34.5` (<0.35.0), `postcss@8.4.31`, `brace-expansion`. `postcss`/`brace-expansion` are **build-time only** (not in a runtime bundle). `sharp` is Next's optional image optimizer; **`next/image` is not imported anywhere in source** and no `images.remotePatterns` are configured, so the optimizer path is not exercised (and marketing is a static export that never ships sharp). **Not called vulnerability-free** — these clear when Next bumps them or at a routine refresh. |
+
+The project is **not** vulnerability-free: build-time transitive highs remain (SEC-3), classified above by reachability. No secret rotation was performed — Session 15 found no exposure and the patch is not evidence of compromise (§8).
+
 ## Conclusion
 
 The public marketing surface is **launch-clean from a security and claim-integrity standpoint**: strong headers/CSP, a hardened fail-closed lead endpoint that cannot ingest health data, an allowlist CORS with production correctly un-applied, no secret or source-map exposure, a first-party-only third-party footprint with no share-token leak, and a truth-first claim set whose gated statements are verifiably absent from emitted output. The only reachable "high" is a **patient-app** framework patch (SEC-1), filed as a pre-launch P1. The remaining launch blockers are unchanged and non-engineering (legal entity, counsel sign-off, mailbox provisioning, native-language review) — see [launch-governance-checklist.md](launch-governance-checklist.md).

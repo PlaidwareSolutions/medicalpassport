@@ -103,3 +103,22 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 2. **SEC-2 (P2):** disable `x-powered-by` on the patient app + API (minor stack disclosure).
 
 **Unchanged P0 launch blockers** (all non-engineering): registered legal entity, counsel sign-off (OD-LP-6), public email provisioning (OD-LP-7), erasure runbook owner, native-language review of hi/te/ur drafts.
+
+## Status after Session 16 (production launch readiness & go/no-go)
+
+**Engineering readiness: GO** (readiness, **not** launch). See [go-no-go.md](go-no-go.md) and [production-launch-runbook.md](production-launch-runbook.md).
+- **SEC-1 PASS** — Next.js `15.5.20 → 15.5.21` across patient/admin/marketing; advisories cleared; deployed + live-verified on staging and prod.
+- **SEC-2 PASS** — `x-powered-by` removed (patient + admin Next, API); live-verified absent staging + prod.
+- **PERF-1 PASS** — Slow-4G LCP re-measured at ~770 ms (hero **H1 text**, not media); no optimization needed; CLS 0.
+- **Production build** now deterministic and English-only (`build:production`); a latent `output: export` empty-locale-params blocker was fixed (prune of unpublished locale stubs). Not a Next 15.5.21 regression.
+- **New guard** `check:launch` (production preflight): blocks staging test-keys / staging API / staging WA token / non-apex canonical / draft locales / uncleared legal in a production build.
+- Accessibility 0 axe violations (no regression); Stage-7 sharing intact; claims/legal guards operating.
+
+**New engineering items surfaced (P1/residual, not launch-clean):**
+1. **Backup ≤90-day purge — UNVERIFIED / not enforced** (§62): daily encrypted `pg_dump → R2` runs, but there is no R2 lifecycle-as-code and the backup job does not prune. Enforce (R2 lifecycle rule or prune cron) **if** the published privacy policy asserts the 90-day window; otherwise soften wording. **No backups deleted.**
+2. **Professional-lead 24-month retention — not enforced** (§61): no `ProfessionalLead` cleanup cron. Implement **if** counsel requires it enforced at launch; else deferred.
+3. **SEC-3 build-time dependency highs** — transitive through `next` (`sharp`/`postcss`/`brace-expansion`); not runtime-reachable on the public surface; resolve at a routine refresh.
+
+**Production provisioning — still deferred (not performed):** production Turnstile, production Web Analytics, production CORS application, apex DNS, `www` redirect. Runbook Phases 1–2 document each.
+
+**Overall: NO-GO FOR CUTOVER — LAUNCH PLAN READY.** Governance P0s (legal entity, counsel, OD-LP-7 mailboxes, erasure operator, final English legal copy) remain the gate.
