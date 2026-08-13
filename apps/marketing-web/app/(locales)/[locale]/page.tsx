@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import { HomePage } from "../../../components/HomePage";
 import { pageMetadata } from "../../../lib/seo";
 import { t } from "../../../lib/i18n";
-import { buildLocales, isMarketingLocale, nonEnglishBuildLocales, PUBLISHED_LOCALES } from "../../../lib/locales";
+import { buildLocales, isMarketingLocale, localeStaticParams, PUBLISHED_LOCALES } from "../../../lib/locales";
 import type { MarketingLocale } from "../../../lib/locales";
 
-/** Same emission rule as the layout — see buildLocales(). */
+/** Non-empty for output:export; unpublished locales are pruned in production. */
 export function generateStaticParams(): { locale: string }[] {
-  return nonEnglishBuildLocales().map((locale) => ({ locale }));
+  return localeStaticParams();
 }
 
 export const dynamicParams = false;
