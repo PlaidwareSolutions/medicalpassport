@@ -282,7 +282,7 @@ export function LeadForm({ locale }: { locale: MarketingLocale }) {
         </span>
       </label>
       <label style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-        <input name="consentToContact" type="checkbox" required aria-invalid={invalid("consentToContact")} style={{ width: "22px", height: "22px", marginTop: "2px", flex: "none" }} />
+        <input name="consentToContact" type="checkbox" required aria-invalid={invalid("consentToContact")} style={{ width: "24px", height: "24px", marginTop: "2px", flex: "none" }} />
         <span style={{ fontSize: "0.9375rem" }}>{t(locale, "lead.consent")}</span>
       </label>
       {fieldError("consentToContact")}

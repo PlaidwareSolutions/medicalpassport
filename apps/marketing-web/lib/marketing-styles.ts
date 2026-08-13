@@ -52,6 +52,11 @@ h4{font-size:1.0625rem;line-height:1.4;font-weight:700}
 a{color:var(--mkt-primary)}
 img,svg,video{max-width:100%;height:auto}
 button{font:inherit}
+/* Keep anchor jumps and keyboard focus clear of the sticky header (WCAG 2.2
+   2.4.11 Focus Not Obscured): reserve the header's height at the top of every
+   programmatic scroll. Covers in-page anchors (hero "see how it works", legal
+   TOC) and Tab/Shift-Tab focus. */
+html{scroll-padding-top:6rem}
 :focus-visible{outline:2px solid var(--mkt-primary-hover);outline-offset:2px}
 .on-primary :focus-visible{outline-color:#ffffff}
 .mkt-container{max-width:var(--mkt-width-wide);margin-inline:auto;padding-inline:var(--mkt-gutter)}

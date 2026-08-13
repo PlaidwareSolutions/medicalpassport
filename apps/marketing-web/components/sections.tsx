@@ -68,7 +68,7 @@ export function Hero({ locale }: { locale: MarketingLocale }) {
             <CtaLink locale={locale} wide />
           </div>
           <p style={{ marginTop: "16px" }}>
-            <a href="#s2-problem" style={{ fontWeight: 600 }}>
+            <a href="#s2-problem" style={{ fontWeight: 600, display: "inline-block", paddingBlock: "4px" }}>
               {t(locale, "hero.secondary")} ↓
             </a>
           </p>
@@ -418,7 +418,7 @@ export function ProfessionalBridge({ locale }: { locale: MarketingLocale }) {
           {t(locale, "bridge.body")}
         </p>
         <p style={{ marginTop: "18px" }}>
-          <a href="/for-clinics/" style={{ fontWeight: 700 }}>
+          <a href="/for-clinics/" style={{ fontWeight: 700, display: "inline-block", paddingBlock: "4px" }}>
             {t(locale, "bridge.cta")} →
           </a>
         </p>
