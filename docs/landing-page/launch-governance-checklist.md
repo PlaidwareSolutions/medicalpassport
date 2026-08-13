@@ -65,6 +65,7 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 ## Launch execution
 | Gate | State | Note |
 |---|---|---|
+| Accessibility (WCAG 2.2 AA target) + performance | **PASS** | Session 14 audit ([accessibility-performance-audit.md](accessibility-performance-audit.md)): 0 axe violations × 7 routes; CLS fixed to 0.00; target sizes ≥24px; focus-not-obscured hardened; RTL/reduced-motion/asset-failure verified. **No P0 a11y/perf blocker.** (Internal audit — not a public WCAG-conformance claim.) |
 | Production static build (no draft placeholders) | **PENDING** | Build guard added (SPEC §57); passes only when placeholders resolved |
 | Sitemap/robots for production (index Privacy/Terms only when approved) | **PENDING** | Staging stays noindex/disallow |
 | Remove staging noindex — **N/A for staging** | **N/A** | Staging must stay noindexed |
