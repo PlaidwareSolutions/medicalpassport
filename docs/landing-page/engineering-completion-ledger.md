@@ -17,7 +17,7 @@
 | API CORS | **COMPLETE** — env-driven allowlist; prod origin staged not applied | live preflight (evil/prod/staging) | none | — | apply `medidocs.app` origin |
 | Account erasure | **COMPLETE** (mechanism) — plan/execute, counts-only, synthetic-tested | e2e (3 cases) | none | **Operator name (DEFERRED by owner)** | — |
 | **Backup retention (90-day)** | **COMPLETE — TECHNICALLY ENFORCED + VERIFIED** (Session 17): R2 lifecycle rule `expire-postgres-backups`, `postgres/` prefix, 90-day expiry, applied to prod `…-backups` bucket and remotely verified; idempotent ensure-cron in IaC | rule-builder unit tests; live apply + independent re-read | dev bucket self-applies on cron deploy | — | — |
-| **Lead retention (24-month)** | **COMPLETE (implemented + tested)** (Session 17): `lastInteractionAt` column + backfill migration; batched idempotent cleanup cron; dry-run | 9 unit tests (cutoff/boundary/null-safe/interaction-basis) | scheduled cron **service** created on next IaC apply | — | — |
+| **Lead retention (24-month)** | **COMPLETE (implemented + tested); cron NOT YET OPERATIONALLY SCHEDULED** — migration applied to prod; cron `cleanup-professional-leads` does not exist remotely and cannot be instantiated without a full prod IaC apply that would also apply the **prohibited** production marketing CORS (`railway.prod.ts` literal includes `medidocs.app`), so deferred by the Session-18 boundary | 9 unit tests | instantiate the cron during the provisioning phase (or with a CORS-safe targeted apply) — nothing to delete for 24 months, so non-urgent | — | cron service instantiation |
 | Accessibility | **COMPLETE** — WCAG 2.2 AA target, 0 axe × routes; no public conformance claim | axe + keyboard/focus/RTL | none | — | — |
 | Performance | **COMPLETE** — Slow-4G LCP ~770 ms (H1 text), CLS 0, 104 KB First Load | lab LCP/CLS/transfer | none (field p75 post-launch) | — | — |
 | Security | **COMPLETE** — SEC-1/SEC-2 resolved; SEC-3 residual = build-time transitive highs only | audit + live headers + secret scan | none | — | — |
@@ -37,5 +37,17 @@ Next.js `15.5.21` (patched). Remaining `pnpm audit` highs — `sharp`, `postcss`
 | `PUBLISHED_LOCALES` | `["en"]` | `["en"]` | professional locale review |
 | Legal markers (guard) | present | resolved | counsel sign-off |
 
+## Session 18 — final validation results (2026-08-13)
+- **Typechecks** 7/7 packages OK. **Builds** marketing (staging + production), patient, api, admin, cron all pass. **Unit tests:** cron 13/13, patient 21/21. **API** 41 env-independent pass; 15 DB/loadEnv-gated integration tests require the live stack (CI-validated, not faked). The full e2e suites (erase-account, children-guardian, leads, sharing, sync, rate-limit, …) run in CI against the real stack.
+- **Backup retention** re-verified remotely (rule present, 90-day, idempotent) + **fetch smoke** (newest backup enumerated + fetched, 959,434 B, size-intact).
+- **Locale handoff** allowlist/precedence re-confirmed; still en-only in production.
+- **Sharing** `/s/` third-party analytics isolation = **NONE** (P0 clean); share headers `private,no-store`+`noindex`+`DENY`.
+- **Live smokes:** 7 marketing routes 200 + noindex + correct lang (Urdu RTL); patient/admin staging+prod no `x-powered-by`; APIs `postgres:ok`; CORS allows staging, denies evil + **prod apex** (marketing CORS not applied).
+- **Guards:** check-locales PASS, check-claims PASS, check-legal **BLOCK** (14 markers), check-launch **NO-GO** on governance/provisioning only (no obsolete engineering failures).
+- **Security:** next 15.5.21; no criticals; no committed secrets; no `.env` tracked; client bundle public-config only; assets no listing.
+- **Accessibility:** axe **0 violations across all 7 routes** after a minimal fix — the `.mkt-reveal` scroll animation dropped text opacity mid-transition (transient axe color-contrast false-positive on `/ur`, reduced-motion-exempt); changed to a **transform-only** rise. Deterministic 0/7.
+- **Performance:** First Load JS 104 KB (`/`) — unchanged; CLS 0; Slow-4G LCP ~770 ms (hero H1 text) per Session 16 — no regression (CSS-only change).
+- **DNS** unchanged since Session 16 (apex/www unconfigured; no MX to disturb).
+
 ## No known engineering gaps
-No landing-page-program engineering implementation gap remains pending Session-18 validation. Open items are **governance** (legal entity, counsel, mailboxes, erasure operator, native-language review — all DEFERRED by owner) and **production provisioning** (Turnstile/WA/CORS/apex/www — NOT STARTED by instruction).
+No landing-page-program engineering **implementation** gap remains. The single deployment-state item — instantiating the `cleanup-professional-leads` cron **service** — is deferred by the Session-18 boundary (a full IaC apply would apply prohibited prod marketing CORS), not an engineering incompleteness, and is non-urgent (nothing to delete for 24 months). Open items are **governance** (legal entity, counsel, mailboxes, erasure operator, native-language review — DEFERRED by owner) and **production provisioning** (Turnstile/WA/CORS/apex/www — NOT STARTED by instruction).
