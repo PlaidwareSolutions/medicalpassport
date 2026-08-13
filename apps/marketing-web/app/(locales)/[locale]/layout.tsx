@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { marketingStyles } from "../../../lib/marketing-styles";
 import { t } from "../../../lib/i18n";
-import { buildLocales, direction, isMarketingLocale, nonEnglishBuildLocales, PUBLISHED_LOCALES } from "../../../lib/locales";
+import { buildLocales, direction, isMarketingLocale, localeStaticParams, PUBLISHED_LOCALES } from "../../../lib/locales";
 import { SiteHeader } from "../../../components/SiteHeader";
 import { SiteFooter } from "../../../components/SiteFooter";
 import { AnalyticsBeacon } from "../../../components/AnalyticsBeacon";
@@ -17,7 +17,7 @@ import { ReviewBanner } from "../../../components/ReviewBanner";
  * shows a review banner and is never produced by a production build.
  */
 export function generateStaticParams(): { locale: string }[] {
-  return nonEnglishBuildLocales().map((locale) => ({ locale }));
+  return localeStaticParams();
 }
 
 export const dynamicParams = false;

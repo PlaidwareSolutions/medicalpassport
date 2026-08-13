@@ -48,3 +48,16 @@ export function buildLocales(): readonly MarketingLocale[] {
 export function nonEnglishBuildLocales(): MarketingLocale[] {
   return buildLocales().filter((l) => l !== "en");
 }
+
+/**
+ * Static params for the [locale] dynamic route. `output: export` cannot export
+ * a dynamic route with zero params, so this ALWAYS returns the architectural
+ * non-English locales (never empty). In a production build the unpublished
+ * ones render as notFound() 404 stubs and are removed from the artifact by
+ * scripts/prune-draft-locales.mjs; in a staging build (MARKETING_ENV=staging)
+ * they render as the draft review pages. The publication gate stays the emitted
+ * artifact — buildLocales()/PUBLISHED_LOCALES decide what actually ships.
+ */
+export function localeStaticParams(): { locale: string }[] {
+  return MARKETING_LOCALES.filter((l) => l !== "en").map((locale) => ({ locale }));
+}
