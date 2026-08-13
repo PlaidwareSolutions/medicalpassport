@@ -84,7 +84,7 @@ export function LegalPage({
 
 export function LegalSectionBlock({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-h`} style={{ scrollMarginTop: "80px" }}>
+    <section id={id} aria-labelledby={`${id}-h`}>
       <h2 id={`${id}-h`} style={{ fontSize: "1.35rem", marginBottom: "10px" }}>
         {title}
       </h2>

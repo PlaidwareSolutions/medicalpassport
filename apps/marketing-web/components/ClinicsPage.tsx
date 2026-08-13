@@ -5,6 +5,7 @@ import { PhoneFrame, ProductMedia } from "./ProductMedia";
 import { PlaceholderMedia } from "./PlaceholderMedia";
 import { LeadForm } from "./LeadForm";
 import { videoAsset } from "../lib/published-media";
+import { HERO_CTA_SENTINEL_ID } from "./HeaderStickyCta";
 
 /**
  * /for-clinics/ — the professional narrative C1–C7 (Stage 7 CLEARED). English
@@ -24,7 +25,7 @@ export function ClinicsPage({ locale }: { locale: MarketingLocale }) {
             <p className="mkt-muted" style={{ marginTop: "14px" }}>
               {t(locale, "clinics.c1_body")}
             </p>
-            <div style={{ marginTop: "24px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
+            <div id={HERO_CTA_SENTINEL_ID} style={{ marginTop: "24px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
               <a
                 href="#c7-lead"
                 style={{
@@ -40,7 +41,7 @@ export function ClinicsPage({ locale }: { locale: MarketingLocale }) {
               >
                 {t(locale, "clinics.c1_cta")}
               </a>
-              <a href="/" style={{ fontWeight: 600 }}>
+              <a href="/" style={{ fontWeight: 600, display: "inline-block", paddingBlock: "4px" }}>
                 {t(locale, "clinics.c1_secondary")} →
               </a>
             </div>

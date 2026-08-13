@@ -48,31 +48,44 @@ export function ProductMedia({
     return () => io.disconnect();
   }, [allowVideo]);
 
+  // The OUTER frame reserves the box via aspect-ratio; the inner media is
+  // absolutely positioned to fill it. This means swapping <img> ⇄ <video> after
+  // hydration (poster → autoplay) never changes the container height, so it
+  // cannot cause a layout shift (CLS) — the reserved space is held throughout.
   const frame: React.CSSProperties = {
+    position: "relative",
     aspectRatio: "390 / 780",
     width: "100%",
     borderRadius: "calc(var(--mkt-radius-frame) - 8px)",
     overflow: "hidden",
     background: "var(--mkt-soft)",
   };
+  const inner: React.CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+  };
 
-  if (allowVideo && sources?.length) {
-    return (
-      <video ref={videoRef} style={frame} muted playsInline loop preload="none" poster={poster} aria-label={label}>
-        {sources.map((s) => (
-          <source key={s.src} src={s.src} type={s.type} />
-        ))}
-      </video>
-    );
-  }
-  if (poster) {
-    return <img style={frame} src={poster} alt={label} loading={eager ? "eager" : "lazy"} />;
-  }
   return (
-    <div style={{ ...frame, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <p className="mkt-muted" style={{ fontSize: "0.875rem", padding: "16px", textAlign: "center" }}>
-        {label}
-      </p>
+    <div style={frame}>
+      {allowVideo && sources?.length ? (
+        <video ref={videoRef} style={inner} muted playsInline loop preload="none" poster={poster} aria-label={label}>
+          {sources.map((s) => (
+            <source key={s.src} src={s.src} type={s.type} />
+          ))}
+        </video>
+      ) : poster ? (
+        <img style={inner} src={poster} alt={label} loading={eager ? "eager" : "lazy"} />
+      ) : (
+        <div style={{ ...inner, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p className="mkt-muted" style={{ fontSize: "0.875rem", padding: "16px", textAlign: "center" }}>
+            {label}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
