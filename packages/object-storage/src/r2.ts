@@ -1,13 +1,34 @@
 import { randomUUID } from "node:crypto";
 import {
   DeleteObjectCommand,
+  GetBucketLifecycleConfigurationCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
+  PutBucketLifecycleConfigurationCommand,
   PutObjectCommand,
   S3Client,
+  type LifecycleRule,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { opaqueObjectKey, type BucketPurpose, type ObjectStorage, type PresignedUpload } from "./index.js";
+
+/**
+ * The single lifecycle rule that enforces the backup retention target
+ * (Session 17): objects under the given prefix in the backups bucket expire
+ * after `days` days. Pure/deterministic so it can be unit-tested and compared
+ * against whatever is actually configured remotely. Scoped to the prefix so it
+ * can never touch marketing media, patient documents, or any other namespace.
+ */
+export const BACKUP_LIFECYCLE_RULE_ID = "expire-postgres-backups";
+export function buildBackupLifecycleRule(prefix: string, days: number): LifecycleRule {
+  return {
+    ID: BACKUP_LIFECYCLE_RULE_ID,
+    Filter: { Prefix: prefix },
+    Status: "Enabled",
+    Expiration: { Days: days },
+  };
+}
 
 export interface R2Config {
   accountId: string;
@@ -87,5 +108,35 @@ export class R2ObjectStorage implements ObjectStorage {
     await this.client.send(
       new PutObjectCommand({ Bucket: this.bucketName(opts.bucket), Key: opts.objectKey, Body: opts.body, ContentType: opts.contentType }),
     );
+  }
+
+  /** Current lifecycle rules on a bucket (empty array if none configured). */
+  async getBucketLifecycle(bucket: BucketPurpose): Promise<LifecycleRule[]> {
+    try {
+      const res = await this.client.send(new GetBucketLifecycleConfigurationCommand({ Bucket: this.bucketName(bucket) }));
+      return res.Rules ?? [];
+    } catch (err) {
+      // R2/S3 returns NoSuchLifecycleConfiguration when nothing is set.
+      if (err instanceof Error && /NoSuchLifecycleConfiguration/.test(err.name + err.message)) return [];
+      throw err;
+    }
+  }
+
+  /** Replaces the bucket's lifecycle configuration with exactly these rules. */
+  async putBucketLifecycle(bucket: BucketPurpose, rules: LifecycleRule[]): Promise<void> {
+    await this.client.send(
+      new PutBucketLifecycleConfigurationCommand({
+        Bucket: this.bucketName(bucket),
+        LifecycleConfiguration: { Rules: rules },
+      }),
+    );
+  }
+
+  /** Lists object keys under a prefix (read-only; for backup-age evidence). */
+  async listObjects(bucket: BucketPurpose, prefix: string, maxKeys = 1000): Promise<string[]> {
+    const res = await this.client.send(
+      new ListObjectsV2Command({ Bucket: this.bucketName(bucket), Prefix: prefix, MaxKeys: maxKeys }),
+    );
+    return (res.Contents ?? []).map((o) => o.Key ?? "").filter(Boolean);
   }
 }

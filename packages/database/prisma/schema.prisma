@@ -28,14 +28,14 @@ model User {
   /// AES-256-GCM ciphertext of the E.164 phone (application-level encryption).
   phoneCiphertext String @map("phone_ciphertext")
 
-  phoneVerifiedAt DateTime?  @map("phone_verified_at") @db.Timestamptz(6)
-  email           String?
-  preferredLocale String     @default("en") @map("preferred_locale")
-  status          UserStatus @default(active)
+  phoneVerifiedAt   DateTime?  @map("phone_verified_at") @db.Timestamptz(6)
+  email             String?
+  preferredLocale   String     @default("en") @map("preferred_locale")
+  status            UserStatus @default(active)
   /// Controlled first-party acquisition source (OD-LP-8): "website" or null.
   /// Set once at account creation (first-touch), never overwritten. Never a
   /// referrer/UTM/free string, never health data.
-  acquisitionSource String? @map("acquisition_source")
+  acquisitionSource String?    @map("acquisition_source")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -318,8 +318,8 @@ model Practitioner {
   deletedAt          DateTime?       @map("deleted_at") @db.Timestamptz(6)
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  medications   PatientMedication[]
-  prescriptions Prescription[]
+  medications    PatientMedication[]
+  prescriptions  Prescription[]
   medicalReports MedicalReport[]
 
   @@map("practitioners")
@@ -807,8 +807,8 @@ model MedicationInstruction {
   /// Original captured text (OCR / shorthand), preserved verbatim.
   originalText    String?         @map("original_text")
 
-  confirmedByUserId String    @map("confirmed_by_user_id") @db.Uuid
-  confirmedAt       DateTime  @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+  confirmedByUserId   String    @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt         DateTime  @default(now()) @map("confirmed_at") @db.Timestamptz(6)
   /// When a human actually chose the dose unit — distinct from `confirmedAt`,
   /// which is stamped on every instruction regardless. Null means the unit was
   /// never really chosen: until 2026-07-25 the add/edit screens hardcoded
@@ -823,7 +823,7 @@ model MedicationInstruction {
   /// new creation path that defaults the unit must leave this null.
   doseUnitConfirmedAt DateTime? @map("dose_unit_confirmed_at") @db.Timestamptz(6)
   /// Latest instruction wins; superseded rows keep history.
-  supersededAt      DateTime? @map("superseded_at") @db.Timestamptz(6)
+  supersededAt        DateTime? @map("superseded_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -1969,22 +1969,28 @@ enum ProfessionalRole {
 }
 
 model ProfessionalLead {
-  id               String           @id @default(uuid()) @db.Uuid
-  name             String
-  organization     String
-  role             ProfessionalRole
-  city             String
-  email            String?
-  phone            String?
-  message          String?
-  consentToContact Boolean          @map("consent_to_contact")
+  id                String           @id @default(uuid()) @db.Uuid
+  name              String
+  organization      String
+  role              ProfessionalRole
+  city              String
+  email             String?
+  phone             String?
+  message           String?
+  consentToContact  Boolean          @map("consent_to_contact")
   /// Controlled attribution enum value (e.g. "website-for-clinics"), never a
   /// caller-supplied free string.
-  source           String
+  source            String
   /// Operational triage state; leads persist regardless of notification.
-  status           String           @default("new")
-  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  status            String           @default("new")
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Most recent recorded meaningful interaction with the lead — the basis for
+  /// the 24-month retention job (Session 17). Initialized to creation (the only
+  /// interaction knowable in V1: there is no follow-up-recording interface yet)
+  /// and updatable when an operational workflow records a later interaction.
+  lastInteractionAt DateTime         @default(now()) @map("last_interaction_at") @db.Timestamptz(6)
 
   @@index([createdAt])
+  @@index([lastInteractionAt])
   @@map("professional_leads")
 }
