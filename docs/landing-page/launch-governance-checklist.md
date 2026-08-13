@@ -133,3 +133,13 @@ Owner re-sequencing: **finish all engineering first**; governance/provisioning f
 - **Release engineering:** production preflight (`check:launch`) hardened; no stale TODOs / placeholder implementations / hardcoded staging creds on production paths; legal guard still correctly **BLOCKS**; `PUBLISHED_LOCALES = en` unchanged.
 
 **No known landing-page-program engineering implementation gaps remain pending Session-18 validation.** Governance blockers (legal entity, counsel/OD-LP-6, OD-LP-7 mailboxes, erasure operator, native-language review) are **DEFERRED BY OWNER — do not block development**. Production provisioning (Turnstile/WA/CORS/apex/www) **NOT STARTED** by instruction.
+
+## Status after Session 18 (final validation & RC freeze)
+
+**ENGINEERING COMPLETE — RELEASE CANDIDATE FROZEN** (`medidocs-marketing-rc1`; see [release-candidate-manifest.md](release-candidate-manifest.md), [engineering-completion-ledger.md](engineering-completion-ledger.md)).
+
+Full-system revalidation passed: typechecks 7/7; builds all pass; cron 13/13 + patient 21/21 unit tests; API 41 env-independent pass (e2e CI-validated); **axe 0 across all 7 routes** (after a minimal transform-only reveal-animation fix removing a transient `/ur` contrast false-positive); First Load JS 104 KB / CLS 0 / Slow-4G LCP ~770 ms; security clean (no committed secrets, next 15.5.21); backup lifecycle re-verified + fetch smoke; sharing analytics isolation clean (P0); CORS denies prod apex; guards **check-legal BLOCK** + **check-launch NO-GO** on governance/provisioning only.
+
+**Remaining deployment-state item (non-blocking):** `cleanup-professional-leads` cron implemented + tested but **not yet operationally scheduled** — instantiating it needs a full prod IaC apply that would also apply the prohibited production marketing CORS, so it is deferred to the provisioning phase (nothing is deletable for 24 months). This is a deployment step, **not** an engineering gap.
+
+**Overall: NO-GO FOR CUTOVER** until governance (legal entity, counsel, mailboxes, erasure operator, native-language review) and production provisioning (Turnstile/WA/CORS/apex/www) are cleared.
