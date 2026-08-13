@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PUBLISHED_LOCALES, localePath, type MarketingLocale } from "./locales";
+import { IS_SOFT_LAUNCH } from "./release-mode";
 
 export const SITE_ORIGIN = "https://medidocs.app";
 
@@ -39,6 +40,11 @@ export function pageMetadata(
     metadataBase: new URL(SITE_ORIGIN),
     title,
     description,
+    // Controlled soft launch (Session 19): page-level noindex on EVERY route as
+    // defence in depth behind the authoritative X-Robots-Tag header (§10). The
+    // final public-launch build omits soft-launch mode, so indexing turns on
+    // deliberately, never by accident.
+    ...(IS_SOFT_LAUNCH ? { robots: { index: false, follow: false } } : {}),
     alternates: { canonical, ...(languages ? { languages } : {}) },
     openGraph: {
       title,
