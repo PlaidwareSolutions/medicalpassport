@@ -184,6 +184,9 @@ export default defineRailway(() => {
   // docs/25 planned retention-cleanup at 0 4, but that minute is taken
   // above (and monthly by restore-test) — 30 4 keeps the same quiet window.
   const retentionCleanup = cronJob("cron-retention-cleanup", "30 4 * * *", "retention-cleanup");
+  // Professional-lead 24-month retention (Session 17): deletes leads whose
+  // lastInteractionAt is older than 24 calendar months. DB only.
+  const cleanupProfessionalLeads = cronJob("cron-cleanup-professional-leads", "0 5 * * *", "cleanup-professional-leads");
 
   // Backups (docs/27, Stage 11 follow-up) — real pg_dump + R2 + a monthly
   // restore test into a genuine scratch database. BACKUP_ENCRYPTION_KEY is a
@@ -193,6 +196,9 @@ export default defineRailway(() => {
   const backupExport = cronJob("cron-backup-export", "0 1 * * *", "backup-export", backupEnv);
   const verifyBackups = cronJob("cron-verify-backups", "0 3 * * *", "verify-backups", backupEnv);
   const restoreTest = cronJob("cron-restore-test", "0 4 1 * *", "restore-test", backupEnv);
+  // Backup retention enforcement (Session 17): idempotently ensures the R2
+  // 90-day lifecycle rule on the backups bucket. Needs R2 creds only.
+  const ensureBackupLifecycle = cronJob("cron-ensure-backup-lifecycle", "30 1 * * *", "ensure-backup-lifecycle", r2Env);
 
   // Monitoring (docs/21 "Operational reports") — no new observability vendor
   // (OD-13 stays open); a daily structured-log summary of DLQ/job-failure/
@@ -217,9 +223,11 @@ export default defineRailway(() => {
       generateRefillReminders,
       cleanupRateLimitBuckets,
       retentionCleanup,
+      cleanupProfessionalLeads,
       backupExport,
       verifyBackups,
       restoreTest,
+      ensureBackupLifecycle,
       operationalReport,
     ],
   });
