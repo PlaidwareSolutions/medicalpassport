@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { PUBLISHED_LOCALES, localePath } from "../lib/locales";
 import { PROFESSIONAL_UNIT_ENABLED } from "../lib/release-flags";
 import { SITE_ORIGIN } from "../lib/seo";
+import { IS_SOFT_LAUNCH } from "../lib/release-mode";
 
 export const dynamic = "force-static";
 
@@ -13,7 +14,9 @@ export const dynamic = "force-static";
  * reason to hand crawlers a useful URL list (Session 7 §0).
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  if (process.env.MARKETING_ENV === "staging") return [];
+  // Staging and controlled soft launch both emit an empty sitemap — neither is
+  // being submitted for indexing (§12). Final public launch restores the list.
+  if (process.env.MARKETING_ENV === "staging" || IS_SOFT_LAUNCH) return [];
   const entries: MetadataRoute.Sitemap = PUBLISHED_LOCALES.map((locale) => ({
     url: `${SITE_ORIGIN}${localePath(locale)}/`,
   }));

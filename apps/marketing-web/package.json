@@ -10,7 +10,9 @@
     "check:locales": "node scripts/check-locales.mjs",
     "check:claims": "node scripts/check-claims.mjs",
     "check:launch": "node scripts/check-launch.mjs",
+    "check:soft-launch": "node scripts/check-soft-launch.mjs",
     "build:production": "node scripts/check-locales.mjs && MARKETING_ENV=production next build && MARKETING_ENV=production node scripts/prune-draft-locales.mjs && MARKETING_ENV=production node scripts/check-legal-placeholders.mjs && node scripts/check-claims.mjs && MARKETING_ENV=production node scripts/check-launch.mjs",
+    "build:soft-launch": "node scripts/check-locales.mjs && MARKETING_RELEASE_MODE=soft-launch next build && MARKETING_RELEASE_MODE=soft-launch node scripts/prune-draft-locales.mjs && MARKETING_RELEASE_MODE=soft-launch node scripts/apply-soft-launch-headers.mjs && node scripts/check-claims.mjs && MARKETING_RELEASE_MODE=soft-launch node scripts/check-soft-launch.mjs",
     "deploy:staging": "node scripts/check-locales.mjs && MARKETING_ENV=staging NEXT_PUBLIC_LEAD_API_URL=https://staging-api.medidocs.app/v1/public/leads NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY=0x4AAAAAAENvjHC21DQmacb9 NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=3e2da44839cb46aaa28e6567ca8c3d4f next build && MARKETING_ENV=staging node scripts/check-legal-placeholders.mjs && node scripts/check-claims.mjs && wrangler deploy"
   },
   "dependencies": {
