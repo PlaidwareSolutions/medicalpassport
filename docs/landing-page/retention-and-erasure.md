@@ -22,12 +22,22 @@
 | Core health data | Active-account; 30-day erasure removal | Persists while active; **manual erasure mechanism now implemented** (`apps/api/src/ops/account-erasure.ts`) | 30-day *automation* on request is operational, not scheduled | Run the erasure tool per SOP on a verified request |
 | Patient documents | Removed on erasure | Erasure deletes `PrescriptionDocument` + private R2 object (best-effort) | Orphaned-object sweep already exists (abandoned-uploads job) | None for V1 |
 | Scheduled doses | 24 months | `retention-cleanup` cron deletes > 24 mo | **None** | — |
-| Professional leads | 24 months after last interaction | **No cron** | Not enforced | Add a `ProfessionalLead` retention job (small, deferred) |
+| Professional leads | 24 months after last interaction | **`cleanup-professional-leads` cron implemented (Session 17)** — deletes where `lastInteractionAt` < now − 24 calendar months (UTC), batched + idempotent + dry-run | Implemented + unit-tested; migration adds `last_interaction_at` (existing rows backfilled to `created_at`). Scheduled cron **service** created on next IaC apply | Truthful-basis note below |
 | Security/audit | 24 months | Append-only, **no purge**; hash-chained integrity | Purge not implemented; chain integrity complicates deletion | Design a chain-safe purge with counsel before enforcing |
-| Backups | ≤90 days post-deletion | Daily encrypted `pg_dump` → R2; **rotation/purge not documented as enforced** | Purge window unverified | Verify/enforce backup expiry; document restore handling |
+| Backups | ≤90 days post-deletion | Daily encrypted `pg_dump` → R2 **+ R2 lifecycle rule `expire-postgres-backups` (90-day expiry, `postgres/` prefix) — TECHNICALLY ENFORCED + remotely verified on the prod backups bucket (Session 17)** | Enforced; idempotent `ensure-backup-lifecycle` cron keeps it in place. `verify-backups`/`restore-test` use the latest backup only, so 90-day expiry is safe | None |
 | OTP / sessions / uploads | (operational) | 30d / 30d / 7d crons | **None** | — |
 
 **No destructive cleanup of real staging/production data was performed this session.** The lead-retention and backup-purge jobs are policy pending a small, separate engineering task.
+
+## Session 17 — retention enforcement (engineering)
+
+Both retention gaps flagged in Session 16 are now closed at the engineering level:
+
+- **Backups (90-day): TECHNICALLY ENFORCED + VERIFIED.** An R2 lifecycle rule (`expire-postgres-backups`, prefix `postgres/`, `Expiration.Days = 90`, `Status = Enabled`) was applied to the production `…-backups` bucket via the established `railway run` R2-ops path and confirmed by an independent re-read. Applying it deleted nothing (oldest backup was ~21 days old); the earliest expiry is ~90 days out. R2's default multipart-abort rule was preserved (merge, never clobber). An idempotent `ensure-backup-lifecycle` cron (in `railway.ts`/`railway.prod.ts`) re-asserts the rule on schedule and self-heals if removed. Deletion by an R2 lifecycle rule is **asynchronous after the age threshold** (not exact-to-the-minute).
+
+- **Professional leads (24 months): implemented truthfully + tested.** Basis field `lastInteractionAt` (calendar-month, UTC). **Truthful-basis note (§67):** V1 has no follow-up-recording interface, so the only interaction currently recorded is submission — in practice retention is *24 months from submission* until an operational workflow updates `lastInteractionAt` (the column and cron already support that when such a workflow exists). No public endpoint can reset retention age. NULL `lastInteractionAt` is never deleted (fail-safe). The public "24 months after the last meaningful interaction" wording remains accurate as the field is wired for it; if governance prefers a plainer statement, "24 months from submission" is the current engineering-truthful equivalent.
+
+**Rollback notes.** Removing the R2 lifecycle rule stops *future* expiry but **cannot restore already-expired objects** — verification before activation is why we dry-ran first. The lead cleanup is careful deterministic deletion (batched, dry-run, null-safe) protected by the daily backups; no soft-delete layer was added (none is needed for V1).
 
 ## 3. Erasure — V1 (manual, executable)
 

@@ -228,5 +228,12 @@ See Phase 1c — all four addresses must pass inbound/primary/backup/reply/no-bo
 
 ---
 
+## Closed in Session 17 (engineering complete — no longer launch-time work)
+- **Backup 90-day retention** — R2 lifecycle rule enforced + verified on prod; idempotent ensure-cron in IaC. (Was a Session-16 P1.)
+- **Professional-lead 24-month retention** — `lastInteractionAt` migration + batched idempotent cleanup cron + tests. (Was a Session-16 P1.) The scheduled cron **service** is created on the next IaC apply.
+- **Marketing → app `?lang=` handoff** — allowlisted, precedence-correct, dormant in prod; ready for when a locale is published.
+
+There is **no** remaining "implement retention cron" or "add locale handoff" step in this runbook — those are done.
+
 ## Deferred (NOT English-launch blockers, §60)
-Hindi/Telugu/Urdu review; marketing→app `?lang=` handoff; `/for-clinics/` translation; Nastaliq; self-service deletion UI; Next 16 migration; new analytics; CRM; **lead-retention cron (§61)** and **backup-purge enforcement (§62)** — both carried as pre-launch P1 *only if* counsel requires the corresponding public statement enforced at launch; otherwise deferred.
+Hindi/Telugu/Urdu professional review; `/for-clinics/` translation; Nastaliq; self-service deletion UI; Next 16 migration; new analytics; CRM. Governance items (legal entity, counsel, mailboxes, erasure operator) are owner-deferred until engineering is complete.

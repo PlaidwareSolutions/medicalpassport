@@ -122,3 +122,14 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 **Production provisioning — still deferred (not performed):** production Turnstile, production Web Analytics, production CORS application, apex DNS, `www` redirect. Runbook Phases 1–2 document each.
 
 **Overall: NO-GO FOR CUTOVER — LAUNCH PLAN READY.** Governance P0s (legal entity, counsel, OD-LP-7 mailboxes, erasure operator, final English legal copy) remain the gate.
+
+## Status after Session 17 (engineering completion & retention enforcement)
+
+Owner re-sequencing: **finish all engineering first**; governance/provisioning follow. See [engineering-completion-ledger.md](engineering-completion-ledger.md).
+
+- **Backup retention (90-day): TECHNICALLY ENFORCED + VERIFIED** — R2 lifecycle rule on the prod `…-backups` bucket (`postgres/` prefix, 90-day expiry), applied via the established `railway run` path and remotely re-read; idempotent `ensure-backup-lifecycle` cron added to IaC. Closes the Session-16 backup P1.
+- **Professional-lead retention (24-month): implemented + tested** — `lastInteractionAt` migration (existing rows backfilled to `created_at`) + batched, idempotent, dry-run-capable `cleanup-professional-leads` cron. Closes the Session-16 lead-retention P1. (Truthful basis: 24 months from last recorded interaction = submission in V1; see [retention-and-erasure.md](retention-and-erasure.md).)
+- **Marketing → app locale handoff: COMPLETE (dormant)** — `?lang=` allowlisted (en|hi|te|ur), stored-preference precedence, attribution-independent; production stays en-only.
+- **Release engineering:** production preflight (`check:launch`) hardened; no stale TODOs / placeholder implementations / hardcoded staging creds on production paths; legal guard still correctly **BLOCKS**; `PUBLISHED_LOCALES = en` unchanged.
+
+**No known landing-page-program engineering implementation gaps remain pending Session-18 validation.** Governance blockers (legal entity, counsel/OD-LP-6, OD-LP-7 mailboxes, erasure operator, native-language review) are **DEFERRED BY OWNER — do not block development**. Production provisioning (Turnstile/WA/CORS/apex/www) **NOT STARTED** by instruction.
