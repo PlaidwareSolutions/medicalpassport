@@ -42,6 +42,8 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 | Incident-response runbook | **PENDING OWNER** | Design in ops §4; owner + templates needed |
 | Production Turnstile enforcing | **PENDING PRODUCTION PROVISIONING** | Prod widget/secret not created (deferred) |
 | Security contact channel | **BLOCKED / PENDING OWNER** | Tied to `security@` |
+| Security & claim-integrity audit (Session 15) | **PASS (marketing)** | [security-claims-audit.md](security-claims-audit.md): no P0; **no P1 on the marketing surface**. Strong CSP/headers; lead endpoint fail-closed + strict (rejects health data) + allowlist CORS (prod origin correctly un-applied); no secret/source-map exposure; first-party-only third-party footprint; **no share-token analytics leak**. Claim guard `check:claims` added to the deploy chain. |
+| Framework patch — Next.js `15.5.21+` | **PENDING ENG (P1)** | SEC-1: patient app (`app.medidocs.app`) runs a Next server exposed to `<15.5.21` advisories (marketing static-export is **not** reachable). Bump + smoke before public launch. |
 
 ## Infrastructure (production — all deferred, documented only)
 | Gate | State | Note |
@@ -91,3 +93,13 @@ This is the authoritative list of what must be true before `medidocs.app` can go
 5. Any child-product enforcement counsel deems necessary beyond V1.
 
 **Production provisioning — still deferred (not performed):** production Turnstile, production Web Analytics, production CORS application, apex DNS, `www` redirect.
+
+## Status after Session 15 (security & claim-integrity audit)
+
+**Marketing surface is launch-clean on security and claims** ([security-claims-audit.md](security-claims-audit.md)): no P0, no P1 originating on the marketing site. Verified live — strong CSP with `frame-ancestors 'none'`, HSTS, host-scoped staging noindex; a fail-closed, strict, rate-limited lead endpoint that **cannot ingest health data** and enforces Turnstile; allowlist CORS with the **production apex origin correctly not yet authorized**; no committed secrets, no deployed source maps, no R2 directory listing; a first-party-only third-party footprint (Cloudflare Turnstile + Web Analytics + first-party R2) with **no share-token leak** to any tracker. Truth-first gating verified **at the emitted-HTML level** (clinical claims and the "never-sold" chip are absent, not hidden), with negative-capability disclaimers present and translation-parity-preserved. A new `check:claims` guard codifies these invariants in the deploy chain.
+
+**New items surfaced (not launch-clean):**
+1. **SEC-1 (P1, patient app):** bump `next` → `15.5.21+` and smoke `app.medidocs.app` before public launch (the running Next server is exposed to `<15.5.21` advisories; the static marketing export is not).
+2. **SEC-2 (P2):** disable `x-powered-by` on the patient app + API (minor stack disclosure).
+
+**Unchanged P0 launch blockers** (all non-engineering): registered legal entity, counsel sign-off (OD-LP-6), public email provisioning (OD-LP-7), erasure runbook owner, native-language review of hi/te/ur drafts.
