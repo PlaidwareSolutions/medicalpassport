@@ -9,13 +9,14 @@ import { AppShell } from "../../../components/AppShell";
 import { EmptyState } from "../../../components/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
+import { formatCalendarDate } from "../../../lib/patient-time";
 import { useReportValueHistory } from "../../../lib/reports";
 
 /** Date-only values (`YYYY-MM-DD`) must not go through a timezone-shifting Date parse. */
 function formatDateOnly(isoDate: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
   if (!y || !m || !d) return isoDate;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString();
+  return formatCalendarDate(new Date(Date.UTC(y, m - 1, d)));
 }
 
 /**

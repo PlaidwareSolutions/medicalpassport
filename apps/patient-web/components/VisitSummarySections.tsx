@@ -2,6 +2,7 @@
 import type { VisitSummaryDto } from "@medpass/api-client";
 import { Card, Chip, SectionTitle } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
+import { formatCalendarDate, formatPatientDate, formatPatientDateTime } from "../lib/patient-time";
 
 const SEVERITY_TONE: Record<string, "default" | "warning" | "danger"> = {
   info: "default",
@@ -13,11 +14,11 @@ const SEVERITY_TONE: Record<string, "default" | "warning" | "danger"> = {
 const COLUMN = { display: "flex", flexDirection: "column", gap: "var(--space-sm)" } as const;
 const MUTED_SMALL = { color: "var(--color-text-muted)", fontSize: "var(--font-small)" } as const;
 
-/** Date-only values (`YYYY-MM-DD`) must not go through a timezone-shifting Date parse. */
+/** Date-only values (`YYYY-MM-DD`) must not go through a timezone-shifting Date parse or render. */
 function formatDateOnly(isoDate: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
   if (!y || !m || !d) return isoDate;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString();
+  return formatCalendarDate(new Date(Date.UTC(y, m - 1, d)));
 }
 
 /**
@@ -109,7 +110,7 @@ export function VisitSummarySections({ data, concernTones = true }: { data: Visi
                   {r.valueMgDl} {t("bloodsugar.mg_dl_unit")}
                 </strong>
                 <span style={MUTED_SMALL}>
-                  {t(`bloodsugar.context.${r.context}` as never)} · {new Date(r.measuredAt).toLocaleString()}
+                  {t(`bloodsugar.context.${r.context}` as never)} · {formatPatientDateTime(r.measuredAt, data.profile.timezone)}
                 </span>
                 {r.note ? <span style={MUTED_SMALL}>{r.note}</span> : null}
               </Card>
@@ -213,7 +214,7 @@ export function VisitSummarySections({ data, concernTones = true }: { data: Visi
             {data.recentChanges.slice(0, 5).map((c, i) => (
               <Card key={i}>
                 <span style={{ fontSize: "var(--font-small)" }}>
-                  {c.medicationName} — {c.change} ({new Date(c.occurredAt).toLocaleDateString()})
+                  {c.medicationName} — {c.change} ({formatPatientDate(c.occurredAt, data.profile.timezone)})
                 </span>
               </Card>
             ))}

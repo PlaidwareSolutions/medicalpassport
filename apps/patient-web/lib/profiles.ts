@@ -14,7 +14,7 @@ export async function createDependent(input: {
   return api.post<{ id: string; displayName: string; rowVersion: number }>("/profiles/dependents", input);
 }
 
-export async function updateProfile(rowVersion: number, patch: { displayName?: string; yearOfBirth?: number }) {
+export async function updateProfile(rowVersion: number, patch: { displayName?: string; yearOfBirth?: number; timezone?: string }) {
   return api.patch<{ id: string; rowVersion: number }>(
     "/profiles/current",
     { rowVersion, ...patch },

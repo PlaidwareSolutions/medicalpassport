@@ -63,6 +63,16 @@ export const en = {
   "guide.install.ios_step3": "Tap “Add”.",
   "guide.install.dismiss": "No thanks",
 
+  "tz.section_title": "Time zone",
+  "tz.current": "Reminder times follow: {zone}",
+  "tz.option_india": "India time",
+  "tz.option_device": "My phone's time zone ({zone})",
+  "tz.option_other": "Somewhere else…",
+  "tz.select_label": "Choose a time zone",
+  "tz.confirm_title": "Change the time zone?",
+  "tz.confirm_body": "Reminder times will follow the new place from now on. If any medicine must be taken with exact gaps — like insulin — ask your doctor or pharmacist how to space doses during the move.",
+  "tz.viewing_patient_time": "Times are shown in {name}'s time — it is {time} there now.",
+
   "tour.card1_title": "Your medicines, in one place",
   "tour.card1_body": "Every medicine you take, with how much and when — always with you on this phone.",
   "tour.card2_title": "We remind you on time",

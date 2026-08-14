@@ -93,6 +93,7 @@ export const GUIDANCE_AUDIO_ENTRIES = {
   "faq.concerns": { sourceKeys: ["help.q_concerns", "help.a_concerns"] },
   "faq.show_doctor": { sourceKeys: ["help.q_show_doctor", "help.a_show_doctor"] },
   "faq.caregiver_access": { sourceKeys: ["help.q_caregiver_access", "help.a_caregiver_access"] },
+  "tz.confirm": { sourceKeys: ["tz.confirm_title", "tz.confirm_body"] },
 } as const satisfies Record<string, GuidanceAudioEntry>;
 
 export type GuidanceAudioId = keyof typeof GUIDANCE_AUDIO_ENTRIES;

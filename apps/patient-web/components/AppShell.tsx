@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Banner, BottomNav, Button } from "@medpass/ui-web";
@@ -7,6 +7,7 @@ import { ProfileSwitcher } from "./ProfileSwitcher";
 import { useCaregiverInvitations } from "../lib/caregivers";
 import { useI18n } from "../lib/i18n";
 import { useSyncEngine } from "../lib/offline";
+import { deviceTimeZone, patientTimeNow } from "../lib/patient-time";
 import { useClaimInvitations } from "../lib/profiles";
 import { usePushChimeListener } from "../lib/push-chime-listener";
 import { useServiceWorkerUpdate } from "../lib/sw-update";
@@ -30,9 +31,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
-  const { status, activeProfileId } = useSession();
+  const { status, activeProfileId, profiles } = useSession();
   const sync = useSyncEngine(activeProfileId);
   const swUpdate = useServiceWorkerUpdate();
+
+  // Caregiver-abroad clarity (docs/16): every clinical time on screen is in
+  // the PATIENT's zone, so when the viewer's device sits in a different one
+  // (a son in Houston, a mother in Hyderabad), say so — with the patient's
+  // wall clock right now — before "8:00 AM" gets misread as the viewer's
+  // morning. Refreshes each minute so the shown time never drifts stale.
+  const activeProfile = profiles.find((p) => p.id === activeProfileId);
+  const profileZone = activeProfile?.timezone;
+  const zoneDiffers = !!profileZone && deviceTimeZone() !== profileZone;
+  const [patientClock, setPatientClock] = useState("");
+  useEffect(() => {
+    if (!zoneDiffers || !profileZone) return;
+    const update = () => setPatientClock(patientTimeNow(profileZone));
+    update();
+    const interval = setInterval(update, 60_000);
+    return () => clearInterval(interval);
+  }, [zoneDiffers, profileZone]);
   const invitations = useCaregiverInvitations();
   const pendingInvitations = invitations.items?.length ?? 0;
   const claimInvitations = useClaimInvitations();
@@ -70,6 +88,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     // needed to stop it covering content.
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
       <ProfileSwitcher />
+      {zoneDiffers && activeProfile && patientClock ? (
+        <div style={{ padding: "var(--space-sm) var(--space-md) 0" }}>
+          <Banner tone="info">
+            {t("tz.viewing_patient_time", { name: activeProfile.displayName, time: patientClock })}
+          </Banner>
+        </div>
+      ) : null}
       {pendingInvitations > 0 ? (
         <div style={{ padding: "var(--space-sm) var(--space-md) 0" }}>
           <Banner tone="info">

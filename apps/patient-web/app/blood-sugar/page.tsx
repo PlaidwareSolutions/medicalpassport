@@ -14,6 +14,7 @@ import {
   useGlucoseReadings,
 } from "../../lib/blood-sugar";
 import { useI18n } from "../../lib/i18n";
+import { formatCalendarDate, formatPatientDateTime, useActiveTimezone } from "../../lib/patient-time";
 
 function toDateTimeLocal(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -27,6 +28,7 @@ function toDateOnly(date: Date): string {
 
 function ReadingsTab() {
   const { t } = useI18n();
+  const timezone = useActiveTimezone();
   const { items, error, reload } = useGlucoseReadings();
   const [showForm, setShowForm] = useState(false);
   const [measuredAt, setMeasuredAt] = useState(() => toDateTimeLocal(new Date()));
@@ -91,7 +93,7 @@ function ReadingsTab() {
                     {r.valueMgDl} {t("bloodsugar.mg_dl_unit")}
                   </strong>
                   <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                    {t(`bloodsugar.context.${r.context}` as never)} · {new Date(r.measuredAt).toLocaleString()}
+                    {t(`bloodsugar.context.${r.context}` as never)} · {formatPatientDateTime(r.measuredAt, timezone)}
                   </div>
                   {r.note ? (
                     <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{r.note}</div>
@@ -228,7 +230,7 @@ function CheckupsTab() {
           {items.map((c) => (
             <Card key={c.id}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong>{new Date(c.checkupDate).toLocaleDateString()}</strong>
+                <strong>{formatCalendarDate(c.checkupDate)}</strong>
                 <Button variant="danger" loading={deletingId === c.id} disabled={deletingId === c.id} onClick={() => void remove(c.id)}>
                   {t("bloodsugar.delete")}
                 </Button>
@@ -248,7 +250,7 @@ function CheckupsTab() {
                 {c.treatmentChanges ? <span>{t("bloodsugar.treatment_changes_label")}: {c.treatmentChanges}</span> : null}
                 {c.nextAppointmentDate ? (
                   <span>
-                    {t("bloodsugar.next_appointment_label")}: {new Date(c.nextAppointmentDate).toLocaleDateString()}
+                    {t("bloodsugar.next_appointment_label")}: {formatCalendarDate(c.nextAppointmentDate)}
                   </span>
                 ) : null}
               </div>

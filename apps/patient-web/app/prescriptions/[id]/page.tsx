@@ -7,12 +7,14 @@ import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/
 import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
+import { formatCalendarDate, formatPatientDate, useActiveTimezone } from "../../../lib/patient-time";
 import { useMedications } from "../../../lib/medications";
 import { deletePrescription, documentDownloadUrl, linkMedicationToPrescription, usePrescription } from "../../../lib/prescriptions";
 
 /** Screen 43 (docs/07): one prescription — its documents and the medicines it substantiates. */
 export default function PrescriptionDetailPage() {
   const { t } = useI18n();
+  const timezone = useActiveTimezone();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { prescription, error, reload } = usePrescription(params.id);
@@ -81,7 +83,7 @@ export default function PrescriptionDetailPage() {
 
       <Card>
         <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-          {prescription.prescribedAt ? new Date(prescription.prescribedAt).toLocaleDateString() : t("prescriptions.no_date")}
+          {prescription.prescribedAt ? formatCalendarDate(prescription.prescribedAt) : t("prescriptions.no_date")}
         </div>
         {prescription.notes ? <div style={{ marginTop: "var(--space-xs)" }}>{prescription.notes}</div> : null}
       </Card>
@@ -99,7 +101,7 @@ export default function PrescriptionDetailPage() {
                 <div>
                   <strong>{t(`scan.kind_${d.kind}` as never)}</strong>
                   <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                    {new Date(d.createdAt).toLocaleDateString()}
+                    {formatPatientDate(d.createdAt, timezone)}
                   </div>
                 </div>
                 {d.downloadable ? (

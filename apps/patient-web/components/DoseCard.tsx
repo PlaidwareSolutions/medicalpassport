@@ -4,6 +4,7 @@ import type { TimelineItemDto } from "@medpass/api-client";
 import { Button, Card, Chip, TextInput } from "@medpass/ui-web";
 import { ClinicalContentBlock } from "./ClinicalContentBlock";
 import { useI18n } from "../lib/i18n";
+import { formatPatientTime, useActiveTimezone } from "../lib/patient-time";
 import { recordDoseEvent } from "../lib/timeline";
 
 const STATUS_TONE: Record<string, "default" | "success" | "warning" | "danger"> = {
@@ -30,9 +31,9 @@ const RESOLVED_STATUSES = new Set([
   "cancelled",
 ]);
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
+// Dose times always render on the PATIENT's wall clock (docs/16) — a
+// caregiver in another country must see the morning dose as "8:00 AM",
+// because that is when it is physically taken. See lib/patient-time.ts.
 
 /** Local "YYYY-MM-DDTHH:mm" for an `<input type="datetime-local">`, in the browser's own timezone. */
 function toDatetimeLocalValue(date: Date): string {
@@ -50,6 +51,7 @@ export function DoseCard({
   onAction: (scheduledDoseId: string, patch: Partial<TimelineItemDto>) => void;
 }) {
   const { t } = useI18n();
+  const timezone = useActiveTimezone();
   const [busyAction, setBusyAction] = useState<string | undefined>();
   const [showMore, setShowMore] = useState(false);
   const [justQueued, setJustQueued] = useState(false);
@@ -84,7 +86,7 @@ export function DoseCard({
         <div style={{ minWidth: 0 }}>
           <strong style={{ fontSize: "var(--font-large)" }}>{item.medication.name}</strong>
           <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-            {formatTime(item.dueAt)} · {item.quantity} {item.medication.doseUnit} ·{" "}
+            {formatPatientTime(item.dueAt, timezone)} · {item.quantity} {item.medication.doseUnit} ·{" "}
             {t(`food.${item.medication.foodInstruction}` as never)}
           </div>
         </div>

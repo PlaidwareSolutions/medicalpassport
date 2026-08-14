@@ -73,7 +73,7 @@ OTP lifecycle + abuse control. `phone_e164_digest` (HMAC — raw phone not store
 ## Profiles, caregivers, consent
 
 ### ★ patient_profiles
-A person whose medications are managed (self or dependent). `owner_user_id FK` (account that created it), `claimed_by_user_id FK NULL` (dependent who claimed it), `display_name`, `year_of_birth smallint`, `sex` enum nullable, `preferred_locale`, `emergency_card jsonb NULL` (opt-in), `deleted_at`. Index `(owner_user_id)`. Ownership: the patient (claimed user) outranks the creating caregiver. Sync: yes (own/authorized profiles).
+A person whose medications are managed (self or dependent). `owner_user_id FK` (account that created it), `claimed_by_user_id FK NULL` (dependent who claimed it), `display_name`, `year_of_birth smallint`, `sex` enum nullable, `preferred_locale`, `timezone text NOT NULL DEFAULT 'Asia/Kolkata'` (IANA — anchors the profile's clinical day: dose instants, timeline "today", quiet hours; belongs to the patient, never the viewer; changing it regenerates future untouched doses, docs/10 H-28), `emergency_card jsonb NULL` (opt-in), `deleted_at`. Index `(owner_user_id)`. Ownership: the patient (claimed user) outranks the creating caregiver. Sync: yes (own/authorized profiles).
 
 ### ★ caregiver_relationships
 `patient_profile_id FK`, `caregiver_user_id FK`, `relationship` enum, `status` enum `invited|active|revoked|expired`, `invited_phone_digest`, `accepted_at`, `expires_at NULL`, `revoked_at`, `revoked_by`. Unique `(patient_profile_id, caregiver_user_id)` where active. Audit: every state change + every use. Sync: no (server-enforced each request).

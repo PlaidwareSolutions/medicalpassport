@@ -6,6 +6,7 @@ import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/
 import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
 import { useI18n } from "../../../lib/i18n";
+import { formatPatientDate, useActiveTimezone } from "../../../lib/patient-time";
 import { documentDownloadUrl } from "../../../lib/prescriptions";
 import { addReportValue, deleteReport, deleteReportValue, useReport } from "../../../lib/reports";
 import { ReportValuesSection } from "../../../components/ReportValuesSection";
@@ -13,6 +14,7 @@ import { ReportValuesSection } from "../../../components/ReportValuesSection";
 /** Screen 44 (docs/07): one test report — its details and the filed documents. */
 export default function ReportDetailPage() {
   const { t } = useI18n();
+  const timezone = useActiveTimezone();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { report, error, reload } = useReport(params.id);
@@ -101,7 +103,7 @@ export default function ReportDetailPage() {
                 <div>
                   <strong>{t(`scan.kind_${d.kind}` as never)}</strong>
                   <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                    {new Date(d.createdAt).toLocaleDateString()}
+                    {formatPatientDate(d.createdAt, timezone)}
                   </div>
                 </div>
                 {d.downloadable ? (

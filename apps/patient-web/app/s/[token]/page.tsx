@@ -6,6 +6,7 @@ import { PillSpinner } from "@medpass/ui-web";
 import { VisitSummarySections } from "../../../components/VisitSummarySections";
 import { api } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
+import { formatPatientDateTime } from "../../../lib/patient-time";
 
 /**
  * Public share view (docs/07 screen: doctor scans QR / opens link). No
@@ -52,7 +53,7 @@ export default function PublicSharePage() {
 
       <h1 style={{ fontSize: "var(--font-title)", margin: "0 0 var(--space-xs)" }}>{data.profile.displayName}</h1>
       <p style={{ margin: "0 0 var(--space-sm)", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-        {t("visit.generated_at", { time: new Date(data.generatedAt).toLocaleString() })}
+        {t("visit.generated_at", { time: formatPatientDateTime(data.generatedAt, data.profile.timezone) })}
       </p>
       <a
         href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/v1/public/shares/${params.token}/pdf`}

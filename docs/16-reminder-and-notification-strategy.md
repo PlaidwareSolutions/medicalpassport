@@ -79,6 +79,7 @@ A genuinely new in-app chime (Web Audio API, synthesized — no audio asset, no 
 ## Scheduling correctness
 
 - Due times computed server-side from `medication_schedules` in the profile's timezone; device timezone changes update the schedule explicitly (travel prompt, [spec §14.4]).
+- **Built (per-profile timezone):** `patient_profiles.timezone` (IANA, default `Asia/Kolkata`) now anchors everything time-shaped — dose instants (DST-aware via Intl-based helpers in `@medpass/domain`, no tz library), the timeline's "today" (zone-resolved day boundaries, honestly 23/25h on transition days), and quiet hours (the *patient's* night). The earlier fixed `+05:30` code simplification is gone. Changing the zone regenerates future untouched doses and never rewrites history ([10](10-clinical-hazard-log.md) H-28); every clinical time renders in the profile's zone for every viewer, with a persistent banner (+ live patient wall clock) when the viewer's device sits in a different zone — the caregiver-abroad case. The travel *prompt* (device-zone drift suggestion) remains unbuilt; the change is manual in Profile → Time zone.
 - Cron runs every minute over a sliding window with an idempotent `dedupe_key` (`profile:scheduledDose:channelWindow`) — restarts/replays cannot double-send.
 - Quiet hours respected except caregiver-escalation for critical courses (opt-in policy).
 - PRN medications generate no scheduled reminders; refill/completion reminders come from the refill cron.

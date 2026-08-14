@@ -62,6 +62,16 @@ export const hi: Record<keyof typeof en, string> = {
   "guide.install.ios_step3": "“Add” दबाएँ।",
   "guide.install.dismiss": "नहीं, धन्यवाद",
 
+  "tz.section_title": "समय क्षेत्र",
+  "tz.current": "याद दिलाने का समय इसके अनुसार: {zone}",
+  "tz.option_india": "भारत का समय",
+  "tz.option_device": "मेरे फ़ोन का समय क्षेत्र ({zone})",
+  "tz.option_other": "कहीं और…",
+  "tz.select_label": "समय क्षेत्र चुनें",
+  "tz.confirm_title": "समय क्षेत्र बदलें?",
+  "tz.confirm_body": "अब से याद दिलाने का समय नई जगह के अनुसार चलेगा। अगर कोई दवा तय अंतराल पर लेनी ज़रूरी है — जैसे इंसुलिन — तो सफ़र के दौरान खुराक के अंतराल के बारे में अपने डॉक्टर या फ़ार्मासिस्ट से पूछें।",
+  "tz.viewing_patient_time": "समय {name} के समय के अनुसार दिखाया गया है — वहाँ अभी {time} बजे हैं।",
+
   "tour.card1_title": "आपकी दवाएँ, एक जगह",
   "tour.card1_body": "आपकी हर दवा — कितनी और कब लेनी है — हमेशा आपके इस फ़ोन में आपके साथ।",
   "tour.card2_title": "हम समय पर याद दिलाएँगे",
