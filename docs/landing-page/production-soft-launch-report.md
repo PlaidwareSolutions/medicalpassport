@@ -115,6 +115,9 @@ Run the runbook smoke matrix; confirm `X-Robots-Tag: noindex` on apex `/ /for-cl
 
 ---
 
+## Final indexed launch — staged, one-step, still gated
+Search indexing stays **OFF** (owner-confirmed). The eventual indexed launch is a single guarded command — `pnpm deploy:production` (indexable build: no soft-launch noindex, sitemap advertised + populated, en-only) → `wrangler deploy -c wrangler.production.toml` to the same already-attached apex. It **BLOCKS at `check:legal` (14 markers) + `check:launch`** and cannot reach `wrangler deploy` until governance closes (legal entity resolved + counsel-approved final Privacy/Terms with markers removed + mailboxes if referenced). Verified today: `deploy:production` halts at the legal gate; nothing deployed; live apex remains `X-Robots-Tag: noindex`. No `--force`, no marker edits, no guard weakening.
+
 ## Unchanged / verified this session
 - **Backup 90-day R2 lifecycle:** re-verified intact (`expire-postgres-backups`, Enabled, multipart-abort preserved). Untouched.
 - **Subdomains:** app/api/admin/assets/staging independent; prod API `postgres:ok`; no `x-powered-by`. Apex/www still unresolved (no external change since Session 16).
