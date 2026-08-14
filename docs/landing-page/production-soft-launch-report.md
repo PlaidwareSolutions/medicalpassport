@@ -2,16 +2,37 @@
 
 **Session 19 · 2026-08-13.** Authorized action: cut over the production marketing infrastructure (`https://medidocs.app`) as a **controlled soft launch** (real infra, real apex, but global `noindex`, English-only, legal still draft), while governance continues in parallel.
 
-## Status: **CUTOVER IN PROGRESS — engineering + Railway config DONE; apex pending Web-Analytics + DNS**
+## Status: **PRODUCTION SOFT LAUNCH LIVE** — `https://medidocs.app` reachable, noindexed, English-only
 
-`https://medidocs.app` is **NOT yet live** (apex not attached). Progress:
-- ✅ Soft-launch **engineering** complete + verified + committed.
-- ✅ **Production Turnstile** widget + secret + hostname — provisioned by the owner.
-- ✅ **Production API CORS + retention crons** — applied + verified this session (see "Railway production config — APPLIED" below).
-- ⏳ **Production Web Analytics** — owner dashboard action (agent credential lacks the analytics scope).
-- ⏳ **Build + deploy soft-launch artifact, attach apex + www** — pending the WA token and Cloudflare DNS/zone access.
+Live + verified 2026-08-14. Not the final indexed public launch (governance open; `build:production` + `check:legal` still BLOCK).
 
-Nothing was fabricated. The only production mutations were the explicitly-authorized Railway CORS + cron changes, applied from a clean, reviewed plan.
+- ✅ Soft-launch **engineering** (mode + guard) — built, verified, committed.
+- ✅ **Production Turnstile** widget + secret + hostname — owner-provisioned; sitekey `0x4AAAAAAEPalSkoCEktzz_r` baked into the live `/for-clinics/` bundle; widget renders; endpoint fail-closed.
+- ✅ **Production Web Analytics** — existing `medidocs.app` site (JS snippet, auto-injection OFF); token `9bb7272d…` baked; **exactly one** beacon on marketing, **zero** on app/admin/share (no duplicate/auto-injection).
+- ✅ **Production API CORS + retention crons** — applied + verified.
+- ✅ **Production marketing Worker** `medidocs-marketing-production` deployed; **apex `medidocs.app` Custom Domain attached** (valid TLS, HTTP 200).
+- ✅ **Global noindex** live (X-Robots-Tag header on every route + page meta + crawlable robots with no sitemap advertised + empty sitemap).
+- ⏳ **`www.medidocs.app` → apex 301 redirect** — NOT configured (needs Cloudflare Zone/Ruleset edit; the deploy token has `zone:read` only). The **only** remaining cutover item; non-critical (apex is canonical and serves).
+
+### Live smoke results (2026-08-14)
+| Check | Result |
+|---|---|
+| Apex TLS + HTTP 200 | ✅ (`/ /for-clinics/ /privacy/ /terms/`) |
+| `X-Robots-Tag: noindex` (all routes) + meta noindex | ✅ |
+| robots.txt `Allow: /`, no sitemap; sitemap.xml empty | ✅ |
+| Canonical `https://medidocs.app/`; no staging refs | ✅ |
+| Locale gate — `/hi/ /te/ /ur/` → 404 | ✅ |
+| Turnstile (prod sitekey) renders on `/for-clinics/` | ✅ |
+| WA beacons: 1 on marketing / 0 on app / 0 on share | ✅ |
+| Prod lead endpoint (apex origin) fail-closed (`turnstile_failed`); health-data strict-rejected | ✅ |
+| Prod API CORS: apex allowed, evil denied, app/admin preserved | ✅ |
+| Subdomains healthy (app/admin 200, api `postgres:ok`, assets 200); no `x-powered-by` | ✅ |
+| Accessibility (axe) — 0 violations × 4 apex routes | ✅ |
+| No staging/localhost/Google/Facebook/duplicate-analytics requests | ✅ |
+| Final-launch gate `check:legal` still BLOCKS | ✅ |
+| CTA → `app.medidocs.app/?src=website` | ✅ |
+
+Deployed commit: `medidocs-marketing-production` version `bba57a40-e9b0-466c-94e5-8ab8c5deb092`. No secret was printed/committed.
 
 ## Railway production config — APPLIED (Session 19, verified)
 `railway config apply --file .railway/railway.prod.ts` (clean plan: 2 add, 1 change, **0 destroy**):
@@ -80,8 +101,14 @@ Applied `railway config apply --file .railway/railway.prod.ts`; CORS + both cron
 ### 4. Build + deploy
 `NEXT_PUBLIC_LEAD_API_URL=https://api.medidocs.app/v1/public/leads NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY=<prod> NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=<prod> pnpm build:soft-launch` → then `wrangler deploy -c wrangler.production.toml`.
 
-### 5. Apex + www — MANUAL CLOUDFLARE DASHBOARD ACTION (deploy token lacks DNS/zone edit)
-Attach `medidocs.app` as a Workers Custom Domain on `medidocs-marketing-production`; add `www.medidocs.app` + a Redirect Rule `www → https://medidocs.app` (301, preserve path+query). Verify TLS, one-hop redirect, no loop.
+### 4. Build + deploy — ✅ DONE
+`pnpm deploy:soft-launch` (bakes prod API + sitekey + WA token; runs guards; `wrangler deploy -c wrangler.production.toml`). The Workers Custom Domain attach worked with the deploy token (`workers_routes:write` + `ssl_certs:write` — Cloudflare manages the apex DNS internally).
+
+### 5. Apex — ✅ DONE / www — ⏳ REMAINING (needs Zone/Ruleset edit)
+Apex `medidocs.app` Custom Domain attached + verified live. **`www.medidocs.app` → `https://medidocs.app` 301 redirect is NOT configured** — it needs a Cloudflare **Redirect Rule** (Zone/Ruleset edit), which the deploy token lacks (`zone:read`). **MANUAL CLOUDFLARE DASHBOARD ACTION:** Rules → Redirect Rules → `www.medidocs.app/*` → 301 `https://medidocs.app/${path}` (preserve query); add a proxied `www` DNS record if needed. Non-critical for the soft launch (apex is canonical and serves). Do NOT serve a second copy of the site on `www` (§37).
+
+### 6. Owner browser test — ⏳ (human Turnstile)
+Do one happy-path lead submission on `https://medidocs.app/for-clinics/` (synthetic business info, no patient data): solve the production Turnstile → expect `201` + a persisted `ProfessionalLead` with `lastInteractionAt` initialized. The endpoint is confirmed **fail-closed** (no token → `turnstile_failed`); a real `201` requires a human solve.
 
 ### 6. Smoke + noindex verification
 Run the runbook smoke matrix; confirm `X-Robots-Tag: noindex` on apex `/ /for-clinics/ /privacy/ /terms/`; robots crawlable-no-sitemap; exactly one WA beacon on marketing and **zero** on app/admin/share; do **not** enable indexing or submit a sitemap (§72).
