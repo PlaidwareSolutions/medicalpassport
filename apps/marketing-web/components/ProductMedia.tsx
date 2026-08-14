@@ -100,6 +100,12 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
         background: "var(--mkt-surface)",
         padding: "8px",
         boxShadow: "0 12px 32px rgba(26,31,29,.10)",
+        // A definite width so the inner aspect-ratio frame's `width:100%` has
+        // something to resolve against. Without it, `margin-inline:auto` makes
+        // the frame shrink-to-fit its only (0-intrinsic-width) child and the
+        // whole media box collapses to 0 in a definite-width grid column
+        // (desktop hero) — mobile happened to avoid it, desktop did not.
+        width: "100%",
         maxWidth: "290px",
         marginInline: "auto",
       }}
