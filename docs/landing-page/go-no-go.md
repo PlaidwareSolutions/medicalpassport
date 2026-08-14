@@ -15,13 +15,14 @@ Engineering is ready; governance and production-provisioning gates remain (both 
 
 > **Session 19 update (2026-08-13) — two intentionally separate gates:**
 >
-> **Technical Production Cutover (controlled soft launch)** — **AUTHORIZED; IN PROGRESS.** Done: soft-launch release mode + guard (verified); production **Turnstile** (owner); production **API CORS** authorizes `medidocs.app` + retention **crons** created/scheduled/secret-fixed (applied + verified this session — `cleanup-professional-leads` @ `0 5 * * *` now OPERATIONALLY SCHEDULED). Pending: production **Web Analytics** (owner dashboard action — agent lacks the analytics scope), then build+deploy the soft-launch artifact and attach **apex + www** (needs Cloudflare DNS/zone access). `https://medidocs.app` is **not yet live**. Exact remaining steps: [production-soft-launch-report.md](production-soft-launch-report.md).
+> **Technical Production Cutover (controlled soft launch)** — **✅ LIVE.** `https://medidocs.app` is publicly reachable on the production marketing Worker (`medidocs-marketing-production`), valid TLS, **globally noindexed**, English-only, legal-draft retained. Verified: prod Turnstile renders + fail-closed lead endpoint; production API CORS authorizes the apex; exactly one WA beacon on marketing (zero on app/admin/share); `/hi /te /ur` → 404; retention crons scheduled; subdomains healthy; axe 0 violations; no staging/localhost/tracker leakage. **Only `www.medidocs.app` → apex 301 redirect remains** (needs Cloudflare Zone/Ruleset edit — dashboard; non-critical). See [production-soft-launch-report.md](production-soft-launch-report.md).
 >
 > **Final Public / Indexed Launch** — **NO-GO** (governance open: legal entity, counsel, mailboxes, erasure operator, native-language review). `build:production` + `check:legal` still BLOCK. This is not a contradiction with the cutover gate — they are deliberately separate; even once the soft launch is live it stays **noindexed** and legally draft.
 >
 > ```
 > ENGINEERING: COMPLETE                 RC1: FROZEN
-> PRODUCTION SOFT LAUNCH: READY (execution blocked on provisioning access)
+> PRODUCTION SOFT LAUNCH: LIVE (medidocs.app; www redirect pending)
+> APEX: LIVE     WWW: pending 301
 > SEARCH INDEXABILITY: OFF (by design)  GOVERNANCE: OPEN
 > FINAL PUBLIC LAUNCH: NOT YET AUTHORIZED
 > ```
