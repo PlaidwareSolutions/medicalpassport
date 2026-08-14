@@ -160,6 +160,9 @@ importers:
       '@medpass/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@medpass/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@medpass/medication-terminology':
         specifier: workspace:*
         version: link:../../packages/medication-terminology
@@ -468,6 +471,9 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
 
   packages/localization:
     dependencies:

@@ -1,4 +1,9 @@
-import type { ScheduleRecurrence } from "@medpass/database";
+/**
+ * Mirrors the Prisma `ScheduleRecurrence` enum — typed locally because this
+ * package sits below `@medpass/database` and the cron app (which has no
+ * NestJS/api dependency) needs this function too.
+ */
+export type ScheduleRecurrenceCode = "daily" | "weekly" | "fortnightly" | "monthly";
 
 /** Days in a given UTC month (0-indexed month, matching Date#getUTCMonth). */
 function daysInMonth(year: number, monthIndex0: number): number {
@@ -23,7 +28,7 @@ function isMonthlyMatch(anchor: Date, day: Date): boolean {
  * calendar days (the IST-shifted calendar date, in practice — see
  * SchedulingService), never wall-clock instants.
  */
-export function isDueOnDate(recurrence: ScheduleRecurrence, anchorDateStr: string | null, dateStr: string): boolean {
+export function isDueOnDate(recurrence: ScheduleRecurrenceCode, anchorDateStr: string | null, dateStr: string): boolean {
   if (recurrence === "daily") return true;
   if (!anchorDateStr || dateStr < anchorDateStr) return false;
 

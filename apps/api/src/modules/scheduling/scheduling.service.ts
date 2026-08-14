@@ -1,15 +1,21 @@
 import { Injectable } from "@nestjs/common";
 import { proposeSlots, type SlotDose } from "@medpass/medication-terminology";
-import { AUTO_SCHEDULABLE_FREQUENCY_CODES, type FrequencyCode } from "@medpass/domain";
+import {
+  addDaysToDateString,
+  AUTO_SCHEDULABLE_FREQUENCY_CODES,
+  dateStringInTz,
+  isDueOnDate,
+  zonedTimeToInstant,
+  type FrequencyCode,
+} from "@medpass/domain";
 import type { MedicationSchedule, ScheduleRecurrence, ScheduleStatus } from "@medpass/database";
 import { PrismaService } from "../../common/prisma.service";
-import { isDueOnDate } from "./recurrence";
 
 /**
- * Default wall-clock times per slot (docs/16 simplification note: fixed
- * Asia/Kolkata defaults for this pass; per-profile customization and full
- * timezone handling are future work). "any"/"before/with/after food" only
- * changes the instruction text shown, not the due time.
+ * Default wall-clock times per slot, interpreted in the profile's own
+ * timezone (docs/16): "morning 08:00" means 08:00 wherever the patient
+ * lives, DST included. "any"/"before/with/after food" only changes the
+ * instruction text shown, not the due time.
  */
 const DEFAULT_SLOT_TIMES: Record<SlotDose["slot"], string> = {
   morning: "08:00",
@@ -17,7 +23,6 @@ const DEFAULT_SLOT_TIMES: Record<SlotDose["slot"], string> = {
   night: "21:00",
 };
 
-const SCHEDULE_TIMEZONE_OFFSET = "+05:30"; // Asia/Kolkata, fixed (no DST)
 const ROLLING_WINDOW_DAYS = 14;
 
 /** Which ScheduleRecurrence a given frequency code derives (docs/09 §6). */
@@ -51,7 +56,10 @@ export class SchedulingService {
   async regenerateForMedication(patientMedicationId: string): Promise<void> {
     const medication = await this.prisma.patientMedication.findUniqueOrThrow({
       where: { id: patientMedicationId },
-      include: { instructions: { where: { supersededAt: null }, take: 1 } },
+      include: {
+        instructions: { where: { supersededAt: null }, take: 1 },
+        patientProfile: { select: { timezone: true } },
+      },
     });
     const instruction = medication.instructions[0];
 
@@ -86,7 +94,23 @@ export class SchedulingService {
       update: { slots: slots as object, recurrence, anchorDate, status: "active" },
     });
 
-    await this.materializeWindow(schedule, ROLLING_WINDOW_DAYS);
+    await this.materializeWindow(schedule, ROLLING_WINDOW_DAYS, medication.patientProfile.timezone);
+  }
+
+  /**
+   * Re-anchors every current medication's future doses after a profile
+   * timezone change (docs/10 H-28): tomorrow's "08:00" must be 08:00 in the
+   * new place. History keeps its original instants — regeneration only
+   * touches doses no one has acted on.
+   */
+  async regenerateForProfile(patientProfileId: string): Promise<void> {
+    const medications = await this.prisma.patientMedication.findMany({
+      where: { patientProfileId, deletedAt: null, status: "current" },
+      select: { id: true },
+    });
+    for (const medication of medications) {
+      await this.regenerateForMedication(medication.id);
+    }
   }
 
   /**
@@ -132,10 +156,13 @@ export class SchedulingService {
 
   /** Extends every active schedule's window by one day (cron: extend-scheduled-doses). */
   async extendAllActiveSchedules(): Promise<{ schedulesExtended: number; dosesCreated: number }> {
-    const schedules = await this.prisma.medicationSchedule.findMany({ where: { status: "active" } });
+    const schedules = await this.prisma.medicationSchedule.findMany({
+      where: { status: "active" },
+      include: { patientMedication: { select: { patientProfile: { select: { timezone: true } } } } },
+    });
     let dosesCreated = 0;
     for (const schedule of schedules) {
-      const created = await this.materializeWindow(schedule, ROLLING_WINDOW_DAYS);
+      const created = await this.materializeWindow(schedule, ROLLING_WINDOW_DAYS, schedule.patientMedication.patientProfile.timezone);
       dosesCreated += created;
     }
     return { schedulesExtended: schedules.length, dosesCreated };
@@ -167,23 +194,23 @@ export class SchedulingService {
   private async materializeWindow(
     schedule: Pick<MedicationSchedule, "id" | "slots" | "recurrence" | "anchorDate">,
     days: number,
+    timezone: string,
   ): Promise<number> {
     const slots = schedule.slots as unknown as ScheduleSlot[];
     const anchorDateStr = schedule.anchorDate ? schedule.anchorDate.toISOString().slice(0, 10) : null;
     const rows: Array<{ medicationScheduleId: string; dueAt: Date; slotLabel: string; quantity: number }> = [];
-    // IST-shifted "now" so the calendar date is the IST date, not the UTC
-    // date — otherwise the ~5.5h/day window where they differ (UTC evening
-    // = IST past-midnight) would materialize the wrong calendar day.
-    const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    // The window starts on today's calendar date *in the profile's zone* —
+    // otherwise the hours/day where the zone's date and the UTC date differ
+    // would materialize the wrong calendar day.
+    const todayStr = dateStringInTz(timezone);
     for (let d = 0; d < days; d++) {
-      const day = new Date(istNow);
-      day.setUTCDate(day.getUTCDate() + d);
-      const dateStr = day.toISOString().slice(0, 10);
+      const dateStr = addDaysToDateString(todayStr, d);
       if (!isDueOnDate(schedule.recurrence, anchorDateStr, dateStr)) continue;
       for (const slot of slots) {
         rows.push({
           medicationScheduleId: schedule.id,
-          dueAt: new Date(`${dateStr}T${slot.time}:00${SCHEDULE_TIMEZONE_OFFSET}`),
+          // DST-aware: "08:00" is 08:00 on the patient's wall clock that day.
+          dueAt: zonedTimeToInstant(timezone, dateStr, slot.time),
           slotLabel: slot.slot,
           quantity: slot.quantity,
         });

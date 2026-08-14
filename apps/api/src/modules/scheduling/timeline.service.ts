@@ -1,13 +1,18 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { Prisma } from "@medpass/database";
-import { ERROR_CODES, type AuditActorType, type Locale } from "@medpass/domain";
+import {
+  addDaysToDateString,
+  dateStringInTz,
+  zonedTimeToInstant,
+  ERROR_CODES,
+  type AuditActorType,
+  type Locale,
+} from "@medpass/domain";
 import type { RecordDoseEventInput, RecordPrnDoseEventInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import { ClinicalContentLookupService, type ClinicalContentEntry } from "../clinical-content/clinical-content-lookup.service";
-
-const SCHEDULE_TIMEZONE_OFFSET = "+05:30"; // matches SchedulingService (docs/16 simplification)
 
 export interface TimelineItem {
   scheduledDoseId: string;
@@ -65,12 +70,21 @@ export class TimelineService {
     await tx.patientMedication.update({ where: { id: patientMedicationId }, data: { quantityOnHand: next } });
   }
 
-  async getDay(profileId: string, dateStr: string): Promise<{ date: string; items: TimelineItem[] }> {
-    const dayStart = new Date(`${dateStr}T00:00:00${SCHEDULE_TIMEZONE_OFFSET}`);
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  async getDay(profileId: string, requestedDateStr?: string): Promise<{ date: string; items: TimelineItem[] }> {
+    // The profile's zone defines both what "today" means when no date was
+    // asked for, and where the requested calendar day starts and ends —
+    // via zone-resolved instants, so a DST-transition day is honestly 23 or
+    // 25 hours long rather than an assumed 24 (docs/16).
+    const profile = await this.prisma.patientProfile.findUniqueOrThrow({
+      where: { id: profileId },
+      select: { preferredLocale: true, timezone: true },
+    });
+    const dateStr = requestedDateStr ?? dateStringInTz(profile.timezone);
+    const dayStart = zonedTimeToInstant(profile.timezone, dateStr, "00:00");
+    const dayEnd = zonedTimeToInstant(profile.timezone, addDaysToDateString(dateStr, 1), "00:00");
     const now = new Date();
 
-    const [doses, profile] = await Promise.all([
+    const [doses] = await Promise.all([
       this.prisma.scheduledDose.findMany({
         where: {
           dueAt: { gte: dayStart, lt: dayEnd },
@@ -93,7 +107,6 @@ export class TimelineService {
         },
         orderBy: { dueAt: "asc" },
       }),
-      this.prisma.patientProfile.findUniqueOrThrow({ where: { id: profileId }, select: { preferredLocale: true } }),
     ]);
 
     // Missed-dose guidance (docs/07 screen 26) — only for single-ingredient

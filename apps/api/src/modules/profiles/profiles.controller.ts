@@ -19,6 +19,7 @@ import { computeProfileRelationships } from "../../common/profile-relationship";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
+import { SchedulingService } from "../scheduling/scheduling.service";
 
 @Controller("profiles")
 export class ProfilesController {
@@ -26,6 +27,7 @@ export class ProfilesController {
     private readonly prisma: PrismaService,
     private readonly access: ProfileAccessService,
     private readonly safety: SafetyEvaluationService,
+    private readonly scheduling: SchedulingService,
   ) {}
 
   @Get()
@@ -88,6 +90,7 @@ export class ProfilesController {
         displayName: p.displayName,
         yearOfBirth: p.yearOfBirth,
         preferredLocale: p.preferredLocale,
+        timezone: p.timezone,
         relationship: relationships.get(p.id)!,
         claimInvited: !!p.claimInvitedPhoneDigest,
         rowVersion: p.rowVersion,
@@ -233,6 +236,7 @@ export class ProfilesController {
       yearOfBirth: profile.yearOfBirth,
       sex: profile.sex,
       preferredLocale: profile.preferredLocale,
+      timezone: profile.timezone,
       rowVersion: profile.rowVersion,
     };
   }
@@ -243,6 +247,10 @@ export class ProfilesController {
     const input = parseWith(updateProfileSchema, body);
     const { rowVersion, ...fields } = input;
 
+    const before = await this.prisma.patientProfile.findFirst({
+      where: { id: profileId, deletedAt: null },
+      select: { timezone: true },
+    });
     const updated = await this.prisma.patientProfile.updateMany({
       where: { id: profileId, rowVersion, deletedAt: null },
       data: { ...fields, rowVersion: { increment: 1 } },
@@ -260,6 +268,12 @@ export class ProfilesController {
       correlationId: req.correlationId,
       context: { fields: Object.keys(fields) },
     });
+    // A timezone change re-anchors the clinical day: future untouched doses
+    // are regenerated so "08:00" means 08:00 in the new place; recorded
+    // history keeps its instants (docs/16, docs/10 H-28).
+    if (fields.timezone && before && fields.timezone !== before.timezone) {
+      await this.scheduling.regenerateForProfile(profileId);
+    }
     const profile = await this.prisma.patientProfile.findUniqueOrThrow({ where: { id: profileId } });
     return { id: profile.id, rowVersion: profile.rowVersion };
   }

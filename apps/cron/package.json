@@ -11,6 +11,7 @@
     "@medpass/audit": "workspace:*",
     "@medpass/config": "workspace:*",
     "@medpass/database": "workspace:*",
+    "@medpass/domain": "workspace:*",
     "@medpass/medication-terminology": "workspace:*",
     "@medpass/notifications": "workspace:*",
     "@medpass/object-storage": "workspace:*",

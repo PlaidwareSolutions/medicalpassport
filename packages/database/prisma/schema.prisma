@@ -146,6 +146,11 @@ model PatientProfile {
   yearOfBirth     Int?   @map("year_of_birth") @db.SmallInt
   sex             Sex?
   preferredLocale String @default("en") @map("preferred_locale")
+  /// IANA zone anchoring this profile's clinical day — dose times, "today",
+  /// quiet hours (docs/16). Belongs to the PATIENT (where the medicines
+  /// physically are), never the viewer: a caregiver abroad sees times in
+  /// this zone. Changing it re-materializes future doses (docs/10 H-28).
+  timezone        String @default("Asia/Kolkata")
   emergencyCard   Json?  @map("emergency_card")
 
   /// Relationship of the creating caregiver TO this dependent (e.g. "child"

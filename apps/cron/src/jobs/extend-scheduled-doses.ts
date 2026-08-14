@@ -8,9 +8,9 @@
  * dependency and this is a handful of lines (docs/02: no premature
  * abstraction).
  */
+import { addDaysToDateString, dateStringInTz, isDueOnDate, zonedTimeToInstant } from "@medpass/domain";
 import { runJob } from "../lib/run-job";
 
-const SCHEDULE_TIMEZONE_OFFSET = "+05:30"; // Asia/Kolkata, fixed (matches api)
 const WINDOW_DAYS = 14;
 
 interface ScheduleSlot {
@@ -20,23 +20,32 @@ interface ScheduleSlot {
 }
 
 runJob("extend-scheduled-doses", async ({ prisma, log }) => {
-  const schedules = await prisma.medicationSchedule.findMany({ where: { status: "active" } });
+  const schedules = await prisma.medicationSchedule.findMany({
+    where: { status: "active" },
+    include: { patientMedication: { select: { patientProfile: { select: { timezone: true } } } } },
+  });
   let dosesCreated = 0;
 
   for (const schedule of schedules) {
+    const timezone = schedule.patientMedication.patientProfile.timezone;
     const slots = schedule.slots as unknown as ScheduleSlot[];
+    const anchorDateStr = schedule.anchorDate ? schedule.anchorDate.toISOString().slice(0, 10) : null;
     const rows: Array<{ medicationScheduleId: string; dueAt: Date; slotLabel: string; quantity: number }> = [];
-    // IST-shifted "now" so the calendar date is the IST date, not the UTC
-    // date (matches apps/api's SchedulingService.materializeWindow).
-    const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    // The window starts on today's calendar date in the profile's own zone
+    // (matches apps/api's SchedulingService.materializeWindow).
+    const todayStr = dateStringInTz(timezone);
     for (let d = 0; d < WINDOW_DAYS; d++) {
-      const day = new Date(istNow);
-      day.setUTCDate(day.getUTCDate() + d);
-      const dateStr = day.toISOString().slice(0, 10);
+      const dateStr = addDaysToDateString(todayStr, d);
+      // Recurrence gate: previously missing here, so this nightly job
+      // materialized weekly/fortnightly/monthly schedules on every day of
+      // the window — the api-side materializer always filtered, and its
+      // rows arrived first, so the bug showed as extra daily doses only
+      // after day 14 of a non-daily schedule's life.
+      if (!isDueOnDate(schedule.recurrence, anchorDateStr, dateStr)) continue;
       for (const slot of slots) {
         rows.push({
           medicationScheduleId: schedule.id,
-          dueAt: new Date(`${dateStr}T${slot.time}:00${SCHEDULE_TIMEZONE_OFFSET}`),
+          dueAt: zonedTimeToInstant(timezone, dateStr, slot.time),
           slotLabel: slot.slot,
           quantity: slot.quantity,
         });
