@@ -2,9 +2,24 @@
 
 **Session 19 · 2026-08-13.** Authorized action: cut over the production marketing infrastructure (`https://medidocs.app`) as a **controlled soft launch** (real infra, real apex, but global `noindex`, English-only, legal still draft), while governance continues in parallel.
 
-## Status: **CUTOVER NOT COMPLETED — engineering READY, provisioning BLOCKED on access**
+## Status: **CUTOVER IN PROGRESS — engineering + Railway config DONE; apex pending Web-Analytics + DNS**
 
-`https://medidocs.app` is **NOT live**. The soft-launch **engineering** is complete, verified, and committed. The **provisioning/cutover** steps could not be performed by the available agent tooling and are documented below as precise operator actions. Nothing was fabricated; no production infrastructure was mutated.
+`https://medidocs.app` is **NOT yet live** (apex not attached). Progress:
+- ✅ Soft-launch **engineering** complete + verified + committed.
+- ✅ **Production Turnstile** widget + secret + hostname — provisioned by the owner.
+- ✅ **Production API CORS + retention crons** — applied + verified this session (see "Railway production config — APPLIED" below).
+- ⏳ **Production Web Analytics** — owner dashboard action (agent credential lacks the analytics scope).
+- ⏳ **Build + deploy soft-launch artifact, attach apex + www** — pending the WA token and Cloudflare DNS/zone access.
+
+Nothing was fabricated. The only production mutations were the explicitly-authorized Railway CORS + cron changes, applied from a clean, reviewed plan.
+
+## Railway production config — APPLIED (Session 19, verified)
+`railway config apply --file .railway/railway.prod.ts` (clean plan: 2 add, 1 change, **0 destroy**):
+- **API CORS** now authorizes `https://medidocs.app` (verified live: apex → ACAO; `app.medidocs.app` preserved; `evil.example` denied; `/readyz` `postgres:ok`).
+- **`cron-cleanup-professional-leads`** created, schedule `0 5 * * *` (24-month lead retention — the Session-18 loose end, now **OPERATIONALLY SCHEDULED**).
+- **`cron-ensure-backup-lifecycle`** created (self-heals the 90-day R2 rule; verified working via `railway run` — `alreadyCorrect: true`).
+- **Cron secret fix (`preserve()`-on-new-service):** set `FIELD_ENCRYPTION_KEY` (both) + `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (lifecycle) as **Railway reference variables** to `cron-backup-export` — no secret value handled/printed. Verified: `cleanup-professional-leads --dry-run` passes `loadEnv` (fails only on the internal DB, unreachable off-cluster); `ensure-backup-lifecycle` runs fully. A re-plan reports **"already up to date."**
+- **IaC fix:** `railway.prod.ts` now declares `LEAD_TURNSTILE_SECRET_KEY: preserve()` + `LEAD_TURNSTILE_HOSTNAMES: preserve()` — without this, `apply` would have **deleted** the owner-provisioned production Turnstile secret + hostname (the original plan showed those two destroys; caught and fixed before applying).
 
 - **RC frozen:** `medidocs-marketing-rc1` (`cc0db64`). Soft-launch mode added on top at `0f431a7` (this session; RC1 unmoved, §75).
 - **Deployed:** nothing to production this session.
@@ -59,8 +74,8 @@ Create widget `medidocs-marketing-leads-production`, **Managed**, hostname **`me
 ### 2. Production Web Analytics — MANUAL CLOUDFLARE DASHBOARD ACTION
 Create a **separate** Web Analytics site for `medidocs.app`, **manual JS snippet** (keep automatic zone-wide injection **OFF**, §19/§20). Token → build env `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN`.
 
-### 3. Railway prod IaC — `railway config apply --file .railway/railway.prod.ts`
-Review the clean plan (CORS + 2 crons), apply, then **set the new crons' `preserve()` secrets** (`FIELD_ENCRYPTION_KEY` on both; `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` on `cron-ensure-backup-lifecycle`) from an existing cron service. Verify each cron starts (no `loadEnv` failure) and `cleanup-professional-leads` schedule = `0 5 * * *`. Verify prod API CORS: `medidocs.app` → ACAO; evil → none; app/admin preserved (§28).
+### 3. Railway prod IaC — ✅ DONE (this session)
+Applied `railway config apply --file .railway/railway.prod.ts`; CORS + both crons live and verified; cron secrets set via references; re-plan "up to date". (See "Railway production config — APPLIED" above.)
 
 ### 4. Build + deploy
 `NEXT_PUBLIC_LEAD_API_URL=https://api.medidocs.app/v1/public/leads NEXT_PUBLIC_LEAD_TURNSTILE_SITEKEY=<prod> NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=<prod> pnpm build:soft-launch` → then `wrangler deploy -c wrangler.production.toml`.

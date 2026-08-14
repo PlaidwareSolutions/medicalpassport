@@ -105,6 +105,12 @@ export default defineRailway(() => {
       TELNYX_VOICE_CONNECTION_ID: "3009076702736287119",
       // Turnstile (docs/26 §12.4) — fresh widget scoped to app.medidocs.app only.
       TURNSTILE_SECRET_KEY: preserve(),
+      // Marketing lead-form Turnstile (Session 19 soft launch): the production
+      // "medidocs-marketing-leads-production" widget scoped to medidocs.app.
+      // Set out-of-band in Railway; preserve() so apply never deletes/overwrites
+      // the owner-provisioned secret + hostname.
+      LEAD_TURNSTILE_SECRET_KEY: preserve(),
+      LEAD_TURNSTILE_HOSTNAMES: preserve(),
     },
   });
 
