@@ -1203,5 +1203,23 @@ export const GUIDANCE_AUDIO: Partial<Record<GuidanceAudioId, Record<Locale, Guid
       "file": "tour.3.ur.a84cb8e5.mp3",
       "textHash": "a84cb8e5c7136d2582fd7c18ee8476c7ad84737a2ed694fea474ec788fcb952d"
     }
+  },
+  "tz.confirm": {
+    "en": {
+      "file": "tz.confirm.en.d0ccc34c.mp3",
+      "textHash": "d0ccc34cdbff486809cd18fe3d72446ca43d9dd6d55b193c2b8cf87b6c29047d"
+    },
+    "hi": {
+      "file": "tz.confirm.hi.56139c97.mp3",
+      "textHash": "56139c9747a1ca98174b14a07f1418b705ca8d8389bf46d1edf4e3d2545ae1bf"
+    },
+    "te": {
+      "file": "tz.confirm.te.a9a2aea2.mp3",
+      "textHash": "a9a2aea2e90f878e97305e1cc88adf55f39c979101962f6c29f4bc3cb2982276"
+    },
+    "ur": {
+      "file": "tz.confirm.ur.bee325f8.mp3",
+      "textHash": "bee325f8595962462e7bde60380c4db19b65d5c221a304548031df53ecf5e4aa"
+    }
   }
 };

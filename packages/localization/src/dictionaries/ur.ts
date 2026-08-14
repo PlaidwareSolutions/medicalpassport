@@ -62,6 +62,16 @@ export const ur: Record<keyof typeof en, string> = {
   "guide.install.ios_step3": "“Add” دبائیں۔",
   "guide.install.dismiss": "نہیں، شکریہ",
 
+  "tz.section_title": "ٹائم زون",
+  "tz.current": "یاد دہانی کے اوقات اس کے مطابق: {zone}",
+  "tz.option_india": "بھارت کا وقت",
+  "tz.option_device": "میرے فون کا ٹائم زون ({zone})",
+  "tz.option_other": "کہیں اور…",
+  "tz.select_label": "ٹائم زون منتخب کریں",
+  "tz.confirm_title": "ٹائم زون بدلیں؟",
+  "tz.confirm_body": "اب سے یاد دہانی کے اوقات نئی جگہ کے مطابق چلیں گے۔ اگر کوئی دوا مقررہ وقفوں پر لینی ضروری ہے — جیسے انسولین — تو سفر کے دوران خوراکوں کے وقفے کے بارے میں اپنے ڈاکٹر یا فارماسسٹ سے پوچھیں۔",
+  "tz.viewing_patient_time": "اوقات {name} کے وقت کے مطابق دکھائے گئے ہیں — وہاں ابھی {time} بجے ہیں۔",
+
   "tour.card1_title": "آپ کی دوائیں، ایک جگہ",
   "tour.card1_body": "آپ کی ہر دوا — کتنی اور کب لینی ہے — ہمیشہ اس فون میں آپ کے ساتھ۔",
   "tour.card2_title": "ہم وقت پر یاد دلائیں گے",

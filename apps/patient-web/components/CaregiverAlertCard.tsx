@@ -2,6 +2,7 @@
 import type { CaregiverAlertDto } from "@medpass/api-client";
 import { Card, Chip } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
+import { formatPatientDateTime, useActiveTimezone } from "../lib/patient-time";
 
 /**
  * A single missed-dose alert-history entry (docs/16 gap fix) — read-only:
@@ -10,6 +11,7 @@ import { useI18n } from "../lib/i18n";
  */
 export function CaregiverAlertCard({ alert }: { alert: CaregiverAlertDto }) {
   const { t } = useI18n();
+  const timezone = useActiveTimezone();
   const isOpen = alert.status === "missed";
   return (
     <Card tone={isOpen ? "danger" : "default"}>
@@ -20,7 +22,7 @@ export function CaregiverAlertCard({ alert }: { alert: CaregiverAlertDto }) {
         </Chip>
       </div>
       <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-        {t("alerts.due_at", { time: new Date(alert.dueAt).toLocaleString() })}
+        {t("alerts.due_at", { time: formatPatientDateTime(alert.dueAt, timezone) })}
       </span>
     </Card>
   );

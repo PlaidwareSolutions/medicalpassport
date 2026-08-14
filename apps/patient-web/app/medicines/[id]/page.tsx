@@ -9,6 +9,7 @@ import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
 import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
+import { formatCalendarDate } from "../../../lib/patient-time";
 import { invalidateMedicationData, instructionSummary, useMedication } from "../../../lib/medications";
 
 /**
@@ -132,7 +133,7 @@ export default function MedicineDetailPage() {
             style={{ color: "var(--color-info)", fontSize: "var(--font-small)", textDecoration: "underline" }}
           >
             {medication.prescription.prescribedAt
-              ? t("meds.evidenced_by_dated", { date: new Date(medication.prescription.prescribedAt).toLocaleDateString() })
+              ? t("meds.evidenced_by_dated", { date: formatCalendarDate(medication.prescription.prescribedAt) })
               : t("meds.evidenced_by")}
           </Link>
         ) : null}

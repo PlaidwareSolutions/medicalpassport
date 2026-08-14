@@ -129,6 +129,8 @@ export interface ProfileSummary {
   id: string;
   displayName: string;
   yearOfBirth: number | null;
+  /** IANA zone anchoring this profile's clinical day (docs/16) — every clinical time renders in it, for every viewer. */
+  timezone: string;
   relationship: "self" | "dependent" | "caregiver";
   /** True when this (unclaimed) dependent profile has a pending claim invite. */
   claimInvited?: boolean;
@@ -456,7 +458,7 @@ export interface SafetyFindingDto {
 }
 
 export interface VisitSummaryDto {
-  profile: { displayName: string; yearOfBirth: number | null; sex: string | null };
+  profile: { displayName: string; yearOfBirth: number | null; sex: string | null; timezone: string };
   generatedAt: string;
   allergies?: Array<{ label: string; severity: string; reactionNote: string | null }>;
   conditions?: Array<{ label: string; note: string | null }>;

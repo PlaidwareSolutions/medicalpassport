@@ -7,6 +7,7 @@ import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
+import { formatCalendarDate } from "../../lib/patient-time";
 import { usePrescriptions } from "../../lib/prescriptions";
 
 /**
@@ -99,7 +100,7 @@ function DoctorGroup({ name, prescriptions }: { name: string; prescriptions: Pre
           {prescriptions.map((p) => (
             <Link key={p.id} href={`/prescriptions/${p.id}`}>
               <Card>
-                <strong>{p.prescribedAt ? new Date(p.prescribedAt).toLocaleDateString() : t("prescriptions.no_date")}</strong>
+                <strong>{p.prescribedAt ? formatCalendarDate(p.prescribedAt) : t("prescriptions.no_date")}</strong>
                 <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)", flexWrap: "wrap" }}>
                   <Chip>{t("prescriptions.document_count", { count: p.documentCount })}</Chip>
                   <Chip>{t("prescriptions.medication_count", { count: p.medicationCount })}</Chip>

@@ -7,6 +7,7 @@ import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
 import { ProfileDetailsSettings } from "../../components/ProfileDetailsSettings";
 import { ReminderSettings } from "../../components/ReminderSettings";
+import { TimezoneSettings } from "../../components/TimezoneSettings";
 import { api } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { cancelClaimInvite, inviteToClaimProfile } from "../../lib/profiles";
@@ -145,6 +146,8 @@ export default function ProfilePage() {
       <PageHeader title={t("profile.title")} readAloud={[{ audio: "screen.profile" }]} />
 
       <ProfileDetailsSettings />
+
+      <TimezoneSettings />
 
       <Link href="/allergies">
         <Card>

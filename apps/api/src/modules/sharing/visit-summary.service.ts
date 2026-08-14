@@ -27,7 +27,8 @@ export const ALL_SECTIONS: VisitSummarySections = {
 };
 
 export interface VisitSummaryDto {
-  profile: { displayName: string; yearOfBirth: number | null; sex: string | null };
+  /** timezone: the profile's IANA zone — the share landing formats clinical times in the PATIENT's day (docs/16). */
+  profile: { displayName: string; yearOfBirth: number | null; sex: string | null; timezone: string };
   /** Always present — proves the summary was built just now, not cached stale (docs/12 H-12). */
   generatedAt: string;
   allergies?: Array<{ label: string; severity: string; reactionNote: string | null }>;
@@ -118,7 +119,7 @@ export class VisitSummaryService {
   async build(profileId: string, sections: VisitSummarySections): Promise<VisitSummaryDto> {
     const profile = await this.prisma.patientProfile.findUniqueOrThrow({ where: { id: profileId } });
     const summary: VisitSummaryDto = {
-      profile: { displayName: profile.displayName, yearOfBirth: profile.yearOfBirth, sex: profile.sex },
+      profile: { displayName: profile.displayName, yearOfBirth: profile.yearOfBirth, sex: profile.sex, timezone: profile.timezone },
       generatedAt: new Date().toISOString(),
     };
 

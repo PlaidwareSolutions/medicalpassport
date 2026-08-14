@@ -12,6 +12,7 @@ import { RefillReminderCard } from "../components/RefillReminderCard";
 import { useGlucoseReadings } from "../lib/blood-sugar";
 import { useCaregiverAlerts } from "../lib/caregiver-alerts";
 import { useI18n } from "../lib/i18n";
+import { formatPatientDateTime, useActiveTimezone } from "../lib/patient-time";
 import { useMedications } from "../lib/medications";
 import { useRefillReminders } from "../lib/refill-reminders";
 import { isOpenFinding, useSafetyFindings } from "../lib/safety";
@@ -20,6 +21,7 @@ import { useTimeline } from "../lib/timeline";
 /** Screen 7: Home (docs/07). Priority order: due now → due next → missed → concerns → refill/completion reminders. */
 export default function HomePage() {
   const { t } = useI18n();
+  const timezone = useActiveTimezone();
   const { items: medications, error: medError } = useMedications("current");
   const { data: timeline, error: timelineError, fromCache, patchItem } = useTimeline();
   const { items: findings, reload: reloadFindings } = useSafetyFindings();
@@ -68,7 +70,7 @@ export default function HomePage() {
                 </strong>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                   {t(`bloodsugar.context.${latestReading.context}` as never)} ·{" "}
-                  {new Date(latestReading.measuredAt).toLocaleString()}
+                  {formatPatientDateTime(latestReading.measuredAt, timezone)}
                 </div>
               </>
             ) : (

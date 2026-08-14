@@ -4,6 +4,7 @@ import type { SafetyFindingDto } from "@medpass/api-client";
 import { MANDATORY_WARNING_STATEMENT_KEYS } from "@medpass/clinical-rules";
 import { Button, Card, Chip } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
+import { formatPatientDate, useActiveTimezone } from "../lib/patient-time";
 import { findingExplanationParams, recordFindingAction } from "../lib/safety";
 
 const SEVERITY_TONE: Record<string, "default" | "warning" | "danger"> = {
@@ -27,6 +28,7 @@ const CARD_TONE: Record<string, "default" | "info" | "warning" | "danger"> = {
  */
 export function FindingCard({ finding, onChanged }: { finding: SafetyFindingDto; onChanged: () => void }) {
   const { t } = useI18n();
+  const timezone = useActiveTimezone();
   const [busy, setBusy] = useState(false);
   const params = findingExplanationParams(finding.detail);
 
@@ -58,7 +60,7 @@ export function FindingCard({ finding, onChanged }: { finding: SafetyFindingDto;
       <span style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
         {t("safety.evidence", { source: finding.sourceName, version: finding.ruleVersion })}
         {" · "}
-        {t("safety.checked_at", { date: new Date(finding.evaluatedAt).toLocaleDateString() })}
+        {t("safety.checked_at", { date: formatPatientDate(finding.evaluatedAt, timezone) })}
       </span>
 
       <Chip>{t(`safety.status.${finding.status}` as never)}</Chip>
