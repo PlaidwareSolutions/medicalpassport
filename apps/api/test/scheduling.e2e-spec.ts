@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { dateStringInTz, minutesSinceMidnightInTz } from "@medpass/domain";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 import { SchedulingService } from "../src/modules/scheduling/scheduling.service";
@@ -464,5 +465,94 @@ describe("Scheduling e2e", () => {
     const scheduleAfterResume = await prisma.medicationSchedule.findUniqueOrThrow({ where: { id: schedule.id } });
     expect(scheduleAfterResume.status).toBe("active");
     expect(await prisma.scheduledDose.count({ where: { medicationScheduleId: schedule.id } })).toBeGreaterThan(0);
+  });
+
+  // --- Per-profile timezone (docs/16): the profile's zone anchors dose
+  // instants, the timeline's "today", and survives relocation (docs/10 H-28).
+  describe("per-profile timezone", () => {
+    const TZ_PHONE = "+919000000102";
+    let tzToken: string;
+    let tzProfileId: string;
+    let tzMedicationId: string;
+
+    async function profileRowVersion(): Promise<number> {
+      const res = await auth(tzToken)(request(app.getHttpServer()).get("/v1/profiles")).expect(200);
+      return res.body.items.find((p: { id: string }) => p.id === tzProfileId)!.rowVersion;
+    }
+
+    it("a Chicago profile's doses anchor to Chicago wall time, and its timeline's default day is Chicago's today", async () => {
+      await request(app.getHttpServer()).post("/v1/auth/otp/request").send({ phone: TZ_PHONE }).expect(202);
+      const verify = await request(app.getHttpServer())
+        .post("/v1/auth/otp/verify")
+        .send({ phone: TZ_PHONE, code: CODE, device: { kind: "browser" } })
+        .expect(201);
+      tzToken = verify.body.token;
+      const profile = await auth(tzToken)(request(app.getHttpServer()).post("/v1/profiles"))
+        .send({ displayName: "Timezone Test", yearOfBirth: 1958, preferredLocale: "en" })
+        .expect(201);
+      tzProfileId = profile.body.id;
+
+      await auth(tzToken, tzProfileId)(request(app.getHttpServer()).patch("/v1/profiles/current"))
+        .send({ timezone: "America/Chicago", rowVersion: await profileRowVersion() })
+        .expect(200);
+
+      const med = await auth(tzToken, tzProfileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+        .send({
+          enteredName: "TZ OD Medicine",
+          source: "manual",
+          instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD", foodInstruction: "any" },
+        })
+        .expect(201);
+      tzMedicationId = med.body.id;
+
+      // Every materialized dose reads 08:00 on a Chicago wall clock — a
+      // zone-independent assertion that holds on either side of a DST flip.
+      const schedule = await prisma.medicationSchedule.findUniqueOrThrow({ where: { patientMedicationId: tzMedicationId } });
+      const doses = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id } });
+      expect(doses.length).toBe(14);
+      for (const dose of doses) {
+        expect(minutesSinceMidnightInTz("America/Chicago", dose.dueAt)).toBe(8 * 60);
+      }
+
+      const timeline = await auth(tzToken, tzProfileId)(
+        request(app.getHttpServer()).get("/v1/profiles/current/timeline"),
+      ).expect(200);
+      expect(timeline.body.date).toBe(dateStringInTz("America/Chicago"));
+    });
+
+    it("changing the timezone re-anchors future doses and leaves recorded history alone", async () => {
+      const timeline = await auth(tzToken, tzProfileId)(
+        request(app.getHttpServer()).get("/v1/profiles/current/timeline"),
+      ).expect(200);
+      const todayDose = timeline.body.items[0];
+      await auth(tzToken, tzProfileId)(request(app.getHttpServer()).post(`/v1/doses/${todayDose.scheduledDoseId}/events`))
+        .send({ action: "taken" })
+        .expect(201);
+      const takenBefore = await prisma.scheduledDose.findUniqueOrThrow({ where: { id: todayDose.scheduledDoseId } });
+
+      await auth(tzToken, tzProfileId)(request(app.getHttpServer()).patch("/v1/profiles/current"))
+        .send({ timezone: "Asia/Kolkata", rowVersion: await profileRowVersion() })
+        .expect(200);
+
+      // History untouched: same instant, same status.
+      const takenAfter = await prisma.scheduledDose.findUniqueOrThrow({ where: { id: todayDose.scheduledDoseId } });
+      expect(takenAfter.status).toBe("taken");
+      expect(takenAfter.dueAt.toISOString()).toBe(takenBefore.dueAt.toISOString());
+
+      // The future re-anchored: every regenerated upcoming dose now reads
+      // 08:00 on an Indian wall clock.
+      const schedule = await prisma.medicationSchedule.findUniqueOrThrow({ where: { patientMedicationId: tzMedicationId } });
+      const upcoming = await prisma.scheduledDose.findMany({ where: { medicationScheduleId: schedule.id, status: "upcoming" } });
+      expect(upcoming.length).toBeGreaterThan(0);
+      for (const dose of upcoming) {
+        expect(minutesSinceMidnightInTz("Asia/Kolkata", dose.dueAt)).toBe(8 * 60);
+      }
+    });
+
+    it("rejects an unknown timezone", async () => {
+      await auth(tzToken, tzProfileId)(request(app.getHttpServer()).patch("/v1/profiles/current"))
+        .send({ timezone: "Mars/Olympus", rowVersion: await profileRowVersion() })
+        .expect(400);
+    });
   });
 });

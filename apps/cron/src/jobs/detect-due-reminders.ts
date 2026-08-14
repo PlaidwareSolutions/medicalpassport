@@ -63,12 +63,12 @@
  * no-NestJS-in-cron reason as the decryption helpers above.
  */
 import { createDecipheriv, createHash } from "node:crypto";
+import { minutesSinceMidnightInTz } from "@medpass/domain";
 import { TelnyxSmsSender, VapidWebPushSender, type WebPushPayload, type WebPushSubscriptionDetails } from "@medpass/notifications";
 import type { NotificationChannelKind, PrismaClient } from "@medpass/database";
 import { runJob } from "../lib/run-job";
 
 const WINDOW_MINUTES = 2;
-const SCHEDULE_TIMEZONE_OFFSET_MINUTES = 5.5 * 60; // Asia/Kolkata, fixed (matches extend-scheduled-doses.ts)
 /** Generous: well above docs/31's ~3 reminders/day/patient baseline, bounding a genuine runaway rather than normal heavy use. */
 const SMS_REMINDER_DAILY_CAP = 15;
 const NON_CRITICAL_KINDS = new Set(["refill", "completion"]);
@@ -109,21 +109,22 @@ function decryptWebPushSubscription(ciphertext: string, fieldEncryptionKey: stri
   return JSON.parse(decryptPlaintext(ciphertext, fieldEncryptionKey)) as WebPushSubscriptionDetails;
 }
 
-/** Minutes since local midnight, in the fixed IST offset. */
-function localMinutesNow(): number {
-  const istNow = new Date(Date.now() + SCHEDULE_TIMEZONE_OFFSET_MINUTES * 60_000);
-  return istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
-}
-
 function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h! * 60 + m!;
 }
 
-/** Handles a window that wraps midnight (e.g. 22:00 → 07:00). */
-function isWithinQuietHours(pref: { quietHoursEnabled: boolean; quietHoursStart: string; quietHoursEnd: string }): boolean {
+/**
+ * Handles a window that wraps midnight (e.g. 22:00 → 07:00). "Night" is the
+ * patient's night: quiet hours are wall-clock times in the profile's own
+ * timezone (docs/16), so 22:00 means 22:00 wherever the patient lives.
+ */
+function isWithinQuietHours(
+  pref: { quietHoursEnabled: boolean; quietHoursStart: string; quietHoursEnd: string },
+  timezone: string,
+): boolean {
   if (!pref.quietHoursEnabled) return false;
-  const nowMin = localMinutesNow();
+  const nowMin = minutesSinceMidnightInTz(timezone);
   const start = toMinutes(pref.quietHoursStart);
   const end = toMinutes(pref.quietHoursEnd);
   if (start === end) return false;
@@ -330,7 +331,7 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
   for (const notification of pending) {
     const pref = notification.patientProfile.notificationPreference;
     const bypassQuietHours = notification.kind === "caregiver_escalation" && notification.patientMedication?.criticalEscalation === true;
-    if (pref && isWithinQuietHours(pref) && !bypassQuietHours) {
+    if (pref && isWithinQuietHours(pref, notification.patientProfile.timezone) && !bypassQuietHours) {
       deferred++;
       continue;
     }

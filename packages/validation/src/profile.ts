@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SUPPORTED_LOCALES } from "@medpass/domain";
+import { isValidTimeZone, SUPPORTED_LOCALES } from "@medpass/domain";
 
 const currentYear = new Date().getFullYear();
 
@@ -14,6 +14,11 @@ export const createProfileSchema = z.object({
   yearOfBirth: yearOfBirthField.optional(),
   sex: z.enum(["female", "male", "other", "undisclosed"]).optional(),
   preferredLocale: z.enum(SUPPORTED_LOCALES).default("en"),
+  /** IANA zone, validated against the platform's own ICU tables (docs/16). */
+  timezone: z
+    .string()
+    .refine(isValidTimeZone, { message: "Unknown time zone" })
+    .optional(),
 });
 export type CreateProfileInput = z.infer<typeof createProfileSchema>;
 

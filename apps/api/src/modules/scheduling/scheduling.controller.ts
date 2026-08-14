@@ -5,12 +5,6 @@ import { parseWith } from "../../common/zod";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { TimelineService } from "./timeline.service";
 
-function todayIst(): string {
-  // Fixed Asia/Kolkata offset (docs/16 simplification note).
-  const now = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-  return now.toISOString().slice(0, 10);
-}
-
 @Controller()
 export class SchedulingController {
   constructor(
@@ -22,7 +16,9 @@ export class SchedulingController {
   async getTimeline(@Query() query: Record<string, string>, @Req() req: ApiRequest) {
     const { profileId } = await this.access.require(req, "view_schedule");
     const input = parseWith(timelineQuerySchema, query);
-    return this.timeline.getDay(profileId, input.date ?? todayIst());
+    // No date given = "today" in the profile's own timezone — the service
+    // resolves it, since only it knows the profile (docs/16).
+    return this.timeline.getDay(profileId, input.date);
   }
 
   @Post("doses/:scheduledDoseId/events")

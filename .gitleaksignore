@@ -1,0 +1,6 @@
+# NEXT_PUBLIC_* values inlined in marketing-web build scripts (commit 09df1d0):
+# Cloudflare Web Analytics token + Turnstile site key are public client-side
+# identifiers by design — not secrets. Fingerprints are commit-specific; if
+# these lines move in a future commit, regenerate from the gitleaks output.
+09df1d0bbcf617c597819bed7ae55808e4dae91f:apps/marketing-web/package.json:generic-api-key:17
+09df1d0bbcf617c597819bed7ae55808e4dae91f:apps/marketing-web/package.json:generic-api-key:18

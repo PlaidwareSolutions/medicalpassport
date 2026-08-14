@@ -1,4 +1,4 @@
-import { isDueOnDate } from "./recurrence";
+import { isDueOnDate } from "@medpass/domain";
 
 describe("isDueOnDate", () => {
   it("is always due for daily recurrence, anchor or not", () => {
