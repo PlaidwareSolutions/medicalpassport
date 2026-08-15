@@ -46,8 +46,15 @@ check("api.is-production", /^https:\/\/api\.medidocs\.app\//.test(apiUrl), "NEXT
 check("analytics.token-set", waToken.length > 0, "production Web Analytics token required");
 check("analytics.not-staging", waToken !== STAGING.waToken, "must not reuse the staging Web-Analytics token");
 
-const seo = readFileSync(join(root, "lib/seo.ts"), "utf8");
-check("canonical.apex", /SITE_ORIGIN\s*=\s*"https:\/\/medidocs\.app"/.test(seo), "SITE_ORIGIN must be https://medidocs.app");
+// Canonical is domain-agnostic (env-driven for the rebrand): the emitted
+// homepage must carry an https apex canonical that is not staging/localhost.
+const homeForCanonical = existsSync(join(out, "index.html")) ? readFileSync(join(out, "index.html"), "utf8") : "";
+const canonicalHref = homeForCanonical.match(/rel="canonical"\s+href="(https:\/\/[^"]+)"/)?.[1] ?? "";
+check(
+  "canonical.apex",
+  /^https:\/\/[a-z0-9.-]+\/?$/.test(canonicalHref) && !canonicalHref.includes(STAGING.host) && !canonicalHref.includes("localhost"),
+  `homepage canonical must be a production apex (got: ${canonicalHref || "none"})`,
+);
 const locales = readFileSync(join(root, "lib/locales.ts"), "utf8");
 check("locales.published-en-only", /PUBLISHED_LOCALES[^=]*=\s*\[\s*"en"\s*\]/.test(locales), 'PUBLISHED_LOCALES must be ["en"]');
 
