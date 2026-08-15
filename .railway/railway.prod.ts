@@ -84,7 +84,11 @@ export default defineRailway(() => {
       // /for-clinics/ lead form is not CORS-blocked at production launch (same
       // fix as staging). It authorizes CORS only; it does not serve or cut over
       // the apex. Add `https://www.medidocs.app` too if www serves the site.
-      CORS_ORIGINS: "https://app.medidocs.app,https://admin.medidocs.app,https://medidocs.app",
+      // medicinepassport.app + app.medicinepassport.app added for the rebrand
+      // (medicinepassport.app becomes primary; both brands coexist during the
+      // transition). medidocs origins kept until the redirect/migration completes.
+      CORS_ORIGINS:
+        "https://app.medidocs.app,https://admin.medidocs.app,https://medidocs.app,https://medicinepassport.app,https://app.medicinepassport.app",
       // Set out-of-band via `railway variable set --stdin` (docs/28: secrets
       // only in Railway variables) — preserve() tells apply not to touch them.
       OTP_HASH_PEPPER: preserve(),
@@ -110,7 +114,9 @@ export default defineRailway(() => {
       // Set out-of-band in Railway; preserve() so apply never deletes/overwrites
       // the owner-provisioned secret + hostname.
       LEAD_TURNSTILE_SECRET_KEY: preserve(),
-      LEAD_TURNSTILE_HOSTNAMES: preserve(),
+      // Both hostnames share the one lead widget (medicinepassport.app added to
+      // the existing widget). Siteverify hostname validation must accept both.
+      LEAD_TURNSTILE_HOSTNAMES: "medidocs.app,medicinepassport.app",
     },
   });
 

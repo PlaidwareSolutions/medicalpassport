@@ -26,12 +26,14 @@ if (!existsSync(headersPath)) {
   process.exit(1);
 }
 
+// Apex host is domain-agnostic (rebrand): derive it from NEXT_PUBLIC_SITE_ORIGIN.
+const APEX_HOST = new URL(process.env.NEXT_PUBLIC_SITE_ORIGIN ?? "https://medidocs.app").host;
 const MARKER = "# Controlled soft-launch noindex (Session 19)";
 const BLOCK = `
 ${MARKER} — apex + www serve globally noindexed until the final public launch.
-https://medidocs.app/*
+https://${APEX_HOST}/*
   X-Robots-Tag: noindex, nofollow, noarchive
-https://www.medidocs.app/*
+https://www.${APEX_HOST}/*
   X-Robots-Tag: noindex, nofollow, noarchive
 `;
 
