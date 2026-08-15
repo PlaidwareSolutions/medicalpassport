@@ -77,7 +77,10 @@ if (!existsSync(out)) {
 
   // noindex ON (authoritative header + robots crawlable-no-sitemap + empty sitemap + meta).
   const headers = existsSync(join(out, "_headers")) ? readFileSync(join(out, "_headers"), "utf8") : "";
-  check("noindex.apex-header", /https:\/\/medidocs\.app\/\*[\s\S]*?X-Robots-Tag:\s*noindex/.test(headers), "out/_headers must carry apex X-Robots-Tag noindex");
+  // Domain-agnostic: the apex X-Robots-Tag rule must cover the canonical host.
+  const apexHost = canonicalHref ? new URL(canonicalHref).host : "";
+  const apexHeaderRe = new RegExp(`https://${apexHost.replace(/\./g, "\\.")}/\\*[\\s\\S]*?X-Robots-Tag:\\s*noindex`);
+  check("noindex.apex-header", apexHost !== "" && apexHeaderRe.test(headers), `out/_headers must carry X-Robots-Tag noindex for https://${apexHost}/*`);
   const robots = existsSync(join(out, "robots.txt")) ? readFileSync(join(out, "robots.txt"), "utf8") : "";
   check("noindex.robots-crawlable", /Allow:\s*\/(?!\S)/.test(robots) && !/Disallow:\s*\//.test(robots), "robots.txt must Allow: / so the noindex is seen (§11)");
   check("noindex.no-sitemap-advertised", !/Sitemap:/i.test(robots), "robots.txt must NOT advertise a sitemap during soft launch (§12)");
