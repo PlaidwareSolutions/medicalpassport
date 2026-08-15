@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { PUBLISHED_LOCALES, localePath, type MarketingLocale } from "./locales";
 import { IS_SOFT_LAUNCH } from "./release-mode";
 
-export const SITE_ORIGIN = "https://medidocs.app";
+// Canonical marketing origin. Env-driven so one codebase can build for either
+// domain during the medidocs.app → medicinepassport.app rebrand (Session:
+// medicinepassport.app becomes primary). Defaults to medidocs.app.
+export const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_ORIGIN ?? "https://medidocs.app";
 
 /** OG locale codes (language_TERRITORY); India-first audience. */
 const OG_LOCALE: Record<MarketingLocale, string> = {

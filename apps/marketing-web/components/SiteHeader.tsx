@@ -1,7 +1,7 @@
 import { t } from "../lib/i18n";
 import { PUBLISHED_LOCALES, localePath, type MarketingLocale } from "../lib/locales";
 import { PROFESSIONAL_UNIT_ENABLED } from "../lib/release-flags";
-import { CtaLink } from "./CtaLink";
+import { APP_ORIGIN, CtaLink } from "./CtaLink";
 import { HeaderStickyCta } from "./HeaderStickyCta";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 
@@ -66,7 +66,7 @@ export function SiteHeader({
           ) : null}
           <a
             className="mkt-muted mkt-nav-quiet mkt-desktop-only"
-            href="https://app.medidocs.app/help"
+            href={`${APP_ORIGIN}/help`}
             style={{ textDecoration: "none", fontWeight: 600, fontSize: "0.9375rem" }}
           >
             {t(locale, "nav.help")}

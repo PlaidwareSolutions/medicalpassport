@@ -4,7 +4,7 @@ import { ClinicsPage } from "../../../components/ClinicsPage";
 import { t } from "../../../lib/i18n";
 import { PROFESSIONAL_UNIT_ENABLED } from "../../../lib/release-flags";
 import { LEAD_TURNSTILE_SITEKEY } from "../../../lib/lead-api";
-import { pageMetadata } from "../../../lib/seo";
+import { pageMetadata, SITE_ORIGIN } from "../../../lib/seo";
 
 /**
  * /for-clinics/ (C1–C7). Part of the professional release unit — when the
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   ...pageMetadata("en", "", t("en", "clinics.meta_title"), t("en", "clinics.meta_description")),
   // Same production-ready canonical/OG as home; staging stays noindexed via
   // the host-scoped header + robots regardless.
-  alternates: { canonical: "https://medidocs.app/for-clinics/" },
+  alternates: { canonical: `${SITE_ORIGIN}/for-clinics/` },
 };
 
 export default function Page() {

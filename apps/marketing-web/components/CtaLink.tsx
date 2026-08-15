@@ -2,8 +2,11 @@ import type { CSSProperties } from "react";
 import { t } from "../lib/i18n";
 import type { MarketingLocale } from "../lib/locales";
 
+/** Patient-app origin the CTA points at. Env-driven for the rebrand (defaults
+ *  to app.medidocs.app); the `?src=website` attribution contract is unchanged. */
+export const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://app.medidocs.app";
 /** Approved attribution contract (OD-LP-8): one source value site-wide. */
-export const APP_CTA_URL = "https://app.medidocs.app/?src=website";
+export const APP_CTA_URL = `${APP_ORIGIN}/?src=website`;
 
 /**
  * App CTA URL with an optional locale hint (Session 17 marketing→app handoff).
