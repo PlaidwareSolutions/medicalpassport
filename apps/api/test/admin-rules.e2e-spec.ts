@@ -39,7 +39,7 @@ describe("Admin rules e2e", () => {
       .post("/v1/profiles")
       .set("authorization", `Bearer ${verify.body.token}`)
       .set("x-requested-with", "medpass")
-      .send({ displayName: "Rules Test Patient", preferredLocale: "en" })
+      .send({ displayName: "Rules Test Patient", preferredLocale: "en", yearOfBirth: 1980 })
       .expect(201);
     profileId = profile.body.id;
   });

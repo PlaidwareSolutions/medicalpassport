@@ -4,3 +4,7 @@
 # these lines move in a future commit, regenerate from the gitleaks output.
 09df1d0bbcf617c597819bed7ae55808e4dae91f:apps/marketing-web/package.json:generic-api-key:17
 09df1d0bbcf617c597819bed7ae55808e4dae91f:apps/marketing-web/package.json:generic-api-key:18
+# Same public identifiers, moved by the rebrand's deploy:soft-launch:medicinepassport
+# script (commit 1431846): reused lead Turnstile sitekey + new medicinepassport
+# Web Analytics token (398ad7c0…) — both client-side by design.
+14318469c2f0b608a08cc00524b2c977d2c13d55:apps/marketing-web/package.json:generic-api-key:18
