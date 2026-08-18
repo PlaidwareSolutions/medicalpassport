@@ -63,7 +63,10 @@ check("turnstile.sitekey-set", sitekey.length > 0, "NEXT_PUBLIC_LEAD_TURNSTILE_S
 check("turnstile.not-test-key", !CF_TEST_SITEKEY.test(sitekey), "must not be a Cloudflare TEST sitekey (1x…/2x…/3x…)");
 check("turnstile.not-staging-key", sitekey !== STAGING.sitekey, "must not reuse the staging widget sitekey");
 
-// API — production marketing must not point at the staging API.
+// API — production marketing must not point at the staging API. The API host
+// stays api.medidocs.app for BOTH marketing apexes: the rebrand (OD-LP-11)
+// deliberately does not move api/admin/assets hosts until a coordinated
+// cutover, so this stays a fixed constant rather than deriving from the origin.
 check("api.url-set", apiUrl.length > 0, "NEXT_PUBLIC_LEAD_API_URL must be set");
 check("api.not-staging", !apiUrl.includes(STAGING.apiHost), `must not point at ${STAGING.apiHost}`);
 check("api.is-production", /^https:\/\/api\.medidocs\.app\//.test(apiUrl), "should target https://api.medidocs.app/…");
@@ -72,9 +75,18 @@ check("api.is-production", /^https:\/\/api\.medidocs\.app\//.test(apiUrl), "shou
 check("analytics.token-set", waToken.length > 0, "production Web Analytics token required");
 check("analytics.not-staging", waToken !== STAGING.waToken, "must not reuse the staging Web-Analytics token");
 
-// Canonical host — source constant must be the production apex, not staging.
+// Canonical host — origin-aware since the rebrand made lib/seo.ts read
+// NEXT_PUBLIC_SITE_ORIGIN (a source-regex on a literal would NO-GO every
+// build). The env origin must be one of the two production apexes; the
+// emitted artifact is checked against it below (artifact over source).
+const PRODUCTION_APEXES = ["https://medidocs.app", "https://medicinepassport.app"];
+const siteOrigin = process.env.NEXT_PUBLIC_SITE_ORIGIN ?? "https://medidocs.app";
+check(
+  "canonical.apex",
+  PRODUCTION_APEXES.includes(siteOrigin),
+  `NEXT_PUBLIC_SITE_ORIGIN must be one of ${PRODUCTION_APEXES.join(" | ")} (got: ${siteOrigin})`,
+);
 const seo = readFileSync(join(root, "lib/seo.ts"), "utf8");
-check("canonical.apex", /SITE_ORIGIN\s*=\s*"https:\/\/medidocs\.app"/.test(seo), "SITE_ORIGIN must be https://medidocs.app");
 check("canonical.no-staging-ref", !seo.includes(STAGING.host), "seo.ts must not reference the staging host");
 
 // Locales — production publication set must stay English-only until review.
@@ -101,6 +113,19 @@ if (existsSync(out)) {
     return leakMarkers.some((m) => h.includes(m));
   });
   check("output.no-staging-leak", leaked.length === 0, `staging/localhost refs found in: ${leaked.map((p) => p.slice(out.length + 1)).join(", ")}`);
+
+  // The emitted homepage canonical must match the declared origin exactly —
+  // a mismatch means the build was made with a different NEXT_PUBLIC_SITE_ORIGIN
+  // than this preflight is validating (e.g. a medidocs artifact about to be
+  // deployed to the medicinepassport Worker, or vice versa).
+  const homeHtml = existsSync(join(out, "index.html")) ? readFileSync(join(out, "index.html"), "utf8") : "";
+  const canonicalHref = homeHtml.match(/rel="canonical"\s+href="(https:\/\/[^"]+)"/)?.[1] ?? "";
+  check(
+    "output.canonical-matches-origin",
+    canonicalHref.replace(/\/$/, "") === siteOrigin,
+    `emitted homepage canonical (${canonicalHref || "none"}) must match NEXT_PUBLIC_SITE_ORIGIN (${siteOrigin})`,
+  );
+
   const draftRoutes = ["hi", "te", "ur"].filter((l) => existsSync(join(out, l)));
   check("output.no-draft-locales", draftRoutes.length === 0, `unreviewed locale routes emitted: ${draftRoutes.join(", ")}`);
 
