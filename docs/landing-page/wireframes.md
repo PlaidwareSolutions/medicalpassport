@@ -52,7 +52,7 @@ Complete reading order, top to bottom. Approximate section weight in viewports (
 │  H1  Your medicines. One place.  │
 │      In your language.           │
 │  support line (2 lines)          │
-│  [Free for patients]             │
+│  [Free for all patients]             │
 │  [No app to install]             │
 │  [App languages: EN·हिं·తె·اردو]  │  ← product-language chip (distinct
 │  [ CTA  Create my free           │     from header switcher)

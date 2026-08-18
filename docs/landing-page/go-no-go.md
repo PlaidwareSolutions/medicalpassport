@@ -6,7 +6,7 @@
 
 Engineering is ready; governance and production-provisioning gates remain (both deferred by instruction / pending the owner + counsel). The runbook ([production-launch-runbook.md](production-launch-runbook.md)) is complete and dry-run-validated.
 
-> **Session 18 update (2026-08-13):** engineering is now **COMPLETE** and frozen as release candidate **`medidocs-marketing-rc1`** ([release-candidate-manifest.md](release-candidate-manifest.md)). Full-system revalidation passed (a11y 0/7 after a minimal reveal-animation fix; backup lifecycle re-verified + fetch smoke; sharing analytics isolation clean; guards legal-BLOCK / launch-NO-GO clean). One non-urgent deployment-state item remains: the `cleanup-professional-leads` cron is implemented but not yet scheduled (its IaC apply would also apply prohibited prod CORS — deferred to the provisioning phase).
+> **Session 18 update (2026-08-13):** engineering is now **COMPLETE** and frozen as release candidate **`medidocs-marketing-rc1`** ([release-candidate-manifest.md](release-candidate-manifest.md)). Full-system revalidation passed (a11y 0/7 after a minimal reveal-animation fix; backup lifecycle re-verified + fetch smoke; sharing analytics isolation clean; guards legal-BLOCK / launch-NO-GO clean). One non-urgent deployment-state item remains: the `cleanup-professional-leads` cron is implemented but not yet scheduled (its IaC apply would also apply prohibited prod CORS — deferred to the provisioning phase). *Resolved in Session 19 (2026-08-13): `cron-cleanup-professional-leads` created and scheduled (`0 5 * * *`) during the prod IaC apply — see [production-soft-launch-report.md](production-soft-launch-report.md).*
 >
 > ```
 > ENGINEERING: COMPLETE   RELEASE CANDIDATE: FROZEN

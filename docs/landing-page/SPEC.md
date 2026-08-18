@@ -4,6 +4,7 @@
 
 **Target domain:** `https://medidocs.app`
 **Patient application:** `https://app.medidocs.app`
+> *Rebrand note (2026-08-15, recorded 2026-08-17):* the primary marketing apex is now **`medicinepassport.app`** (patient app `app.medicinepassport.app`), soft-launched in parallel with `medidocs.app` until a phase-3 redirect. Domain references throughout this spec are historical; see **OD-LP-11** in [01-decisions.md](01-decisions.md) for the live domain architecture.
 **Document status:** EXECUTION PLAN — REVIEW BEFORE IMPLEMENTATION
 **Primary implementation model:** Claude executes one approved phase at a time
 **Primary audience:** Patients and caregivers
@@ -405,7 +406,7 @@ Supporting copy direction:
 
 Trust/value chips:
 
-> Free for patients
+> Free for all patients
 
 > No app to install
 
@@ -742,7 +743,7 @@ Do not suggest doctors automatically gain permanent access.
 
 ---
 
-# 20. SECTION 10 — FREE FOR PATIENTS
+# 20. SECTION 10 — FREE FOR ALL PATIENTS
 
 This is a major section.
 
@@ -750,7 +751,7 @@ It must visually interrupt the page.
 
 Possible headline:
 
-> **Medicine Passport is free for patients.**
+> **Medicine Passport is free for all patients.**
 
 Subheading direction:
 
@@ -1496,7 +1497,7 @@ Recommended schema:
 
 Example:
 
-| MKT-001 | Medicine Passport is free for patients | Business decision | Pending | Business | Pending |
+| MKT-001 | Medicine Passport is free for all patients | Business decision | Pending | Business | Pending |
 | MKT-002 | Works from a mobile browser | Product | Yes | N/A | Approved |
 | MKT-003 | Available in four languages | Product | Verify review gate | Translation | Pending |
 | MKT-004 | Can surface possible duplicate ingredients | Safety capability | Verify production | Clinical | Pending |

@@ -44,7 +44,7 @@ Marketing static site (`/`, `/for-clinics/`, `/privacy/`, `/terms/`); real produ
 1. **Build-time transitive audit highs** (`sharp`, `postcss`, `brace-expansion`, `nanoid`) via `next`/`postcss` — not runtime-reachable on the public surface (`next/image` unused; marketing is static export).
 2. **No self-service erasure UI** — V1 uses an executable, tested manual erasure process. **POST-LAUNCH PRODUCT ENHANCEMENT.**
 3. **No lead follow-up UI** — `lastInteractionAt` supports future interaction tracking, but V1 records only submission, so the effective retention clock is submission time until an operational workflow updates it. Non-blocking.
-4. **`cleanup-professional-leads` cron not yet operationally scheduled** — deferred because a full prod IaC apply would also apply the prohibited production marketing CORS; non-urgent (nothing deletable for 24 months). Deployment-state item, not an engineering gap.
+4. **`cleanup-professional-leads` cron not yet operationally scheduled** — deferred because a full prod IaC apply would also apply the prohibited production marketing CORS; non-urgent (nothing deletable for 24 months). Deployment-state item, not an engineering gap. *Closed in Session 19 (2026-08-13): scheduled `0 5 * * *` on `medpass-prod` ([production-soft-launch-report.md](production-soft-launch-report.md)).*
 
 ## Governance blockers — **DEFERRED BY OWNER UNTIL AFTER ENGINEERING COMPLETION**
 Registered legal entity · counsel approval (OD-LP-6) · governing law/venue · public mailboxes (OD-LP-7) · named erasure operator · native-language professional review. **Not engineering incompleteness.**
