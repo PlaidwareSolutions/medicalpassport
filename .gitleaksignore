@@ -8,3 +8,7 @@
 # script (commit 1431846): reused lead Turnstile sitekey + new medicinepassport
 # Web Analytics token (398ad7c0…) — both client-side by design.
 14318469c2f0b608a08cc00524b2c977d2c13d55:apps/marketing-web/package.json:generic-api-key:18
+# …and moved again by deploy:production:medicinepassport (commit 095bedf),
+# which re-touched line 19 and added line 20 with the same public values.
+095bedfb46f7dd2db27f25d3504941df58ed539f:apps/marketing-web/package.json:generic-api-key:19
+095bedfb46f7dd2db27f25d3504941df58ed539f:apps/marketing-web/package.json:generic-api-key:20
