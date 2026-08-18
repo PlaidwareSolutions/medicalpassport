@@ -14,7 +14,7 @@ Conventions: every section lists the eleven SPEC §46-Session-2 fields. "Audienc
 - **Audience thought:** *"This is for people like me, it's free, and I don't have to install anything."*
 - **Headline (DRAFT):** **"Your medicines. One place. In your language."** — the language reference is a *product*-language statement, permitted at English-only launch per the OD-LP-4 addendum.
 - **Supporting copy (DRAFT):** "Keep track of what you take, why you take it, when to take it, and what to show your doctor — wherever you go." Brand lockup above: "Medicine Passport · by MediDocs" (OD-LP-3).
-- **CTA:** primary **"Create my free Medicine Passport"**; secondary "See how it works" → `#s2-problem`. Trust chips: "Free for patients" · "No app to install" · "App languages: English · हिंदी · తెలుగు · اردو". *(The "App languages:" prefix keeps product-language support **visually distinct** from the site language switcher, which lists only review-passed public locales — OD-LP-4 addendum.)*
+- **CTA:** primary **"Create my free Medicine Passport"**; secondary "See how it works" → `#s2-problem`. Trust chips: "Free for all patients" · "No app to install" · "App languages: English · हिंदी · తెలుగు · اردو". *(The "App languages:" prefix keeps product-language support **visually distinct** from the site language switcher, which lists only review-passed public locales — OD-LP-4 addendum.)*
 - **Visual:** storyboard `01-hero` — 12–15s muted montage (passport list → capture/review → timeline → listen tap → QR share), poster = passport-list screenshot. No music.
 - **Product evidence:** live app at `app.medidocs.app`; montage flows all use shipped screens.
 - **Claim IDs:** MKT-001 (chip — wording GATED-BUSINESS/LEGAL), MKT-002, MKT-003 (product-language support statement — permitted at English-only launch, OD-LP-4 addendum), MKT-004, MKT-005 (listen beat in montage).
@@ -138,12 +138,12 @@ Conventions: every section lists the eleven SPEC §46-Session-2 fields. "Audienc
 - **Accessibility:** QR always accompanied by the equivalent-link statement; revocation/expiry facts in text.
 - **Launch note (OD-LP-10 ruling):** Stage 7 security review is a **hard launch gate for the sharing story** — until it clears, this section is disabled/omitted entirely (never softened), with the architecture preserved so it can be enabled after approval.
 
-## S10 — Free for patients
+## S10 — Free for all patients
 
 - **Purpose:** the promise, stated plainly, with the credibility of a funding answer. Visually interrupts the page (SPEC §20).
 - **Audience thought:** *"Free — and I can see why, so I believe it."*
-- **Headline (DRAFT):** **"Medicine Passport is free for patients."**
-- **Supporting copy (DRAFT — OD-LP-1's candidate wording, final text GATED-BUSINESS/LEGAL):** "Your medicine information belongs to you. Medicine Passport is free for patients to create, maintain and share. We plan to sustain MediDocs through services and partnerships with healthcare organizations — not by charging patients for access to their own medicine information." Principle chips: "No advertising in the patient experience" · "Identifiable health information is never sold" · "No paywall on your own record" (MKT-072 bounded form). *(Session 2 gate ruling: the "never sold" chip is **intended policy wording and stays GATED-BUSINESS/LEGAL** — it does not become approved public copy until that permanent commitment receives business/legal approval.)* **Never** "everything free forever" (MKT-006 prohibited).
+- **Headline (DRAFT):** **"Medicine Passport is free for all patients."**
+- **Supporting copy (DRAFT — OD-LP-1's candidate wording, final text GATED-BUSINESS/LEGAL):** "Your medicine information belongs to you. Medicine Passport is free for all patients to create, maintain and share. We plan to sustain MediDocs through services and partnerships with healthcare organizations — not by charging patients for access to their own medicine information." Principle chips: "No advertising in the patient experience" · "Identifiable health information is never sold" · "No paywall on your own record" (MKT-072 bounded form). *(Session 2 gate ruling: the "never sold" chip is **intended policy wording and stays GATED-BUSINESS/LEGAL** — it does not become approved public copy until that permanent commitment receives business/legal approval.)* **Never** "everything free forever" (MKT-006 prohibited).
 - **CTA:** repeat primary.
 - **Visual:** none/typographic — a full-bleed color-block statement panel (design in Session 4). Deliberately the *least* decorated section.
 - **Product evidence:** business ruling OD-LP-1 (2026-08-11); no paywall exists in the product.

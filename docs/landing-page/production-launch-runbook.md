@@ -2,6 +2,8 @@
 
 **Session 16 · 2026-08-13 · The exact, ordered, reversible procedure for Session 17.**
 
+> *Two-apex reality (rebrand phase 1, 2026-08-15 — OD-LP-11 in [01-decisions.md](01-decisions.md)):* both `medidocs.app` **and** `medicinepassport.app` are now live as noindexed soft launches, each on its own Worker (`wrangler.production.toml` / `wrangler.medicinepassport.toml`) with its own Web-Analytics site. The final indexed launch runs this runbook's remaining phases against **`medicinepassport.app` as primary** (use `deploy:production:medicinepassport`), and must land the `medidocs.app → medicinepassport.app` 301 redirect plus `www` records on both apexes before indexing is enabled — two parallel indexed copies would be a duplicate-content fault. Mailbox provisioning (Phase 1c) should target the go-forward domain per the OD-LP-11 open sub-question.
+
 This is an operational runbook. **Nothing here is executed in Session 16** — Session 16 established engineering readiness and this plan. Session 17 executes it, and **only after every governance gate in [go-no-go.md](go-no-go.md) is GREEN**.
 
 Conventions:

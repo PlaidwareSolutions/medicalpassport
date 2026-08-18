@@ -62,3 +62,9 @@ Treat as P2 → diagnose (encryption key? size? export job?) → re-run manually
 ## Routine operations
 
 Weekly: DLQ review, alert-quality skim, dependency updates triage, cost snapshot. Monthly: restore-test review, access review (Railway/Cloudflare/admin accounts), secret-age report. Quarterly: index review, hazard-log review, game day, vendor register review.
+
+## Incident records
+
+### INC-2026-001 — medpass-prod audit hash-chain breaks (RESOLVED, P3)
+
+**Window:** 2026-07-24 → 2026-07-25T16:26Z (first break at seq 97, last at seq 683; 210 broken links total). **Impact:** integrity-verification signal only — no data loss, no PHI exposure, no user-facing effect; `cron-verify-audit-chain` alarmed on the first break. **Root cause:** deterministic concurrency race — several requests from a single page load each appended `caregiver.access_used` audit rows via the plain client with no shared transaction, so concurrent writers read the same chain tail and both linked to it. **Fix:** commit `d66aa05` (2026-07-26, deployed next day) serializes every append behind a transaction-scoped Postgres advisory lock (`packages/audit`); zero breaks in all traffic since. **Residual:** a hash chain cannot be repaired retroactively (that's its point). The investigated range is acknowledged via `AUDIT_CHAIN_ACKNOWLEDGED_BREAKS_BEFORE_SEQ=683` on `medpass-prod` only (`medpass-dev`'s chain never broke); verification resumes from each acknowledged row's own hash, so any *new* break after seq 683 still fails loudly (regression-tested in `audit-chain-concurrency.e2e-spec.ts`). **PIR:** full narrative and evidence in [22](22-implementation-plan.md) (search "210 total historical breaks"); hazard log reviewed — no new clinical hazard (integrity tooling, not patient-facing).

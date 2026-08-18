@@ -28,7 +28,7 @@
 | offline-en | 7.1s | 107KB | 197KB | 41KB | Offline banner → queued dose ("Saved on this device…") → resync; no offline reminders |
 | caregiver-en | 6.2s | 88KB | 91KB | 50KB | Invite form + "What can they do?" bounded scopes; synthetic number |
 
-Extras: **OG candidate** `og/og-home-en.jpg` (1200×630 — lockup + tagline + "Free for patients" chip + authentic product UI from current footage; MP monogram absent per the Session 4 ruling) · **R4 companion audio** `audio/hear-medicine-passport-en.mp3` — the shipped in-app guidance MP3 (`screen.home.en`, Chirp3-HD-Achernar; spoken text is existing product copy) proposed as the explicit user-initiated "hear how it sounds" asset; no new TTS generation, no new vendor, never autoplay. All under `artifacts/marketing-media/candidates/` (gitignored).
+Extras: **OG candidate** `og/og-home-en.jpg` (1200×630 — lockup + tagline + "Free for all patients" chip + authentic product UI from current footage; MP monogram absent per the Session 4 ruling) · **R4 companion audio** `audio/hear-medicine-passport-en.mp3` — the shipped in-app guidance MP3 (`screen.home.en`, Chirp3-HD-Achernar; spoken text is existing product copy) proposed as the explicit user-initiated "hear how it sounds" asset; no new TTS generation, no new vendor, never autoplay. All under `artifacts/marketing-media/candidates/` (gitignored).
 
 Descriptive transcripts for every clip live in the manifest (`e2e-marketing/storyboard-manifest.json`, `candidate.transcript`) — these are visual-description accessibility texts (the videos are silent); no fake dialogue VTT was created.
 

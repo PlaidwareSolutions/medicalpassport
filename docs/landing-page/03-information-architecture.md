@@ -41,7 +41,7 @@ SPEC §10's journey mapped to buildable sections. IDs are stable anchors (`#s2-p
 | S7 | Works offline (§17) | Reliability honesty | Honest negative on reminders (mandatory) |
 | S8 | Caregiving (§18) | Family value + variant CTA | — |
 | S9 | Share with a doctor (§19) | Capability: QR/link/PDF | **Entire section GATED-SECURITY (Stage 7)** |
-| S10 | Free for patients (§20) | The promise, with sustainability | GATED-BUSINESS/LEGAL (final wording) |
+| S10 | Free for all patients (§20) | The promise, with sustainability | GATED-BUSINESS/LEGAL (final wording) |
 | S11 | Trust (§21) | Boundaries as value | Wording GATED-CLINICAL/LEGAL; no export/deletion claims |
 | S12 | Professional bridge (§22) | Route professionals out of patient story | — |
 | S13 | FAQ (§23) | Objection handling | Mixed (per question) |
