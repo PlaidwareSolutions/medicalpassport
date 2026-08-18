@@ -67,7 +67,7 @@ describe("Profile claim e2e", () => {
   it("signs in the caregiver and creates a dependent profile", async () => {
     caregiverToken = await signIn(PHONE_CAREGIVER);
     const res = await auth(caregiverToken)(request(app.getHttpServer()).post("/v1/profiles/dependents"))
-      .send({ displayName: "Dependent Profile", relationship: "child", preferredLocale: "en" })
+      .send({ displayName: "Dependent Profile", relationship: "child", preferredLocale: "en", guardianAttestation: true })
       .expect(201);
     dependentProfileId = res.body.id;
 

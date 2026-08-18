@@ -105,7 +105,7 @@ describe("Admin incidents e2e", () => {
       .post("/v1/profiles")
       .set("authorization", `Bearer ${token}`)
       .set("x-requested-with", "medpass")
-      .send({ displayName: "Incident Test Patient", preferredLocale: "en" })
+      .send({ displayName: "Incident Test Patient", preferredLocale: "en", yearOfBirth: 1980 })
       .expect(201);
     const profileId = profile.body.id;
 
