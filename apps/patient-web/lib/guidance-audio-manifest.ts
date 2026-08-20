@@ -34,6 +34,24 @@ export const GUIDANCE_AUDIO: Partial<Record<GuidanceAudioId, Record<Locale, Guid
       "textHash": "c11b8171fd23bdab8570ec78dfbf865f5fa7844b2da02cbef1554f8304f2abec"
     }
   },
+  "empty.blood_pressure": {
+    "en": {
+      "file": "empty.blood_pressure.en.ef49ff59.mp3",
+      "textHash": "ef49ff592f998ffd4d96c705b2143e3e266ce35424d09b7e86f3e68b445db8b4"
+    },
+    "hi": {
+      "file": "empty.blood_pressure.hi.05e37493.mp3",
+      "textHash": "05e37493acea6f685add86099da35426704563225ee0b8e2a492d7c46f8e7618"
+    },
+    "te": {
+      "file": "empty.blood_pressure.te.021826c6.mp3",
+      "textHash": "021826c663d19306d75955d92aeae1a1d404e007d9b329761a1985739f4170ee"
+    },
+    "ur": {
+      "file": "empty.blood_pressure.ur.f85da88f.mp3",
+      "textHash": "f85da88fbbc1defcd1db740fe8dda8a62b0679fd727181985b4467710ac205da"
+    }
+  },
   "empty.bloodsugar_checkups": {
     "en": {
       "file": "empty.bloodsugar_checkups.en.aa7326bb.mp3",
@@ -68,6 +86,24 @@ export const GUIDANCE_AUDIO: Partial<Record<GuidanceAudioId, Record<Locale, Guid
     "ur": {
       "file": "empty.bloodsugar_readings.ur.23d31758.mp3",
       "textHash": "23d3175848054a0c10633a110057b74137c942032d87d6a56745d39048718c91"
+    }
+  },
+  "empty.body_weight": {
+    "en": {
+      "file": "empty.body_weight.en.18b77848.mp3",
+      "textHash": "18b77848b12b5c80862480bdbdf45135e18708e65055b7827096c7752e0e05a5"
+    },
+    "hi": {
+      "file": "empty.body_weight.hi.5ddf4b6f.mp3",
+      "textHash": "5ddf4b6f5f700519a156508a889a3a537b9422b620942b2c9ed33f20d5b9cce5"
+    },
+    "te": {
+      "file": "empty.body_weight.te.54c50185.mp3",
+      "textHash": "54c50185df8fe73f8178d6c9cc2c4ec78d9e57154d00d25d12db1a6c1ea6b9d5"
+    },
+    "ur": {
+      "file": "empty.body_weight.ur.7154d655.mp3",
+      "textHash": "7154d6558b35b0c6a9fdb829cf4982f27d70be4f6dd07abf83518f9d145efd67"
     }
   },
   "empty.caregiver_invitations": {
@@ -790,6 +826,24 @@ export const GUIDANCE_AUDIO: Partial<Record<GuidanceAudioId, Record<Locale, Guid
       "textHash": "76ea734f58c95258224871124429e69cfdb3a35eb6b0d82c100520f8f99b0bf8"
     }
   },
+  "screen.blood_pressure": {
+    "en": {
+      "file": "screen.blood_pressure.en.21d60d1a.mp3",
+      "textHash": "21d60d1a5a0f96585f5b4653df4f5d4d5022d16680d197fbd13b8e03cb166b39"
+    },
+    "hi": {
+      "file": "screen.blood_pressure.hi.eb5985e3.mp3",
+      "textHash": "eb5985e3c8cebd9e87a757cb9ea7eaf2a79e2d781251118f274fdefa45f30c2a"
+    },
+    "te": {
+      "file": "screen.blood_pressure.te.43710148.mp3",
+      "textHash": "437101482d25df3850bdc87e5606d6a42485fc89111d5a6741b7d230b78c4229"
+    },
+    "ur": {
+      "file": "screen.blood_pressure.ur.21b99e1b.mp3",
+      "textHash": "21b99e1ba66b98f069c8344a7961adc15d9088eb9e44c28ae7d3c9939f147931"
+    }
+  },
   "screen.blood_sugar": {
     "en": {
       "file": "screen.blood_sugar.en.8b1494a2.mp3",
@@ -806,6 +860,24 @@ export const GUIDANCE_AUDIO: Partial<Record<GuidanceAudioId, Record<Locale, Guid
     "ur": {
       "file": "screen.blood_sugar.ur.fd6c8393.mp3",
       "textHash": "fd6c8393ab04d449b79d207008cc8aa2eb8745d7ea980312bea4a0acd93993f8"
+    }
+  },
+  "screen.body_weight": {
+    "en": {
+      "file": "screen.body_weight.en.f7ee0e9a.mp3",
+      "textHash": "f7ee0e9abb9d8842da77706b215a82020f2010855fc7848ee1d9ad64585d0b8d"
+    },
+    "hi": {
+      "file": "screen.body_weight.hi.f8f941d3.mp3",
+      "textHash": "f8f941d3de0d582d27aa11303daf2a267673fc8a6f20b5c6405089ee26a3e0b1"
+    },
+    "te": {
+      "file": "screen.body_weight.te.ca26b322.mp3",
+      "textHash": "ca26b32226dcee618b70a55e31c5b2770c42ecdb0a41c9ee5b4e02608595cc74"
+    },
+    "ur": {
+      "file": "screen.body_weight.ur.ca7392a2.mp3",
+      "textHash": "ca7392a290e1cdd3a88b728a7902bf2d0abf4ce73685d64cce982829af0e1a64"
     }
   },
   "screen.caregiver_invitations": {

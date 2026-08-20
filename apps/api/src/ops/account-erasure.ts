@@ -76,6 +76,8 @@ export class AccountErasure {
       allergies: await p.patientAllergy.count({ where: { patientProfileId: inOwned } }),
       conditions: await p.patientCondition.count({ where: { patientProfileId: inOwned } }),
       glucoseReadings: await p.glucoseReading.count({ where: { patientProfileId: inOwned } }),
+      bloodPressureReadings: await p.bloodPressureReading.count({ where: { patientProfileId: inOwned } }),
+      weightReadings: await p.weightReading.count({ where: { patientProfileId: inOwned } }),
       checkups: await p.checkupRecord.count({ where: { patientProfileId: inOwned } }),
       reports: await p.medicalReport.count({ where: { patientProfileId: inOwned } }),
       documents: await p.prescriptionDocument.count({ where: { patientProfileId: inOwned } }),
@@ -136,6 +138,8 @@ export class AccountErasure {
         await tx.patientAllergy.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.patientCondition.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.glucoseReading.deleteMany({ where: { patientProfileId: inOwned } });
+        await tx.bloodPressureReading.deleteMany({ where: { patientProfileId: inOwned } });
+        await tx.weightReading.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.checkupRecord.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.notificationPreference.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.caregiverPermission.deleteMany({

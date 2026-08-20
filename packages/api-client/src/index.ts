@@ -426,6 +426,25 @@ export interface GlucoseReadingDto {
   createdAt: string;
 }
 
+export interface BloodPressureReadingDto {
+  id: string;
+  measuredAt: string;
+  systolic: number;
+  diastolic: number;
+  pulseBpm: number | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface WeightReadingDto {
+  id: string;
+  measuredAt: string;
+  /** Prisma Decimal fields serialize as strings over JSON. */
+  weightKg: string;
+  note: string | null;
+  createdAt: string;
+}
+
 export interface CheckupRecordDto {
   id: string;
   checkupDate: string;
@@ -479,6 +498,20 @@ export interface VisitSummaryDto {
     highestMgDl: number | null;
     byContext: Array<{ context: string; count: number; averageMgDl: number }>;
     recent: Array<{ valueMgDl: number; context: string; measuredAt: string; note: string | null }>;
+  };
+  bloodPressureReadings?: {
+    readingCount: number;
+    averageSystolic: number | null;
+    averageDiastolic: number | null;
+    recent: Array<{ systolic: number; diastolic: number; pulseBpm: number | null; measuredAt: string; note: string | null }>;
+  };
+  weightReadings?: {
+    readingCount: number;
+    /** Prisma Decimal serialized as string; null when no readings in the window. */
+    latestKg: string | null;
+    /** Signed latest-minus-earliest across the window (1 dp) — arithmetic only, no trend judgment. */
+    changeKg: string | null;
+    recent: Array<{ weightKg: string; measuredAt: string; note: string | null }>;
   };
   checkups?: Array<{
     checkupDate: string;

@@ -15,6 +15,8 @@ const SECTION_KEYS = [
   "recentChanges",
   "concerns",
   "glucoseReadings",
+  "bloodPressureReadings",
+  "weightReadings",
   "checkups",
   "prescriptions",
   "reports",

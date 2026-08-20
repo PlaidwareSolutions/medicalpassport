@@ -34,6 +34,18 @@ export interface VisitSummaryDto {
     byContext: Array<{ context: string; count: number; averageMgDl: number }>;
     recent: Array<{ valueMgDl: number; context: string; measuredAt: string; note: string | null }>;
   };
+  bloodPressureReadings?: {
+    readingCount: number;
+    averageSystolic: number | null;
+    averageDiastolic: number | null;
+    recent: Array<{ systolic: number; diastolic: number; pulseBpm: number | null; measuredAt: string; note: string | null }>;
+  };
+  weightReadings?: {
+    readingCount: number;
+    latestKg: string | null;
+    changeKg: string | null;
+    recent: Array<{ weightKg: string; measuredAt: string; note: string | null }>;
+  };
   checkups?: Array<{
     checkupDate: string;
     fastingGlucoseMgDl: number | null;
@@ -198,6 +210,48 @@ export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
                   .map(
                     (r) =>
                       `<li><strong>${r.valueMgDl} mg/dL</strong> — ${esc(contextLabel(r.context))} <span class="muted">(${formatDate(r.measuredAt)})</span>${r.note ? ` — ${esc(r.note)}` : ""}</li>`,
+                  )
+                  .join("")}</ul>`
+              : "")
+          : "<p class=\"muted\">No readings in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.bloodPressureReadings) {
+    const bp = summary.bloodPressureReadings;
+    parts.push(
+      section(
+        "Blood pressure (last 90 days)",
+        bp.readingCount
+          ? `<p><strong>${bp.readingCount} readings</strong> · average ${bp.averageSystolic}/${bp.averageDiastolic} mmHg</p>` +
+            (bp.recent.length
+              ? `<h3 class="muted">Most recent</h3><ul>${bp.recent
+                  .map(
+                    (r) =>
+                      `<li><strong>${r.systolic}/${r.diastolic} mmHg</strong>${r.pulseBpm != null ? ` — pulse ${r.pulseBpm}` : ""} <span class="muted">(${formatDate(r.measuredAt)})</span>${r.note ? ` — ${esc(r.note)}` : ""}</li>`,
+                  )
+                  .join("")}</ul>`
+              : "")
+          : "<p class=\"muted\">No readings in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.weightReadings) {
+    const w = summary.weightReadings;
+    parts.push(
+      section(
+        "Body weight (last 90 days)",
+        w.readingCount
+          ? `<p><strong>${w.readingCount} readings</strong> · latest ${esc(w.latestKg ?? "")} kg${
+              w.changeKg != null ? ` · change ${Number(w.changeKg) > 0 ? "+" : ""}${esc(w.changeKg)} kg over the period` : ""
+            }</p>` +
+            (w.recent.length
+              ? `<h3 class="muted">Most recent</h3><ul>${w.recent
+                  .map(
+                    (r) =>
+                      `<li><strong>${esc(r.weightKg)} kg</strong> <span class="muted">(${formatDate(r.measuredAt)})</span>${r.note ? ` — ${esc(r.note)}` : ""}</li>`,
                   )
                   .join("")}</ul>`
               : "")

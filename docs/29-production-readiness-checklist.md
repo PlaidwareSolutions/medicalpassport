@@ -41,7 +41,7 @@ The system must **not** be labeled production-ready until every section passes (
 - [ ] Upload validation (signature/size/quarantine) probed with hostile files
 
 ## E. Accessibility & UX (owner: design lead)
-- [ ] axe: zero serious/critical across all 41 screens
+- [ ] axe: zero serious/critical across all 43 screens (46/47 vitals diaries added 2026-08-20; both are in the automated route suite)
 - [ ] Manual TalkBack + VoiceOver walkthroughs passed; 200% zoom + 320 px passes
 - [ ] All four locales reviewed on-device incl. RTL Urdu
 - [ ] Comprehension study passed ([34 Gate 4](34-clinical-validation-plan.md))
