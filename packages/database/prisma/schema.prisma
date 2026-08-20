@@ -193,6 +193,8 @@ model PatientProfile {
   notifications          Notification[]
   notificationPreference NotificationPreference?
   glucoseReadings        GlucoseReading[]
+  bloodPressureReadings  BloodPressureReading[]
+  weightReadings         WeightReading[]
   checkupRecords         CheckupRecord[]
   reportValues           ReportValue[]
 
@@ -527,6 +529,50 @@ model GlucoseReading {
 
   @@index([patientProfileId, measuredAt])
   @@map("glucose_readings")
+}
+
+/// Home blood-pressure diary (screen 46) — self-recorded point-in-time
+/// readings, the BP sibling of GlucoseReading. Distinct from
+/// CheckupRecord's bloodPressureSystolic/Diastolic, which are visit
+/// measurements anchored to a check-up date and never synced with this
+/// diary (same separation as glucose readings vs check-up glucose).
+/// pulseBpm is optional because home monitors display it — captured only
+/// when the patient chooses to enter it, never derived.
+model BloodPressureReading {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  measuredAt       DateTime       @map("measured_at") @db.Timestamptz(6)
+  systolic         Int            @db.SmallInt
+  diastolic        Int            @db.SmallInt
+  pulseBpm         Int?           @map("pulse_bpm") @db.SmallInt
+  note             String?
+  recordedByUserId String         @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, measuredAt])
+  @@map("blood_pressure_readings")
+}
+
+/// Body-weight diary (screen 47) — self-recorded readings, kg only (the
+/// unit CheckupRecord.weightKg already established). Same point-in-time +
+/// soft-delete semantics as GlucoseReading; a typo is delete + re-add.
+model WeightReading {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  measuredAt       DateTime       @map("measured_at") @db.Timestamptz(6)
+  weightKg         Decimal        @map("weight_kg") @db.Decimal(5, 2)
+  note             String?
+  recordedByUserId String         @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, measuredAt])
+  @@map("weight_readings")
 }
 
 /// Periodic check-up visit metrics (docs/07 screen 42) — every field but

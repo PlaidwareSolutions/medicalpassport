@@ -182,6 +182,12 @@ Discharge/multi-doctor reconciliation sessions: `patient_profile_id`, `source_do
 ### ★ glucose_readings
 One blood-sugar reading from the paper diary (docs/07 screen 42). `patient_profile_id FK`, `measured_at timestamptz`, `context` enum `before_breakfast|after_breakfast|before_lunch|after_lunch|before_dinner|after_dinner|during_night|random`, `value_mg_dl int`, `note text NULL`, `deleted_at`. mg/dL only — the unit is in the column name, matching how every other clinical number in this model is stored. Sync: no — online-only.
 
+### ★ blood_pressure_readings
+One home blood-pressure reading (screen 46) — the BP sibling of `glucose_readings`. `patient_profile_id FK`, `measured_at timestamptz`, `systolic`/`diastolic smallint`, `pulse_bpm smallint NULL` (home monitors display it; captured only when the patient enters it, never derived), `note NULL`, `recorded_by_user_id`, soft delete. Deliberately never synced with `checkup_records.blood_pressure_*`, which are visit measurements — same diary-vs-visit separation glucose established.
+
+### ★ weight_readings
+One body-weight reading (screen 47). `patient_profile_id FK`, `measured_at timestamptz`, `weight_kg numeric(5,2)` (kg only — the unit `checkup_records.weight_kg` already fixed), `note NULL`, `recorded_by_user_id`, soft delete. No update path: a typo is delete + re-add (glucose-reading precedent).
+
 ### ★ checkup_records
 One periodic check-up's measurements (docs/07 screen 42, second tab). `patient_profile_id FK`, `checkup_date date` (the only required field), then every metric nullable and **never zero-filled**: `fasting_glucose_mg_dl`, `post_prandial_glucose_mg_dl`, `hba1c_percent numeric`, `blood_pressure_systolic`, `blood_pressure_diastolic`, `weight_kg numeric`, `waist_circumference_cm numeric`, `cholesterol_mg_dl`, `treatment_changes text NULL`, `next_appointment_date NULL`, `deleted_at`. A metric the doctor didn't record stays NULL and is omitted everywhere it's rendered — a fabricated-looking zero on a clinical summary is worse than a gap. Sync: no — online-only.
 

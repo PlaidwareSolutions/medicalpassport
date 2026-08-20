@@ -119,6 +119,65 @@ export function VisitSummarySections({ data, concernTones = true }: { data: Visi
         </>
       ) : null}
 
+      {data.bloodPressureReadings && data.bloodPressureReadings.readingCount > 0 ? (
+        <>
+          <SectionTitle>{t("visit.blood_pressure")}</SectionTitle>
+          <Card>
+            <strong style={{ fontSize: "var(--font-large)" }}>
+              {t("visit.bp_average", {
+                systolic: String(data.bloodPressureReadings.averageSystolic),
+                diastolic: String(data.bloodPressureReadings.averageDiastolic),
+              })}
+            </strong>
+            <span style={MUTED_SMALL}>{t("visit.bp_summary", { count: data.bloodPressureReadings.readingCount })}</span>
+          </Card>
+          <div style={{ ...COLUMN, marginTop: "var(--space-sm)" }}>
+            {data.bloodPressureReadings.recent.map((r, i) => (
+              <Card key={i}>
+                <strong>
+                  {r.systolic}/{r.diastolic} {t("bp.mmhg_unit")}
+                </strong>
+                <span style={MUTED_SMALL}>
+                  {r.pulseBpm != null ? <>{t("bp.pulse_short", { value: String(r.pulseBpm) })} · </> : null}
+                  {formatPatientDateTime(r.measuredAt, data.profile.timezone)}
+                </span>
+                {r.note ? <span style={MUTED_SMALL}>{r.note}</span> : null}
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {data.weightReadings && data.weightReadings.readingCount > 0 ? (
+        <>
+          <SectionTitle>{t("visit.body_weight")}</SectionTitle>
+          <Card>
+            <strong style={{ fontSize: "var(--font-large)" }}>
+              {data.weightReadings.latestKg} {t("weight.kg_unit")}
+            </strong>
+            <span style={MUTED_SMALL}>
+              {t("visit.weight_summary", { count: data.weightReadings.readingCount })}
+              {data.weightReadings.changeKg != null
+                ? ` · ${t("visit.weight_change", {
+                    value: `${Number(data.weightReadings.changeKg) > 0 ? "+" : ""}${data.weightReadings.changeKg}`,
+                  })}`
+                : null}
+            </span>
+          </Card>
+          <div style={{ ...COLUMN, marginTop: "var(--space-sm)" }}>
+            {data.weightReadings.recent.map((r, i) => (
+              <Card key={i}>
+                <strong>
+                  {r.weightKg} {t("weight.kg_unit")}
+                </strong>
+                <span style={MUTED_SMALL}>{formatPatientDateTime(r.measuredAt, data.profile.timezone)}</span>
+                {r.note ? <span style={MUTED_SMALL}>{r.note}</span> : null}
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : null}
+
       {data.checkups && data.checkups.length > 0 ? (
         <>
           <SectionTitle>{t("visit.checkups")}</SectionTitle>

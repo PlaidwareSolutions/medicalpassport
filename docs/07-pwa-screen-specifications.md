@@ -264,7 +264,7 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 ### 28. Doctor-visit mode
 - **Objective:** everything a clinician needs, dense but readable, in one screen (spec §14.6).
 - **Information:** identity, allergies, conditions, current medicines (ingredients, dosages, schedules, prescribers, start dates), recently stopped/completed, recent changes, adherence summary, unresolved concerns, prescription images where permitted.
-- **Also included (last 90 days each):** blood sugar — the aggregate a clinician reads first (count, average, lowest/highest, and a per-time-of-day breakdown mirroring the paper diary's own layout, screen 42) followed by the 10 most recent readings; check-up records, showing only the metrics actually measured (a metric the doctor didn't record is omitted, never zero-filled); and prescription records (screen 43) as **metadata only** — doctor, date, notes, and how many medicines/files — never document ids or download URLs, since the public share view is unauthenticated. Test reports (screen 44) appear on the same metadata-only terms — kind, test name, date, lab, ordering doctor, notes, file count — and a report with no test date recorded is dated by when it was filed so it isn't silently dropped from the window.
+- **Also included (last 90 days each):** blood sugar — the aggregate a clinician reads first (count, average, lowest/highest, and a per-time-of-day breakdown mirroring the paper diary's own layout, screen 42) followed by the 10 most recent readings; blood pressure (screen 46) and body weight (screen 47) on the same aggregate-then-recent terms (average systolic/diastolic; latest weight + signed change over the window); check-up records, showing only the metrics actually measured (a metric the doctor didn't record is omitted, never zero-filled); and prescription records (screen 43) as **metadata only** — doctor, date, notes, and how many medicines/files — never document ids or download URLs, since the public share view is unauthenticated. Test reports (screen 44) appear on the same metadata-only terms — kind, test name, date, lab, ordering doctor, notes, file count — and a report with no test date recorded is dated by when it was filed so it isn't silently dropped from the window.
 - **Primary action:** Share (→ screen 29). **Secondary:** brightness-boosted QR, print-friendly view.
 - **Implementation note:** this screen and the public share view (screen 29) render the same `VisitSummarySections` component rather than two hand-synced copies.
 - **Offline:** renders from cache — designed to work in a clinic with no signal.
@@ -410,6 +410,28 @@ Detailed specifications for all 41 initial patient PWA screens (spec §26). Each
 - **Audit:** `practitioner.created`, `practitioner.updated`, `practitioner.merged`, `practitioner.deleted`.
 - **Out of scope (this pass):** phone numbers, organizations, and any global verified directory (docs/13's "patient-scoped entries in MVP" stands); doctor records on the visit-summary share (names already appear via the records that cite them).
 - **Acceptance:** a doctor typed on a medicine, a prescription, and a report with case/whitespace variations is one record; a rename shows on every linked record's next read; merge moves all three link kinds and the merged-away record disappears from list and picker; deleting a linked doctor is refused with a message pointing at merge; another profile's doctors are invisible and untouchable.
+
+
+### 46. Blood pressure diary
+- **Objective:** a home blood-pressure diary, the BP sibling of screen 42's daily-readings tab — reachable from Profile.
+- **Information:** date & time, systolic and diastolic (mmHg), optional pulse (home monitors display it; captured only when the patient enters it, never derived), optional note.
+- **Primary action:** add a reading via an inline form; each entry independently deletable (no edit — delete and re-add).
+- **Access:** same `view_profile`/`edit_profile` scopes as screen 42 — a `view_medications`-only caregiver can view but not add or delete.
+- **Audit:** `blood_pressure_reading.created/deleted`.
+- **Sharing:** included in the visit summary as its own selectable section (aggregate: count + average systolic/diastolic over the 90-day window, then the 10 most recent readings). Shares created before this section existed never gain it retroactively.
+- **Relationship to screen 42's check-ups:** a check-up's BP is a visit measurement anchored to a visit date; this diary is home self-monitoring. Nothing flows automatically between them.
+- **Out of scope (this pass):** target ranges, hypertension education text, trends/graphs, measurement reminders, and any high/low flagging (docs/02 — not a diagnostic system).
+- **Acceptance:** a reading saved without pulse shows no pulse (never a fabricated value); a `view_medications`-only caregiver's add/delete are blocked server-side (403); a deleted reading disappears from the list and a second delete 404s.
+
+### 47. Body weight diary
+- **Objective:** a self-recorded weight diary — reachable from Profile.
+- **Information:** date & time, weight in kg (the unit screen 42's check-ups already established), optional note. kg only — no unit picker this pass.
+- **Primary action:** add a reading via an inline form; each entry independently deletable (no edit — delete and re-add).
+- **Access:** same `view_profile`/`edit_profile` scopes as screens 42/46.
+- **Audit:** `weight_reading.created/deleted`.
+- **Sharing:** included in the visit summary as its own selectable section (count, latest weight, and the signed latest-minus-earliest change across the 90-day window — plain arithmetic, deliberately never labelled gain/loss — then the 10 most recent readings). Same no-retroactive-widening rule as screen 46.
+- **Out of scope (this pass):** BMI (needs height, which the profile deliberately doesn't collect), target weight, trends/graphs, reminders.
+- **Acceptance:** the diary lists readings newest-first with the patient-zone timestamp; the visit summary's change figure appears only once two or more readings exist in the window; caregiver scope behavior as screen 46.
 
 ---
 

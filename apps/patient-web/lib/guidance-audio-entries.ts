@@ -33,6 +33,8 @@ export const GUIDANCE_AUDIO_ENTRIES = {
   "screen.safety": { sourceKeys: ["guide.screen.safety"] },
   "screen.allergies": { sourceKeys: ["guide.screen.allergies"] },
   "screen.blood_sugar": { sourceKeys: ["guide.screen.blood_sugar"] },
+  "screen.blood_pressure": { sourceKeys: ["guide.screen.blood_pressure"] },
+  "screen.body_weight": { sourceKeys: ["guide.screen.body_weight"] },
   "screen.prescriptions": { sourceKeys: ["guide.screen.prescriptions"] },
   "screen.reports": { sourceKeys: ["guide.screen.reports"] },
   "screen.report_values": { sourceKeys: ["guide.screen.report_values"] },
@@ -59,6 +61,8 @@ export const GUIDANCE_AUDIO_ENTRIES = {
   "empty.claim_invitations": { sourceKeys: ["caregiver.claim_invitations_empty_title", "caregiver.claim_invitations_empty_body"] },
   "empty.bloodsugar_readings": { sourceKeys: ["bloodsugar.readings_empty_title", "bloodsugar.readings_empty_body"] },
   "empty.bloodsugar_checkups": { sourceKeys: ["bloodsugar.checkups_empty_title", "bloodsugar.checkups_empty_body"] },
+  "empty.blood_pressure": { sourceKeys: ["bp.empty_title", "bp.empty_body"] },
+  "empty.body_weight": { sourceKeys: ["weight.empty_title", "weight.empty_body"] },
   "empty.sync_conflicts": { sourceKeys: ["sync.conflicts_empty_title", "sync.conflicts_empty_body"] },
   "perm.notifications": {
     sourceKeys: ["guide.perm.notif_title", "guide.perm.notif_why", "guide.perm.notif_denied", "guide.perm.notif_change_later"],

@@ -87,6 +87,40 @@ export function renderVisitSummaryText(summary: VisitSummaryDto): string {
     lines.push("");
   }
 
+  if (summary.bloodPressureReadings) {
+    const bp = summary.bloodPressureReadings;
+    lines.push(bold("Blood pressure (last 90 days)"));
+    if (bp.readingCount === 0) lines.push("No readings in this period.");
+    else {
+      lines.push(`${bp.readingCount} readings · average ${bp.averageSystolic}/${bp.averageDiastolic} mmHg`);
+      if (bp.recent.length) {
+        lines.push("Most recent:");
+        for (const r of bp.recent) {
+          const pulse = r.pulseBpm != null ? `, pulse ${r.pulseBpm}` : "";
+          lines.push(`- ${r.systolic}/${r.diastolic} mmHg${pulse} (${formatDate(r.measuredAt)})${r.note ? ` — ${r.note}` : ""}`);
+        }
+      }
+    }
+    lines.push("");
+  }
+
+  if (summary.weightReadings) {
+    const w = summary.weightReadings;
+    lines.push(bold("Body weight (last 90 days)"));
+    if (w.readingCount === 0) lines.push("No readings in this period.");
+    else {
+      const change = w.changeKg != null ? ` · change ${Number(w.changeKg) > 0 ? "+" : ""}${w.changeKg} kg over the period` : "";
+      lines.push(`${w.readingCount} readings · latest ${w.latestKg} kg${change}`);
+      if (w.recent.length) {
+        lines.push("Most recent:");
+        for (const r of w.recent) {
+          lines.push(`- ${r.weightKg} kg (${formatDate(r.measuredAt)})${r.note ? ` — ${r.note}` : ""}`);
+        }
+      }
+    }
+    lines.push("");
+  }
+
   if (summary.checkups) {
     lines.push(bold("Check-ups (last 90 days)"));
     if (summary.checkups.length === 0) lines.push("No check-ups in this period.");

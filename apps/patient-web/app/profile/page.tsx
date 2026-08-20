@@ -161,6 +161,18 @@ export default function ProfilePage() {
         </Card>
       </Link>
 
+      <Link href="/blood-pressure">
+        <Card>
+          <strong>{t("profile.blood_pressure")}</strong>
+        </Card>
+      </Link>
+
+      <Link href="/body-weight">
+        <Card>
+          <strong>{t("profile.body_weight")}</strong>
+        </Card>
+      </Link>
+
       <Link href="/prescriptions">
         <Card>
           <strong>{t("profile.prescriptions")}</strong>

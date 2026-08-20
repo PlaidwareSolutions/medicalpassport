@@ -9,6 +9,8 @@ export interface VisitSummarySections {
   recentChanges: boolean;
   concerns: boolean;
   glucoseReadings: boolean;
+  bloodPressureReadings: boolean;
+  weightReadings: boolean;
   checkups: boolean;
   prescriptions: boolean;
   reports: boolean;
@@ -21,6 +23,8 @@ export const ALL_SECTIONS: VisitSummarySections = {
   recentChanges: true,
   concerns: true,
   glucoseReadings: true,
+  bloodPressureReadings: true,
+  weightReadings: true,
   checkups: true,
   prescriptions: true,
   reports: true,
@@ -55,6 +59,21 @@ export interface VisitSummaryDto {
     highestMgDl: number | null;
     byContext: Array<{ context: string; count: number; averageMgDl: number }>;
     recent: Array<{ valueMgDl: number; context: string; measuredAt: string; note: string | null }>;
+  };
+  /** Same shape philosophy as glucoseReadings: window aggregate first, capped row list behind it. */
+  bloodPressureReadings?: {
+    readingCount: number;
+    averageSystolic: number | null;
+    averageDiastolic: number | null;
+    recent: Array<{ systolic: number; diastolic: number; pulseBpm: number | null; measuredAt: string; note: string | null }>;
+  };
+  weightReadings?: {
+    readingCount: number;
+    /** Prisma Decimal stringified; null when no readings in the window. */
+    latestKg: string | null;
+    /** Signed latest-minus-earliest across the window (1 dp) — arithmetic only, never a trend judgment. */
+    changeKg: string | null;
+    recent: Array<{ weightKg: string; measuredAt: string; note: string | null }>;
   };
   /** Every metric is nullable and stays null when not measured — never zero-filled. */
   checkups?: Array<{
@@ -133,6 +152,8 @@ export class VisitSummaryService {
       this.addRecentChanges(profileId, sections, summary),
       this.addConcerns(profileId, sections, summary),
       this.addGlucoseReadings(profileId, sections, summary),
+      this.addBloodPressureReadings(profileId, sections, summary),
+      this.addWeightReadings(profileId, sections, summary),
       this.addCheckups(profileId, sections, summary),
       this.addPrescriptions(profileId, sections, summary),
       this.addReports(profileId, sections, summary),
@@ -271,6 +292,56 @@ export class VisitSummaryService {
       recent: readings.slice(0, GLUCOSE_RECENT_LIMIT).map((r) => ({
         valueMgDl: r.valueMgDl,
         context: r.context,
+        measuredAt: r.measuredAt.toISOString(),
+        note: r.note,
+      })),
+    };
+  }
+
+  private async addBloodPressureReadings(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.bloodPressureReadings) return;
+    const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const readings = await this.prisma.bloodPressureReading.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, measuredAt: { gte: cutoff } },
+      orderBy: { measuredAt: "desc" },
+    });
+
+    const mean = (nums: number[]) => Math.round(nums.reduce((sum, n) => sum + n, 0) / nums.length);
+    summary.bloodPressureReadings = {
+      readingCount: readings.length,
+      averageSystolic: readings.length ? mean(readings.map((r) => r.systolic)) : null,
+      averageDiastolic: readings.length ? mean(readings.map((r) => r.diastolic)) : null,
+      recent: readings.slice(0, GLUCOSE_RECENT_LIMIT).map((r) => ({
+        systolic: r.systolic,
+        diastolic: r.diastolic,
+        pulseBpm: r.pulseBpm,
+        measuredAt: r.measuredAt.toISOString(),
+        note: r.note,
+      })),
+    };
+  }
+
+  private async addWeightReadings(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.weightReadings) return;
+    const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const readings = await this.prisma.weightReading.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, measuredAt: { gte: cutoff } },
+      orderBy: { measuredAt: "desc" },
+    });
+
+    // latest minus earliest within the window, signed — plain arithmetic on
+    // what the patient recorded, deliberately never labelled gain/loss.
+    const latest = readings[0];
+    const earliest = readings[readings.length - 1];
+    const changeKg =
+      readings.length >= 2 ? (Number(latest!.weightKg) - Number(earliest!.weightKg)).toFixed(1) : null;
+
+    summary.weightReadings = {
+      readingCount: readings.length,
+      latestKg: latest ? latest.weightKg.toString() : null,
+      changeKg,
+      recent: readings.slice(0, GLUCOSE_RECENT_LIMIT).map((r) => ({
+        weightKg: r.weightKg.toString(),
         measuredAt: r.measuredAt.toISOString(),
         note: r.note,
       })),

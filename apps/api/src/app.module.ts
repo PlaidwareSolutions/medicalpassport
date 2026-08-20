@@ -31,6 +31,7 @@ import { AdminOperationsController } from "./modules/admin-operations/admin-oper
 import { AdminRulesController } from "./modules/admin-rules/admin-rules.controller";
 import { ProfilesController } from "./modules/profiles/profiles.controller";
 import { GlucoseController } from "./modules/glucose/glucose.controller";
+import { VitalsController } from "./modules/vitals/vitals.controller";
 import { CaregiversController } from "./modules/caregivers/caregivers.controller";
 import { ClaimsController } from "./modules/claims/claims.controller";
 import { ConsentsController } from "./modules/consents/consents.controller";
@@ -86,6 +87,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminRulesController,
     ProfilesController,
     GlucoseController,
+    VitalsController,
     CaregiversController,
     ClaimsController,
     ConsentsController,
