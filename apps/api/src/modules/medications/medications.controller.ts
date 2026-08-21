@@ -186,10 +186,12 @@ export class MedicationsController {
       });
       if (input.status !== "current") {
         // Leaving "current" (completed, stopped, or paused) answers the
-        // question a completion reminder was asking — resolve it the same
-        // way any other surface resolving a reminder does (docs/16).
+        // question BOTH reminder kinds were asking — a stopped medicine
+        // needs no refill any more than a completed course needs finishing.
+        // Cancelling only "completion" here was a real pilot bug: stopped
+        // medicines kept a pending refill reminder forever (docs/16).
         await tx.notification.updateMany({
-          where: { patientMedicationId: id, kind: "completion", status: { in: ["pending", "done"] } },
+          where: { patientMedicationId: id, kind: { in: ["refill", "completion"] }, status: { in: ["pending", "done"] } },
           data: { status: "cancelled" },
         });
       }
@@ -251,6 +253,12 @@ export class MedicationsController {
     if (!medication) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Medicine not found", 404);
     await this.prisma.$transaction(async (tx) => {
       await tx.patientMedication.update({ where: { id }, data: { deletedAt: new Date() } });
+      // A deleted medicine can't be refilled or completed — resolve its
+      // outstanding reminders like a status change out of "current" does.
+      await tx.notification.updateMany({
+        where: { patientMedicationId: id, kind: { in: ["refill", "completion"] }, status: { in: ["pending", "done"] } },
+        data: { status: "cancelled" },
+      });
       await tx.medicationChange.create({
         data: { patientMedicationId: id, change: "deleted", actorUserId: req.auth!.userId },
       });

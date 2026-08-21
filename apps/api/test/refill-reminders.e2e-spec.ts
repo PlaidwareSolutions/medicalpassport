@@ -242,4 +242,59 @@ describe("Refill & completion reminders e2e", () => {
     );
     expect(list.body.items).toHaveLength(0);
   });
+
+  async function createMedicineWithReminders(name: string) {
+    const med = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({ enteredName: name, source: "manual", quantityOnHand: 2, instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" } })
+      .expect(201);
+    const mk = (kind: "refill" | "completion") =>
+      prisma.notification.create({
+        data: {
+          patientProfileId: profileId,
+          kind,
+          patientMedicationId: med.body.id,
+          privacyMode: "generic",
+          dedupeKey: `${kind}:${med.body.id}:${name}`,
+          status: "pending",
+        },
+      });
+    return { id: med.body.id as string, rowVersion: med.body.rowVersion as number, refill: await mk("refill"), completion: await mk("completion") };
+  }
+
+  it("stopping a medicine resolves BOTH its refill and completion reminders (the pilot bug: refill was left pending forever)", async () => {
+    const med = await createMedicineWithReminders("Stop Cancels Both");
+
+    await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/medications/${med.id}/status`))
+      .send({ rowVersion: med.rowVersion, status: "stopped", reason: "doctor said stop" })
+      .expect(201);
+
+    expect((await prisma.notification.findUniqueOrThrow({ where: { id: med.refill.id } })).status).toBe("cancelled");
+    expect((await prisma.notification.findUniqueOrThrow({ where: { id: med.completion.id } })).status).toBe("cancelled");
+
+    const list = await auth(token, profileId)(request(app.getHttpServer()).get("/v1/profiles/current/refill-reminders")).expect(200);
+    expect(list.body.items.filter((i: { patientMedicationId: string }) => i.patientMedicationId === med.id)).toHaveLength(0);
+  });
+
+  it("deleting a medicine resolves its reminders too", async () => {
+    const med = await createMedicineWithReminders("Delete Cancels Both");
+
+    await auth(token, profileId)(request(app.getHttpServer()).delete(`/v1/medications/${med.id}`)).expect(204);
+
+    expect((await prisma.notification.findUniqueOrThrow({ where: { id: med.refill.id } })).status).toBe("cancelled");
+    expect((await prisma.notification.findUniqueOrThrow({ where: { id: med.completion.id } })).status).toBe("cancelled");
+  });
+
+  it("a stranded pending reminder for a non-current medicine never renders (defense against pre-fix rows)", async () => {
+    const med = await createMedicineWithReminders("Legacy Stranded Row");
+    // Simulate the pre-fix data shape: the medicine left "current" without
+    // its reminders being cancelled (direct DB update bypasses the endpoint).
+    await prisma.patientMedication.update({ where: { id: med.id }, data: { status: "stopped" } });
+
+    const list = await auth(token, profileId)(request(app.getHttpServer()).get("/v1/profiles/current/refill-reminders")).expect(200);
+    expect(list.body.items.filter((i: { patientMedicationId: string }) => i.patientMedicationId === med.id)).toHaveLength(0);
+
+    // The row itself is untouched — only the read path hides it; cleanup of
+    // legacy rows is an ops action, not a read side effect.
+    expect((await prisma.notification.findUniqueOrThrow({ where: { id: med.refill.id } })).status).toBe("pending");
+  });
 });
