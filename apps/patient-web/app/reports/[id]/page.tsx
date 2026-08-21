@@ -4,7 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { DocumentUploadButtons } from "../../../components/DocumentUploadButtons";
 import { PageHeader } from "../../../components/PageHeader";
+import { documentKindFor, MAX_IMAGE_BYTES, uploadDocument } from "../../../lib/document-upload";
 import { useI18n } from "../../../lib/i18n";
 import { formatPatientDate, useActiveTimezone } from "../../../lib/patient-time";
 import { documentDownloadUrl } from "../../../lib/prescriptions";
@@ -20,6 +22,27 @@ export default function ReportDetailPage() {
   const { report, error, reload } = useReport(params.id);
   const [actionError, setActionError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // A report is routinely several pages; more can be added any time after
+  // filing (docs/07 §44) — same authorize→PUT→complete path the new-report
+  // flow uses, appended to this record.
+  async function addPages(files: File[]) {
+    if (!report) return;
+    setActionError(undefined);
+    const valid = files.filter((f) => f.size <= MAX_IMAGE_BYTES || f.type === "application/pdf");
+    if (valid.length < files.length) setActionError(t("scan.upload_error"));
+    if (valid.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of valid) await uploadDocument(file, { kind: documentKindFor(report.kind), reportId: report.id });
+      await reload();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.problem.title : t("scan.upload_error"));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function openDocument(documentId: string) {
     setActionError(undefined);
@@ -119,8 +142,23 @@ export default function ReportDetailPage() {
         </div>
       )}
 
+      <div style={{ marginTop: "var(--space-sm)" }}>
+        {uploading ? (
+          <Card>
+            <PillSpinner label={t("scan.uploading")} />
+          </Card>
+        ) : (
+          <DocumentUploadButtons
+            photoLabel={t("reports.take_photo")}
+            fileLabel={t("reports.choose_file")}
+            disabled={busy}
+            onPick={(files) => void addPages(files)}
+          />
+        )}
+      </div>
+
       <div style={{ marginTop: "var(--space-xl)" }}>
-        <Button variant="danger" fullWidth disabled={busy} onClick={() => void remove()}>
+        <Button variant="danger" fullWidth disabled={busy || uploading} onClick={() => void remove()}>
           {t("reports.delete")}
         </Button>
       </div>

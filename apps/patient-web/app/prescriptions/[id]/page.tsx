@@ -5,7 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
+import { DocumentUploadButtons } from "../../../components/DocumentUploadButtons";
 import { PageHeader } from "../../../components/PageHeader";
+import { MAX_IMAGE_BYTES, uploadDocument } from "../../../lib/document-upload";
 import { useI18n } from "../../../lib/i18n";
 import { formatCalendarDate, formatPatientDate, useActiveTimezone } from "../../../lib/patient-time";
 import { useMedications } from "../../../lib/medications";
@@ -22,6 +24,26 @@ export default function PrescriptionDetailPage() {
   const [actionError, setActionError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // A prescription is routinely several pages; more can be added any time
+  // after filing (docs/07 §43) — same authorize→PUT→complete path the
+  // new-prescription flow uses, appended to this record.
+  async function addPages(files: File[]) {
+    setActionError(undefined);
+    const valid = files.filter((f) => f.size <= MAX_IMAGE_BYTES || f.type === "application/pdf");
+    if (valid.length < files.length) setActionError(t("scan.upload_error"));
+    if (valid.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of valid) await uploadDocument(file, { kind: "prescription", prescriptionId: params.id });
+      await reload();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.problem.title : t("scan.upload_error"));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function openDocument(documentId: string) {
     setActionError(undefined);
@@ -116,6 +138,21 @@ export default function PrescriptionDetailPage() {
           ))}
         </div>
       )}
+
+      <div style={{ marginTop: "var(--space-sm)" }}>
+        {uploading ? (
+          <Card>
+            <PillSpinner label={t("scan.uploading")} />
+          </Card>
+        ) : (
+          <DocumentUploadButtons
+            photoLabel={t("prescriptions.take_photo")}
+            fileLabel={t("prescriptions.choose_file")}
+            disabled={busy}
+            onPick={(files) => void addPages(files)}
+          />
+        )}
+      </div>
 
       <SectionTitle>{t("prescriptions.medicines")}</SectionTitle>
       {prescription.medications.length === 0 ? (
