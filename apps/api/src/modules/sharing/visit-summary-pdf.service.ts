@@ -1,12 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { ERROR_CODES } from "@medpass/domain";
+import { createLogger } from "@medpass/observability";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import type { VisitSummaryDto } from "./visit-summary.service";
 
 const POLL_INTERVAL_MS = 150;
 const TIMEOUT_MS = 8000;
+
+// Not app.module's logger instance: importing it here would be circular
+// (app.module registers this service). Same name + config, same stdout.
+const logger = createLogger("api");
 
 /**
  * PDF export (docs/09 OD-14, docs/22 Stage 7 follow-up): enqueues a render
@@ -40,6 +45,10 @@ export class VisitSummaryPdfService {
         return Buffer.from(pdfBase64, "base64");
       }
       if (fresh.status === "failed") {
+        // The worker stores the render error on the job row; without this
+        // line a failed render is an opaque 500 (the worker's own stdout is
+        // not surfaced in e2e/CI runs, which made a real failure undiagnosable).
+        logger.warn({ jobId: job.id, jobError: fresh.errorDigest }, "pdf render job failed");
         throw new ApiProblem(ERROR_CODES.INTERNAL, "Couldn't create the PDF. Please try again.", 500);
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
