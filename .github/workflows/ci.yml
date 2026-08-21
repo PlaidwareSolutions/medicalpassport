@@ -83,6 +83,15 @@ jobs:
       - name: Seed (sample catalog)
         run: pnpm --filter @medpass/database seed
 
+      # apps/worker renders visit-summary PDFs via puppeteer, whose Chrome
+      # lives in ~/.cache/puppeteer — covered by no other cache and NOT
+      # reliably provided by puppeteer's postinstall side effect (that
+      # silently stopped delivering Chrome on 2026-08-20, deterministically
+      # failing exactly the two PDF e2e tests with "Could not find Chrome").
+      # Install explicitly so the worker the API e2e suite spawns can render.
+      - name: Install Puppeteer browser (worker PDF rendering)
+        run: pnpm --filter @medpass/worker exec puppeteer browsers install chrome
+
       - name: Test
         run: pnpm test
 
