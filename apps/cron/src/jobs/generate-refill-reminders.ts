@@ -61,16 +61,27 @@ runJob("generate-refill-reminders", async ({ prisma, log }) => {
     if (existing) continue;
 
     const pref = await prisma.notificationPreference.findUnique({ where: { patientProfileId: medication.patientProfileId } });
-    await prisma.notification.create({
-      data: {
-        patientProfileId: medication.patientProfileId,
-        kind: "refill",
-        patientMedicationId: medication.id,
-        privacyMode: pref?.privacyMode ?? "generic",
-        dedupeKey,
-        status: "pending",
-      },
-    });
+    // Each dose taken lowers quantityOnHand, minting a new dedupeKey — so a
+    // patient below the threshold got a NEW reminder every day while the old
+    // ones stayed active, piling up in the reminders list (a real pilot
+    // symptom: 7 pending rows for one antibiotic). A fresh reminder
+    // supersedes its predecessors: cancel-then-create atomically.
+    await prisma.$transaction([
+      prisma.notification.updateMany({
+        where: { patientMedicationId: medication.id, kind: "refill", status: { in: ["pending", "done"] } },
+        data: { status: "cancelled" },
+      }),
+      prisma.notification.create({
+        data: {
+          patientProfileId: medication.patientProfileId,
+          kind: "refill",
+          patientMedicationId: medication.id,
+          privacyMode: pref?.privacyMode ?? "generic",
+          dedupeKey,
+          status: "pending",
+        },
+      }),
+    ]);
     refillsQueued++;
   }
 
@@ -95,16 +106,24 @@ runJob("generate-refill-reminders", async ({ prisma, log }) => {
     if (existing) continue;
 
     const pref = await prisma.notificationPreference.findUnique({ where: { patientProfileId: medication.patientProfileId } });
-    await prisma.notification.create({
-      data: {
-        patientProfileId: medication.patientProfileId,
-        kind: "completion",
-        patientMedicationId: medication.id,
-        privacyMode: pref?.privacyMode ?? "generic",
-        dedupeKey,
-        status: "pending",
-      },
-    });
+    // Same supersede rule as refills: a changed start date or duration mints
+    // a new end-date key — the new reminder replaces any stale one.
+    await prisma.$transaction([
+      prisma.notification.updateMany({
+        where: { patientMedicationId: medication.id, kind: "completion", status: { in: ["pending", "done"] } },
+        data: { status: "cancelled" },
+      }),
+      prisma.notification.create({
+        data: {
+          patientProfileId: medication.patientProfileId,
+          kind: "completion",
+          patientMedicationId: medication.id,
+          privacyMode: pref?.privacyMode ?? "generic",
+          dedupeKey,
+          status: "pending",
+        },
+      }),
+    ]);
     completionsQueued++;
   }
 

@@ -97,7 +97,16 @@ export class NotificationsService {
    */
   async listRefillReminders(profileId: string) {
     const notifications = await this.prisma.notification.findMany({
-      where: { patientProfileId: profileId, kind: { in: ["refill", "completion"] }, status: { in: ["pending", "done"] } },
+      where: {
+        patientProfileId: profileId,
+        kind: { in: ["refill", "completion"] },
+        status: { in: ["pending", "done"] },
+        // Defense in depth against stranded rows (the pilot had reminders
+        // created before stop/delete started cancelling both kinds): a
+        // reminder for a medicine that is no longer "current" — or was
+        // deleted — must never render, whatever its notification status.
+        patientMedication: { is: { status: "current", deletedAt: null } },
+      },
       include: {
         patientMedication: {
           include: {
