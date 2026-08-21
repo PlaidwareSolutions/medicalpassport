@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { randomInt } from "node:crypto";
+import { expect, request, test } from "@playwright/test";
 
 /**
  * Multi-page documents (docs/07 §43/44): a test report or prescription is
@@ -7,6 +8,11 @@ import { expect, test } from "@playwright/test";
  * for both the multi-select create flow and the detail screens'
  * add-more-pages flow (which previously didn't exist: a record filed with
  * one photo could never grow a second page).
+ *
+ * Runs as its OWN user, not the shared global-setup profile: this spec
+ * creates prescriptions/reports, and the reflow/axe sweep asserts against
+ * the shared profile's exact seeded state — polluting it broke two of its
+ * checks in CI (an overflow on /prescriptions and a strict-mode text match).
  *
  * The payloads are tiny synthetic JPEGs: the api's magic-byte verification
  * (file-signature.ts) checks the FF D8 FF signature, not image validity.
@@ -23,6 +29,35 @@ const jpegPage = (name: string) => ({
 
 // The gallery input is the `multiple` one; the camera input is single-shot.
 const galleryInput = 'input[type="file"][multiple]';
+
+// Start from no shared auth at all, then add this spec's own session cookies.
+test.use({ storageState: { cookies: [], origins: [] } });
+
+let cookies: Awaited<ReturnType<Awaited<ReturnType<typeof request.newContext>>["storageState"]>>["cookies"];
+
+test.beforeAll(async () => {
+  const api = process.env.E2E_API_URL ?? "http://localhost:4000";
+  const phone = "+9197" + String(randomInt(0, 1e8)).padStart(8, "0");
+  const ctx = await request.newContext({ baseURL: api, extraHTTPHeaders: { "x-requested-with": "medpass" } });
+
+  const requested = await ctx.post("/v1/auth/otp/request", { data: { phone } });
+  if (!requested.ok()) throw new Error(`otp/request failed: ${requested.status()}`);
+  const verified = await ctx.post("/v1/auth/otp/verify", {
+    data: { phone, code: process.env.OTP_DEV_FIXED_CODE ?? "000000", device: { kind: "browser" }, locale: "en", rememberDevice: true },
+  });
+  if (!verified.ok()) throw new Error(`otp/verify failed: ${verified.status()}`);
+  const profileRes = await ctx.post("/v1/profiles", {
+    data: { displayName: "Docs Upload Test Patient", yearOfBirth: 1962, preferredLocale: "en" },
+  });
+  if (!profileRes.ok()) throw new Error(`profile create failed: ${profileRes.status()}`);
+
+  cookies = (await ctx.storageState()).cookies;
+  await ctx.dispose();
+});
+
+test.beforeEach(async ({ context }) => {
+  await context.addCookies(cookies);
+});
 
 test.describe("multi-page document upload", () => {
   test("report: two pages at create, a third added from the detail screen", async ({ page }) => {
