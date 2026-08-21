@@ -1,17 +1,16 @@
 "use client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, type AuthorizeUploadResponseDto } from "@medpass/api-client";
+import { ApiError } from "@medpass/api-client";
 import { Banner, Button, Card, PillSpinner, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { DoctorPicker } from "../../../components/DoctorPicker";
+import { DocumentUploadButtons } from "../../../components/DocumentUploadButtons";
 import { PageHeader } from "../../../components/PageHeader";
-import { api, getActiveProfileId, newIdempotencyKey } from "../../../lib/api";
+import { MAX_IMAGE_BYTES, uploadDocument } from "../../../lib/document-upload";
 import { useI18n } from "../../../lib/i18n";
 import { ensurePractitioner } from "../../../lib/practitioners";
 import { createPrescription } from "../../../lib/prescriptions";
-
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 function toDateOnly(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -27,8 +26,6 @@ function toDateOnly(date: Date): string {
 export default function NewPrescriptionPage() {
   const { t } = useI18n();
   const router = useRouter();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [practitionerName, setPractitionerName] = useState("");
   const [practitionerSpeciality, setPractitionerSpeciality] = useState("");
@@ -43,26 +40,11 @@ export default function NewPrescriptionPage() {
   // prescription per retry before this existed.
   const createdIdRef = useRef<string | undefined>(undefined);
 
-  function pickFile(f: File | undefined) {
+  function pickFiles(picked: File[]) {
     setError(undefined);
-    if (!f) return;
-    if (f.size > MAX_IMAGE_BYTES && f.type !== "application/pdf") {
-      setError(t("scan.upload_error"));
-      return;
-    }
-    setFiles((prev) => [...prev, f]);
-  }
-
-  async function uploadOne(file: File, prescriptionId: string) {
-    const contentType = file.type || "application/octet-stream";
-    const authRes = await api.post<AuthorizeUploadResponseDto>(
-      "/profiles/current/documents/authorize-upload",
-      { kind: "prescription", prescriptionId, contentType, sizeBytes: file.size },
-      { idempotencyKey: newIdempotencyKey(), profileId: getActiveProfileId() },
-    );
-    const putRes = await fetch(authRes.uploadUrl, { method: "PUT", headers: { "content-type": contentType }, body: file });
-    if (!putRes.ok) throw new Error("upload_failed");
-    await api.post(`/documents/${authRes.documentId}/complete`, undefined, { profileId: getActiveProfileId() });
+    const valid = picked.filter((f) => f.size <= MAX_IMAGE_BYTES || f.type === "application/pdf");
+    if (valid.length < picked.length) setError(t("scan.upload_error"));
+    if (valid.length > 0) setFiles((prev) => [...prev, ...valid]);
   }
 
   async function save() {
@@ -84,7 +66,7 @@ export default function NewPrescriptionPage() {
 
       if (files.length > 0) {
         setStage("uploading");
-        for (const file of files) await uploadOne(file, prescriptionId);
+        for (const file of files) await uploadDocument(file, { kind: "prescription", prescriptionId });
       }
       router.replace(`/prescriptions/${prescriptionId}`);
     } catch (err) {
@@ -126,16 +108,8 @@ export default function NewPrescriptionPage() {
             <TextInput label={t("prescriptions.notes_label")} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Card>
 
-          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => pickFile(e.target.files?.[0])} />
-          <input ref={fileInputRef} type="file" accept="image/*,application/pdf" hidden onChange={(e) => pickFile(e.target.files?.[0])} />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", marginTop: "var(--space-md)" }}>
-            <Button variant="secondary" fullWidth onClick={() => cameraInputRef.current?.click()}>
-              📷 {t("prescriptions.take_photo")}
-            </Button>
-            <Button variant="ghost" fullWidth onClick={() => fileInputRef.current?.click()}>
-              {t("prescriptions.choose_file")}
-            </Button>
+          <div style={{ marginTop: "var(--space-md)" }}>
+            <DocumentUploadButtons photoLabel={t("prescriptions.take_photo")} fileLabel={t("prescriptions.choose_file")} onPick={pickFiles} />
           </div>
 
           {files.length > 0 ? (
