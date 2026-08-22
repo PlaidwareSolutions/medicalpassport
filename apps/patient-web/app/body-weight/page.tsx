@@ -62,7 +62,7 @@ export default function BodyWeightPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 && !showForm ? (
-        <EmptyState glyph="check" titleKey="weight.empty_title" bodyKey="weight.empty_body" audioId="empty.body_weight" />
+        <EmptyState glyph="scale" titleKey="weight.empty_title" bodyKey="weight.empty_body" audioId="empty.body_weight" />
       ) : null}
 
       {items && items.length > 0 ? (

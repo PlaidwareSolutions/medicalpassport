@@ -23,7 +23,10 @@ export type GuideGlyphName =
   | "share"
   | "drop"
   | "check"
-  | "install";
+  | "install"
+  | "heart"
+  | "scale"
+  | "question";
 
 const SIZE_EM = { sm: "1em", md: "1.35em", lg: "3em" } as const;
 export type GuideGlyphSize = keyof typeof SIZE_EM;
@@ -140,6 +143,37 @@ function paths(name: GuideGlyphName) {
           <line x1="42" y1="78" x2="58" y2="78" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
           <line x1="50" y1="6" x2="50" y2="46" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
           <path d="M38 36l12 14 12-14" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      );
+    case "heart":
+      // A plain heart — blood pressure. The one shape every BP monitor
+      // carton in an Indian pharmacy already prints.
+      return (
+        <path
+          d="M50 84C30 68 16 55 16 40a19 19 0 0134-11 19 19 0 0134 11c0 15-14 28-34 44z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="9"
+          strokeLinejoin="round"
+        />
+      );
+    case "scale":
+      // A bathroom scale seen from above: square body, dial window at the
+      // top — where the feet go is where the eye already knows to look.
+      return (
+        <>
+          <rect x="16" y="16" width="68" height="68" rx="12" fill="none" stroke="currentColor" strokeWidth="9" />
+          <path d="M34 44a16 16 0 0132 0" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+          <line x1="50" y1="44" x2="58" y2="34" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        </>
+      );
+    case "question":
+      // Circled question mark — help.
+      return (
+        <>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="9" />
+          <path d="M38 40a12 13 0 1124 8c-6 5-10 7-10 14" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+          <line x1="52" y1="74" x2="52" y2="75" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
         </>
       );
   }
