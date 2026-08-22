@@ -68,7 +68,7 @@ export default function BloodPressurePage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 && !showForm ? (
-        <EmptyState glyph="drop" titleKey="bp.empty_title" bodyKey="bp.empty_body" audioId="empty.blood_pressure" />
+        <EmptyState glyph="heart" titleKey="bp.empty_title" bodyKey="bp.empty_body" audioId="empty.blood_pressure" />
       ) : null}
 
       {items && items.length > 0 ? (

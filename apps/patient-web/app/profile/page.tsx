@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@medpass/localization";
 import { Banner, Button, Card, Chip, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { PageHeader } from "../../components/PageHeader";
+import { ProfileLink } from "../../components/ProfileLink";
 import { ProfileDetailsSettings } from "../../components/ProfileDetailsSettings";
 import { ReminderSettings } from "../../components/ReminderSettings";
 import { TimezoneSettings } from "../../components/TimezoneSettings";
@@ -149,68 +149,26 @@ export default function ProfilePage() {
 
       <TimezoneSettings />
 
-      <Link href="/allergies">
-        <Card>
-          <strong>{t("profile.allergies")}</strong>
-        </Card>
-      </Link>
-
-      <Link href="/blood-sugar">
-        <Card>
-          <strong>{t("profile.blood_sugar")}</strong>
-        </Card>
-      </Link>
-
-      <Link href="/blood-pressure">
-        <Card>
-          <strong>{t("profile.blood_pressure")}</strong>
-        </Card>
-      </Link>
-
-      <Link href="/body-weight">
-        <Card>
-          <strong>{t("profile.body_weight")}</strong>
-        </Card>
-      </Link>
-
-      <Link href="/prescriptions">
-        <Card>
-          <strong>{t("profile.prescriptions")}</strong>
-        </Card>
-      </Link>
-
-      <Link href="/reports">
-        <Card>
-          <strong>{t("profile.reports")}</strong>
-        </Card>
-      </Link>
-
-      <Link href="/doctors">
-        <Card>
-          <strong>{t("profile.doctors")}</strong>
-        </Card>
-      </Link>
+      {/* The records hub, grouped so ten destinations read as two short
+          menus instead of one undifferentiated wall of cards. Order is
+          unchanged from the ungrouped layout (docs/06 IA). */}
+      <SectionTitle>{t("profile.section_records")}</SectionTitle>
+      <ProfileLink href="/allergies" glyph="shield" label={t("profile.allergies")} />
+      <ProfileLink href="/blood-sugar" glyph="drop" label={t("profile.blood_sugar")} />
+      <ProfileLink href="/blood-pressure" glyph="heart" label={t("profile.blood_pressure")} />
+      <ProfileLink href="/body-weight" glyph="scale" label={t("profile.body_weight")} />
+      <ProfileLink href="/prescriptions" glyph="prescription" label={t("profile.prescriptions")} />
+      <ProfileLink href="/reports" glyph="report" label={t("profile.reports")} />
+      <ProfileLink href="/doctors" glyph="people" label={t("profile.doctors")} />
 
       {/* docs/06 sitemap: Help lives under Profile (screen 41). */}
-      <Link href="/help">
-        <Card>
-          <strong>{t("help.open")}</strong>
-        </Card>
-      </Link>
+      <ProfileLink href="/help" glyph="question" label={t("help.open")} />
 
+      <SectionTitle>{t("profile.section_care")}</SectionTitle>
       {activeProfile?.relationship !== "caregiver" ? (
-        <Link href="/caregivers">
-          <Card>
-            <strong>{t("profile.caregivers")}</strong>
-          </Card>
-        </Link>
+        <ProfileLink href="/caregivers" glyph="people" label={t("profile.caregivers")} />
       ) : null}
-
-      <Link href="/profile/dependents/new">
-        <Card>
-          <strong>{t("profile.add_dependent")}</strong>
-        </Card>
-      </Link>
+      <ProfileLink href="/profile/dependents/new" glyph="people" label={t("profile.add_dependent")} />
 
       {activeProfile?.relationship === "dependent" ? (
         activeProfile.claimInvited ? <ClaimInvitePendingSection /> : <ClaimInviteSection />
@@ -236,9 +194,9 @@ export default function ProfilePage() {
                 <strong>{d.label ?? d.kind}</strong>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                   {new Date(d.lastSeenAt).toLocaleString()}
-                  {d.isCurrent ? " · ✓" : ""}
                 </div>
                 <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)", flexWrap: "wrap" }}>
+                  {d.isCurrent ? <Chip tone="success">{t("profile.device_current")}</Chip> : null}
                   {d.trusted ? <Chip tone="success">{t("profile.device_trusted")}</Chip> : null}
                   {!d.hasLiveSession ? <Chip>{t("profile.device_no_live_session")}</Chip> : null}
                 </div>
