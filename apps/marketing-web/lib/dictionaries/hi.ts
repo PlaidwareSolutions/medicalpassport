@@ -56,6 +56,7 @@ export const hi: Record<MessageKey, string> = {
   "film.h2": "फ़िल्म देखें",
   "film.lead": "आपकी दवाइयाँ एक जगह क्यों होनी चाहिए।",
   "film.play": "फ़िल्म चलाएँ",
+  "film.unmute": "आवाज़ के लिए टैप करें",
   "reveal.f_name": "दवा",
   "reveal.f_name_v": "Glucomet 500",
   "reveal.f_ingredient": "घटक",

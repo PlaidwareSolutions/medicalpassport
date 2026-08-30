@@ -51,6 +51,7 @@ export const te: Record<MessageKey, string> = {
   "film.h2": "చిత్రం చూడండి",
   "film.lead": "మీ మందులు ఒకే చోట ఎందుకు ఉండాలో.",
   "film.play": "చిత్రం ప్లే చేయండి",
+  "film.unmute": "శబ్దం కోసం నొక్కండి",
   "reveal.f_name": "మందు",
   "reveal.f_name_v": "Glucomet 500",
   "reveal.f_ingredient": "పదార్థం",
