@@ -165,7 +165,10 @@ export function Reveal({ locale }: { locale: MarketingLocale }) {
  * Owner-directed brand film (2026-08-30), placed between the Reveal and Know
  * sections. Renders ONLY when the commercial is published — no placeholder,
  * the page seams S3 → S4 exactly as before when the asset is absent. The
- * film has a soundtrack, so CommercialFilm is strictly click-to-play.
+ * film has a soundtrack; per the owner's 2026-08-31 direction it autoplays
+ * on scroll (unmuted where the browser allows, muted + "tap for sound"
+ * otherwise; reduced-motion/Save-Data keep click-to-play) — see
+ * CommercialFilm for the ladder.
  */
 export function Film({ locale }: { locale: MarketingLocale }) {
   const asset = videoAsset("r8-commercial");
@@ -182,6 +185,7 @@ export function Film({ locale }: { locale: MarketingLocale }) {
           poster={asset.poster}
           label={asset.transcript ?? t(locale, "film.h2")}
           playLabel={t(locale, "film.play")}
+          unmuteLabel={t(locale, "film.unmute")}
         />
       </div>
     </section>

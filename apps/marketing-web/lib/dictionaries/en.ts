@@ -58,6 +58,7 @@ export const en = {
   "film.h2": "Watch the film",
   "film.lead": "Why your medicines belong in one place.",
   "film.play": "Play the film",
+  "film.unmute": "Tap for sound",
   "reveal.f_name": "Medicine",
   "reveal.f_name_v": "Glucomet 500",
   "reveal.f_ingredient": "Ingredient",
