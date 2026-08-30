@@ -160,6 +160,44 @@ html{scroll-padding-top:6rem}
   color:var(--mkt-ink);font-weight:600;font-size:0.9375rem}
 .mkt-lang-item:hover{background:var(--mkt-soft)}
 .mkt-lang-item[aria-current="true"]{background:var(--mkt-soft);color:var(--mkt-primary)}
+/* ── Liveliness layer (2026-08-31): micro-interactions + ambient motion.
+   All transform/shadow-only (the Session-18 contrast rule: no opacity fades
+   on text), all silenced by the reduced-motion kill-switch above. */
+.mkt-story{transition:transform .25s ease,box-shadow .25s ease}
+.mkt-story:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(26,31,29,.12)}
+.mkt-cta{transition:transform .15s ease,box-shadow .2s ease,background-color .2s ease}
+.mkt-cta:hover{box-shadow:0 8px 20px rgba(15,107,84,.28)}
+.mkt-cta:active{transform:scale(.98)}
+.mkt-nav-quiet{background:linear-gradient(currentColor,currentColor) bottom/0% 2px no-repeat;
+  transition:background-size .25s ease;padding-bottom:2px}
+.mkt-nav-quiet:hover{background-size:100% 2px}
+/* Hero ambient glow — two soft brand-color fields drifting very slowly
+   behind the hero. Decorative (aria-hidden), pointer-events none, clipped
+   by the hero section so the 320px reflow gate never sees overflow. */
+.mkt-hero-section{position:relative;overflow:hidden}
+.mkt-hero-glow{position:absolute;inset:0;pointer-events:none}
+.mkt-hero-glow::before,.mkt-hero-glow::after{content:"";position:absolute;width:44vw;max-width:420px;
+  aspect-ratio:1;border-radius:50%;filter:blur(60px);opacity:.16}
+.mkt-hero-glow::before{background:#16A8A0;top:-10%;inset-inline-end:-8%}
+.mkt-hero-glow::after{background:#17335F;bottom:-14%;inset-inline-start:-10%;opacity:.10}
+@media (prefers-reduced-motion: no-preference){
+  .mkt-hero-glow::before{animation:mkt-drift 16s ease-in-out infinite alternate}
+  .mkt-hero-glow::after{animation:mkt-drift 22s ease-in-out infinite alternate-reverse}
+  @keyframes mkt-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-4vw,3vh,0)}}
+}
+/* FAQ accordion — native <details>, keyboard/AT semantics for free. */
+.mkt-faq-item summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:12px;
+  justify-content:space-between}
+.mkt-faq-item summary::-webkit-details-marker{display:none}
+.mkt-faq-item summary:focus-visible{outline:2px solid var(--mkt-primary);outline-offset:4px;border-radius:4px}
+.mkt-faq-item summary h3{margin-bottom:0}
+.mkt-faq-caret{flex-shrink:0;color:var(--mkt-primary);font-weight:800;font-size:1.125rem;
+  transition:transform .2s ease;line-height:1}
+.mkt-faq-item[open] .mkt-faq-caret{transform:rotate(45deg)}
+.mkt-faq-item p{margin-top:10px}
+/* Passport-card tilt (S3) — the wrapper adds perspective; the client
+   component drives rotate on fine pointers only. */
+.mkt-tilt{transition:transform .18s ease;will-change:transform}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;
     transition-duration:0.01ms!important;scroll-behavior:auto!important}

@@ -9,6 +9,8 @@ import { PhoneFrame, ProductMedia } from "./ProductMedia";
 import { AudioSample } from "./AudioSample";
 import { CommercialFilm } from "./CommercialFilm";
 import { QrCard } from "./QrCard";
+import { LanguageCycler } from "./LanguageCycler";
+import { TiltCard } from "./TiltCard";
 import { IllustrationScatter, IllustrationTwoNames, IllustrationTwoCities } from "./Illustrations";
 import { videoAsset, AUDIO_SAMPLE_URL } from "../lib/published-media";
 
@@ -51,8 +53,9 @@ function SectionMedia({
 // ── S1 ──────────────────────────────────────────────────────────────────────
 export function Hero({ locale }: { locale: MarketingLocale }) {
   return (
-    <section className="mkt-section" aria-labelledby="hero-title" style={{ paddingBlockStart: "40px" }}>
-      <div className="mkt-container mkt-hero-grid">
+    <section className="mkt-section mkt-hero-section" aria-labelledby="hero-title" style={{ paddingBlockStart: "40px" }}>
+      <div className="mkt-hero-glow" aria-hidden="true" />
+      <div className="mkt-container mkt-hero-grid" style={{ position: "relative" }}>
         <div style={{ maxWidth: "36ch" }}>
           <h1 id="hero-title">{t(locale, "hero.h1")}</h1>
           <p className="mkt-muted" style={{ marginTop: "12px", maxWidth: "34ch" }}>
@@ -62,7 +65,9 @@ export function Hero({ locale }: { locale: MarketingLocale }) {
             <ChipRow>
               <Chip>{t(locale, "hero.chip_free")}</Chip>
               <Chip>{t(locale, "hero.chip_no_install")}</Chip>
-              <Chip>{t(locale, "hero.chip_languages")}</Chip>
+              <Chip>
+                <LanguageCycler fullText={t(locale, "hero.chip_languages")} />
+              </Chip>
             </ChipRow>
           </div>
           <div id={HERO_CTA_SENTINEL_ID} style={{ marginTop: "24px" }}>
@@ -135,6 +140,7 @@ export function Reveal({ locale }: { locale: MarketingLocale }) {
     <section className="mkt-section" aria-labelledby="reveal-title" style={{ background: "var(--mkt-surface)" }}>
       <div className="mkt-container mkt-p2 mkt-media-left">
         <div className="mkt-p2-media mkt-reveal">
+          <TiltCard>
           <div className="mkt-passport-card">
             <dl>
               {fields.map(([k, v]) => (
@@ -148,6 +154,7 @@ export function Reveal({ locale }: { locale: MarketingLocale }) {
               {t(locale, "reveal.card_caption")}
             </p>
           </div>
+          </TiltCard>
         </div>
         <div className="mkt-p2-copy">
           <h2 id="reveal-title">{t(locale, "reveal.h2")}</h2>
@@ -467,10 +474,15 @@ export function Faq({ locale }: { locale: MarketingLocale }) {
         <h2 id="s13-title">{t(locale, "faq.h2")}</h2>
         <div style={{ marginTop: "16px" }}>
           {FAQ_ITEMS.map(({ q, a }) => (
-            <div key={q} className="mkt-faq-item">
-              <h3>{t(locale, q)}</h3>
+            <details key={q} className="mkt-faq-item">
+              <summary>
+                <h3>{t(locale, q)}</h3>
+                <span className="mkt-faq-caret" aria-hidden="true">
+                  +
+                </span>
+              </summary>
               <p>{t(locale, a)}</p>
-            </div>
+            </details>
           ))}
           {/* GATE(SECURITY): Q5 "Does my doctor need an account?" — 04 §S13 */}
           {/* GATE(CLINICAL): Q6 capability sentence (duplicates) — 04 §S13 */}
