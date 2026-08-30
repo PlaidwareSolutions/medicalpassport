@@ -1,6 +1,7 @@
 import { t } from "../lib/i18n";
 import type { MarketingLocale } from "../lib/locales";
 import { PROFESSIONAL_UNIT_ENABLED } from "../lib/release-flags";
+import { BrandMark, BrandWordmark } from "./BrandLogo";
 
 /**
  * Footer shell. Contact addresses are intentionally absent until OD-LP-7
@@ -19,8 +20,14 @@ export function SiteFooter({ locale }: { locale: MarketingLocale }) {
     <footer style={{ background: "var(--mkt-surface)", borderTop: "1px solid var(--mkt-hairline)" }}>
       <div
         className="mkt-container"
-        style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", paddingBlock: "32px" }}
+        style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", alignItems: "center", paddingBlock: "32px" }}
       >
+        {/* Quiet monochrome brand variation — the footer restates identity
+            without competing with the header's full-color lockup. */}
+        <div className="mkt-muted" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <BrandMark size={26} mono />
+          <BrandWordmark locale={locale} fontSize="1rem" mono />
+        </div>
         <nav aria-label="Legal" style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
           {PROFESSIONAL_UNIT_ENABLED ? (
             <a href="/for-clinics/" style={{ fontWeight: 600, fontSize: "0.9375rem" }}>

@@ -1,6 +1,7 @@
 import { t } from "../lib/i18n";
 import { PUBLISHED_LOCALES, localePath, type MarketingLocale } from "../lib/locales";
 import { PROFESSIONAL_UNIT_ENABLED } from "../lib/release-flags";
+import { BrandMark, BrandWordmark } from "./BrandLogo";
 import { APP_ORIGIN, CtaLink } from "./CtaLink";
 import { HeaderStickyCta } from "./HeaderStickyCta";
 import { LocaleSwitcher } from "./LocaleSwitcher";
@@ -48,14 +49,15 @@ export function SiteHeader({
       >
         <a
           href={`${localePath(locale)}/`}
-          style={{ textDecoration: "none", lineHeight: 1.1 }}
+          style={{ textDecoration: "none", lineHeight: 1.1, display: "flex", alignItems: "center", gap: "10px" }}
           aria-label={`${t(locale, "brand.name")} — ${t(locale, "brand.endorsement")}`}
         >
-          <span style={{ display: "block", fontWeight: 800, fontSize: "1.125rem", color: "var(--mkt-primary)" }}>
-            {t(locale, "brand.name")}
-          </span>
-          <span className="mkt-muted" style={{ display: "block", fontSize: "0.75rem", fontWeight: 500 }}>
-            {t(locale, "brand.endorsement")}
+          <BrandMark size={34} />
+          <span style={{ display: "block" }}>
+            <BrandWordmark locale={locale} />
+            <span className="mkt-muted" style={{ display: "block", fontSize: "0.75rem", fontWeight: 500 }}>
+              {t(locale, "brand.endorsement")}
+            </span>
           </span>
         </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "18px" }} aria-label="Site">
