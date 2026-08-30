@@ -7,6 +7,7 @@ import { HERO_CTA_SENTINEL_ID } from "./SiteHeader";
 import { PlaceholderMedia } from "./PlaceholderMedia";
 import { PhoneFrame, ProductMedia } from "./ProductMedia";
 import { AudioSample } from "./AudioSample";
+import { CommercialFilm } from "./CommercialFilm";
 import { QrCard } from "./QrCard";
 import { IllustrationScatter, IllustrationTwoNames, IllustrationTwoCities } from "./Illustrations";
 import { videoAsset, AUDIO_SAMPLE_URL } from "../lib/published-media";
@@ -155,6 +156,33 @@ export function Reveal({ locale }: { locale: MarketingLocale }) {
             <CtaLink locale={locale} />
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Owner-directed brand film (2026-08-30), placed between the Reveal and Know
+ * sections. Renders ONLY when the commercial is published — no placeholder,
+ * the page seams S3 → S4 exactly as before when the asset is absent. The
+ * film has a soundtrack, so CommercialFilm is strictly click-to-play.
+ */
+export function Film({ locale }: { locale: MarketingLocale }) {
+  const asset = videoAsset("r8-commercial");
+  if (!asset) return null;
+  return (
+    <section className="mkt-section" aria-labelledby="film-title" style={{ background: "var(--mkt-surface)" }}>
+      <div className="mkt-container" style={{ textAlign: "center" }}>
+        <h2 id="film-title">{t(locale, "film.h2")}</h2>
+        <p className="mkt-muted" style={{ marginTop: "10px", marginBottom: "26px", maxWidth: "48ch", marginInline: "auto" }}>
+          {t(locale, "film.lead")}
+        </p>
+        <CommercialFilm
+          sources={asset.sources}
+          poster={asset.poster}
+          label={asset.transcript ?? t(locale, "film.h2")}
+          playLabel={t(locale, "film.play")}
+        />
       </div>
     </section>
   );

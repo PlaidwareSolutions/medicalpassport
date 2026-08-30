@@ -271,6 +271,41 @@
           "poster": "https://assets.medidocs.app/images/posters/share-doctor-en.000e22be.jpg"
         }
       }
+    },
+    {
+      "id": "r8-commercial",
+      "title": "Brand film (owner-supplied Runway commercial, 9:16 with soundtrack)",
+      "landingSection": "S3.5-film",
+      "gate": "none",
+      "finalDurationTargetSec": 53,
+      "startingState": "n/a — externally produced creative, not a product screencast",
+      "actions": [
+        "owner-supplied creative; no product UI painted; reviewed frame-by-frame before publish"
+      ],
+      "endingState": "brand card: MedicinePassport.App — Know what you're taking. Available now.",
+      "script": "none (external creative: docs source runway-medication-app-commercial-916-20260830-152825.mp4, moved to artifacts/marketing-media/sources/)",
+      "finalTarget": "video/en/commercial-en",
+      "note": "First clip WITH audio — strictly click-to-play on the site (CommercialFilm), never autoplay; encode keeps the pipeline's video settings + AAC/Opus audio.",
+      "candidate": {
+        "status": "PUBLISHED",
+        "webm": "artifacts/marketing-media/candidates/commercial/commercial-en.webm",
+        "webmKB": 5222,
+        "mp4": "artifacts/marketing-media/candidates/commercial/commercial-en.mp4",
+        "mp4KB": 8601,
+        "poster": "artifacts/marketing-media/candidates/posters/commercial-en.jpg",
+        "posterKB": 48,
+        "durationSec": 53,
+        "dimensions": "720x1280",
+        "codecs": "h264(crf22)+aac128/vp9(crf34)+opus96",
+        "fps": 24,
+        "audioTrack": "soundtrack present (owner-supplied) — click-to-play only",
+        "transcript": "A short film. An older man sits worried beside a hospital monitor. A drawer full of unlabelled pill strips. A person photographs a handwritten prescription with their phone. People check their medicines on their phones and smile with relief. Closing card: MedicinePassport.App — Know what you're taking. Available now.",
+        "published": {
+          "mp4": "https://assets.medidocs.app/video/en/commercial-en.feff59b4.mp4",
+          "webm": "https://assets.medidocs.app/video/en/commercial-en.9eb008da.webm",
+          "poster": "https://assets.medidocs.app/images/posters/commercial-en.e544f913.jpg"
+        }
+      }
     }
   ],
   "candidateExtras": {

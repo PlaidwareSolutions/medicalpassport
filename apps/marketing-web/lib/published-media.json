@@ -1,6 +1,6 @@
 {
   "origin": "https://assets.medidocs.app",
-  "publishedAt": "2026-08-11T23:39:03.555Z",
+  "publishedAt": "2026-08-30T20:42:39.259Z",
   "assets": {
     "r1-hero-sources": {
       "landingSection": "S1",
@@ -105,6 +105,21 @@
       },
       "poster": {
         "url": "https://assets.medidocs.app/images/posters/share-doctor-en.000e22be.jpg"
+      }
+    },
+    "r8-commercial": {
+      "landingSection": "S3.5-film",
+      "transcript": "A short film. An older man sits worried beside a hospital monitor. A drawer full of unlabelled pill strips. A person photographs a handwritten prescription with their phone. People check their medicines on their phones and smile with relief. Closing card: MedicinePassport.App — Know what you're taking. Available now.",
+      "durationSec": 53,
+      "dimensions": "720x1280",
+      "mp4": {
+        "url": "https://assets.medidocs.app/video/en/commercial-en.feff59b4.mp4"
+      },
+      "webm": {
+        "url": "https://assets.medidocs.app/video/en/commercial-en.9eb008da.webm"
+      },
+      "poster": {
+        "url": "https://assets.medidocs.app/images/posters/commercial-en.e544f913.jpg"
       }
     },
     "og": {
