@@ -1,7 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Interim MP monogram — favicon/small-icon use only (Session 4 ruling:
-       partially approved; not an OG/social identity; provisional pending
-       trademark clearance). -->
-  <rect width="64" height="64" rx="14" fill="#0f6b54"/>
-  <text x="32" y="42" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="26" font-weight="800" fill="#ffffff">MP</text>
+  <!-- Medicine Passport brand mark (owner-supplied logo, 2026-08-31):
+       passport booklet + globe + two-tone capsule, redrawn as vector so it
+       stays crisp at every favicon size. Replaces the interim MP monogram
+       (Session 4 ruling — that mark was provisional by design). -->
+  <rect x="7" y="3" width="42" height="56" rx="10" fill="#17335F"/>
+  <g stroke="#fff" fill="none">
+    <circle cx="28" cy="24" r="11.5" stroke-width="3"/>
+    <ellipse cx="28" cy="24" rx="5.2" ry="11.5" stroke-width="2.4"/>
+    <path d="M17.5 20h21M17.5 28h21" stroke-width="2.4"/>
+  </g>
+  <path d="M14 46h12M14 52h9" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <g transform="rotate(40 44 44)">
+    <rect x="27" y="35.5" width="34" height="17" rx="8.5" fill="none" stroke="#fff" stroke-width="7"/>
+    <rect x="27" y="35.5" width="34" height="17" rx="8.5" fill="#fff"/>
+    <path d="M44 35.5h8.5a8.5 8.5 0 0 1 0 17H44z" fill="#16A8A0"/>
+    <rect x="27" y="35.5" width="34" height="17" rx="8.5" fill="none" stroke="#17335F" stroke-width="3"/>
+    <path d="M44 36.5v15" stroke="#17335F" stroke-width="3"/>
+  </g>
 </svg>
