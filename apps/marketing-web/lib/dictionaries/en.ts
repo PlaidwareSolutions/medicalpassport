@@ -55,6 +55,9 @@ export const en = {
   "reveal.body":
     "Every medicine, with the details that matter: name, ingredient, strength, when and how to take it, which doctor prescribed it, and why — in plain words. It's your record. It goes where you go.",
   "reveal.card_caption": "Illustrative example — not a live screen.",
+  "film.h2": "Watch the film",
+  "film.lead": "Fifty-three seconds, with sound — why your medicines belong in one place.",
+  "film.play": "Play the film (53 seconds, with sound)",
   "reveal.f_name": "Medicine",
   "reveal.f_name_v": "Glucomet 500",
   "reveal.f_ingredient": "Ingredient",

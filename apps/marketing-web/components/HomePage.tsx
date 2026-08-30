@@ -4,6 +4,7 @@ import {
   Hero,
   Problem,
   Reveal,
+  Film,
   Know,
   Remember,
   Accessible,
@@ -33,6 +34,8 @@ export function HomePage({ locale }: { locale: MarketingLocale }) {
       <Hero locale={locale} />
       <Problem locale={locale} />
       <Reveal locale={locale} />
+      {/* Owner-directed brand film (2026-08-30) — renders only when published. */}
+      <Film locale={locale} />
       <Know locale={locale} />
       <Remember locale={locale} />
       <Accessible locale={locale} />
