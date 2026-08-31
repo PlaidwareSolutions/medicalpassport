@@ -1756,6 +1756,12 @@ enum AdminDuty {
   incident_response
   operations_view
   rules_view
+  /// Row-level USER (not clinical) visibility: identity + engagement for
+  /// pilot operations — an owner-directed, deliberate exception (2026-08-31)
+  /// to the aggregate-only admin posture. Grants sight of who signed up and
+  /// how much they use the app; NEVER of what's inside their record
+  /// (medicine names, readings, documents stay patient/caregiver-only).
+  users_view
   super_admin
 }
 

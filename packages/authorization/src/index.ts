@@ -94,6 +94,9 @@ export type AdminDuty =
   | "incident_response"
   | "operations_view"
   | "rules_view"
+  // Row-level user identity + engagement (pilot operations) — never clinical
+  // content. Owner-directed exception to the aggregate-only posture.
+  | "users_view"
   | "super_admin";
 
 export type AdminAction =
@@ -109,7 +112,8 @@ export type AdminAction =
   | "replay_job"
   | "revoke_share"
   | "view_operations"
-  | "view_rules";
+  | "view_rules"
+  | "view_users";
 
 const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   read_catalog: [], // any authenticated admin — non-PHI reference data
@@ -125,6 +129,7 @@ const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   revoke_share: ["incident_response"],
   view_operations: ["operations_view"],
   view_rules: ["rules_view"],
+  view_users: ["users_view"],
 };
 
 export function decideAdminAccess(duties: readonly AdminDuty[], action: AdminAction): boolean {

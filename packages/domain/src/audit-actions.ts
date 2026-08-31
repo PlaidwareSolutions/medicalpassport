@@ -80,6 +80,7 @@ export const AUDIT_ACTIONS = [
   "data.deletion_requested",
   "account.erased",
   "admin.audit_searched",
+  "admin.users_viewed",
   "admin.login_succeeded",
   "admin.login_failed",
   "admin.mfa_enrolled",
