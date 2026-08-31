@@ -28,6 +28,7 @@ import { AdminAuditController } from "./modules/admin-audit/admin-audit.controll
 import { AdminIncidentsController } from "./modules/admin-incidents/admin-incidents.controller";
 import { AdminIncidentsService } from "./modules/admin-incidents/admin-incidents.service";
 import { AdminOperationsController } from "./modules/admin-operations/admin-operations.controller";
+import { AdminUsersController } from "./modules/admin-users/admin-users.controller";
 import { AdminRulesController } from "./modules/admin-rules/admin-rules.controller";
 import { ProfilesController } from "./modules/profiles/profiles.controller";
 import { GlucoseController } from "./modules/glucose/glucose.controller";
@@ -84,6 +85,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminAuditController,
     AdminIncidentsController,
     AdminOperationsController,
+    AdminUsersController,
     AdminRulesController,
     ProfilesController,
     GlucoseController,

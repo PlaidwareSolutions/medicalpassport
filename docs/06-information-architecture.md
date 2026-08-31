@@ -92,3 +92,5 @@ Same origin for patient + caregiver (`app.example.com`), role-based experience. 
 ## Admin portal IA (`admin.example.com`)
 
 Separate app, stronger auth: Catalog (products/brands/ingredients/combinations) · Content (education, translations, approvals — maker-checker) · Rules (safety rules, versions, review) · Incidents · Audit · Operations · Support.
+
+**Users (added 2026-08-31, owner-directed):** row-level user *identity + engagement* for pilot operations — display name, masked phone (last four digits only; the full number never leaves the api process), birth year, sign-up/last-active, usage days, per-area counts, and the onboarded-by-week analysis. A deliberate, bounded exception to the aggregate-only admin posture: what's *inside* a record (medicine names, reading values, documents) stays visible only to the patient and their authorized caregivers — the endpoint returns counts, never content. Gated by its own `users_view` duty (`super_admin` implies it); every view is written to the audit chain (`admin.users_viewed`).

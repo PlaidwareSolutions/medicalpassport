@@ -58,6 +58,7 @@ describe("decideAdminAccess", () => {
       "revoke_share",
       "view_operations",
       "view_rules",
+      "view_users",
     ] as const) {
       expect(decideAdminAccess(["super_admin"], action)).toBe(true);
     }
@@ -100,5 +101,8 @@ describe("decideAdminAccess", () => {
   it("no duties means no gated access", () => {
     expect(decideAdminAccess([], "search_audit")).toBe(false);
     expect(decideAdminAccess([], "view_operations")).toBe(false);
+    expect(decideAdminAccess([], "view_users")).toBe(false);
+    expect(decideAdminAccess(["users_view"], "view_users")).toBe(true);
+    expect(decideAdminAccess(["operations_view"], "view_users")).toBe(false);
   });
 });
