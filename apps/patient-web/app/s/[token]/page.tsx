@@ -5,6 +5,7 @@ import { ApiError, type VisitSummaryDto } from "@medpass/api-client";
 import { PillSpinner } from "@medpass/ui-web";
 import { VisitSummarySections } from "../../../components/VisitSummarySections";
 import { api } from "../../../lib/api";
+import { apiBaseUrl } from "../../../lib/api-origin";
 import { useI18n } from "../../../lib/i18n";
 import { formatPatientDateTime } from "../../../lib/patient-time";
 
@@ -56,7 +57,7 @@ export default function PublicSharePage() {
         {t("visit.generated_at", { time: formatPatientDateTime(data.generatedAt, data.profile.timezone) })}
       </p>
       <a
-        href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/v1/public/shares/${params.token}/pdf`}
+        href={`${apiBaseUrl()}/v1/public/shares/${params.token}/pdf`}
         style={{
           display: "inline-block",
           marginBottom: "var(--space-md)",
