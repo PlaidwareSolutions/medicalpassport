@@ -160,6 +160,9 @@ export const ur: Record<keyof typeof en, string> = {
   "profile.create_title": "اپنے بارے میں بتائیں",
   "profile.name_label": "آپ کا نام",
   "profile.year_of_birth": "سالِ پیدائش (اختیاری)",
+  "profile.year_of_birth_required": "سالِ پیدائش",
+  "profile.year_help": "یہ تصدیق کرنے کے لیے ضروری ہے کہ آپ کی عمر 18 یا اس سے زیادہ ہے — 4 ہندسوں کا سال، جیسے 1975۔",
+  "profile.year_invalid": "اپنی پیدائش کا 4 ہندسوں کا سال لکھیں، جیسے 1975۔",
   "profile.created": "پروفائل بن گئی",
 
   "home.due_now": "ابھی لینی ہے",
