@@ -3,7 +3,9 @@ import { ApiClient } from "@medpass/api-client";
 import { clearAllOfflineData } from "@medpass/offline-sync";
 import { clearMemoryCache } from "./data-cache";
 
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/v1`;
+import { apiBaseUrl } from "./api-origin";
+
+const API_BASE_URL = `${apiBaseUrl()}/v1`;
 
 // The API already issues a 30-day refresh cookie on every login, but nothing
 // here ever called it — a session silently died after 12h regardless. Raw
