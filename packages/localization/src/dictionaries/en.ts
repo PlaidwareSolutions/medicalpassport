@@ -161,6 +161,9 @@ export const en = {
   "profile.create_title": "Tell us about yourself",
   "profile.name_label": "Your name",
   "profile.year_of_birth": "Year of birth (optional)",
+  "profile.year_of_birth_required": "Year of birth",
+  "profile.year_help": "Needed to confirm you are 18 or older — the 4-digit year, like 1975.",
+  "profile.year_invalid": "Enter the 4-digit year you were born, like 1975.",
   "profile.created": "Profile created",
 
   "home.due_now": "Due now",

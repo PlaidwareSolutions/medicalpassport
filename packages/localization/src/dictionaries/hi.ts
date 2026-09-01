@@ -160,6 +160,9 @@ export const hi: Record<keyof typeof en, string> = {
   "profile.create_title": "अपने बारे में बताएं",
   "profile.name_label": "आपका नाम",
   "profile.year_of_birth": "जन्म का वर्ष (वैकल्पिक)",
+  "profile.year_of_birth_required": "जन्म का वर्ष",
+  "profile.year_help": "यह पुष्टि करने के लिए ज़रूरी है कि आपकी उम्र 18 या उससे अधिक है — 4 अंकों का वर्ष, जैसे 1975।",
+  "profile.year_invalid": "अपने जन्म का 4 अंकों का वर्ष लिखें, जैसे 1975।",
   "profile.created": "प्रोफ़ाइल बन गई",
 
   "home.due_now": "अभी लेनी है",

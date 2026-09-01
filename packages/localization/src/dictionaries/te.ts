@@ -160,6 +160,9 @@ export const te: Record<keyof typeof en, string> = {
   "profile.create_title": "మీ గురించి చెప్పండి",
   "profile.name_label": "మీ పేరు",
   "profile.year_of_birth": "పుట్టిన సంవత్సరం (ఐచ్ఛికం)",
+  "profile.year_of_birth_required": "పుట్టిన సంవత్సరం",
+  "profile.year_help": "మీ వయసు 18 లేదా అంతకన్నా ఎక్కువ అని నిర్ధారించడానికి అవసరం — 4 అంకెల సంవత్సరం, ఉదా. 1975.",
+  "profile.year_invalid": "మీరు పుట్టిన 4 అంకెల సంవత్సరం రాయండి, ఉదా. 1975.",
   "profile.created": "ప్రొఫైల్ సృష్టించబడింది",
 
   "home.due_now": "ఇప్పుడు తీసుకోవాలి",

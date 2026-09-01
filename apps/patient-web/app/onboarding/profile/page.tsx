@@ -56,9 +56,12 @@ export default function CreateProfilePage() {
       {error ? <Banner tone="danger">{error}</Banner> : null}
       <TextInput label={t("profile.name_label")} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
       <TextInput
-        label={t("profile.year_of_birth")}
+        label={t("profile.year_of_birth_required")}
+        help={t("profile.year_help")}
+        error={year.length > 0 && !yearValid ? t("profile.year_invalid") : undefined}
         type="number"
         inputMode="numeric"
+        autoComplete="bday-year"
         value={year}
         onChange={(e) => setYear(e.target.value)}
       />
