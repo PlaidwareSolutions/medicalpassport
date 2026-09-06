@@ -26,6 +26,11 @@ export function env(): ApiEnv {
     if ((cached.OTP_TRANSPORT === "sms" || cached.OTP_TRANSPORT === "voice") && cached.OTP_DEV_FIXED_CODE) {
       throw new Error(`OTP_DEV_FIXED_CODE must not be set alongside OTP_TRANSPORT=${cached.OTP_TRANSPORT}`);
     }
+    // Same reasoning as the fixed code: a loosened rate limit is only safe
+    // where nothing real is sent, which is exactly the log transport.
+    if (cached.RATE_LIMIT_DEV_MULTIPLIER !== undefined && cached.RATE_LIMIT_DEV_MULTIPLIER !== 1 && cached.OTP_TRANSPORT !== "log") {
+      throw new Error(`RATE_LIMIT_DEV_MULTIPLIER must not be set alongside OTP_TRANSPORT=${cached.OTP_TRANSPORT}`);
+    }
   }
   return cached;
 }

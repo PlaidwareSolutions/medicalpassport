@@ -68,10 +68,14 @@ test.describe("multi-page document upload", () => {
 
     await page.getByRole("button", { name: "Save report" }).click();
     await page.waitForURL(/\/reports\/[0-9a-f-]{36}$/, { timeout: 30_000 });
-    await expect(page.getByRole("button", { name: "View", exact: true })).toHaveCount(2);
+    // V2 reports file their photos as one multi-page document (docs_v2/09
+    // §1), so the detail screen lists the document with its page count
+    // rather than one "View" button per page.
+    const linked = page.getByTestId("linked-documents");
+    await expect(linked.getByText("2 pages")).toBeVisible({ timeout: 30_000 });
 
     await page.setInputFiles(galleryInput, [jpegPage("report-page-3.jpg")]);
-    await expect(page.getByRole("button", { name: "View", exact: true })).toHaveCount(3, { timeout: 30_000 });
+    await expect(linked.getByText("3 pages")).toBeVisible({ timeout: 30_000 });
   });
 
   test("prescription: one page at create, two more added from the detail screen", async ({ page }) => {

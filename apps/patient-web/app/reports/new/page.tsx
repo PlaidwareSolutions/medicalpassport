@@ -7,10 +7,12 @@ import { Banner, Button, Card, ChoiceGrid, PillSpinner, SectionTitle, TextInput 
 import { AppShell } from "../../../components/AppShell";
 import { ClinicPicker, ensureOrganization, type ClinicSelection } from "../../../components/ClinicPicker";
 import { DoctorPicker } from "../../../components/DoctorPicker";
+import { DocumentUploadButtons } from "../../../components/DocumentUploadButtons";
 import { PageHeader } from "../../../components/PageHeader";
 import { emptyResult, ResultRowEditor, resultIsComplete, resultToInput, type ResultDraft } from "../../../components/ResultRowEditor";
 import { organizations } from "../../../lib/clinical-profile";
 import { addDiagnosticResult, createDiagnosticReport, isImagingKind, useAnalyteTerminology } from "../../../lib/diagnostics";
+import { attachPagesToRecord } from "../../../lib/documents";
 import { useI18n } from "../../../lib/i18n";
 import { ensurePractitioner } from "../../../lib/practitioners";
 
@@ -50,6 +52,9 @@ export default function NewDiagnosticReportPage() {
   const [findings, setFindings] = useState("");
   const [conclusion, setConclusion] = useState("");
   const [results, setResults] = useState<ResultDraft[]>([]);
+  // Photos of the paper report, filed as one document linked to the report
+  // once it exists (the V1 "take a photo" affordance on the V2 model).
+  const [files, setFiles] = useState<Array<{ file: File; channel: "camera" | "gallery" }>>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   // A failed result write leaves the report already created; retrying must
@@ -91,6 +96,13 @@ export default function NewDiagnosticReportPage() {
         if (savedRowsRef.current.has(row.key)) continue;
         await addDiagnosticResult(reportId, resultToInput(row, sequence));
         savedRowsRef.current.add(row.key);
+      }
+      if (files.length > 0) {
+        // Every page in one document; a retry after a failure re-runs only
+        // this step because the report and results above are already saved.
+        const channel = files.some((f) => f.channel === "camera") ? "camera" : "gallery";
+        await attachPagesToRecord({ diagnosticReportId: reportId }, imaging ? "imaging_report" : "laboratory_report", files.map((f) => f.file), channel);
+        setFiles([]);
       }
       router.replace(`/reports/${reportId}`);
     } catch (err) {
@@ -173,6 +185,26 @@ export default function NewDiagnosticReportPage() {
           <Card>
             <TextInput label={t("dx.conclusion_label")} help={t("dx.copied_help")} value={conclusion} onChange={(e) => setConclusion(e.target.value)} />
           </Card>
+
+          <div style={{ marginTop: "var(--space-md)" }}>
+            <DocumentUploadButtons
+              photoLabel={t("reports.take_photo")}
+              fileLabel={t("reports.choose_file")}
+              onPick={(picked, channel) => setFiles((prev) => [...prev, ...picked.map((file) => ({ file, channel }))])}
+            />
+          </div>
+          {files.length > 0 ? (
+            <Card>
+              {files.map((f, i) => (
+                <div key={`${f.file.name}-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)" }}>
+                  <span style={{ fontSize: "var(--font-small)" }}>{f.file.name}</span>
+                  <Button variant="ghost" onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} aria-label={t("rx.file_remove")}>
+                    ×
+                  </Button>
+                </div>
+              ))}
+            </Card>
+          ) : null}
 
           <div style={{ marginTop: "var(--space-lg)" }}>
             <Button fullWidth loading={busy} disabled={busy} onClick={() => void save()}>

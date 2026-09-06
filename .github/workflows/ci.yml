@@ -6,7 +6,9 @@ on:
     # (.railway/*.ts track it), so it is exactly the ref that needs gating —
     # discovered the hard way: with [main] only, CI had never run once, and
     # every "CI will catch it" assumption was resting on local runs.
-    branches: [main, foundation]
+    # v2 is where the V2 program lands before it reaches foundation; without
+    # it here, none of that work was gated on push.
+    branches: [main, foundation, v2]
   pull_request:
 
 jobs:
@@ -36,6 +38,9 @@ jobs:
       FIELD_ENCRYPTION_KEY: ci-field-key-not-secret-32bytes!
       OTP_TRANSPORT: log
       OTP_DEV_FIXED_CODE: "000000"
+      # The browser suites sign in a fresh patient per spec from one runner
+      # address; 10 OTP requests an hour per IP is not enough for that.
+      RATE_LIMIT_DEV_MULTIPLIER: "20"
       # Without this the API serves no CORS headers and every browser-side
       # /v1 call in the Playwright suite dies cross-origin (:3000 → :4000).
       # Found via CI-only education failures: most suites assert shell-level

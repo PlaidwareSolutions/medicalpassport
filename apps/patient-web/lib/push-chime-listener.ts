@@ -26,6 +26,11 @@ export function usePushChimeListener(): void {
   const soundEnabledRef = useRef(true);
 
   useEffect(() => {
+    // Preferences are per profile. Before the active profile is known the
+    // request has no profile header and fails; the safe default (chime on)
+    // already applies, so there is nothing to ask for yet. A chime is the
+    // only thing this gates, and it is read again on the next mount.
+    if (getActiveProfileId() === undefined) return;
     getPreferences()
       .then((prefs) => {
         soundEnabledRef.current = prefs.soundEnabled;

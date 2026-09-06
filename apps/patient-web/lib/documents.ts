@@ -385,14 +385,16 @@ export function fetchExtraction(documentId: string) {
 /** Documents attached to one clinical record — client-filtered over the newest 100 (the API filters by kind only). */
 export function useLinkedDocuments(link: { prescriptionId: string } | { diagnosticReportId: string }) {
   const path = `${DOCUMENTS_PATH}?limit=100`;
-  const { data, error } = useSharedResource<DocumentListDto>({
+  const { data, error, reload } = useSharedResource<DocumentListDto>({
     path,
     fetcher: () => api.get<DocumentListDto>(path, { profileId: getActiveProfileId() }),
   });
   const items = data?.items.filter((d) =>
     "prescriptionId" in link ? d.prescriptionId === link.prescriptionId : d.diagnosticReportId === link.diagnosticReportId,
   );
-  return { items, error };
+  // `invalidate()` only empties the cache; a mounted hook has to be asked
+  // to fetch again, which is what a screen does right after it adds pages.
+  return { items, error, reload };
 }
 
 // --- writes --------------------------------------------------------------
@@ -420,15 +422,24 @@ export function invalidateMaterializedData(): void {
   invalidate("profile", "/profiles/current/organizations");
 }
 
+/** The record a document is filed against (docs_v2/04 §7.2: at most one clinical parent). */
+export type DocumentLink = { prescriptionId: string } | { diagnosticReportId: string };
+
 export interface CreateDocumentInput {
   kind?: DocumentKind;
   title?: string;
   sourceChannel: SourceChannel;
   pages: Array<{ contentType: PageContentType; sizeBytes: number }>;
+  links?: DocumentLink;
 }
 
 export async function createDocument(input: CreateDocumentInput): Promise<CreatedDocumentDto> {
-  const res = await api.post<CreatedDocumentDto>(DOCUMENTS_PATH, input, {
+  // The API takes the parent record as top-level fields (packages/validation
+  // `createDocumentV2Schema` spreads them); the nested `links` here is only
+  // so a caller cannot pass two parents by accident.
+  const { links, ...rest } = input;
+  const body = { ...rest, ...(links ?? {}) };
+  const res = await api.post<CreatedDocumentDto>(DOCUMENTS_PATH, body, {
     idempotencyKey: newIdempotencyKey(),
     profileId: getActiveProfileId(),
   });
@@ -462,6 +473,57 @@ export function completePage(documentId: string, pageNumber: number) {
     undefined,
     { profileId: getActiveProfileId() },
   );
+}
+
+/** Authorizes more pages on a document that already exists (a report that grew a page). */
+export function authorizePages(documentId: string, pages: Array<{ contentType: PageContentType; sizeBytes: number }>) {
+  return api.post<{ pages: UploadAuthorizationDto[] }>(`/patient-documents/${documentId}/pages/authorize-upload`, { pages }, {
+    idempotencyKey: newIdempotencyKey(),
+    profileId: getActiveProfileId(),
+  });
+}
+
+/**
+ * Files photos or PDFs against a record from its own screen — the V1
+ * "take a photo of the report" affordance, on the V2 document model. Adds
+ * pages to `existingDocumentId` when the record already has a document, so
+ * a report filed with one photo can grow a second page (docs/07 §43/44);
+ * otherwise creates a document linked to the record. Returns the document
+ * the pages landed in. Rejects an unsupported or oversized file before
+ * anything is uploaded, so a bad third page never leaves two orphaned.
+ */
+export async function attachPagesToRecord(
+  link: DocumentLink,
+  kind: DocumentKind,
+  files: File[],
+  channel: "camera" | "gallery",
+  existingDocumentId?: string,
+): Promise<{ documentId: string }> {
+  const pages = files.map((file) => {
+    const contentType = pageContentTypeFor(file);
+    if (!contentType || pageTooLarge(file, contentType)) throw new Error("unsupported_page");
+    return { file, contentType, sizeBytes: file.size };
+  });
+  const declared = pages.map(({ contentType, sizeBytes }) => ({ contentType, sizeBytes }));
+
+  let documentId: string;
+  let authorizations: UploadAuthorizationDto[];
+  if (existingDocumentId) {
+    documentId = existingDocumentId;
+    authorizations = (await authorizePages(existingDocumentId, declared)).pages;
+  } else {
+    const created = await createDocument({ kind, sourceChannel: channel, pages: declared, links: link });
+    documentId = created.id;
+    authorizations = created.pages;
+  }
+  for (const [index, page] of pages.entries()) {
+    const authorization = authorizations[index];
+    if (!authorization) throw new Error("upload_failed");
+    await uploadPageBytes(authorization.uploadUrl, page.file, page.contentType, () => undefined);
+    await completePage(documentId, authorization.pageNumber);
+  }
+  invalidateDocumentData();
+  return { documentId };
 }
 
 export interface UpdateDocumentInput {

@@ -42,8 +42,20 @@ describe("runOcr", () => {
 
     expect(text).toBe("Tab Amlong 5mg OD\n");
     expect(mocks.createWorker).toHaveBeenCalledTimes(1);
-    expect(mocks.createWorker).toHaveBeenCalledWith("eng");
+    expect(mocks.createWorker).toHaveBeenCalledWith("eng", undefined, { errorHandler: expect.any(Function) });
     expect(mocks.recognize).toHaveBeenCalledWith(image);
+  });
+
+  it("registers an engine error handler, so an unreadable page cannot crash the process", async () => {
+    // tesseract.js rejects the job's promise AND, without a handler, throws
+    // from its message listener where nothing can catch it. A truncated
+    // JPEG took the worker down that way on 2026-09-06.
+    const { runOcr } = await loadFreshModule();
+    mocks.recognize.mockResolvedValueOnce({ data: { text: "", confidence: 0 } });
+    await runOcr(Buffer.from("x"));
+    const options = mocks.createWorker.mock.calls[0]?.[2] as { errorHandler: (e: unknown) => void };
+    expect(() => options.errorHandler(new Error("Error attempting to read image."))).not.toThrow();
+    expect(() => options.errorHandler("Premature end of JPEG file")).not.toThrow();
   });
 
   it("returns only the text — engine confidence is not surfaced to callers", async () => {

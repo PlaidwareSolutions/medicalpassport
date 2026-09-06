@@ -99,7 +99,11 @@ async function runJob(queue: (typeof QUEUES)[number], job: NonNullable<Awaited<R
     await completeJob(prisma, job.id, result);
     logger.info({ jobId: job.id, queue }, "job succeeded");
   } catch (err) {
-    const message = err instanceof Error ? err.message : "unknown error";
+    // Non-Error throws happen (a rejected promise carrying a string, a
+    // library throwing a plain object). Logging them as "unknown error"
+    // hid a storage-root mismatch for a whole afternoon; keep the text,
+    // bounded, so the dead-letter digest says what actually went wrong.
+    const message = err instanceof Error ? err.message : String(err).slice(0, 500) || "unknown error";
     logger.error({ jobId: job.id, queue, attempt: job.attempts, err: message }, "job failed");
     await failJob(prisma, job, message.slice(0, 500));
   }

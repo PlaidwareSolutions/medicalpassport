@@ -156,6 +156,13 @@ export function useSharedResource<T>(opts: SharedResourceOptions<T>): SharedReso
       // Key captured now: a slow response landing after a profile switch
       // writes only under the profile it was fetched for.
       const loadKey = cacheKeyFor(scope, current.path);
+      // A profile-scoped read before the active profile is known would go
+      // out without the profile header and come back 400 — then run again,
+      // correctly, once the session resolves and the key changes. On a
+      // fresh device every screen fired that wasted request for each of its
+      // hooks. Wait instead; the key change re-runs this the moment the
+      // profile is set.
+      if (scope === "profile" && getActiveProfileId() === undefined) return;
       const existing = readEntry<T>(loadKey);
       if (!force && isFresh(loadKey, current.ttlMs ?? 0)) {
         return; // fresh enough — no network

@@ -305,6 +305,7 @@ Native review of ~900 draft hi/te/ur strings (H-19); Gate 4 clinical validation 
 - On Windows, Telugu overflows 320 px by about 7 px because only Nirmala UI is installed; CI has Noto fonts. Not a product bug.
 - `next build` hangs if it shares `.next` with a running `next dev`; build with `NEXT_DIST_DIR=<dir>`.
 - Playwright reuses whatever is on :3000 unless `E2E_BASE_URL`/`E2E_API_URL` point elsewhere, and `--grep` silently skips tests (a regex `lastIndex` bug); run sweeps unfiltered.
+- Run the Playwright suite with `DATABASE_URL`, `OTP_HASH_PEPPER` and `FIELD_ENCRYPTION_KEY` in the environment (the proposals spec seeds a clinic through the database) and start the API under test with `RATE_LIMIT_DEV_MULTIPLIER=20`, or the 10-per-hour per-IP OTP cap fails the later specs with 429. Never start a second Playwright run while one is in progress: its global setup rewrites the fixture the running one reads.
 - The local dev database has no `_prisma_migrations` table, so `migrate deploy` reports P3005 there; apply migration SQL directly. A fresh database applies them normally.
 
 ---
@@ -314,7 +315,7 @@ Native review of ~900 draft hi/te/ur strings (H-19); Gate 4 clinical validation 
 | Suite | Count | Covers |
 |---|---|---|
 | API e2e (`apps/api/test`) | 70 suites / 662 tests | every endpoint above, including the must-nevers that are server-enforced |
-| Playwright (`apps/patient-web/e2e`) | 17 feature specs + axe/reflow/guidance/crawl sweeps over ~70 routes × 4 locales | the journeys in §3.2–3.12 and 3.14 |
+| Playwright (`apps/patient-web/e2e`) | 17 feature specs + axe/reflow/guidance sweeps and an exploratory crawl (uncaught errors, 5xx, verbatim dictionary keys, unfilled params, dead links) over ~70 routes × 4 locales; 982 tests | the journeys in §3.2–3.12 and 3.14 |
 | Provider-web (`apps/provider-web/e2e`) | 1 full clinic workflow | §3.10 steps 1–6 |
 | Package tests | fhir 427, document-intelligence 134, authorization 57, cron 63, worker 93, others | serializers, extractors, the scope matrix, reminders, queue |
-| Admin portal | **none in the browser** — typecheck and API e2e only | §3.13 is the only coverage until a suite exists |
+| Admin portal | a login-through-the-real-screen crawl of all 18 nav pages (scratch script, 2026-09-06: 18/18 clean) — not yet a committed suite | §3.13 remains the checklist until that crawl becomes a spec |

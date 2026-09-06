@@ -3,6 +3,7 @@ import { Reflector } from "@nestjs/core";
 import type { Response } from "express";
 import { ERROR_CODES } from "@medpass/domain";
 import { ApiProblem } from "./errors";
+import { env } from "./env";
 import { RateLimitService } from "./rate-limit.service";
 import type { ApiRequest } from "./http";
 
@@ -51,9 +52,12 @@ export class RateLimitGuard implements CanActivate {
     const res = context.switchToHttp().getResponse<Response>();
     const ip = req.ip ?? "unknown";
 
+    // Dev/test only (packages/config): the env layer refuses the multiplier
+    // next to a real OTP transport, so in production this is always 1.
+    const multiplier = env().RATE_LIMIT_DEV_MULTIPLIER ?? 1;
     const { allowed, retryAfterSeconds } = await this.rateLimit.checkAndIncrement(
       `${options.name}:${ip}`,
-      options.limit,
+      options.limit * multiplier,
       options.windowSeconds,
     );
     if (!allowed) {

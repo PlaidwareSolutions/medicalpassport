@@ -16,6 +16,7 @@ import {
   deleteDiagnosticReport,
   deleteDiagnosticResult,
   formatDateOnly,
+  isImagingKind,
   referenceRangeText,
   showsCanonicalTwin,
   useAnalyteTerminology,
@@ -174,7 +175,7 @@ function DiagnosticReportDetail({ id }: { id: string }) {
       </div>
 
       {/* Documents V2 pages this report was read from (docs_v2/09) — renders nothing for hand-typed records. */}
-      <LinkedDocumentsSection diagnosticReportId={report.id} />
+      <LinkedDocumentsSection diagnosticReportId={report.id} reportKind={isImagingKind(report.kind) ? "imaging_report" : "laboratory_report"} />
 
       <div style={{ marginTop: "var(--space-xl)" }}>
         <Button variant="danger" fullWidth disabled={busy} onClick={() => void remove()}>

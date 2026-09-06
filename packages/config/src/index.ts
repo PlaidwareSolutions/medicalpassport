@@ -68,6 +68,14 @@ export const apiEnvShape = {
     .string()
     .regex(/^\d{6}$/)
     .optional(),
+  /**
+   * Development/test only: multiplies every `@RateLimit()` budget. The
+   * per-IP OTP budget is 10 an hour, and a browser suite that signs in a
+   * fresh patient per spec exhausts that from one runner address in a few
+   * minutes. The API refuses this alongside a real OTP transport, so it can
+   * never loosen a limit where a real message would be sent.
+   */
+  RATE_LIMIT_DEV_MULTIPLIER: z.coerce.number().int().min(1).max(1000).optional(),
   /** Comma-separated allowlist of public hostnames (host-header defense). */
   ALLOWED_HOSTS: z.string().optional(),
   CORS_ORIGINS: z.string().optional(),

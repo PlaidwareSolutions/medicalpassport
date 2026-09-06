@@ -23,6 +23,16 @@ const base: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: "var(--space-sm)",
+  // A label must never widen the screen. "Paused" is one word in English
+  // and one much longer word in Telugu (నిలిపివేయబడింది); at 320px and
+  // 200% text zoom that single word is wider than the viewport, and a
+  // button that refuses to break it pushes the whole page sideways. Let
+  // the word break as a last resort, and never let the button grow past
+  // what it was given.
+  maxWidth: "100%",
+  minWidth: 0,
+  overflowWrap: "anywhere",
+  textAlign: "center",
 };
 
 const variants: Record<NonNullable<ButtonProps["variant"]>, CSSProperties> = {
