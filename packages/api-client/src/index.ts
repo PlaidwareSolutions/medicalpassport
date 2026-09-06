@@ -15,6 +15,14 @@ export class ApiError extends Error {
   }
 }
 
+/** Problem code a `@RequiresStepUp()` endpoint returns until the session re-verifies (ADR-V2-012). */
+export const STEP_UP_REQUIRED_CODE = "step_up_required";
+
+/** True when `err` is the 403 a step-up-guarded endpoint returns until the session re-verifies (ADR-V2-012). */
+export function isStepUpRequired(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 403 && err.problem.code === STEP_UP_REQUIRED_CODE;
+}
+
 export interface ApiClientOptions {
   baseUrl: string;
   /** Native clients supply a token; the web relies on cookies. */
@@ -29,6 +37,17 @@ export interface ApiClientOptions {
    * concurrent invocations itself (multiple requests can 401 at once).
    */
   onUnauthorized?: () => Promise<boolean>;
+  /**
+   * Invoked at most once per request when a step-up-guarded endpoint
+   * answers `403 step_up_required` (ADR-V2-012) — e.g. to open a re-verify
+   * sheet and wait for the patient to enter a fresh OTP. Returning true
+   * retries the original request exactly once; the retry never re-triggers
+   * this hook, so a second 403 surfaces as a normal `ApiError`. False (or
+   * no handler) surfaces the original 403. As with `onUnauthorized`, the
+   * implementation de-duplicates concurrent invocations itself so several
+   * guarded calls share one prompt.
+   */
+  onStepUpRequired?: () => Promise<boolean>;
 }
 
 export class ApiClient {
@@ -40,7 +59,7 @@ export class ApiClient {
     body?: unknown,
     init?: { idempotencyKey?: string; profileId?: string },
   ): Promise<T> {
-    return this.performRequest<T>(method, path, body, init, false);
+    return this.performRequest<T>(method, path, body, init, { unauthorized: false, stepUp: false });
   }
 
   private async performRequest<T>(
@@ -48,7 +67,10 @@ export class ApiClient {
     path: string,
     body: unknown,
     init: { idempotencyKey?: string; profileId?: string } | undefined,
-    retried: boolean,
+    // One flag per recovery hook: each may fire at most once per request,
+    // and a retry from one must not suppress the other (a 401 refresh
+    // followed by a step-up 403 on the retried call is a legitimate path).
+    retried: { unauthorized: boolean; stepUp: boolean },
   ): Promise<T> {
     const headers: Record<string, string> = {
       "content-type": "application/json",
@@ -68,9 +90,9 @@ export class ApiClient {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
 
-    if (res.status === 401 && !retried && this.opts.onUnauthorized) {
+    if (res.status === 401 && !retried.unauthorized && this.opts.onUnauthorized) {
       const shouldRetry = await this.opts.onUnauthorized();
-      if (shouldRetry) return this.performRequest<T>(method, path, body, init, true);
+      if (shouldRetry) return this.performRequest<T>(method, path, body, init, { ...retried, unauthorized: true });
     }
 
     if (res.status === 204) return undefined as T;
@@ -82,7 +104,15 @@ export class ApiClient {
         status: res.status,
         code: "internal_error",
       }) as ProblemDetails;
-      throw new ApiError(problem, res.status);
+      const error = new ApiError(problem, res.status);
+      // Telling a step-up 403 from a plain forbidden needs the problem body,
+      // so this sits after parsing. Still exactly one retry: the flag is set
+      // on the way back in, and a second 403 throws like any other error.
+      if (isStepUpRequired(error) && !retried.stepUp && this.opts.onStepUpRequired) {
+        const verified = await this.opts.onStepUpRequired();
+        if (verified) return this.performRequest<T>(method, path, body, init, { ...retried, stepUp: true });
+      }
+      throw error;
     }
     return json as T;
   }
@@ -605,6 +635,28 @@ export interface VapidPublicKeyDto {
 
 export interface OtpTransportDto {
   transport: "log" | "sms" | "voice";
+}
+
+/** GET /auth/session (ADR-V2-012): whether the current session is step-up fresh. */
+export interface SessionStatusDto {
+  sessionId: string;
+  expiresAt: string;
+  stepUpVerifiedAt: string | null;
+  stepUpFresh: boolean;
+  stepUpFreshnessSeconds: number;
+}
+
+/** POST /auth/step-up (202): a fresh code went to the signed-in user's own number. */
+export interface StepUpRequestedDto {
+  message: string;
+  transport: OtpTransportDto["transport"];
+}
+
+/** POST /auth/step-up/verify (201): the current session is now step-up fresh. */
+export interface StepUpVerifiedDto {
+  stepUpVerifiedAt: string;
+  stepUpFresh: true;
+  stepUpFreshnessSeconds: number;
 }
 
 export interface NotificationPreferencesDto {

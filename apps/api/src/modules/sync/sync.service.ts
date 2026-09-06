@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 import { ERROR_CODES } from "@medpass/domain";
+import type { SyncChangeSignal, SyncConflict, SyncResponse } from "@medpass/offline-sync";
 import {
   createMedicationSchema,
   recordDoseEventSchema,
@@ -14,26 +15,11 @@ import { IdempotencyService } from "../../common/idempotency.service";
 import { PrismaService } from "../../common/prisma.service";
 import { MedicationsService } from "../medications/medications.service";
 import { TimelineService } from "../scheduling/timeline.service";
+import { requiredActionFor } from "./sync-dispatch";
 
-export interface SyncConflict {
-  clientMutationId: string;
-  kind: "row_version" | "field_conflict" | "deleted" | "permission_revoked" | "invalid";
-  serverState?: unknown;
-  unmergedFields?: string[];
-}
-
-export interface SyncChangeSignal {
-  profileId: string;
-  scope: "medications" | "timeline";
-  dates?: string[];
-}
-
-export interface SyncResult {
-  applied: string[];
-  conflicts: SyncConflict[];
-  changes: SyncChangeSignal[];
-  nextCursor: string;
-}
+/** The wire shape is the contract's `SyncResponse` — one definition, shared with the PWA. */
+export type SyncResult = SyncResponse;
+export type { SyncChangeSignal, SyncConflict };
 
 const uuid = z.string().uuid();
 
@@ -56,26 +42,15 @@ function istDate(date: Date): string {
 }
 
 /**
- * Which caregiver permission scope a mutation needs, keyed by entity+operation
- * (docs/18) — undefined means the combination isn't offline-capable yet, so
- * it's reported as an "invalid" conflict rather than guessed at.
- */
-function requiredActionFor(entity: string, operation: string) {
-  if (entity === "dose_event" && operation === "create") return "record_doses" as const;
-  if (entity === "patient_medication" && operation === "create") return "add_medications" as const;
-  if (entity === "patient_medication" && operation === "update") return "edit_medications" as const;
-  return undefined;
-}
-
-/**
  * `POST /v1/sync` (docs/15): the single endpoint every offline-capable
  * mutation replays through, dispatched internally by entity+operation rather
- * than each mutation carrying its own REST path. Only the entities this
- * codebase actually has real create/update logic for are dispatched —
- * dose_event and patient_medication — everything else in the wider
- * OfflineMutation contract (patient_profile, allergy, condition,
- * medication_instruction as its own entity) isn't offline-capable yet and
- * comes back as an "invalid" conflict, never silently dropped.
+ * than each mutation carrying its own REST path. The dispatched set is
+ * `DISPATCHED_SYNC_MUTATIONS` (sync-dispatch.ts) and is asserted equal to
+ * the shared contract's `SYNC_MUTATIONS` by a unit test — so anything a
+ * client could queue is something this service applies. A raw caller can
+ * still send any entity/operation string (the envelope schema is
+ * deliberately permissive); an unknown pair comes back as an "invalid"
+ * conflict, never silently dropped and never aborting the batch.
  *
  * Mutations apply strictly in the order given (docs/15 — per-entity
  * ordering) and one mutation's failure never aborts the rest of the batch;

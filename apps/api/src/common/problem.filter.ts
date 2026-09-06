@@ -15,7 +15,8 @@ export class ProblemDetailsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<Response>();
-    const req = ctx.getRequest<Request & { correlationId?: string }>();
+    const req = ctx.getRequest<Request & { correlationId?: string; requestLogAttached?: boolean; auth?: { userId: string } }>();
+    const started = Date.now();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let title = "Something went wrong";
@@ -48,6 +49,27 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       correlationId: req.correlationId,
       ...(errors ? { errors } : {}),
     };
+
+    // Guards run before interceptors, so a rejection raised by a guard
+    // (unauthenticated, step_up_required, rate_limited, …) never reached
+    // LoggingInterceptor — those responses were invisible in the request log.
+    // Same line shape as the interceptor, plus the problem code.
+    if (!req.requestLogAttached) {
+      res.once("finish", () => {
+        this.logger.info(
+          {
+            method: req.method,
+            route: req.route?.path ?? "unmatched",
+            status: res.statusCode,
+            durationMs: Date.now() - started,
+            correlationId: req.correlationId,
+            userId: req.auth?.userId,
+            code,
+          },
+          "request",
+        );
+      });
+    }
 
     res.status(status).setHeader("content-type", "application/problem+json").json(problem);
   }

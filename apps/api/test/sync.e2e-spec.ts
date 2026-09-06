@@ -4,6 +4,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 
@@ -247,18 +248,28 @@ describe("Sync e2e", () => {
     rowVersion = detail.body.rowVersion;
   });
 
-  it("reports an unsupported entity as an invalid conflict without aborting the rest of the batch", async () => {
+  it("reports an unsupported entity or operation as an invalid conflict without aborting the rest of the batch", async () => {
     const validId = randomUUID();
     const res = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/sync"))
       .send({
         mutations: [
           {
+            // Not in the contract at all (removed in P0-8) — a raw client can still send it.
             clientMutationId: randomUUID(),
             entity: "allergy",
             operation: "create",
             profileId,
             capturedAt: new Date().toISOString(),
             payload: { label: "Dust" },
+          },
+          {
+            // Known entity, operation the dispatcher doesn't handle — must not be applied as an update either.
+            clientMutationId: randomUUID(),
+            entity: "patient_medication",
+            operation: "soft_delete",
+            profileId,
+            capturedAt: new Date().toISOString(),
+            payload: { id: medicationId, rowVersion },
           },
           {
             clientMutationId: validId,
@@ -273,8 +284,13 @@ describe("Sync e2e", () => {
       .expect(201);
 
     expect(res.body.applied).toEqual([validId]);
-    expect(res.body.conflicts).toHaveLength(1);
-    expect(res.body.conflicts[0].kind).toBe("invalid");
+    expect(res.body.conflicts).toHaveLength(2);
+    expect(res.body.conflicts.map((c: { kind: string }) => c.kind)).toEqual(["invalid", "invalid"]);
+
+    // The medicine was neither deleted nor left untouched by the valid update after it.
+    const detail = await auth(tokenA, profileId)(request(app.getHttpServer()).get(`/v1/medications/${medicationId}`)).expect(200);
+    expect(detail.body.patientReason).toBe("Still applies after the invalid item");
+    rowVersion = detail.body.rowVersion;
   });
 
   it("records a dose_event mutation through the sync endpoint", async () => {
@@ -380,6 +396,7 @@ describe("Sync e2e", () => {
     await prisma.otpAttempt.deleteMany({});
     const tokenB = await signIn(PHONE_B);
 
+    await stepUp(app.getHttpServer(), tokenA); // ADR-V2-012
     const invite = await auth(tokenA, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/caregivers"))
       .send({ phone: PHONE_B, scopes: ["view_medications"], relationship: "other" })
       .expect(201);

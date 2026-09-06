@@ -19,7 +19,7 @@ import {
   trimToEssentials,
 } from "./cache.js";
 import { enqueueMutation, listPendingMutations, pendingMutationCount, removeMutation } from "./queue.js";
-import type { OfflineMutation } from "./contract.js";
+import { isSyncMutationKind, SYNC_MUTATIONS, syncMutationKey, type OfflineMutation } from "./contract.js";
 
 const PROFILE_A = "profile-a";
 const PROFILE_B = "profile-b";
@@ -33,7 +33,7 @@ function makeMutation(overrides: Partial<OfflineMutation> = {}): OfflineMutation
     capturedAt: new Date().toISOString(),
     profileId: PROFILE_A,
     ...overrides,
-  };
+  } as OfflineMutation;
 }
 
 beforeEach(() => {
@@ -87,7 +87,28 @@ describe("medication + timeline cache", () => {
   });
 });
 
+describe("sync contract", () => {
+  it("declares each (entity, operation) pair once", () => {
+    const keys = SYNC_MUTATIONS.map(syncMutationKey);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("recognises only declared pairs", () => {
+    expect(isSyncMutationKind({ entity: "dose_event", operation: "create" })).toBe(true);
+    expect(isSyncMutationKind({ entity: "patient_medication", operation: "update" })).toBe(true);
+    expect(isSyncMutationKind({ entity: "dose_event", operation: "update" })).toBe(false);
+    expect(isSyncMutationKind({ entity: "allergy", operation: "create" })).toBe(false);
+  });
+});
+
 describe("mutation queue", () => {
+  it("refuses to queue a pair the server does not dispatch, leaving the queue untouched", async () => {
+    await expect(enqueueMutation(makeMutation({ entity: "allergy", operation: "create" } as never))).rejects.toThrow(
+      /allergy:create/,
+    );
+    expect(await pendingMutationCount()).toBe(0);
+  });
+
   it("enqueues and lists mutations in capture order", async () => {
     const m1 = makeMutation({ capturedAt: "2026-07-17T08:00:00.000Z" });
     const m2 = makeMutation({ capturedAt: "2026-07-17T08:05:00.000Z" });

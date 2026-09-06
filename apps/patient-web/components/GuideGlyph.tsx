@@ -26,7 +26,15 @@ export type GuideGlyphName =
   | "install"
   | "heart"
   | "scale"
-  | "question";
+  | "question"
+  | "hospital"
+  | "syringe"
+  | "cross"
+  | "timeline"
+  | "family"
+  | "pulse"
+  | "document"
+  | "phone";
 
 const SIZE_EM = { sm: "1em", md: "1.35em", lg: "3em" } as const;
 export type GuideGlyphSize = keyof typeof SIZE_EM;
@@ -175,6 +183,88 @@ function paths(name: GuideGlyphName) {
           <path d="M38 40a12 13 0 1124 8c-6 5-10 7-10 14" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
           <line x1="52" y1="74" x2="52" y2="75" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
         </>
+      );
+    case "hospital":
+      // A building with a cross over the door — clinic or hospital, the
+      // sign every Indian town paints on its PHC.
+      return (
+        <>
+          <rect x="16" y="30" width="68" height="58" rx="6" fill="none" stroke="currentColor" strokeWidth="9" />
+          <path d="M30 30V14h40v16" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />
+          <line x1="50" y1="46" x2="50" y2="70" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+          <line x1="38" y1="58" x2="62" y2="58" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+        </>
+      );
+    case "syringe":
+      // Barrel with plunger and needle — a vaccination.
+      return (
+        <>
+          <path d="M22 78l30-30" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+          <rect x="40" y="26" width="24" height="44" rx="4" transform="rotate(45 52 48)" fill="none" stroke="currentColor" strokeWidth="9" />
+          <line x1="70" y1="30" x2="84" y2="16" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
+          <line x1="64" y1="22" x2="78" y2="36" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        </>
+      );
+    case "cross":
+      // A medical cross in a rounded square — a procedure or operation.
+      return (
+        <>
+          <rect x="14" y="14" width="72" height="72" rx="14" fill="none" stroke="currentColor" strokeWidth="9" />
+          <line x1="50" y1="30" x2="50" y2="70" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
+          <line x1="30" y1="50" x2="70" y2="50" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
+        </>
+      );
+    case "timeline":
+      // A clock face — "things over time".
+      return (
+        <>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="9" />
+          <path d="M50 26v26l16 10" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      );
+    case "family":
+      // Two adults and a child — family history.
+      return (
+        <>
+          <circle cx="28" cy="30" r="11" fill="none" stroke="currentColor" strokeWidth="8" />
+          <circle cx="72" cy="30" r="11" fill="none" stroke="currentColor" strokeWidth="8" />
+          <circle cx="50" cy="52" r="9" fill="none" stroke="currentColor" strokeWidth="8" />
+          <path d="M8 84c0-14 9-24 20-24s20 10 20 24" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+          <path d="M52 84c0-14 9-24 20-24s20 10 20 24" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        </>
+      );
+    case "pulse":
+      // A heartbeat trace — conditions and health details.
+      return (
+        <path
+          d="M8 54h18l10-24 14 44 12-30 8 10h22"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    case "document":
+      // A plain page with two lines — any uploaded document.
+      return (
+        <>
+          <path d="M26 10h34l16 16v64H26z" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />
+          <path d="M60 10v16h16" fill="none" stroke="currentColor" strokeWidth="9" strokeLinejoin="round" />
+          <line x1="36" y1="52" x2="66" y2="52" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+          <line x1="36" y1="66" x2="56" y2="66" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+        </>
+      );
+    case "phone":
+      // A handset — emergency contacts.
+      return (
+        <path
+          d="M30 14l14 4 6 18-10 8c6 12 14 20 26 26l8-10 18 6 4 14c-2 6-8 10-16 10C44 90 10 56 10 30c0-8 4-14 10-16z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="9"
+          strokeLinejoin="round"
+        />
       );
   }
 }

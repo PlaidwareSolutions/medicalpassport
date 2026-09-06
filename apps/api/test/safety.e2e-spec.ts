@@ -228,4 +228,68 @@ describe("Safety e2e", () => {
     expect(differs).toMatchObject({ severity: "moderate" });
     expect(differs.detail).toMatchObject({ originalDoseQuantity: 1, currentDoseQuantity: 2 });
   });
+
+  it("flags the same medicine on two prescriptions, then a conflicting instruction once one is edited (P2-3)", async () => {
+    const amlong = await auth(token, profileId)(request(app.getHttpServer()).get("/v1/catalog/products?q=Amlong")).expect(200);
+    const productId = amlong.body.items[0].id;
+
+    const rx1 = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/prescriptions"))
+      .send({ practitionerName: "Dr. Sharma", prescribedAt: "2026-07-20" })
+      .expect(201);
+    const rx2 = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/prescriptions"))
+      .send({ practitionerName: "Dr. Rao", prescribedAt: "2026-08-02" })
+      .expect(201);
+
+    const sameInstruction = { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" };
+    const med1 = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({ productId, source: "search", prescriptionId: rx1.body.id, instruction: sameInstruction })
+      .expect(201);
+    const med2 = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({ productId, source: "search", prescriptionId: rx2.body.id, instruction: sameInstruction })
+      .expect(201);
+
+    // Adding the second medicine re-evaluates automatically.
+    const first = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/safety/findings"),
+    ).expect(200);
+    const multi = first.body.items.find((f: { category: string }) => f.category === "multiple_active_prescriptions");
+    expect(multi).toMatchObject({
+      severity: "moderate",
+      ruleKey: "multiple-active-prescriptions",
+      ruleVersion: "1",
+      explanationKey: "safety.explain.multiple_active_prescriptions",
+    });
+    expect([...multi.medicationIds].sort()).toEqual([med1.body.id, med2.body.id].sort());
+    expect([...multi.detail.prescriptionIds].sort()).toEqual([rx1.body.id, rx2.body.id].sort());
+    expect([...multi.detail.evidence.prescriptionIds].sort()).toEqual([rx1.body.id, rx2.body.id].sort());
+    expect(multi.detail.prescriptionLabels).toEqual(expect.arrayContaining(["Dr. Sharma, 2026-07-20", "Dr. Rao, 2026-08-02"]));
+    // Identical instructions on both → no conflict yet.
+    expect(
+      first.body.items.find(
+        (f: { category: string; medicationIds: string[] }) => f.category === "conflicting_instructions" && f.medicationIds.includes(med1.body.id),
+      ),
+    ).toBeUndefined();
+
+    await auth(token, profileId)(request(app.getHttpServer()).patch(`/v1/medications/${med2.body.id}`))
+      .send({ rowVersion: med2.body.rowVersion, instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "BD" } })
+      .expect(200);
+
+    const after = await auth(token, profileId)(
+      request(app.getHttpServer()).get("/v1/profiles/current/safety/findings"),
+    ).expect(200);
+    const conflict = after.body.items.find(
+      (f: { category: string; medicationIds: string[] }) => f.category === "conflicting_instructions" && f.medicationIds.includes(med1.body.id),
+    );
+    expect(conflict).toMatchObject({
+      severity: "moderate",
+      ruleKey: "conflicting-instructions",
+      ruleVersion: "1",
+      explanationKey: "safety.explain.conflicting_instructions",
+    });
+    expect([...conflict.medicationIds].sort()).toEqual([med1.body.id, med2.body.id].sort());
+    expect([...conflict.detail.instructionTexts].sort()).toEqual(["1 tablet BD", "1 tablet OD"]);
+    expect(conflict.detail.evidence.instructionIds).toHaveLength(2);
+    // The multi-prescription finding is still there — the edit did not make it go away.
+    expect(after.body.items.some((f: { category: string }) => f.category === "multiple_active_prescriptions")).toBe(true);
+  });
 });

@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
+import { emitHealthEvent, projectShare } from "@medpass/health-events";
 import { ApiProblem } from "../../common/errors";
+import { profileTimezone } from "../../common/health-events";
 import { newOpaqueToken, sha256Hex } from "../../common/crypto";
 import { PrismaService } from "../../common/prisma.service";
 import { ALL_SECTIONS, VisitSummaryService, type VisitSummarySections } from "./visit-summary.service";
@@ -48,6 +50,13 @@ export class SharingService {
         correlationId,
         context: { kind: input.kind, sections },
       });
+      await emitHealthEvent(
+        tx,
+        projectShare(
+          { patientProfileId: profileId, timezone: await profileTimezone(tx, profileId), actorUserId, actorType: "patient" },
+          { id: created.id, createdAt: created.createdAt, sections, expiresAt: created.expiresAt, recordedByUserId: actorUserId },
+        ),
+      );
       return created;
     });
 

@@ -5,6 +5,7 @@ import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { recordedViaFor } from "../../common/provenance";
 import { ReportsService } from "./reports.service";
 
 /**
@@ -34,6 +35,7 @@ export class ReportsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 
@@ -53,6 +55,7 @@ export class ReportsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 
@@ -64,6 +67,7 @@ export class ReportsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 
@@ -83,6 +87,7 @@ export class ReportsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 }

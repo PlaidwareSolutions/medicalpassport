@@ -29,6 +29,7 @@ import { AdminIncidentsController } from "./modules/admin-incidents/admin-incide
 import { AdminIncidentsService } from "./modules/admin-incidents/admin-incidents.service";
 import { AdminOperationsController } from "./modules/admin-operations/admin-operations.controller";
 import { AdminUsersController } from "./modules/admin-users/admin-users.controller";
+import { AdminOrganizationsController } from "./modules/admin-providers/admin-organizations.controller";
 import { AdminRulesController } from "./modules/admin-rules/admin-rules.controller";
 import { ProfilesController } from "./modules/profiles/profiles.controller";
 import { GlucoseController } from "./modules/glucose/glucose.controller";
@@ -68,6 +69,15 @@ import { TelnyxWebhookController } from "./modules/notifications/telnyx-webhook.
 import { TelnyxVoiceWebhookController } from "./modules/notifications/telnyx-voice-webhook.controller";
 import { SyncController } from "./modules/sync/sync.controller";
 import { SyncService } from "./modules/sync/sync.service";
+import { ClinicalProfileController } from "./modules/clinical-profile/clinical-profile.controller";
+import { ClinicalProfileService } from "./modules/clinical-profile/clinical-profile.service";
+import { OrganizationsController } from "./modules/organizations/organizations.controller";
+import { OrganizationsService } from "./modules/organizations/organizations.service";
+import { EncountersController } from "./modules/encounters/encounters.controller";
+import { EncountersService } from "./modules/encounters/encounters.service";
+import { HealthTimelineController } from "./modules/timeline/health-timeline.controller";
+import { HealthTimelineService } from "./modules/timeline/health-timeline.service";
+import { OpenApiController } from "./openapi/openapi.controller";
 
 export const logger = createLogger("api");
 
@@ -86,6 +96,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminIncidentsController,
     AdminOperationsController,
     AdminUsersController,
+    AdminOrganizationsController,
     AdminRulesController,
     ProfilesController,
     GlucoseController,
@@ -109,6 +120,11 @@ const OTP_SENDER = "OTP_SENDER";
     TelnyxWebhookController,
     TelnyxVoiceWebhookController,
     SyncController,
+    ClinicalProfileController,
+    OrganizationsController,
+    OpenApiController,
+    EncountersController,
+    HealthTimelineController,
   ],
   providers: [
     PrismaService,
@@ -136,6 +152,10 @@ const OTP_SENDER = "OTP_SENDER";
     ExtractionService,
     NotificationsService,
     SyncService,
+    ClinicalProfileService,
+    OrganizationsService,
+    EncountersService,
+    HealthTimelineService,
     {
       provide: OTP_SENDER,
       // OTP_TRANSPORT="sms" (docs/16, OD-10 — now unblocked via Telnyx) sends

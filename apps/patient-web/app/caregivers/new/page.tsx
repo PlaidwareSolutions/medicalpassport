@@ -7,6 +7,7 @@ import type { CaregiverRelationshipKind } from "@medpass/api-client";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
+import { isStepUpRequired } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { inviteCaregiver } from "../../../lib/caregivers";
 import { useSession } from "../../../lib/session";
@@ -57,8 +58,9 @@ export default function InviteCaregiverPage() {
         ...(expiryHours ? { expiresAt: new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString() } : {}),
       });
       setSent(true);
-    } catch {
-      setError(t("common.error_generic"));
+    } catch (err) {
+      // Step-up guarded (ADR-V2-012): a cancelled re-verify means nothing changed.
+      setError(isStepUpRequired(err) ? t("stepup.not_confirmed") : t("common.error_generic"));
     } finally {
       setBusy(false);
     }

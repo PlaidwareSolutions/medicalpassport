@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule, logger } from "./app.module";
 import { env } from "./common/env";
+import { securityHeaders } from "./common/security-headers";
 
 async function bootstrap(): Promise<void> {
   const config = env(); // fail fast on invalid environment
@@ -15,6 +16,7 @@ async function bootstrap(): Promise<void> {
   app.use(cookieParser());
   app.disable("x-powered-by"); // SEC-2 (Session 15): no framework disclosure
   app.set("trust proxy", true); // CF-Connecting-IP / X-Forwarded-For via Cloudflare
+  app.use(securityHeaders);
   app.setGlobalPrefix("v1", { exclude: ["healthz", "readyz"] });
   app.enableShutdownHooks();
 

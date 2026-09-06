@@ -7,6 +7,7 @@ import { CaregiverAlertCard } from "../components/CaregiverAlertCard";
 import { DoseCard } from "../components/DoseCard";
 import { FindingCard } from "../components/FindingCard";
 import { InstallEducationCard } from "../components/InstallEducationCard";
+import { MyHealthCard } from "../components/MyHealthCard";
 import { PageHeader } from "../components/PageHeader";
 import { RefillReminderCard } from "../components/RefillReminderCard";
 import { useGlucoseReadings } from "../lib/blood-sugar";
@@ -172,6 +173,10 @@ export default function HomePage() {
           <InstallEducationCard />
         </>
       ) : null}
+
+      {/* North-star home card (docs_v2/00 §7, docs_v2/05 §3): rendered only
+          once the timeline has something to count. */}
+      <MyHealthCard />
     </AppShell>
   );
 }

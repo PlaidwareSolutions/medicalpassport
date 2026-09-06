@@ -1,7 +1,9 @@
+import { createRequire } from "node:module";
 import pdfParse from "pdf-parse";
 
 export const PDF_TEXT_ENGINE = "pdf-parse";
-export const PDF_TEXT_ENGINE_VERSION = "1.1.1";
+/** Read from the installed package so stored extraction provenance can never drift from reality (docs_v2/16 §3 item 1). */
+export const PDF_TEXT_ENGINE_VERSION: string = (createRequire(__filename)("pdf-parse/package.json") as { version: string }).version;
 
 /**
  * Extracts embedded text from an uploaded PDF prescription (docs/22 Stage 8

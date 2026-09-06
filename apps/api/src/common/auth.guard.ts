@@ -12,6 +12,20 @@ export const Public = () => SetMetadata(PUBLIC_ROUTE, true);
 export const SESSION_COOKIE = "medpass_session";
 
 /**
+ * ADR-V2-012: sensitive operations (sharing, caregiver management, account
+ * deletion, exports, …) require the session to have re-verified recently.
+ * The stamp lives on the session row (`stepUpVerifiedAt`), so revocation and
+ * freshness are both server-side facts.
+ */
+export const REQUIRES_STEP_UP = "requires_step_up";
+export const RequiresStepUp = () => SetMetadata(REQUIRES_STEP_UP, true);
+export const STEP_UP_FRESHNESS_MS = 10 * 60 * 1000;
+
+export function isStepUpFresh(stepUpVerifiedAt: Date | null | undefined, now = Date.now()): boolean {
+  return !!stepUpVerifiedAt && now - stepUpVerifiedAt.getTime() <= STEP_UP_FRESHNESS_MS;
+}
+
+/**
  * Opaque-session authentication (ADR-5): token from httpOnly cookie (web) or
  * Authorization bearer (native). Revocation is immediate — the session row is
  * checked on every request.
@@ -51,6 +65,18 @@ export class AuthGuard implements CanActivate {
     }
     if (session.user.status !== "active") {
       throw new ApiProblem(ERROR_CODES.FORBIDDEN, "Account unavailable", 403);
+    }
+
+    const requiresStepUp = this.reflector.getAllAndOverride<boolean>(REQUIRES_STEP_UP, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (requiresStepUp && !isStepUpFresh(session.stepUpVerifiedAt)) {
+      throw new ApiProblem(
+        ERROR_CODES.STEP_UP_REQUIRED,
+        "Please confirm it's you before continuing",
+        403,
+      );
     }
 
     req.auth = {

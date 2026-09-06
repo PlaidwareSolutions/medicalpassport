@@ -26,6 +26,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const req = context.switchToHttp().getRequest<ApiRequest>();
     const res = context.switchToHttp().getResponse<Response>();
 
+    req.requestLogAttached = true;
     res.on("finish", () => {
       this.logger.info(
         {

@@ -5,6 +5,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 import { startWorker, stopWorker } from "./helpers/worker";
@@ -113,6 +114,7 @@ describe("Sharing e2e", () => {
   let shareId: string;
 
   it("creates a share and the public endpoint serves the live summary with no auth", async () => {
+    await stepUp(app.getHttpServer(), token); // ADR-V2-012
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({ sections: {}, expiresInHours: 24, kind: "qr" })
       .expect(201);
@@ -159,6 +161,7 @@ describe("Sharing e2e", () => {
   });
 
   it("respects selective sections — a medications-only share omits allergies", async () => {
+    await stepUp(app.getHttpServer(), token); // ADR-V2-012
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({
         // Exhaustive on purpose: an unlisted key defaults to true via
@@ -239,6 +242,7 @@ describe("Sharing e2e", () => {
       .send({ practitionerName: "Dr. Visit Summary", prescribedAt: new Date().toISOString() })
       .expect(201);
 
+    await stepUp(app.getHttpServer(), token); // ADR-V2-012
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({ sections: {}, expiresInHours: 1, kind: "link" })
       .expect(201);
@@ -293,6 +297,7 @@ describe("Sharing e2e", () => {
     // Transcribed values ride inside the report entry, verbatim, range and all.
     expect(text.body.text).toContain("Hemoglobin (Hb): 13.2 g/dL (ref 13.0 - 17.0)");
 
+    await stepUp(app.getHttpServer(), token); // ADR-V2-012
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({ sections: {}, expiresInHours: 1, kind: "link" })
       .expect(201);
@@ -313,6 +318,7 @@ describe("Sharing e2e", () => {
   it("a share created before a section existed never starts exposing it later", async () => {
     // Mimics a real pre-existing share: its stored sections JSON predates
     // the blood-sugar/check-up/prescription/report sections entirely.
+    await stepUp(app.getHttpServer(), token); // ADR-V2-012
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({ sections: {}, expiresInHours: 1, kind: "link" })
       .expect(201);
@@ -347,6 +353,7 @@ describe("Sharing e2e", () => {
   }, 30000);
 
   it("exports a public share as a PDF matching its selective sections, with no auth", async () => {
+    await stepUp(app.getHttpServer(), token); // ADR-V2-012
     const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
       .send({
         // Exhaustive on purpose: an unlisted key defaults to true via

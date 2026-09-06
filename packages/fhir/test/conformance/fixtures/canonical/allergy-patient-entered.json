@@ -1,0 +1,34 @@
+{
+  "id": "7d2b7d2f-4e2b-4e40-8b0f-9a3c1d8e2b02",
+  "patient": {
+    "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+    "abhaAddress": null,
+    "display": null
+  },
+  "substanceText": "Peanuts",
+  "category": "food",
+  "clinicalStatus": "active",
+  "criticality": null,
+  "severity": "moderate",
+  "reactionText": null,
+  "onsetDate": null,
+  "codeSystem": null,
+  "code": null,
+  "codeDisplay": null,
+  "notes": null,
+  "provenance": {
+    "source": "user_entered",
+    "verification": "patient_confirmed",
+    "recordedByUserId": "3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a6b",
+    "recordedVia": "pwa",
+    "recordedAt": "2026-09-01T18:05:44.000+05:30",
+    "sourceDocumentId": null,
+    "sourceExtractionId": null,
+    "sourceDeviceId": null,
+    "sourceAbdmTxnId": null,
+    "sourceOrganizationId": null,
+    "sourcePractitionerId": null,
+    "verifiedByUserId": null,
+    "verifiedAt": null
+  }
+}

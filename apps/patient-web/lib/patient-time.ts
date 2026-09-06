@@ -58,3 +58,61 @@ export function deviceTimeZone(): string {
     return "";
   }
 }
+
+/**
+ * The reverse of the formatters above, for entry forms: a wall-clock string
+ * as typed into a `datetime-local` input ("2026-09-06T21:05"), interpreted
+ * in the PATIENT's zone rather than the device's. A caregiver in Houston
+ * recording "the 4 PM clinic visit" means 4 PM in Hyderabad. Two-pass offset
+ * resolution handles zones whose offset differs between the guess and the
+ * target instant (DST edges); India has no DST, so the first pass lands.
+ */
+export function patientLocalToIso(local: string, timezone: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(local);
+  if (!m) return new Date(local).toISOString();
+  const [, y, mo, d, h, mi] = m.map(Number) as number[];
+  const asUtc = Date.UTC(y!, mo! - 1, d!, h!, mi!);
+  let guess = asUtc - offsetMs(asUtc, timezone);
+  guess = asUtc - offsetMs(guess, timezone);
+  return new Date(guess).toISOString();
+}
+
+/** The `datetime-local` value for the patient's wall clock right now. */
+export function patientNowLocal(timezone: string): string {
+  return isoToPatientLocal(new Date().toISOString(), timezone);
+}
+
+/** ISO instant → "YYYY-MM-DDTHH:mm" in the patient's zone (prefills an edit form). */
+export function isoToPatientLocal(iso: string, timezone: string): string {
+  const parts = zoneParts(new Date(iso), timezone);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
+}
+
+/** "YYYY-MM-DD" of the patient's today — the day-grouping anchor for "Today"/"Yesterday". */
+export function patientTodayKey(timezone: string, now: Date = new Date()): string {
+  const p = zoneParts(now, timezone);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+}
+
+function zoneParts(date: Date, timezone: string) {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const get = (type: string) => Number(fmt.formatToParts(date).find((p) => p.type === type)?.value ?? 0);
+  return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour") % 24, minute: get("minute") };
+}
+
+function offsetMs(instant: number, timezone: string): number {
+  const p = zoneParts(new Date(instant), timezone);
+  const wall = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+  const truncated = Math.floor(instant / 60_000) * 60_000;
+  return wall - truncated;
+}

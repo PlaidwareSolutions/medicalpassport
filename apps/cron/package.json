@@ -12,10 +12,13 @@
     "@medpass/config": "workspace:*",
     "@medpass/database": "workspace:*",
     "@medpass/domain": "workspace:*",
+    "@medpass/field-crypto": "workspace:*",
+    "@medpass/health-events": "workspace:*",
     "@medpass/medication-terminology": "workspace:*",
     "@medpass/notifications": "workspace:*",
     "@medpass/object-storage": "workspace:*",
-    "@medpass/observability": "workspace:*"
+    "@medpass/observability": "workspace:*",
+    "@medpass/provenance": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

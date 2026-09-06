@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button, PillSpinner } from "@medpass/ui-web";
 import { useAdminSession } from "../lib/session";
 
-const NAV_ITEMS = [
+/** `duty`: shown only when the session carries that duty (super_admin implies all). */
+const NAV_ITEMS: Array<{ href: string; label: string; duty?: string }> = [
   { href: "/", label: "Dashboard" },
   { href: "/catalog", label: "Catalog" },
   { href: "/content", label: "Content" },
@@ -14,6 +15,8 @@ const NAV_ITEMS = [
   { href: "/operations", label: "Operations" },
   { href: "/users", label: "Users" },
   { href: "/rules", label: "Rules" },
+  { href: "/organizations", label: "Organizations", duty: "provider_admin" },
+  { href: "/practitioners", label: "Practitioners", duty: "provider_admin" },
 ];
 
 /** Authenticated admin frame: top nav + sign-out, redirects to /login when signed out. */
@@ -21,6 +24,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { status, admin, signOut } = useAdminSession();
   const pathname = usePathname();
   const router = useRouter();
+  const duties = admin?.duties ?? [];
+  const navItems = NAV_ITEMS.filter((item) => !item.duty || duties.includes(item.duty) || duties.includes("super_admin"));
 
   useEffect(() => {
     if (status === "signed_out") router.replace("/login");
@@ -48,7 +53,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       >
         <nav style={{ display: "flex", gap: "var(--space-md)", alignItems: "center" }}>
           <strong style={{ marginRight: "var(--space-md)" }}>medpass admin</strong>
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

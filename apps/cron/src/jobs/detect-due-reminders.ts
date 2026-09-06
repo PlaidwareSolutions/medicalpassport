@@ -62,7 +62,7 @@
  * 11 follow-up), duplicated here as a plain query for the same
  * no-NestJS-in-cron reason as the decryption helpers above.
  */
-import { createDecipheriv, createHash } from "node:crypto";
+import { createFieldCrypto, keyringFromEnv, type FieldCrypto } from "@medpass/field-crypto";
 import { minutesSinceMidnightInTz } from "@medpass/domain";
 import { TelnyxSmsSender, VapidWebPushSender, type WebPushPayload, type WebPushSubscriptionDetails } from "@medpass/notifications";
 import type { NotificationChannelKind, PrismaClient } from "@medpass/database";
@@ -94,19 +94,25 @@ async function checkAndIncrementDailyCap(prisma: PrismaClient, key: string, limi
   return bucket.count <= limit;
 }
 
-function decryptPlaintext(ciphertext: string, fieldEncryptionKey: string): string {
-  const key = createHash("sha256").update(fieldEncryptionKey).digest();
-  const buf = Buffer.from(ciphertext, "base64");
-  const iv = buf.subarray(0, 12);
-  const tag = buf.subarray(12, 28);
-  const data = buf.subarray(28);
-  const decipher = createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
+/**
+ * Same keyring as the API (@medpass/field-crypto, docs_v2/11 §4): version 1 is
+ * FIELD_ENCRYPTION_KEY, newer versions come from FIELD_ENCRYPTION_KEYS, and
+ * each ciphertext names its own version — so a rotation in progress never
+ * breaks reminder delivery.
+ */
+type KeyringEnv = { FIELD_ENCRYPTION_KEY: string; FIELD_ENCRYPTION_KEYS?: string; FIELD_ENCRYPTION_ACTIVE_KEY_VERSION?: number };
+let fieldCrypto: FieldCrypto | undefined;
+function fieldCryptoFor(config: KeyringEnv): FieldCrypto {
+  if (!fieldCrypto) fieldCrypto = createFieldCrypto(keyringFromEnv(config));
+  return fieldCrypto;
 }
 
-function decryptWebPushSubscription(ciphertext: string, fieldEncryptionKey: string): WebPushSubscriptionDetails {
-  return JSON.parse(decryptPlaintext(ciphertext, fieldEncryptionKey)) as WebPushSubscriptionDetails;
+function decryptPlaintext(ciphertext: string, config: KeyringEnv): string {
+  return fieldCryptoFor(config).decrypt(ciphertext);
+}
+
+function decryptWebPushSubscription(ciphertext: string, config: KeyringEnv): WebPushSubscriptionDetails {
+  return JSON.parse(decryptPlaintext(ciphertext, config)) as WebPushSubscriptionDetails;
 }
 
 function toMinutes(hhmm: string): number {
@@ -364,7 +370,7 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
       try {
         if (recipient.channel === "web_push") {
           if (!pushSender) throw new Error("web_push channel exists but VAPID keys aren't configured");
-          const subscription = decryptWebPushSubscription(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
+          const subscription = decryptWebPushSubscription(recipient.addressCiphertext, config);
           const result = await pushSender.send(subscription, buildPushPayload(notification, medicationName, pref), {
             urgency: LOUD_KINDS.has(notification.kind) ? "high" : "normal",
           });
@@ -403,7 +409,7 @@ runJob("detect-due-reminders", async ({ prisma, log, config }) => {
               continue;
             }
           }
-          const phoneE164 = decryptPlaintext(recipient.addressCiphertext, config.FIELD_ENCRYPTION_KEY);
+          const phoneE164 = decryptPlaintext(recipient.addressCiphertext, config);
           const { providerMessageId } = await smsSender.sendTemplate(phoneE164, notification.kind, {
             medicationName: notification.privacyMode === "full_name" ? (medicationName ?? "") : "",
           });

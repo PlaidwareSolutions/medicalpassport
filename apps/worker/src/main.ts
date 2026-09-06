@@ -51,12 +51,26 @@ const POLL_INTERVAL_MS = 500;
 const QUEUES = ["ocr_extraction", "pdf_render", "content_enrichment"] as const;
 
 let shuttingDown = false;
+/** The job currently being processed, so shutdown can let it finish (docs_v2/16 §3 item 3). */
+let inFlight: Promise<unknown> | undefined;
 
 async function pollQueue(queue: (typeof QUEUES)[number]): Promise<boolean> {
+  if (shuttingDown) return false;
   const job = await claimNextJob(prisma, queue);
   if (!job) return false;
 
   logger.info({ jobId: job.id, queue, attempt: job.attempts }, "job claimed");
+  const work = runJob(queue, job);
+  inFlight = work;
+  try {
+    await work;
+  } finally {
+    inFlight = undefined;
+  }
+  return true;
+}
+
+async function runJob(queue: (typeof QUEUES)[number], job: NonNullable<Awaited<ReturnType<typeof claimNextJob>>>): Promise<void> {
   try {
     let result: unknown;
     if (queue === "ocr_extraction") {
@@ -76,7 +90,6 @@ async function pollQueue(queue: (typeof QUEUES)[number]): Promise<boolean> {
     logger.error({ jobId: job.id, queue, attempt: job.attempts, err: message }, "job failed");
     await failJob(prisma, job, message.slice(0, 500));
   }
-  return true;
 }
 
 async function loop(): Promise<void> {
@@ -92,9 +105,17 @@ async function loop(): Promise<void> {
   }
 }
 
+const SHUTDOWN_GRACE_MS = 60_000;
+
 async function shutdown(): Promise<void> {
   logger.info({}, "worker shutting down");
   shuttingDown = true;
+  // Let the in-flight job finish (or fail and re-queue itself) rather than
+  // leaving it `running` under a lock nobody holds; the stale-lock reclaim
+  // in claimNextJob is the backstop if the platform kills us first.
+  if (inFlight) {
+    await Promise.race([inFlight.catch(() => undefined), new Promise((r) => setTimeout(r, SHUTDOWN_GRACE_MS))]);
+  }
   await terminateOcrWorker();
   await closeBrowser();
   await prisma.$disconnect();

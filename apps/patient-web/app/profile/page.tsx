@@ -153,7 +153,8 @@ export default function ProfilePage() {
           menus instead of one undifferentiated wall of cards. Order is
           unchanged from the ungrouped layout (docs/06 IA). */}
       <SectionTitle>{t("profile.section_records")}</SectionTitle>
-      <ProfileLink href="/allergies" glyph="shield" label={t("profile.allergies")} />
+      <ProfileLink href="/health" glyph="timeline" label={t("profile.health_timeline")} />
+      <ProfileLink href="/health/visits" glyph="hospital" label={t("profile.visits")} />
       <ProfileLink href="/blood-sugar" glyph="drop" label={t("profile.blood_sugar")} />
       <ProfileLink href="/blood-pressure" glyph="heart" label={t("profile.blood_pressure")} />
       <ProfileLink href="/body-weight" glyph="scale" label={t("profile.body_weight")} />
@@ -163,6 +164,17 @@ export default function ProfilePage() {
 
       {/* docs/06 sitemap: Help lives under Profile (screen 41). */}
       <ProfileLink href="/help" glyph="question" label={t("help.open")} />
+
+      {/* Phase 1 clinical profile (docs_v2/06 P1-4): the facts a new doctor
+          asks for first, each its own typing-light screen. */}
+      <SectionTitle>{t("profile.section_health")}</SectionTitle>
+      <ProfileLink href="/profile/health-details" glyph="pulse" label={t("profile.health_details")} />
+      <ProfileLink href="/conditions" glyph="pulse" label={t("profile.conditions")} />
+      <ProfileLink href="/allergies" glyph="shield" label={t("profile.allergies")} />
+      <ProfileLink href="/immunizations" glyph="syringe" label={t("profile.immunizations")} />
+      <ProfileLink href="/procedures" glyph="cross" label={t("profile.procedures")} />
+      <ProfileLink href="/family-history" glyph="family" label={t("profile.family_history")} />
+      <ProfileLink href="/organizations" glyph="hospital" label={t("profile.organizations")} />
 
       <SectionTitle>{t("profile.section_care")}</SectionTitle>
       {activeProfile?.relationship !== "caregiver" ? (

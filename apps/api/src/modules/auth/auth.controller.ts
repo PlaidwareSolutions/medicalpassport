@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
-import { deviceLoginSchema, otpRequestSchema, otpVerifySchema, refreshSchema } from "@medpass/validation";
+import { deviceLoginSchema, otpRequestSchema, otpVerifySchema, refreshSchema, stepUpVerifySchema } from "@medpass/validation";
 import { ERROR_CODES } from "@medpass/domain";
 import { env } from "../../common/env";
 import { parseWith } from "../../common/zod";
 import { ApiProblem } from "../../common/errors";
-import { Public, SESSION_COOKIE } from "../../common/auth.guard";
+import { Public, SESSION_COOKIE, STEP_UP_FRESHNESS_MS, isStepUpFresh } from "../../common/auth.guard";
 import { RateLimit } from "../../common/rate-limit.guard";
 import { verifyTurnstile } from "../../common/turnstile";
 import type { ApiRequest } from "../../common/http";
@@ -124,6 +124,39 @@ export class AuthController {
   @HttpCode(204)
   async revokeDevice(@Param("id") id: string, @Req() req: ApiRequest) {
     await this.auth.revokeDevice(req.auth!.userId, id, req.correlationId);
+  }
+
+  /** ADR-V2-012: lets the client know whether a guarded action will prompt. */
+  @Get("session")
+  async session(@Req() req: ApiRequest) {
+    const session = await this.prisma.session.findUniqueOrThrow({
+      where: { id: req.auth!.sessionId },
+      select: { stepUpVerifiedAt: true, expiresAt: true },
+    });
+    return {
+      sessionId: req.auth!.sessionId,
+      expiresAt: session.expiresAt,
+      stepUpVerifiedAt: session.stepUpVerifiedAt,
+      stepUpFresh: isStepUpFresh(session.stepUpVerifiedAt),
+      stepUpFreshnessSeconds: STEP_UP_FRESHNESS_MS / 1000,
+    };
+  }
+
+  /** ADR-V2-012 step-up: send a fresh code to the signed-in user's number. */
+  @RateLimit({ name: "step_up_request", limit: 10, windowSeconds: 3600 })
+  @Post("step-up")
+  @HttpCode(202)
+  async requestStepUp(@Req() req: ApiRequest) {
+    await this.auth.requestStepUp(req.auth!.userId, req.ip, req.correlationId);
+    return { message: "A code has been sent to your number.", transport: env().OTP_TRANSPORT };
+  }
+
+  @RateLimit({ name: "step_up_verify", limit: 20, windowSeconds: 3600 })
+  @Post("step-up/verify")
+  async verifyStepUp(@Body() body: unknown, @Req() req: ApiRequest) {
+    const input = parseWith(stepUpVerifySchema, body);
+    const verifiedAt = await this.auth.verifyStepUp(req.auth!.userId, req.auth!.sessionId, input.code, req.correlationId);
+    return { stepUpVerifiedAt: verifiedAt, stepUpFresh: true, stepUpFreshnessSeconds: STEP_UP_FRESHNESS_MS / 1000 };
   }
 
   private setSessionCookies(res: Response, session: IssuedSession): void {

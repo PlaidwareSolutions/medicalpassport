@@ -91,6 +91,9 @@ model Session {
   refreshExpiresAt DateTime   @map("refresh_expires_at") @db.Timestamptz(6)
   revokedAt        DateTime?  @map("revoked_at") @db.Timestamptz(6)
   revokeReason     String?    @map("revoke_reason")
+  /// ADR-V2-012 step-up: set when the user re-verified (OTP) inside this
+  /// session; guarded endpoints require it to be fresh (≤ 10 minutes).
+  stepUpVerifiedAt DateTime?  @map("step_up_verified_at") @db.Timestamptz(6)
   createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([userId, revokedAt])
@@ -101,6 +104,7 @@ enum OtpPurpose {
   login
   recovery
   share_verification
+  step_up
 }
 
 model OtpAttempt {
@@ -152,6 +156,10 @@ model PatientProfile {
   /// this zone. Changing it re-materializes future doses (docs/10 H-28).
   timezone        String @default("Asia/Kolkata")
   emergencyCard   Json?  @map("emergency_card")
+  /// V2 Phase 1 (docs_v2/04 §10)
+  bloodGroup      BloodGroup? @map("blood_group")
+  /// Last known height; `Observation` (Phase 5) becomes the source and keeps this in sync.
+  heightCm        Decimal?    @map("height_cm") @db.Decimal(5, 1)
 
   /// Relationship of the creating caregiver TO this dependent (e.g. "child"
   /// meaning the profile subject is the caregiver's child) — captured at
@@ -196,6 +204,14 @@ model PatientProfile {
   bloodPressureReadings  BloodPressureReading[]
   weightReadings         WeightReading[]
   checkupRecords         CheckupRecord[]
+  // V2 Phase 1 (docs_v2/04)
+  organizations          Organization[]
+  encounters             Encounter[]
+  healthEvents           HealthEvent[]
+  immunizations          Immunization[]
+  procedures             Procedure[]
+  familyHistory          FamilyHistory[]
+  emergencyContacts      EmergencyContact[]
   reportValues           ReportValue[]
 
   @@index([ownerUserId])
@@ -322,12 +338,21 @@ model Practitioner {
   createdByProfile   PatientProfile? @relation(fields: [createdByProfileId], references: [id])
   displayName        String          @map("display_name")
   speciality         String?
+  /// V2 Phase 1 (docs_v2/04 §3.2)
+  registrationNumber String?         @map("registration_number")
+  registrationCouncil String?        @map("registration_council")
+  /// ABDM Health Professional Registry id — set only via ABDM verification.
+  hprId              String?         @unique @map("hpr_id")
+  organizationId     String?         @map("organization_id") @db.Uuid
+  organization       Organization?   @relation(fields: [organizationId], references: [id])
+  verification       VerificationState @default(unverified)
   deletedAt          DateTime?       @map("deleted_at") @db.Timestamptz(6)
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
 
   medications    PatientMedication[]
   prescriptions  Prescription[]
   medicalReports MedicalReport[]
+  encounters     Encounter[]
 
   @@map("practitioners")
 }
@@ -350,6 +375,27 @@ model Prescription {
   /// The visit/prescribing date as recorded by the patient — never inferred.
   prescribedAt     DateTime?      @map("prescribed_at") @db.Date
   notes            String?
+  /// V2 Phase 1/2 (docs_v2/04 §3.3, §4.1)
+  encounterId      String?        @map("encounter_id") @db.Uuid
+  encounter        Encounter?     @relation(fields: [encounterId], references: [id])
+  diagnosisText    String?        @map("diagnosis_text")
+  validUntil       DateTime?      @map("valid_until") @db.Date
+  followUpOn       DateTime?      @map("follow_up_on") @db.Date
+
+  /// V2: who pressed save (nullable for V1 rows; part of the provenance block).
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -405,6 +451,24 @@ model MedicalReport {
   testedAt         DateTime?         @map("tested_at") @db.Date
   /// Free-text key findings, in the patient's own words.
   notes            String?
+  /// V2 Phase 1 (docs_v2/04): encounter link + provenance block (kept until the Phase 4 sunset).
+  encounterId      String?           @map("encounter_id") @db.Uuid
+  encounter        Encounter?        @relation(fields: [encounterId], references: [id])
+
+  /// V2: who pressed save (nullable for V1 rows; part of the provenance block).
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   deletedAt        DateTime?         @map("deleted_at") @db.Timestamptz(6)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -444,6 +508,19 @@ model ReportValue {
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  /// V2 provenance block (docs_v2/04 §1.2, ADR-V2-002) — nullable until the Phase 1 backfill.
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   @@index([patientProfileId, analyte])
   @@index([reportId])
   @@map("report_values")
@@ -456,10 +533,32 @@ enum AllergySeverity {
   unknown
 }
 
+/// V2 provenance source (docs_v2/04 §1, ADR-V2-002). The three V1 values
+/// (patient/document/professional) stay until the sunset migration; the
+/// backfill maps them patient→user_entered, document→ocr_extracted,
+/// professional→clinic_entered.
 enum RecordSource {
   patient
   document
   professional
+  user_entered
+  caregiver_entered
+  ocr_extracted
+  clinic_entered
+  lab_imported
+  pharmacy_entered
+  device_recorded
+  abdm_imported
+  system_derived
+}
+
+/// V2 verification state (docs_v2/04 §1.2). Monotonic: a row only ever
+/// moves up this list, and only by an entitled actor (packages/provenance).
+enum VerificationState {
+  unverified
+  patient_confirmed
+  provider_verified
+  source_authenticated
 }
 
 model PatientAllergy {
@@ -474,6 +573,25 @@ model PatientAllergy {
   source               RecordSource          @default(patient)
   active               Boolean               @default(true)
   recordedByUserId     String                @map("recorded_by_user_id") @db.Uuid
+  /// V2 Phase 1 (docs_v2/04 §10)
+  category             AllergyCategory?
+  criticality          AllergyCriticality?
+  onsetDate            DateTime?             @map("onset_date") @db.Date
+  codeSystem           String?               @map("code_system")
+  code                 String?
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   deletedAt            DateTime?             @map("deleted_at") @db.Timestamptz(6)
   createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -491,6 +609,29 @@ model PatientCondition {
   source           RecordSource   @default(patient)
   active           Boolean        @default(true)
   recordedByUserId String         @map("recorded_by_user_id") @db.Uuid
+  /// V2 Phase 1 (docs_v2/04 §10)
+  clinicalStatus   ConditionClinicalStatus? @map("clinical_status")
+  onsetDate        DateTime?      @map("onset_date") @db.Date
+  abatementDate    DateTime?      @map("abatement_date") @db.Date
+  codeSystem       String?        @map("code_system")
+  code             String?
+  severity         String?
+  diagnosedByPractitionerId String? @map("diagnosed_by_practitioner_id") @db.Uuid
+  encounterId      String?        @map("encounter_id") @db.Uuid
+  encounter        Encounter?     @relation(fields: [encounterId], references: [id])
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -527,6 +668,19 @@ model GlucoseReading {
   createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  /// V2 provenance block (docs_v2/04 §1.2, ADR-V2-002) — nullable until the Phase 1 backfill.
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   @@index([patientProfileId, measuredAt])
   @@map("glucose_readings")
 }
@@ -552,6 +706,19 @@ model BloodPressureReading {
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  /// V2 provenance block (docs_v2/04 §1.2, ADR-V2-002) — nullable until the Phase 1 backfill.
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   @@index([patientProfileId, measuredAt])
   @@map("blood_pressure_readings")
 }
@@ -570,6 +737,19 @@ model WeightReading {
   deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// V2 provenance block (docs_v2/04 §1.2, ADR-V2-002) — nullable until the Phase 1 backfill.
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
 
   @@index([patientProfileId, measuredAt])
   @@map("weight_readings")
@@ -597,6 +777,19 @@ model CheckupRecord {
   deletedAt               DateTime?      @map("deleted_at") @db.Timestamptz(6)
   createdAt               DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// V2 provenance block (docs_v2/04 §1.2, ADR-V2-002) — nullable until the Phase 1 backfill.
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
 
   @@index([patientProfileId, checkupDate])
   @@map("checkup_records")
@@ -812,6 +1005,21 @@ model PatientMedication {
   doseEvents    DoseEvent[]
   notifications Notification[]
 
+  /// V2 provenance block (docs_v2/04 §1.2, ADR-V2-002) — nullable until the Phase 1 backfill.
+  /// V2: who pressed save (nullable for V1 rows; part of the provenance block).
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
   @@index([patientProfileId, status])
   @@index([prescriptionId])
   @@map("patient_medications")
@@ -877,6 +1085,21 @@ model MedicationInstruction {
   supersededAt        DateTime? @map("superseded_at") @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  /// V2 provenance block (docs_v2/04 §1.2, ADR-V2-002) — nullable until the Phase 1 backfill.
+  /// V2: who pressed save (nullable for V1 rows; part of the provenance block).
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
 
   @@index([patientMedicationId, supersededAt])
   @@map("medication_instructions")
@@ -1762,6 +1985,10 @@ enum AdminDuty {
   /// how much they use the app; NEVER of what's inside their record
   /// (medicine names, readings, documents stay patient/caregiver-only).
   users_view
+  /// Provider/facility directory stewardship (docs_v2/14 §3, docs_v2/04
+  /// §13): global Organization/Practitioner entries, HFR/HPR verification,
+  /// merges. Patient-scoped rows are visible as opaque ids + counts only.
+  provider_admin
   super_admin
 }
 
@@ -2050,4 +2277,331 @@ model ProfessionalLead {
   @@index([createdAt])
   @@index([lastInteractionAt])
   @@map("professional_leads")
+}
+
+// =====================================================================
+// V2 Phase 1 — longitudinal health record (docs_v2/04 §2–3, §9–10)
+// Additive only (ADR-V2-007). Provenance links are plain uuids for now
+// (no FK relations) so every clinical table can carry the same block
+// without a relation explosion on Organization/Practitioner; FKs to the
+// V2 document/device/ABDM tables land with their own phases.
+// =====================================================================
+
+enum OrganizationKind {
+  clinic
+  hospital
+  laboratory
+  pharmacy
+  diagnostic_centre
+  other
+}
+
+/// A facility or provider organization (docs_v2/04 §3.1). Patient-scoped
+/// (patientProfileId set) when a patient adds "Apollo Clinic, Jubilee
+/// Hills"; a global directory entry (null) from the clinic product / HFR.
+model Organization {
+  id               String            @id @default(uuid()) @db.Uuid
+  patientProfileId String?           @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile?   @relation(fields: [patientProfileId], references: [id])
+  kind             OrganizationKind  @default(other)
+  displayName      String            @map("display_name")
+  addressText      String?           @map("address_text")
+  city             String?
+  state            String?
+  pincode          String?
+  phoneCiphertext  String?           @map("phone_ciphertext")
+  /// ABDM Health Facility Registry id — set only via ABDM verification.
+  hfrId            String?           @unique @map("hfr_id")
+  verification     VerificationState @default(unverified)
+  recordedByUserId String?           @map("recorded_by_user_id") @db.Uuid
+  mergedIntoId     String?           @map("merged_into_id") @db.Uuid
+  deletedAt        DateTime?         @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  practitioners Practitioner[]
+  encounters    Encounter[]
+
+  @@index([patientProfileId, deletedAt])
+  @@index([displayName])
+  @@map("organizations")
+}
+
+enum EncounterKind {
+  outpatient
+  inpatient
+  emergency
+  teleconsult
+  pharmacy
+  lab_visit
+  home
+}
+
+/// One visit/admission that ties prescriptions, reports, documents and
+/// observations together (docs_v2/04 §3.3). Optional in V2.0 UI.
+model Encounter {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  kind             EncounterKind  @default(outpatient)
+  startedAt        DateTime       @map("started_at") @db.Timestamptz(6)
+  endedAt          DateTime?      @map("ended_at") @db.Timestamptz(6)
+  organizationId   String?        @map("organization_id") @db.Uuid
+  organization     Organization?  @relation(fields: [organizationId], references: [id])
+  practitionerId   String?        @map("practitioner_id") @db.Uuid
+  practitioner     Practitioner?  @relation(fields: [practitionerId], references: [id])
+  reasonText       String?        @map("reason_text")
+  diagnosisText    String?        @map("diagnosis_text")
+  /// Phase 14: the discharge summary document for an inpatient stay.
+  dischargeSummaryDocumentId String? @map("discharge_summary_document_id") @db.Uuid
+  notes            String?
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String             @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  rowVersion Int       @default(0) @map("row_version")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  prescriptions  Prescription[]
+  medicalReports MedicalReport[]
+  conditions     PatientCondition[]
+  procedures     Procedure[]
+
+  @@index([patientProfileId, startedAt])
+  @@map("encounters")
+}
+
+enum HealthEventKind {
+  prescription
+  medicine_started
+  medicine_changed
+  medicine_stopped
+  medicine_paused
+  medicine_resumed
+  medicine_completed
+  dose_taken
+  dose_missed
+  adherence_summary
+  test_result
+  imaging_report
+  measurement
+  doctor_visit
+  hospital_admission
+  discharge
+  document
+  clinical_note
+  allergy_recorded
+  condition_recorded
+  immunization
+  procedure
+  dispense
+  reconciliation
+  abdm_record_linked
+  share_created
+  caregiver_action
+  profile_updated
+}
+
+enum HealthEventActorType {
+  patient
+  caregiver
+  provider
+  system
+}
+
+/// Append-only timeline projection (docs_v2/04 §9, ADR-V2-008). Written in
+/// the same transaction as the source row by @medpass/health-events. Read
+/// model only — never a source of truth.
+model HealthEvent {
+  id               String               @id @default(uuid()) @db.Uuid
+  patientProfileId String               @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile       @relation(fields: [patientProfileId], references: [id])
+  occurredAt       DateTime             @map("occurred_at") @db.Timestamptz(6)
+  /// ISO local date-time in the patient's zone at write time (V1 rule: clinical times in the patient's clock).
+  occurredAtLocal  String?              @map("occurred_at_local")
+  kind             HealthEventKind
+  entityType       String               @map("entity_type")
+  entityId         String               @map("entity_id") @db.Uuid
+  /// Locale-neutral structured summary for rendering; never more PHI than the source row exposes to the same reader.
+  summary          Json
+  encounterId      String?              @map("encounter_id") @db.Uuid
+  actorUserId      String?              @map("actor_user_id") @db.Uuid
+  actorType        HealthEventActorType @default(patient)
+  provenanceSource RecordSource?        @map("provenance_source")
+  verification     VerificationState?
+  /// Set when the source row was corrected/deleted; the replacement event is appended.
+  supersededAt     DateTime?            @map("superseded_at") @db.Timestamptz(6)
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([entityType, entityId, kind, occurredAt])
+  @@index([patientProfileId, occurredAt(sort: Desc)])
+  @@index([patientProfileId, kind, occurredAt(sort: Desc)])
+  @@map("health_events")
+}
+
+enum ConditionClinicalStatus {
+  active
+  remission
+  resolved
+  inactive
+  unknown
+}
+
+enum AllergyCategory {
+  medication
+  food
+  environment
+  biologic
+  other
+}
+
+enum AllergyCriticality {
+  low
+  high
+  unable_to_assess
+}
+
+enum BloodGroup {
+  a_pos
+  a_neg
+  b_pos
+  b_neg
+  ab_pos
+  ab_neg
+  o_pos
+  o_neg
+  unknown
+}
+
+model Immunization {
+  id                String         @id @default(uuid()) @db.Uuid
+  patientProfileId  String         @map("patient_profile_id") @db.Uuid
+  patientProfile    PatientProfile @relation(fields: [patientProfileId], references: [id])
+  vaccineText       String         @map("vaccine_text")
+  vaccineCodeSystem String?        @map("vaccine_code_system")
+  vaccineCode       String?        @map("vaccine_code")
+  doseNumber        Int?           @map("dose_number") @db.SmallInt
+  administeredOn    DateTime       @map("administered_on") @db.Date
+  organizationId    String?        @map("organization_id") @db.Uuid
+  lotNumber         String?        @map("lot_number")
+  documentId        String?        @map("document_id") @db.Uuid
+  notes             String?
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String             @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, administeredOn])
+  @@map("immunizations")
+}
+
+model Procedure {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  procedureText    String         @map("procedure_text")
+  codeSystem       String?        @map("code_system")
+  code             String?
+  performedOn      DateTime       @map("performed_on") @db.Date
+  organizationId   String?        @map("organization_id") @db.Uuid
+  practitionerId   String?        @map("practitioner_id") @db.Uuid
+  encounterId      String?        @map("encounter_id") @db.Uuid
+  encounter        Encounter?     @relation(fields: [encounterId], references: [id])
+  notes            String?
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String             @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, performedOn])
+  @@map("procedures")
+}
+
+model FamilyHistory {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  /// e.g. mother, father, sibling, grandparent — free text with a picker in the UI.
+  relationship     String
+  conditionText    String         @map("condition_text")
+  codeSystem       String?        @map("code_system")
+  code             String?
+  notes            String?
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String             @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId])
+  @@map("family_history")
+}
+
+/// Normalized emergency contacts (docs_v2/04 §10); the V1 emergencyCard Json
+/// stays until the sunset migration.
+model EmergencyContact {
+  id               String         @id @default(uuid()) @db.Uuid
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+  name             String
+  relationship     String?
+  phoneCiphertext  String         @map("phone_ciphertext")
+  priority         Int            @default(1) @db.SmallInt
+  recordedByUserId String         @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, priority])
+  @@map("emergency_contacts")
 }

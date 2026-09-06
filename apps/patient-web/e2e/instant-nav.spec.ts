@@ -19,12 +19,20 @@ async function navTo(page: Page, label: string) {
   await page.getByRole("link", { name: label, exact: true }).click();
 }
 
+// The seeded name also renders on Home (dose cards, concern text), and during
+// a client-side transition both screens can be in the DOM for a moment — an
+// unscoped getByText then trips strict mode on a fast machine. Scope to the
+// medicines tile link, which is what every assertion here actually means.
+function medicineTile(page: Page) {
+  return page.locator('a[href^="/medicines/"]').getByText("Metformin Hydrochloride Extended Release 500mg").first();
+}
+
 test("repeat navigation renders from cache while the network is still answering", async ({ page }) => {
   // Cold visit to warm the cache: Home, then Medicines.
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Medicines" })).toBeVisible();
   await navTo(page, "Medicines");
-  await expect(page.getByText("Metformin Hydrochloride Extended Release 500mg")).toBeVisible();
+  await expect(medicineTile(page)).toBeVisible();
   await navTo(page, "Home");
   await expect(page.getByRole("link", { name: "Medicines" })).toBeVisible();
 
@@ -59,7 +67,7 @@ test("the medicines screen issues one list request, not two", async ({ page }) =
   });
 
   await page.goto("/medicines");
-  await expect(page.getByText("Metformin Hydrochloride Extended Release 500mg")).toBeVisible();
+  await expect(medicineTile(page)).toBeVisible();
   await page.waitForLoadState("networkidle").catch(() => {});
 
   // Unfiltered requests only — the "current" tab is derived client-side, so
@@ -104,13 +112,13 @@ test("invitation checks stop repeating on every navigation", async ({ page }) =>
 test("warm data still renders when the network goes away entirely", async ({ page, context }) => {
   // Warm the medicines cache online.
   await page.goto("/medicines");
-  await expect(page.getByText("Metformin Hydrochloride Extended Release 500mg")).toBeVisible();
+  await expect(medicineTile(page)).toBeVisible();
   await navTo(page, "Home");
   await expect(page.getByRole("link", { name: "Medicines" })).toBeVisible();
 
   await context.setOffline(true);
   await navTo(page, "Medicines");
   // docs/15: cached content rather than a dead error screen.
-  await expect(page.getByText("Metformin Hydrochloride Extended Release 500mg")).toBeVisible({ timeout: 5_000 });
+  await expect(medicineTile(page)).toBeVisible({ timeout: 5_000 });
   await context.setOffline(false);
 });

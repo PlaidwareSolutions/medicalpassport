@@ -17,22 +17,37 @@ export interface ProfileAccessContext {
   caregiverScopes?: readonly CaregiverScope[];
 }
 
-export type ProfileAction =
-  | "view_profile"
-  | "edit_profile"
-  | "view_medications"
-  | "add_medications"
-  | "edit_medications"
-  | "record_doses"
-  | "view_schedule"
-  | "manage_reminders"
-  | "review_concerns"
-  | "share_records"
-  | "manage_caregivers"
-  | "manage_consents"
-  | "manage_claim";
+/**
+ * Every action the API may ask `decideProfileAccess` about. Kept as a value
+ * (not only a type) so test/matrix.test.ts can enumerate it, cross-check it
+ * against the literals actually used in apps/api, and snapshot the full
+ * relationship × scope × action matrix (docs_v2/03 §6).
+ */
+export const PROFILE_ACTIONS = [
+  "view_profile",
+  "edit_profile",
+  "view_medications",
+  "add_medications",
+  "edit_medications",
+  "record_doses",
+  "view_schedule",
+  "manage_reminders",
+  "review_concerns",
+  "share_records",
+  "manage_caregivers",
+  "manage_consents",
+  "manage_claim",
+] as const;
 
-const SCOPE_GRANTS: Record<ProfileAction, CaregiverScope[]> = {
+export type ProfileAction = (typeof PROFILE_ACTIONS)[number];
+
+/**
+ * The single explicit map from action → caregiver scopes that grant it. A
+ * caregiver holding any listed scope is allowed; an empty list means no
+ * scope ever grants the action (patient-only). The self/claimer rule lives
+ * in `decideProfileAccess`, not here — it bypasses this map entirely.
+ */
+export const PROFILE_SCOPE_GRANTS: Readonly<Record<ProfileAction, readonly CaregiverScope[]>> = {
   view_profile: ["view_medications", "view_schedule", "manage_profile", "full_management"],
   edit_profile: ["manage_profile", "full_management"],
   view_medications: ["view_medications", "full_management"],
@@ -62,7 +77,7 @@ export function decideProfileAccess(ctx: ProfileAccessContext, action: ProfileAc
 
   const scopes = ctx.caregiverScopes ?? [];
   if (scopes.length > 0) {
-    const allowed = SCOPE_GRANTS[action].some((s) => scopes.includes(s));
+    const allowed = PROFILE_SCOPE_GRANTS[action].some((s) => scopes.includes(s));
     return { allowed, actorRole: allowed ? "caregiver" : "none" };
   }
   return { allowed: false, actorRole: "none" };
@@ -97,6 +112,10 @@ export type AdminDuty =
   // Row-level user identity + engagement (pilot operations) — never clinical
   // content. Owner-directed exception to the aggregate-only posture.
   | "users_view"
+  // Provider/facility directory stewardship (docs_v2/14 §3): global
+  // Organization/Practitioner entries, HFR/HPR verification, merges.
+  // Patient-scoped rows are visible as opaque ids + counts only.
+  | "provider_admin"
   | "super_admin";
 
 export type AdminAction =
@@ -113,7 +132,8 @@ export type AdminAction =
   | "revoke_share"
   | "view_operations"
   | "view_rules"
-  | "view_users";
+  | "view_users"
+  | "manage_providers";
 
 const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   read_catalog: [], // any authenticated admin — non-PHI reference data
@@ -130,6 +150,7 @@ const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   view_operations: ["operations_view"],
   view_rules: ["rules_view"],
   view_users: ["users_view"],
+  manage_providers: ["provider_admin"],
 };
 
 export function decideAdminAccess(duties: readonly AdminDuty[], action: AdminAction): boolean {

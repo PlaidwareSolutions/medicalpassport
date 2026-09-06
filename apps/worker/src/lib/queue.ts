@@ -21,6 +21,15 @@ export interface ClaimedJob {
 
 export const WORKER_ID = `${process.pid}-${randomUUID().slice(0, 8)}`;
 
+/**
+ * A job still `running` this long after it was locked is treated as
+ * abandoned (the worker died mid-job: OOM, redeploy during a puppeteer
+ * render) and becomes claimable again; the attempt counter still increments,
+ * so a job that keeps killing its worker dead-letters like any other
+ * failure instead of running forever (docs_v2/16 §3 item 3).
+ */
+export const STALE_LOCK_MINUTES = 15;
+
 export async function claimNextJob(prisma: PrismaClient, queue: BackgroundJobQueue): Promise<ClaimedJob | null> {
   const rows = await prisma.$queryRaw<
     Array<{ id: string; queue: BackgroundJobQueue; payload: unknown; attempts: number; maxAttempts: number; correlationId: string | null }>
@@ -29,7 +38,11 @@ export async function claimNextJob(prisma: PrismaClient, queue: BackgroundJobQue
     SET status = 'running', locked_at = now(), locked_by = ${WORKER_ID}, started_at = now(), attempts = attempts + 1
     WHERE id = (
       SELECT id FROM background_jobs
-      WHERE queue = ${queue}::"BackgroundJobQueue" AND status = 'queued'
+      WHERE queue = ${queue}::"BackgroundJobQueue"
+        AND (
+          status = 'queued'
+          OR (status = 'running' AND locked_at < now() - (${STALE_LOCK_MINUTES}::int * interval '1 minute'))
+        )
       ORDER BY created_at ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED

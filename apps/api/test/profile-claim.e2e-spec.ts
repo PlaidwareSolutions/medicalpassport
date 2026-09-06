@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 
@@ -139,6 +140,7 @@ describe("Profile claim e2e", () => {
     await auth(caregiverToken, dependentProfileId)(request(app.getHttpServer()).get("/v1/profiles/current/medications")).expect(200);
 
     // ...but loses owner-only actions on this profile (manage_caregivers grants to no scope, ever).
+    await stepUp(app.getHttpServer(), caregiverToken); // ADR-V2-012
     const inviteAttempt = await auth(caregiverToken, dependentProfileId)(
       request(app.getHttpServer()).post("/v1/profiles/current/caregivers"),
     ).send({ phone: "+919000099999", scopes: ["view_medications"], relationship: "other" });

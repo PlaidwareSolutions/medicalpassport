@@ -1,12 +1,16 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
+import { emitHealthEvent, projectReading, supersedeHealthEvents } from "@medpass/health-events";
 import { bloodPressureReadingSchema, weightReadingSchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
+import { eventCtx } from "../../common/health-events";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { recordedViaFor } from "../../common/provenance";
+import { stampProvenanceFor } from "../../common/provenance-actor";
 
 /**
  * Blood-pressure and body-weight diaries (screens 46/47) — the two vitals
@@ -38,9 +42,10 @@ export class VitalsController {
     const { profileId, actorRole } = await this.access.require(req, "edit_profile");
     const input = parseWith(bloodPressureReadingSchema, body);
 
+    const actor = { userId: req.auth!.userId, actorRole, recordedVia: recordedViaFor(req) };
     const reading = await this.prisma.$transaction(async (tx) => {
       const created = await tx.bloodPressureReading.create({
-        data: { ...input, patientProfileId: profileId, recordedByUserId: req.auth!.userId },
+        data: { ...input, patientProfileId: profileId, ...stampProvenanceFor(actor) },
       });
       await writeAudit(tx, {
         action: "blood_pressure_reading.created",
@@ -51,6 +56,13 @@ export class VitalsController {
         patientProfileId: profileId,
         correlationId: req.correlationId,
       });
+      await emitHealthEvent(
+        tx,
+        projectReading(await eventCtx(tx, profileId, actor), "blood_pressure", {
+          ...created,
+          summary: { systolic: created.systolic, diastolic: created.diastolic, pulse: created.pulseBpm, unit: "mmHg" },
+        }),
+      );
       return created;
     });
     return reading;
@@ -67,6 +79,7 @@ export class VitalsController {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.bloodPressureReading.update({ where: { id }, data: { deletedAt: new Date() } });
+      await supersedeHealthEvents(tx, "blood_pressure_reading", id);
       await writeAudit(tx, {
         action: "blood_pressure_reading.deleted",
         actorUserId: req.auth!.userId,
@@ -94,9 +107,10 @@ export class VitalsController {
     const { profileId, actorRole } = await this.access.require(req, "edit_profile");
     const input = parseWith(weightReadingSchema, body);
 
+    const actor = { userId: req.auth!.userId, actorRole, recordedVia: recordedViaFor(req) };
     const reading = await this.prisma.$transaction(async (tx) => {
       const created = await tx.weightReading.create({
-        data: { ...input, patientProfileId: profileId, recordedByUserId: req.auth!.userId },
+        data: { ...input, patientProfileId: profileId, ...stampProvenanceFor(actor) },
       });
       await writeAudit(tx, {
         action: "weight_reading.created",
@@ -107,6 +121,13 @@ export class VitalsController {
         patientProfileId: profileId,
         correlationId: req.correlationId,
       });
+      await emitHealthEvent(
+        tx,
+        projectReading(await eventCtx(tx, profileId, actor), "body_weight", {
+          ...created,
+          summary: { value: created.weightKg.toString(), unit: "kg" },
+        }),
+      );
       return created;
     });
     return reading;
@@ -123,6 +144,7 @@ export class VitalsController {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.weightReading.update({ where: { id }, data: { deletedAt: new Date() } });
+      await supersedeHealthEvents(tx, "weight_reading", id);
       await writeAudit(tx, {
         action: "weight_reading.deleted",
         actorUserId: req.auth!.userId,

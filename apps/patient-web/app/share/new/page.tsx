@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { Banner, Button, Card, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
+import { isStepUpRequired } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { createShare, shareUrl, shareVisitSummaryViaWhatsApp } from "../../../lib/sharing";
 
@@ -35,6 +36,7 @@ export default function CreateSharePage() {
   );
   const [expiresInHours, setExpiresInHours] = useState(24);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | undefined>();
   const [result, setResult] = useState<{ url: string } | undefined>();
   const [copied, setCopied] = useState(false);
   const [whatsAppBusy, setWhatsAppBusy] = useState(false);
@@ -49,9 +51,15 @@ export default function CreateSharePage() {
 
   async function create() {
     setBusy(true);
+    setError(undefined);
     try {
       const res = await createShare({ sections, expiresInHours, kind: "qr" });
       setResult({ url: shareUrl(res.token) });
+    } catch (err) {
+      // Share creation is step-up guarded (ADR-V2-012): a cancelled
+      // "Confirm it's you" sheet surfaces as the original 403 — say that
+      // nothing changed rather than "something went wrong".
+      setError(isStepUpRequired(err) ? t("stepup.not_confirmed") : t("common.error_generic"));
     } finally {
       setBusy(false);
     }
@@ -111,6 +119,7 @@ export default function CreateSharePage() {
   return (
     <AppShell>
       <PageHeader title={t("share.new_title")} />
+      {error ? <Banner tone="danger">{error}</Banner> : null}
 
       <SectionTitle>{t("share.sections_label")}</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>

@@ -1,14 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES, REPORT_ANALYTE_IDS, reportAnalyteById } from "@medpass/domain";
+import { emitHealthEvent, projectReport, supersedeHealthEvents } from "@medpass/health-events";
 import { parseReportNumericValue, type AddReportValueInput, type CreateReportInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
+import { eventCtx } from "../../common/health-events";
 import { PrismaService } from "../../common/prisma.service";
+import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
+import { EncountersService } from "../encounters/encounters.service";
 import { PractitionersService } from "../practitioners/practitioners.service";
 
-interface Actor {
-  userId: string;
-  actorRole: "patient" | "caregiver";
+interface Actor extends ProvenanceActor {
   correlationId?: string;
 }
 
@@ -69,6 +71,7 @@ export class ReportsService {
   async create(profileId: string, input: CreateReportInput, actor: Actor) {
     const report = await this.prisma.$transaction(async (tx) => {
       const practitionerId = await this.practitioners.resolve(tx, profileId, input.practitionerName);
+      if (input.encounterId) await EncountersService.requireEncounter(tx, profileId, input.encounterId);
       const created = await tx.medicalReport.create({
         data: {
           patientProfileId: profileId,
@@ -78,6 +81,8 @@ export class ReportsService {
           practitionerId,
           testedAt: input.testedAt,
           notes: input.notes,
+          encounterId: input.encounterId ?? null,
+          ...stampProvenanceFor(actor),
         },
       });
       await writeAudit(tx, {
@@ -90,6 +95,7 @@ export class ReportsService {
         correlationId: actor.correlationId,
         context: { kind: input.kind },
       });
+      await this.emitReportEvent(tx, profileId, actor, created.id, 0);
       return created;
     });
     return (await this.byId(profileId, report.id))!;
@@ -113,6 +119,7 @@ export class ReportsService {
       practitionerName: r.practitioner?.displayName ?? null,
       testedAt: r.testedAt?.toISOString().slice(0, 10) ?? null,
       notes: r.notes,
+      encounterId: r.encounterId,
       documentCount: r._count.documents,
       createdAt: r.createdAt.toISOString(),
     }));
@@ -140,6 +147,7 @@ export class ReportsService {
       practitionerName: report.practitioner?.displayName ?? null,
       testedAt: report.testedAt?.toISOString().slice(0, 10) ?? null,
       notes: report.notes,
+      encounterId: report.encounterId,
       createdAt: report.createdAt.toISOString(),
       documents: report.documents.map((d) => ({
         id: d.id,
@@ -180,7 +188,7 @@ export class ReportsService {
           // a parse bug can never change what a doctor sees.
           numericValue: parseReportNumericValue(input.enteredValue),
           referenceText: input.referenceText,
-          recordedByUserId: actor.userId,
+          ...stampProvenanceFor(actor),
         },
       });
       await writeAudit(tx, {
@@ -194,6 +202,8 @@ export class ReportsService {
         // The analyte id is not PHI; the value itself never goes in context.
         context: { analyte: input.analyte },
       });
+      // The report event carries its value count — same key, refreshed in place.
+      await this.emitReportEvent(tx, profileId, actor, reportId, count + 1);
       return created;
     });
     return mapValue(value);
@@ -216,7 +226,16 @@ export class ReportsService {
         correlationId: actor.correlationId,
         context: { analyte: value.analyte },
       });
+      const remaining = await tx.reportValue.count({ where: { reportId: value.reportId, deletedAt: null } });
+      await this.emitReportEvent(tx, profileId, actor, value.reportId, remaining);
     });
+  }
+
+  /** Projects (or refreshes) the report timeline event with its current value count (ADR-V2-008). */
+  private async emitReportEvent(tx: Tx, profileId: string, actor: Actor, reportId: string, valueCount: number): Promise<void> {
+    const report = await tx.medicalReport.findUniqueOrThrow({ where: { id: reportId } });
+    if (report.deletedAt) return;
+    await emitHealthEvent(tx, projectReport(await eventCtx(tx, profileId, actor), { ...report, valueCount }));
   }
 
   /**
@@ -261,6 +280,7 @@ export class ReportsService {
     if (!report) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Report not found", 404);
     await this.prisma.$transaction(async (tx) => {
       await tx.medicalReport.update({ where: { id }, data: { deletedAt: new Date() } });
+      await supersedeHealthEvents(tx, "medical_report", id);
       await writeAudit(tx, {
         action: "report.deleted",
         actorUserId: actor.userId,

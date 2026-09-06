@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 import { CLINICAL_CONTENT_KINDS } from "@medpass/domain";
@@ -459,6 +460,7 @@ describe("API e2e", () => {
 
     // A invites B with view-only scope, labelled to distinguish B from any
     // other caregiver sharing the same relationship (e.g. a second child).
+    await stepUp(app.getHttpServer(), tokenA); // ADR-V2-012
     const invite = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/caregivers"))
       .send({ phone: PHONE_B, scopes: ["view_medications"], relationship: "child", label: "Big Sister Aisha" })
       .expect(201);

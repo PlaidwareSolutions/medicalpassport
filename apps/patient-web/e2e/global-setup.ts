@@ -64,8 +64,26 @@ export default async function globalSetup(_config: FullConfig) {
   if (!medRes.ok()) throw new Error(`medication create failed: ${medRes.status()} ${await medRes.text()}`);
   const medication = (await medRes.json()) as { id: string };
 
+  // Phase 1 (docs_v2/06 P1-4): one visit so `/health/visits/:id` is in the
+  // sweep. Tolerated as absent (404) while the encounters API is still
+  // landing — routes.ts only lists the detail route when the id exists.
+  let encounterId: string | undefined;
+  const encounterRes = await ctx.post("/v1/profiles/current/encounters", {
+    headers: { "x-profile-id": profile.id },
+    data: {
+      kind: "outpatient",
+      startedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      reasonText: "Routine diabetes review with a deliberately long reason text for reflow",
+    },
+  });
+  if (encounterRes.ok()) encounterId = ((await encounterRes.json()) as { id: string }).id;
+  else if (encounterRes.status() !== 404) throw new Error(`encounter create failed: ${encounterRes.status()} ${await encounterRes.text()}`);
+
   mkdirSync(dirname(STORAGE_STATE), { recursive: true });
   await ctx.storageState({ path: STORAGE_STATE });
-  writeFileSync(FIXTURE_PATH, JSON.stringify({ phone, profileId: profile.id, medicationId: medication.id }, null, 2));
+  writeFileSync(
+    FIXTURE_PATH,
+    JSON.stringify({ phone, profileId: profile.id, medicationId: medication.id, ...(encounterId ? { encounterId } : {}) }, null, 2),
+  );
   await ctx.dispose();
 }

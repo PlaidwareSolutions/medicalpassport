@@ -9,10 +9,12 @@
  * WARNING: drift here does NOT fail loudly, contrary to what this comment
  * used to claim. The job payload is cast (`as`) in main.ts, so a section
  * added to the API's DTO but not here is silently dropped from the PDF with
- * no error anywhere. Any new section must be added in both places.
+ * no error anywhere. Any new section must be added in both places —
+ * visit-summary-html.test.ts diffs this interface against the API source
+ * so the drift at least fails CI.
  */
 export interface VisitSummaryDto {
-  profile: { displayName: string; yearOfBirth: number | null; sex: string | null };
+  profile: { displayName: string; yearOfBirth: number | null; sex: string | null; timezone: string };
   generatedAt: string;
   allergies?: Array<{ label: string; severity: string; reactionNote: string | null }>;
   conditions?: Array<{ label: string; note: string | null }>;

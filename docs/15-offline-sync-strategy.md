@@ -21,8 +21,8 @@ Goal (spec §19): view confirmed medications and today's schedule offline, recor
 ```json
 {
   "clientMutationId": "uuid-v7",
-  "entity": "dose_event | patient_medication | medication_instruction | patient_profile | allergy | condition",
-  "operation": "create | update | status_change | soft_delete",
+  "entity": "dose_event | patient_medication",
+  "operation": "create | update",
   "payload": { "...": "typed per entity (packages/validation schemas)" },
   "baseRowVersion": 4,
   "capturedAt": "2026-07-16T08:01:00+05:30",
@@ -81,3 +81,15 @@ Background Sync API used where available; otherwise retry on reopen/online/visib
 ## Honest status UI
 
 Status chip + screen 36 show the six states; "pending changes" shows human counts ("2 doses waiting to sync"); failures list per-item reasons with retry/discard. Sync telemetry (success rate, mutation success, conflict rate) feeds the §27 metrics via PHI-free events.
+
+## V2 note — dispatched set (Phase 0, P0-8)
+
+The contract (`packages/offline-sync` `SYNC_MUTATIONS`) and the `POST /v1/sync` dispatcher (`apps/api/src/modules/sync/sync-dispatch.ts`) declare exactly the same (entity, operation) pairs; a unit test in `apps/api` (`sync-contract.spec.ts`) fails CI if they drift.
+
+| Entity | Operation | Caregiver scope | Idempotency / conflict handling |
+|---|---|---|---|
+| `dose_event` | `create` | `record_doses` | `clientMutationId` dedupes exact retries (TimelineService) |
+| `patient_medication` | `create` | `add_medications` | idempotency ledger keyed by `clientMutationId` |
+| `patient_medication` | `update` | `edit_medications` | ledger + `rowVersion`; disjoint non-clinical fields auto-merge, `instruction` never does |
+
+Removed from the contract in P0-8 because no service backs them yet (their write paths live inline in controllers): `medication_instruction`, `patient_profile`, `allergy`, `condition`, and the `status_change` / `soft_delete` operations. The PWA can no longer enqueue them (`enqueueMutation` rejects anything outside `SYNC_MUTATIONS`); a raw client that sends one still gets a per-item `invalid` conflict, never a dropped mutation. V2 adds `observation` and `document_upload_intent` (docs_v2/03 §10) by extending both sides together.

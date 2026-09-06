@@ -5,6 +5,7 @@ import { CAREGIVER_SCOPES, type CaregiverScope } from "@medpass/domain";
 import { Banner, Button, Card, PillSpinner, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../../components/AppShell";
 import { PageHeader } from "../../../../components/PageHeader";
+import { isStepUpRequired } from "../../../../lib/api";
 import { useI18n } from "../../../../lib/i18n";
 import { updateCaregiverScopes, useCaregivers } from "../../../../lib/caregivers";
 import { useSession } from "../../../../lib/session";
@@ -47,8 +48,9 @@ export default function EditCaregiverPage() {
     try {
       await updateCaregiverScopes(params.id, selected, label.trim() ? label.trim() : undefined);
       router.replace("/caregivers");
-    } catch {
-      setSaveError(t("common.error_generic"));
+    } catch (err) {
+      // Step-up guarded (ADR-V2-012): a cancelled re-verify means nothing changed.
+      setSaveError(isStepUpRequired(err) ? t("stepup.not_confirmed") : t("common.error_generic"));
     } finally {
       setBusy(false);
     }

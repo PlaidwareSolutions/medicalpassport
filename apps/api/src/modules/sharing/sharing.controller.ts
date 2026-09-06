@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { createShareSchema, visitSummaryTextQuerySchema } from "@medpass/validation";
-import { Public } from "../../common/auth.guard";
+import { Public, RequiresStepUp } from "../../common/auth.guard";
 import { RateLimit } from "../../common/rate-limit.guard";
 import { sha256Hex } from "../../common/crypto";
 import type { ApiRequest } from "../../common/http";
@@ -56,6 +56,7 @@ export class SharingController {
     return { text: renderVisitSummaryText(summary) };
   }
 
+  @RequiresStepUp()
   @Post("profiles/current/shares")
   async create(@Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId } = await this.access.require(req, "share_records");

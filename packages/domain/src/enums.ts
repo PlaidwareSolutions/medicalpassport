@@ -87,6 +87,43 @@ export const MEDICAL_REPORT_KINDS = [
 ] as const;
 export type MedicalReportKind = (typeof MEDICAL_REPORT_KINDS)[number];
 
+/** V2 Phase 1 (docs_v2/04 §3.3) — one visit/admission that ties records together. */
+export const ENCOUNTER_KINDS = ["outpatient", "inpatient", "emergency", "teleconsult", "pharmacy", "lab_visit", "home"] as const;
+export type EncounterKind = (typeof ENCOUNTER_KINDS)[number];
+
+/** Timeline projection kinds (docs_v2/04 §9.1, ADR-V2-008) — mirrors the `HealthEventKind` Prisma enum. */
+export const HEALTH_EVENT_KINDS = [
+  "prescription",
+  "medicine_started",
+  "medicine_changed",
+  "medicine_stopped",
+  "medicine_paused",
+  "medicine_resumed",
+  "medicine_completed",
+  "dose_taken",
+  "dose_missed",
+  "adherence_summary",
+  "test_result",
+  "imaging_report",
+  "measurement",
+  "doctor_visit",
+  "hospital_admission",
+  "discharge",
+  "document",
+  "clinical_note",
+  "allergy_recorded",
+  "condition_recorded",
+  "immunization",
+  "procedure",
+  "dispense",
+  "reconciliation",
+  "abdm_record_linked",
+  "share_created",
+  "caregiver_action",
+  "profile_updated",
+] as const;
+export type HealthEventKind = (typeof HEALTH_EVENT_KINDS)[number];
+
 /** docs/13, docs/07 screen 19 — each a separate labeled block, approved-only, never fabricated. */
 export const CLINICAL_CONTENT_KINDS = ["education", "storage", "warning_symptoms", "food_alcohol", "missed_dose"] as const;
 export type ClinicalContentKind = (typeof CLINICAL_CONTENT_KINDS)[number];
@@ -170,5 +207,24 @@ export const SAFETY_FINDING_CATEGORIES = [
   "dose_differs_from_prescription",
   "missing_information",
   "uncertain_normalization",
+  // Phase 2 (docs_v2/10 §3, docs_v2/06 P2-3): additive — nothing above changes.
+  "multiple_active_prescriptions",
+  "conflicting_instructions",
 ] as const;
 export type SafetyFindingCategory = (typeof SAFETY_FINDING_CATEGORIES)[number];
+
+/** V2 Phase 1 clinical-profile enums (docs_v2/04 §3.1, §10); mirror the Prisma enums. */
+export const BLOOD_GROUPS = ["a_pos", "a_neg", "b_pos", "b_neg", "ab_pos", "ab_neg", "o_pos", "o_neg", "unknown"] as const;
+export type BloodGroup = (typeof BLOOD_GROUPS)[number];
+
+export const ORGANIZATION_KINDS = ["clinic", "hospital", "laboratory", "pharmacy", "diagnostic_centre", "other"] as const;
+export type OrganizationKind = (typeof ORGANIZATION_KINDS)[number];
+
+export const ALLERGY_CATEGORIES = ["medication", "food", "environment", "biologic", "other"] as const;
+export type AllergyCategory = (typeof ALLERGY_CATEGORIES)[number];
+
+export const ALLERGY_CRITICALITIES = ["low", "high", "unable_to_assess"] as const;
+export type AllergyCriticality = (typeof ALLERGY_CRITICALITIES)[number];
+
+export const CONDITION_CLINICAL_STATUSES = ["active", "remission", "resolved", "inactive", "unknown"] as const;
+export type ConditionClinicalStatus = (typeof CONDITION_CLINICAL_STATUSES)[number];

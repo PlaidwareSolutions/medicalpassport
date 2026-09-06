@@ -11,6 +11,8 @@ export const createPrescriptionSchema = z.object({
   practitionerName: z.string().trim().max(120).optional(),
   prescribedAt: z.coerce.date().optional(),
   notes: z.string().trim().max(1000).optional(),
+  /** V2 Phase 1: the visit this prescription belongs to (docs_v2/04 §3.3); must be one of this profile's encounters. */
+  encounterId: z.string().uuid().nullable().optional(),
 });
 export type CreatePrescriptionInput = z.infer<typeof createPrescriptionSchema>;
 

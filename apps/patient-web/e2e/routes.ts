@@ -11,6 +11,8 @@ import { join } from "node:path";
 export function screenRoutes(): string[] {
   const fixture = JSON.parse(readFileSync(join(__dirname, ".auth/fixture.json"), "utf8")) as {
     medicationId: string;
+    /** Present only when the API exposed encounters at seed time (Phase 1 P1-2). */
+    encounterId?: string;
   };
   return [
     "/",
@@ -23,8 +25,15 @@ export function screenRoutes(): string[] {
     "/caregivers",
     "/caregivers/invitations",
     "/caregivers/new",
+    "/conditions",
     "/doctors",
+    "/family-history",
+    "/health",
+    "/health/visits",
+    "/health/visits/new",
+    ...(fixture.encounterId ? [`/health/visits/${fixture.encounterId}`] : []),
     "/help",
+    "/immunizations",
     "/login",
     "/medicines",
     `/medicines/${fixture.medicationId}`,
@@ -32,11 +41,14 @@ export function screenRoutes(): string[] {
     "/medicines/confirm-type",
     "/offline",
     "/onboarding/profile",
+    "/organizations",
     "/prescriptions",
     "/prescriptions/new",
     "/profile",
     "/profile/claim-invitations",
     "/profile/dependents/new",
+    "/profile/health-details",
+    "/procedures",
     "/reports",
     "/reports/new",
   "/reports/values",

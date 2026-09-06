@@ -31,8 +31,17 @@ export const apiEnvShape = {
   SESSION_TOKEN_PEPPER: z.string().min(16),
   /** Pepper mixed into admin password hashes (docs/18 admin auth) — its own dedicated pepper, matching the one-pepper-per-hashed-secret-type convention OTP/session tokens already use. */
   ADMIN_PASSWORD_PEPPER: z.string().min(16),
-  /** AES-256 key (base64, 32 bytes) for application-level field encryption. */
+  /** AES-256 key (base64, 32 bytes) for application-level field encryption — keyring version 1. */
   FIELD_ENCRYPTION_KEY: z.string().min(32),
+  /**
+   * Keyring rotation (docs_v2/11 §4, ADR-V2-012 neighbour ticket 0.21):
+   * newer key versions as "2:<material>,3:<material>"; ciphertexts carry
+   * their version, so old rows keep decrypting while new writes use the
+   * active version. Rotation = add a key, bump the active version, run the
+   * `rotate-field-encryption` cron, then retire the old key.
+   */
+  FIELD_ENCRYPTION_KEYS: z.string().optional(),
+  FIELD_ENCRYPTION_ACTIVE_KEY_VERSION: z.coerce.number().int().positive().optional(),
   /**
    * OTP transport. "log" is a development-only fake; the API refuses to boot
    * with it in production. "voice" (docs/16, OD-10) is a supplementary
@@ -160,8 +169,10 @@ export const workerEnvShape = {
 export const cronEnvShape = {
   NODE_ENV: NodeEnv.default("development"),
   DATABASE_URL: z.string().url(),
-  /** Needed by cleanup-abandoned-uploads to derive the object-storage HMAC secret. */
+  /** Needed by cleanup-abandoned-uploads to derive the object-storage HMAC secret, and by detect-due-reminders / rotate-field-encryption as keyring version 1. */
   FIELD_ENCRYPTION_KEY: z.string().min(32),
+  FIELD_ENCRYPTION_KEYS: z.string().optional(),
+  FIELD_ENCRYPTION_ACTIVE_KEY_VERSION: z.coerce.number().int().positive().optional(),
   OBJECT_STORAGE_ROOT: z.string().default(".dev-data/object-storage"),
   /** Real R2 (docs/26 §13) — see apiEnvShape's comment; falls back to local-disk unless all four are set. */
   R2_ACCOUNT_ID: z.string().optional(),

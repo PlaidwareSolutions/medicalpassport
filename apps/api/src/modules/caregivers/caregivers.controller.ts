@@ -3,6 +3,7 @@ import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import { acceptInviteSchema, inviteCaregiverSchema, updateCaregiverScopesSchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
+import { RequiresStepUp } from "../../common/auth.guard";
 import { phoneDigest } from "../../common/crypto";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
@@ -39,6 +40,7 @@ export class CaregiversController {
   }
 
   /** Invite a caregiver by phone with granular scopes (consent-backed). */
+  @RequiresStepUp()
   @Post("profiles/current/caregivers")
   async invite(@Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId } = await this.access.require(req, "manage_caregivers");
@@ -116,6 +118,7 @@ export class CaregiversController {
     });
   }
 
+  @RequiresStepUp()
   @Patch("caregivers/:relationshipId/scopes")
   async updateScopes(@Param("relationshipId") relationshipId: string, @Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId } = await this.access.require(req, "manage_caregivers");
@@ -157,6 +160,7 @@ export class CaregiversController {
   }
 
   /** Revocation is immediate — the next caregiver request 403s (docs/18). */
+  @RequiresStepUp()
   @Delete("caregivers/:relationshipId")
   @HttpCode(204)
   async revoke(@Param("relationshipId") relationshipId: string, @Req() req: ApiRequest) {

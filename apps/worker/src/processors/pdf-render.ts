@@ -20,7 +20,15 @@ async function getBrowser(): Promise<Browser> {
     .then((puppeteer) =>
       puppeteer.default.launch({
         headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--single-process", "--no-zygote"],
+        // --single-process / --no-zygote keep memory low in the Railway
+        // container but are Linux-only tuning: on Windows they crash Chrome
+        // at launch ("Connection closed"), so a dev laptop skips them.
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          ...(process.platform === "win32" ? [] : ["--single-process", "--no-zygote"]),
+        ],
       }),
     )
     .catch((err: unknown) => {

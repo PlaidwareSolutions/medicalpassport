@@ -7,6 +7,7 @@ import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
+import { isStepUpRequired } from "../../lib/api";
 import { fetchCaregiverAccessLog, isCaregiverActive, revokeCaregiver, useCaregivers } from "../../lib/caregivers";
 import { useI18n } from "../../lib/i18n";
 import { useSession } from "../../lib/session";
@@ -20,6 +21,7 @@ export default function CaregiversPage() {
   const [expandedId, setExpandedId] = useState<string | undefined>();
   const [accessLog, setAccessLog] = useState<CaregiverAccessEventDto[]>([]);
   const [busyId, setBusyId] = useState<string | undefined>();
+  const [revokeError, setRevokeError] = useState<string | undefined>();
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
 
@@ -42,9 +44,13 @@ export default function CaregiversPage() {
   async function revoke(id: string, wasActive: boolean) {
     if (wasActive && !window.confirm(t("caregiver.revoke_confirm"))) return;
     setBusyId(id);
+    setRevokeError(undefined);
     try {
       await revokeCaregiver(id);
       await reload();
+    } catch (err) {
+      // Revoke is step-up guarded (ADR-V2-012): a cancelled re-verify means nothing changed.
+      setRevokeError(isStepUpRequired(err) ? t("stepup.not_confirmed") : t("common.error_generic"));
     } finally {
       setBusyId(undefined);
     }
@@ -53,7 +59,7 @@ export default function CaregiversPage() {
   return (
     <AppShell>
       <PageHeader title={t("caregiver.list_title")} readAloud={[{ audio: "screen.caregivers" }]} />
-      {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
+      {error || revokeError ? <Banner tone="danger">{revokeError ?? t("common.error_generic")}</Banner> : null}
 
       <Link href="/caregivers/new">
         <Button fullWidth>{t("caregiver.invite_button")}</Button>

@@ -14,3 +14,17 @@ describe("patient-time formatting", () => {
     expect(formatPatientDateTime(instant, "America/Chicago")).toContain("9");
   });
 });
+
+describe("patient-local entry (visits, docs/16)", () => {
+  it("interprets a datetime-local value in the patient's zone, not the device's", async () => {
+    const { isoToPatientLocal, patientLocalToIso, patientTodayKey } = await import("./patient-time");
+    // 21:05 in Hyderabad is 15:35 UTC regardless of where the caregiver sits.
+    expect(patientLocalToIso("2026-09-06T21:05", "Asia/Kolkata")).toBe("2026-09-06T15:35:00.000Z");
+    expect(patientLocalToIso("2026-09-06T21:05", "America/Chicago")).toBe("2026-09-07T02:05:00.000Z");
+    // Round-trips back to the same wall clock.
+    expect(isoToPatientLocal("2026-09-06T15:35:00.000Z", "Asia/Kolkata")).toBe("2026-09-06T21:05");
+    // The patient's "today" follows their zone: 19:35Z is already the 7th in Hyderabad.
+    expect(patientTodayKey("Asia/Kolkata", new Date("2026-09-06T19:35:00.000Z"))).toBe("2026-09-07");
+    expect(patientTodayKey("America/Chicago", new Date("2026-09-06T19:35:00.000Z"))).toBe("2026-09-06");
+  });
+});

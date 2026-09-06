@@ -59,6 +59,7 @@ describe("decideAdminAccess", () => {
       "view_operations",
       "view_rules",
       "view_users",
+      "manage_providers",
     ] as const) {
       expect(decideAdminAccess(["super_admin"], action)).toBe(true);
     }
@@ -104,5 +105,11 @@ describe("decideAdminAccess", () => {
     expect(decideAdminAccess([], "view_users")).toBe(false);
     expect(decideAdminAccess(["users_view"], "view_users")).toBe(true);
     expect(decideAdminAccess(["operations_view"], "view_users")).toBe(false);
+  });
+
+  it("provider_admin alone grants provider directory management; users_view does not", () => {
+    expect(decideAdminAccess(["provider_admin"], "manage_providers")).toBe(true);
+    expect(decideAdminAccess(["users_view"], "manage_providers")).toBe(false);
+    expect(decideAdminAccess([], "manage_providers")).toBe(false);
   });
 });

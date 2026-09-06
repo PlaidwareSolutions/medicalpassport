@@ -40,6 +40,15 @@ export const otpVerifySchema = z.object({
 });
 export type OtpVerifyInput = z.infer<typeof otpVerifySchema>;
 
+/**
+ * ADR-V2-012 step-up: the signed-in user re-verifies with a fresh OTP sent to
+ * their own number (no phone in the body — the session decides whose number).
+ */
+export const stepUpVerifySchema = z.object({
+  code: z.string().regex(/^\d{6}$/, "The code is 6 digits"),
+});
+export type StepUpVerifyInput = z.infer<typeof stepUpVerifySchema>;
+
 /** The only recognised acquisition source in V1; unknown → null (§24). */
 export const KNOWN_ACQUISITION_SOURCES = ["website"] as const;
 export function normalizeAcquisitionSource(value: string | undefined): "website" | null {

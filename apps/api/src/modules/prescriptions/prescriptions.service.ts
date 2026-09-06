@@ -1,14 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
+import { emitHealthEvent, projectPrescription, supersedeHealthEvents } from "@medpass/health-events";
 import type { CreatePrescriptionInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
+import { emitMedicationChangeEvent, eventCtx } from "../../common/health-events";
 import { PrismaService } from "../../common/prisma.service";
+import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
+import { EncountersService } from "../encounters/encounters.service";
 import { PractitionersService } from "../practitioners/practitioners.service";
 
-interface Actor {
-  userId: string;
-  actorRole: "patient" | "caregiver";
+interface Actor extends ProvenanceActor {
   correlationId?: string;
 }
 
@@ -33,13 +35,17 @@ export class PrescriptionsService {
   async create(profileId: string, input: CreatePrescriptionInput, actor: Actor) {
     const prescription = await this.prisma.$transaction(async (tx) => {
       const practitionerId = await this.practitioners.resolve(tx, profileId, input.practitionerName);
+      if (input.encounterId) await EncountersService.requireEncounter(tx, profileId, input.encounterId);
       const created = await tx.prescription.create({
         data: {
           patientProfileId: profileId,
           practitionerId,
           prescribedAt: input.prescribedAt,
           notes: input.notes,
+          encounterId: input.encounterId ?? null,
+          ...stampProvenanceFor(actor),
         },
+        include: { practitioner: { select: { displayName: true } } },
       });
       await writeAudit(tx, {
         action: "prescription.created",
@@ -50,6 +56,14 @@ export class PrescriptionsService {
         patientProfileId: profileId,
         correlationId: actor.correlationId,
       });
+      await emitHealthEvent(
+        tx,
+        projectPrescription(await eventCtx(tx, profileId, actor), {
+          ...created,
+          practitionerName: created.practitioner?.displayName ?? null,
+          medicineCount: 0,
+        }),
+      );
       return created;
     });
     return (await this.byId(profileId, prescription.id))!;
@@ -80,6 +94,7 @@ export class PrescriptionsService {
       practitionerName: p.practitioner?.displayName ?? null,
       prescribedAt: p.prescribedAt?.toISOString().slice(0, 10) ?? null,
       notes: p.notes,
+      encounterId: p.encounterId,
       documentCount: p._count.documents,
       medicationCount: p._count.medications,
       createdAt: p.createdAt.toISOString(),
@@ -109,6 +124,7 @@ export class PrescriptionsService {
       practitionerName: prescription.practitioner?.displayName ?? null,
       prescribedAt: prescription.prescribedAt?.toISOString().slice(0, 10) ?? null,
       notes: prescription.notes,
+      encounterId: prescription.encounterId,
       createdAt: prescription.createdAt.toISOString(),
       documents: prescription.documents.map((d) => ({
         id: d.id,
@@ -152,9 +168,10 @@ export class PrescriptionsService {
           ...(prescription.practitionerId && !medication.practitionerId ? { practitionerId: prescription.practitionerId } : {}),
         },
       });
-      await tx.medicationChange.create({
+      const change = await tx.medicationChange.create({
         data: { patientMedicationId: medicationId, change: "updated", detail: { prescriptionLinked: true }, actorUserId: actor.userId },
       });
+      await emitMedicationChangeEvent(tx, { profileId, actorType: actor.actorRole, medication, change });
       await writeAudit(tx, {
         action: "medication.updated",
         actorUserId: actor.userId,
@@ -184,6 +201,7 @@ export class PrescriptionsService {
     if (!prescription) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Prescription not found", 404);
     await this.prisma.$transaction(async (tx) => {
       await tx.prescription.update({ where: { id }, data: { deletedAt: new Date() } });
+      await supersedeHealthEvents(tx, "prescription", id);
       await writeAudit(tx, {
         action: "prescription.deleted",
         actorUserId: actor.userId,

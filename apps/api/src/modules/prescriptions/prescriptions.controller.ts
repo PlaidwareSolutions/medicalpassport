@@ -5,6 +5,7 @@ import { ApiProblem } from "../../common/errors";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { recordedViaFor } from "../../common/provenance";
 import { PrescriptionsService } from "./prescriptions.service";
 
 /**
@@ -35,6 +36,7 @@ export class PrescriptionsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 
@@ -54,6 +56,7 @@ export class PrescriptionsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 
@@ -65,6 +68,7 @@ export class PrescriptionsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 }

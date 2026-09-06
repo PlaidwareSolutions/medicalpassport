@@ -1,14 +1,7 @@
 import { Body, Controller, Get, Patch, Post, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES, isMinorByBirthYear } from "@medpass/domain";
-import {
-  allergySchema,
-  conditionSchema,
-  createDependentSchema,
-  createProfileSchema,
-  createSelfProfileSchema,
-  updateProfileSchema,
-} from "@medpass/validation";
+import { createDependentSchema, createProfileSchema, createSelfProfileSchema, updateProfileSchema } from "@medpass/validation";
 
 /** Children V1 attestation version stamped on child dependents (audit/provenance). */
 const GUARDIAN_ATTESTATION_VERSION = "v1-2026-08";
@@ -18,7 +11,7 @@ import { parseWith } from "../../common/zod";
 import { computeProfileRelationships } from "../../common/profile-relationship";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
-import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
+import { rejectClientProvenance } from "../../common/provenance";
 import { SchedulingService } from "../scheduling/scheduling.service";
 
 @Controller("profiles")
@@ -26,7 +19,6 @@ export class ProfilesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProfileAccessService,
-    private readonly safety: SafetyEvaluationService,
     private readonly scheduling: SchedulingService,
   ) {}
 
@@ -237,12 +229,16 @@ export class ProfilesController {
       sex: profile.sex,
       preferredLocale: profile.preferredLocale,
       timezone: profile.timezone,
+      // V2 Phase 1 (docs_v2/04 §10).
+      bloodGroup: profile.bloodGroup,
+      heightCm: profile.heightCm === null ? null : Number(profile.heightCm),
       rowVersion: profile.rowVersion,
     };
   }
 
   @Patch("current")
   async update(@Body() body: unknown, @Req() req: ApiRequest) {
+    rejectClientProvenance(body);
     const { profileId } = await this.access.require(req, "edit_profile");
     const input = parseWith(updateProfileSchema, body);
     const { rowVersion, ...fields } = input;
@@ -278,85 +274,4 @@ export class ProfilesController {
     return { id: profile.id, rowVersion: profile.rowVersion };
   }
 
-  @Get("current/allergies")
-  async allergies(@Req() req: ApiRequest) {
-    const { profileId } = await this.access.require(req, "view_profile");
-    const items = await this.prisma.patientAllergy.findMany({
-      where: { patientProfileId: profileId, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-    });
-    return { items };
-  }
-
-  @Post("current/allergies")
-  async addAllergy(@Body() body: unknown, @Req() req: ApiRequest) {
-    const { profileId } = await this.access.require(req, "edit_profile");
-    const input = parseWith(allergySchema, body);
-
-    // Exact/synonym name match against the controlled ingredient vocabulary
-    // only — never a fuzzy guess (docs/09 §6 "never silently interpret").
-    // No match just means no drug-allergy check is possible for this entry;
-    // it is never fabricated.
-    const norm = (s: string) => s.trim().toLowerCase();
-    const ingredients = await this.prisma.medicationIngredient.findMany({ where: { status: "active" } });
-    const matchedIngredient = ingredients.find(
-      (i) => norm(i.name) === norm(input.label) || i.synonyms.some((s) => norm(s) === norm(input.label)),
-    );
-
-    const allergy = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.patientAllergy.create({
-        data: {
-          ...input,
-          allergenIngredientId: matchedIngredient?.id,
-          patientProfileId: profileId,
-          recordedByUserId: req.auth!.userId,
-        },
-      });
-      await writeAudit(tx, {
-        action: "allergy.created",
-        actorUserId: req.auth!.userId,
-        actorType: req.profileContext!.actorRole,
-        entityType: "patient_allergy",
-        entityId: created.id,
-        patientProfileId: profileId,
-        correlationId: req.correlationId,
-        context: { matchedIngredient: Boolean(matchedIngredient) },
-      });
-      return created;
-    });
-    // Allergy changes trigger safety re-evaluation (docs/09).
-    await this.safety.evaluate(profileId, "allergy_added");
-    return allergy;
-  }
-
-  @Get("current/conditions")
-  async conditions(@Req() req: ApiRequest) {
-    const { profileId } = await this.access.require(req, "view_profile");
-    const items = await this.prisma.patientCondition.findMany({
-      where: { patientProfileId: profileId, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-    });
-    return { items };
-  }
-
-  @Post("current/conditions")
-  async addCondition(@Body() body: unknown, @Req() req: ApiRequest) {
-    const { profileId } = await this.access.require(req, "edit_profile");
-    const input = parseWith(conditionSchema, body);
-    return this.prisma.$transaction(async (tx) => {
-      const created = await tx.patientCondition.create({
-        data: { ...input, patientProfileId: profileId, recordedByUserId: req.auth!.userId },
-      });
-      await writeAudit(tx, {
-        action: "condition.created",
-        actorUserId: req.auth!.userId,
-        actorType: req.profileContext!.actorRole,
-        entityType: "patient_condition",
-        entityId: created.id,
-        patientProfileId: profileId,
-        correlationId: req.correlationId,
-      });
-      return created;
-    });
-  }
 }

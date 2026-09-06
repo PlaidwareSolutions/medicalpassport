@@ -1,7 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { PrismaService } from "../../common/prisma.service";
-import { evaluateSafety, type AllergySnapshot, type MedicationSnapshot, type RawFinding } from "./safety-rules";
+import {
+  evaluateSafety,
+  type AllergySnapshot,
+  type InstructionSnapshot,
+  type MedicationSnapshot,
+  type RawFinding,
+} from "./safety-rules";
 
 const APP_VERSION = "0.1.0-dev";
 
@@ -21,12 +27,23 @@ export class SafetyEvaluationService {
         product: { include: { classifications: true, ingredients: { include: { ingredient: true } } } },
         instructions: { orderBy: { createdAt: "asc" } },
         schedule: true,
+        // P2-3: the prescription record (and its doctor) a medicine was
+        // recorded against — evidence for the multi-prescription rule.
+        prescription: { include: { practitioner: true } },
       },
     });
     const allergies = await this.prisma.patientAllergy.findMany({
       where: { patientProfileId: profileId, active: true, deletedAt: null },
     });
 
+    const toInstruction = (i: (typeof medications)[number]["instructions"][number]): InstructionSnapshot => ({
+      id: i.id,
+      doseQuantity: Number(i.doseQuantity),
+      doseUnit: i.doseUnit,
+      frequencyCode: i.frequencyCode,
+      pattern: i.pattern,
+      originalText: i.originalText,
+    });
     const medSnapshots: MedicationSnapshot[] = medications.map((m) => {
       const first = m.instructions[0];
       const current = m.instructions.find((i) => i.supersededAt === null);
@@ -40,12 +57,16 @@ export class SafetyEvaluationService {
         classIds: m.product?.classifications.map((c) => c.classId) ?? [],
         isPrn: m.isPrn,
         hasActiveSchedule: m.schedule?.status === "active",
-        firstInstruction: first
-          ? { doseQuantity: Number(first.doseQuantity), frequencyCode: first.frequencyCode, pattern: first.pattern }
-          : undefined,
-        currentInstruction: current
-          ? { doseQuantity: Number(current.doseQuantity), frequencyCode: current.frequencyCode, pattern: current.pattern }
-          : undefined,
+        firstInstruction: first ? toInstruction(first) : undefined,
+        currentInstruction: current ? toInstruction(current) : undefined,
+        prescription:
+          m.prescription && m.prescription.deletedAt === null
+            ? {
+                id: m.prescription.id,
+                prescribedAt: m.prescription.prescribedAt ? m.prescription.prescribedAt.toISOString().slice(0, 10) : null,
+                practitionerName: m.prescription.practitioner?.displayName ?? null,
+              }
+            : undefined,
       };
     });
     const allergySnapshots: AllergySnapshot[] = allergies.map((a) => ({

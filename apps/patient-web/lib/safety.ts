@@ -24,14 +24,18 @@ export async function recordFindingAction(findingId: string, action: string, not
   return res;
 }
 
-/** Fills the {medicines}/{ingredient}/{allergy}/{medicine} params from `detail`. */
+/** Fills the {medicines}/{ingredient}/{allergy}/{medicine}/{prescriptions}/{instructions} params from `detail`. */
 export function findingExplanationParams(detail: Record<string, unknown> | null): Record<string, string> {
   if (!detail) return {};
   const names = Array.isArray(detail.medicationNames) ? (detail.medicationNames as string[]) : [];
+  const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
   return {
     medicines: names.join(" + "),
     ingredient: typeof detail.ingredientName === "string" ? detail.ingredientName : "",
     allergy: typeof detail.allergyLabel === "string" ? detail.allergyLabel : "",
     medicine: typeof detail.medicationName === "string" ? detail.medicationName : "",
+    // Phase 2 rules (packages/clinical-rules): pre-rendered, verbatim labels.
+    prescriptions: strings(detail.prescriptionLabels).join("; "),
+    instructions: strings(detail.instructionTexts).join(" / "),
   };
 }

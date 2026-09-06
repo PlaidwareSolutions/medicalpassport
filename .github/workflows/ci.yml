@@ -80,6 +80,13 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # OpenAPI contract gate (ADR-V2-013, docs_v2/13 §2): regenerates the
+      # spec from the routes + Zod DTOs and fails on any diff against the
+      # committed apps/api/openapi.json — a contract change must be
+      # committed (and therefore reviewed) alongside the code that made it.
+      - name: OpenAPI contract check
+        run: pnpm --filter @medpass/api openapi:check
+
       - name: Seed (sample catalog)
         run: pnpm --filter @medpass/database seed
 

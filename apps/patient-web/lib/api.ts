@@ -29,10 +29,40 @@ function tryRefresh(): Promise<boolean> {
   return refreshInFlight;
 }
 
+// Step-up (ADR-V2-012): a guarded endpoint's `403 step_up_required` opens
+// the "Confirm it's you" sheet, which `StepUpProvider` registers here once
+// it is mounted. Same shape as tryRefresh — concurrent guarded calls (a
+// share and a caregiver change racing each other) share one sheet and one
+// answer instead of stacking prompts; without a mounted provider (SSR, or
+// a test that never rendered one) the 403 simply surfaces to the caller.
+type StepUpResolver = () => Promise<boolean>;
+let stepUpResolver: StepUpResolver | undefined;
+let stepUpInFlight: Promise<boolean> | undefined;
+
+/** Registered by `StepUpProvider`; pass undefined on unmount. */
+export function setStepUpResolver(resolver: StepUpResolver | undefined): void {
+  stepUpResolver = resolver;
+}
+
+function requestStepUp(): Promise<boolean> {
+  if (!stepUpResolver) return Promise.resolve(false);
+  if (!stepUpInFlight) {
+    stepUpInFlight = stepUpResolver()
+      .catch(() => false)
+      .finally(() => {
+        stepUpInFlight = undefined;
+      });
+  }
+  return stepUpInFlight;
+}
+
 export const api = new ApiClient({
   baseUrl: API_BASE_URL,
   onUnauthorized: tryRefresh,
+  onStepUpRequired: requestStepUp,
 });
+
+export { isStepUpRequired } from "@medpass/api-client";
 
 const PROFILE_STORAGE_KEY = "medpass_profile_id";
 

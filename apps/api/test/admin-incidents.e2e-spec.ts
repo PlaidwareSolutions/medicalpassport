@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 import { hashPassword, newOpaqueToken, hashSessionToken } from "../src/common/crypto";
@@ -109,6 +110,7 @@ describe("Admin incidents e2e", () => {
       .expect(201);
     const profileId = profile.body.id;
 
+    await stepUp(app.getHttpServer(), token); // ADR-V2-012
     const share = await request(app.getHttpServer())
       .post("/v1/profiles/current/shares")
       .set("authorization", `Bearer ${token}`)

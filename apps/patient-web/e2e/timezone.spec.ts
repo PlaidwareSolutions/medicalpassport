@@ -25,7 +25,10 @@ test("a viewer in Chicago sees the patient-time banner with the Indian wall cloc
   const now = new Date();
   const aMinuteAgo = new Date(now.getTime() - 60_000);
   const text = (await banner.first().textContent()) ?? "";
-  expect(text).toMatch(new RegExp(`(${istTimeString(now).source})|(${istTimeString(aMinuteAgo).source})`));
+  // Case-insensitive: the app formats with the browser's default locale and
+  // this helper with Node's, and the two can disagree on "am" vs "AM" (e.g.
+  // a Windows machine whose system locale is en-IN while Chromium is en-US).
+  expect(text).toMatch(new RegExp(`(${istTimeString(now).source})|(${istTimeString(aMinuteAgo).source})`, "i"));
 });
 
 test("timeline dose times render on the patient's wall clock, not the viewer's", async ({ page }) => {

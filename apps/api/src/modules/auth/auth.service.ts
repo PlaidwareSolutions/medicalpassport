@@ -7,6 +7,7 @@ import { normalizeAcquisitionSource } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
 import {
+  decryptField,
   encryptField,
   generateOtpCode,
   hashOtp,
@@ -430,5 +431,99 @@ export class AuthService {
       lastSeenAt: d.lastSeenAt,
       createdAt: d.createdAt,
     }));
+  }
+
+  /**
+   * ADR-V2-012 step-up, part 1: send a fresh code to the signed-in user's own
+   * number. Shares the per-number send limits with login so a step-up loop
+   * cannot be used to spam a phone. Never takes a phone from the client.
+   */
+  async requestStepUp(userId: string, ip: string | undefined, correlationId?: string): Promise<void> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const digest = user.phoneDigest;
+    const hourAgo = new Date(Date.now() - 3_600_000);
+    const recent = await this.prisma.otpAttempt.findMany({
+      where: { phoneDigest: digest, createdAt: { gt: hourAgo } },
+      orderBy: { createdAt: "desc" },
+    });
+    const totalSends = recent.reduce((n, a) => n + a.sentCount, 0);
+    if (totalSends >= OTP_MAX_SENDS_PER_HOUR) {
+      throw new ApiProblem(ERROR_CODES.OTP_RESEND_LIMIT, "Too many codes requested. Try again later.", 429);
+    }
+    const newest = recent[0];
+    if (newest && Date.now() - newest.lastSentAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+      throw new ApiProblem(ERROR_CODES.OTP_RESEND_LIMIT, "Please wait before requesting another code", 429);
+    }
+
+    const code = generateOtpCode();
+    await this.prisma.otpAttempt.create({
+      data: {
+        phoneDigest: digest,
+        otpHash: hashOtp(code),
+        purpose: "step_up",
+        expiresAt: new Date(Date.now() + OTP_TTL_MS),
+        ipDigest: ip ? sha256Hex(ip) : null,
+      },
+    });
+    await this.otpSender.sendOtp(decryptField(user.phoneCiphertext), code, user.preferredLocale ?? "en");
+    await writeAudit(this.prisma, {
+      action: "auth.step_up_requested",
+      actorType: "patient",
+      actorUserId: userId,
+      correlationId,
+    });
+  }
+
+  /**
+   * ADR-V2-012 step-up, part 2: verify the code and stamp the *current*
+   * session (not the user — another device's session stays un-elevated).
+   */
+  async verifyStepUp(userId: string, sessionId: string, code: string, correlationId?: string): Promise<Date> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const attempt = await this.prisma.otpAttempt.findFirst({
+      where: { phoneDigest: user.phoneDigest, consumedAt: null, invalidatedAt: null, purpose: "step_up" },
+      orderBy: { createdAt: "desc" },
+    });
+    const fail = async (errCode: "otp_invalid" | "otp_expired" | "otp_locked", title: string, status: number) => {
+      await writeAudit(this.prisma, {
+        action: "auth.step_up_failed",
+        actorType: "patient",
+        actorUserId: userId,
+        correlationId,
+        context: { reason: errCode },
+      });
+      throw new ApiProblem(ERROR_CODES[errCode.toUpperCase() as "OTP_INVALID"], title, status);
+    };
+    if (!attempt) await fail("otp_invalid", "That code is not correct. Please check and try again.", 400);
+    if (attempt!.expiresAt < new Date()) {
+      await fail("otp_expired", "That code has expired. Please request a new one.", 400);
+    }
+    if (attempt!.verifyAttempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+      await fail("otp_locked", "Too many attempts. Please request a new code later.", 423);
+    }
+    await this.prisma.otpAttempt.update({
+      where: { id: attempt!.id },
+      data: { verifyAttempts: { increment: 1 } },
+    });
+    if (!verifyOtp(code, attempt!.otpHash)) {
+      if (attempt!.verifyAttempts + 1 >= OTP_MAX_VERIFY_ATTEMPTS) {
+        await this.prisma.otpAttempt.update({ where: { id: attempt!.id }, data: { invalidatedAt: new Date() } });
+      }
+      await fail("otp_invalid", "That code is not correct. Please check and try again.", 400);
+    }
+
+    const verifiedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.otpAttempt.update({ where: { id: attempt!.id }, data: { consumedAt: verifiedAt } });
+      await tx.session.update({ where: { id: sessionId }, data: { stepUpVerifiedAt: verifiedAt } });
+      await writeAudit(tx, {
+        action: "auth.step_up_verified",
+        actorType: "patient",
+        actorUserId: userId,
+        correlationId,
+        context: { sessionId },
+      });
+    });
+    return verifiedAt;
   }
 }

@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Req } from
 import { createPractitionerSchema, mergePractitionerSchema, updatePractitionerSchema } from "@medpass/validation";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
+import { rejectClientProvenance } from "../../common/provenance";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { PractitionersService } from "./practitioners.service";
 
@@ -26,6 +27,7 @@ export class PractitionersController {
 
   @Post("profiles/current/practitioners")
   async create(@Body() body: unknown, @Req() req: ApiRequest) {
+    rejectClientProvenance(body);
     const { profileId, actorRole } = await this.access.require(req, "edit_profile");
     const input = parseWith(createPractitionerSchema, body);
     return this.practitioners.create(profileId, input, {
@@ -37,6 +39,7 @@ export class PractitionersController {
 
   @Patch("practitioners/:id")
   async update(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+    rejectClientProvenance(body);
     const { profileId, actorRole } = await this.access.require(req, "edit_profile");
     const input = parseWith(updatePractitionerSchema, body);
     return this.practitioners.update(profileId, id, input, {

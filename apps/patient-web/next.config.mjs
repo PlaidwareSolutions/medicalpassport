@@ -14,6 +14,10 @@ const withSerwist = withSerwistInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // A second instance (e.g. the e2e suite's own `next build`/`start` on
+  // another port while a developer's `next dev` keeps :3000) must not share
+  // `.next/` with the running one — point it at its own output directory.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@medpass/ui-web", "@medpass/design-tokens"],
   // SEC-2 (Session 15): suppress the framework-identifying X-Powered-By header.
   poweredByHeader: false,

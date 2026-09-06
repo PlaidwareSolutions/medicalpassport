@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 
@@ -92,6 +93,7 @@ describe("Caregiver alerts e2e", () => {
 
     // B: view-only, never receives the escalation and shouldn't see the alert list either.
     tokenB = await signIn(PHONE_B);
+    await stepUp(app.getHttpServer(), tokenA); // ADR-V2-012
     const inviteB = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/caregivers"))
       .send({ phone: PHONE_B, scopes: ["view_medications"], relationship: "child" })
       .expect(201);

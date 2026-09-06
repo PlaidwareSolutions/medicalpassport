@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { cssVariables } from "@medpass/design-tokens";
 import { InstallPromptListener } from "../components/InstallPromptListener";
 import { ProfileKeyedContent } from "../components/ProfileKeyedContent";
+import { StepUpProvider } from "../components/StepUpProvider";
 import { I18nProvider } from "../lib/i18n";
 import { SessionProvider } from "../lib/session";
 
@@ -41,6 +42,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <I18nProvider>
           <SessionProvider>
             <ProfileKeyedContent>{children}</ProfileKeyedContent>
+            {/* Step-up sheet (ADR-V2-012) — outside ProfileKeyedContent so a profile switch can't unmount it mid-verify. */}
+            <StepUpProvider />
           </SessionProvider>
         </I18nProvider>
       </body>

@@ -3,15 +3,15 @@ import { writeAudit } from "@medpass/audit";
 import { CLINICAL_CONTENT_KINDS, ERROR_CODES, type ClinicalContentKind, type Locale } from "@medpass/domain";
 import type { CreateMedicationInput, RecordRefillInput, UpdateMedicationInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
+import { emitMedicationChangeEvent } from "../../common/health-events";
 import { PrismaService } from "../../common/prisma.service";
+import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
 import { PractitionersService } from "../practitioners/practitioners.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 import { ClinicalContentLookupService, CLINICAL_CONTENT_DTO_KEYS, type ClinicalContentEntry } from "../clinical-content/clinical-content-lookup.service";
 
-interface Actor {
-  userId: string;
-  actorRole: "patient" | "caregiver";
+interface Actor extends ProvenanceActor {
   correlationId?: string;
 }
 
@@ -148,8 +148,14 @@ export class MedicationsService {
         practitionerId = prescription.practitionerId;
       }
 
+      // Provenance (ADR-V2-002): a medicine confirmed off an extraction
+      // candidate is OCR-derived and starts unverified; anything typed by
+      // the person saving it is user/caregiver-entered and patient-confirmed.
+      const provenance = stampProvenanceFor(actor, { source: input.source === "extraction" ? "ocr_extracted" : undefined });
+
       const medication = await tx.patientMedication.create({
         data: {
+          ...provenance,
           patientProfileId: profileId,
           productId: input.productId,
           enteredName,
@@ -182,12 +188,13 @@ export class MedicationsService {
               // Every client path reaching here now presents a medicine-type
               // picker, so the unit is a real choice rather than a default.
               doseUnitConfirmedAt: new Date(),
+              ...provenance,
             },
           },
         },
       });
 
-      await tx.medicationChange.create({
+      const change = await tx.medicationChange.create({
         data: {
           patientMedicationId: medication.id,
           change: "created",
@@ -195,6 +202,7 @@ export class MedicationsService {
           actorUserId: actor.userId,
         },
       });
+      await emitMedicationChangeEvent(tx, { profileId, actorType: actor.actorRole, medication, change });
       await writeAudit(tx, {
         action: "medication.created",
         actorUserId: actor.userId,
@@ -290,8 +298,21 @@ export class MedicationsService {
             originalText: current.originalText,
             confirmedByUserId: actor.userId,
             doseUnitConfirmedAt: new Date(),
+            ...stampProvenanceFor(actor),
           },
         });
+        // A corrected unit changes how the dose reads, so it is a real entry
+        // in the medicine's history and on the timeline; a plain confirmation
+        // (below) is not.
+        const change = await tx.medicationChange.create({
+          data: {
+            patientMedicationId: id,
+            change: "dose_unit_confirmed",
+            detail: { from: current.doseUnit, to: doseUnit },
+            actorUserId: actor.userId,
+          },
+        });
+        await emitMedicationChangeEvent(tx, { profileId, actorType: actor.actorRole, medication, change });
       } else {
         await tx.medicationInstruction.update({
           where: { id: current.id },
@@ -372,11 +393,12 @@ export class MedicationsService {
             originalText: input.instruction.originalText,
             confirmedByUserId: actor.userId,
             doseUnitConfirmedAt: new Date(),
+            ...stampProvenanceFor(actor),
           },
         });
       }
 
-      await tx.medicationChange.create({
+      const change = await tx.medicationChange.create({
         data: {
           patientMedicationId: id,
           change: "updated",
@@ -384,6 +406,7 @@ export class MedicationsService {
           actorUserId: actor.userId,
         },
       });
+      await emitMedicationChangeEvent(tx, { profileId, actorType: actor.actorRole, medication, change });
       await writeAudit(tx, {
         action: "medication.updated",
         actorUserId: actor.userId,
@@ -432,9 +455,10 @@ export class MedicationsService {
       if (updated.count === 0) {
         throw new ApiProblem(ERROR_CODES.CONFLICT_ROW_VERSION, "This medicine was changed elsewhere. Reload and retry.", 409);
       }
-      await tx.medicationChange.create({
+      const change = await tx.medicationChange.create({
         data: { patientMedicationId: id, change: "refilled", detail: { quantityOnHand }, actorUserId: actor.userId },
       });
+      await emitMedicationChangeEvent(tx, { profileId, actorType: actor.actorRole, medication, change });
       await writeAudit(tx, {
         action: "medication.refill_recorded",
         actorUserId: actor.userId,

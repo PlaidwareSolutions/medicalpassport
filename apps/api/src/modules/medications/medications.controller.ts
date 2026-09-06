@@ -13,6 +13,8 @@ import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { emitMedicationChangeEvent } from "../../common/health-events";
+import { recordedViaFor } from "../../common/provenance";
 import { IdempotencyService } from "../../common/idempotency.service";
 import { MedicationsService } from "./medications.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
@@ -67,6 +69,7 @@ export class MedicationsController {
           userId: req.auth!.userId,
           actorRole,
           correlationId: req.correlationId,
+          recordedVia: recordedViaFor(req),
         }),
     });
     return result;
@@ -110,6 +113,7 @@ export class MedicationsController {
           userId: req.auth!.userId,
           actorRole,
           correlationId: req.correlationId,
+          recordedVia: recordedViaFor(req),
         }),
     });
     return result;
@@ -130,6 +134,7 @@ export class MedicationsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 
@@ -166,7 +171,7 @@ export class MedicationsController {
       if (updated.count === 0) {
         throw new ApiProblem(ERROR_CODES.CONFLICT_ROW_VERSION, "This medicine was changed elsewhere. Reload and retry.", 409);
       }
-      await tx.medicationChange.create({
+      const change = await tx.medicationChange.create({
         data: {
           patientMedicationId: id,
           change: "status_changed",
@@ -174,6 +179,7 @@ export class MedicationsController {
           actorUserId: req.auth!.userId,
         },
       });
+      await emitMedicationChangeEvent(tx, { profileId, actorType: actorRole, medication, change });
       await writeAudit(tx, {
         action: "medication.status_changed",
         actorUserId: req.auth!.userId,
@@ -225,6 +231,7 @@ export class MedicationsController {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
     });
   }
 
@@ -259,9 +266,10 @@ export class MedicationsController {
         where: { patientMedicationId: id, kind: { in: ["refill", "completion"] }, status: { in: ["pending", "done"] } },
         data: { status: "cancelled" },
       });
-      await tx.medicationChange.create({
+      const change = await tx.medicationChange.create({
         data: { patientMedicationId: id, change: "deleted", actorUserId: req.auth!.userId },
       });
+      await emitMedicationChangeEvent(tx, { profileId, actorType: actorRole, medication, change });
       await writeAudit(tx, {
         action: "medication.deleted",
         actorUserId: req.auth!.userId,

@@ -7,6 +7,8 @@ export const ERROR_CODES = {
   UNAUTHENTICATED: "unauthenticated",
   SESSION_REVOKED: "session_revoked",
   FORBIDDEN: "forbidden",
+  /** ADR-V2-012: the session must re-verify (OTP/TOTP) before this action. */
+  STEP_UP_REQUIRED: "step_up_required",
   CAREGIVER_SCOPE_MISSING: "caregiver_scope_missing",
   NOT_FOUND: "not_found",
   CONFLICT_ROW_VERSION: "conflict_row_version",
@@ -29,6 +31,8 @@ export const ERROR_CODES = {
   SELF_ACCOUNT_MINOR: "self_account_minor",
   /** A child dependent requires an explicit parent/lawful-guardian attestation. */
   GUARDIAN_ATTESTATION_REQUIRED: "guardian_attestation_required",
+  /** ADR-V2-002: clients never set provenance (source, verification, recordedVia, …); services stamp it. */
+  PROVENANCE_NOT_CLIENT_SETTABLE: "provenance_not_client_settable",
   INTERNAL: "internal_error",
 } as const;
 

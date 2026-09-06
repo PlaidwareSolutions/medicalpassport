@@ -12,9 +12,14 @@ const WORKER_DIR = resolve(__dirname, "../../../worker");
  * (apps/api/.dev-data/object-storage), so the worker reads the same files.
  */
 export async function startWorker(objectStorageRoot: string): Promise<ChildProcessWithoutNullStreams> {
-  const build = spawnSync("pnpm", ["--filter", "@medpass/worker", "build"], {
+  // On Windows pnpm is a `pnpm.cmd` shim, which spawnSync cannot execute
+  // without a shell (status comes back null with ENOENT/EINVAL). CI runs on
+  // Linux and is unaffected; this keeps the suite runnable on a dev laptop.
+  const isWindows = process.platform === "win32";
+  const build = spawnSync(isWindows ? "pnpm.cmd" : "pnpm", ["--filter", "@medpass/worker", "build"], {
     cwd: resolve(__dirname, "../../.."),
     encoding: "utf8",
+    shell: isWindows,
   });
   if (build.status !== 0) {
     throw new Error(`worker build failed:\n${build.stdout}\n${build.stderr}`);

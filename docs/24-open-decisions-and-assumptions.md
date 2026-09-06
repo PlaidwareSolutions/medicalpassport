@@ -8,8 +8,8 @@ Living register. Per spec §29: when uncertain we state the uncertainty, documen
 |---|---|---|
 | ADR-1 | Turborepo + **pnpm** workspaces | Spec mandates Turborepo; pnpm is the conventional, disk-efficient companion |
 | ADR-2 | Next.js App Router for both web apps; **Serwist** for the service worker | Maintained successor to next-pwa; full Workbox control for PHI-exclusion cache rules |
-| ADR-3 | NestJS + **BullMQ** on Redis for jobs | Spec mandates NestJS + Redis queues; BullMQ is the standard, supports retries/backoff/DLQ/concurrency controls |
-| ADR-4 | **Prisma** ORM, migrations via `prisma migrate` run as a Railway pre-deploy step with a dedicated `migrator` role | Spec mandates Prisma; controlled migrations + least privilege |
+| ADR-3 | NestJS + **BullMQ** on Redis for jobs | **Superseded by ADR-V2-006** (`docs_v2/adr/`): the shipped queue is Postgres `background_jobs` with `SKIP LOCKED`; no Redis exists in any environment |
+| ADR-4 | **Prisma** ORM, migrations via `prisma migrate` run as a Railway pre-deploy step with a dedicated `migrator` role | **Partially superseded by ADR-V2-010**: migrations do run as the api pre-deploy step, but with the app `DATABASE_URL`; the dedicated migrator/read-only roles are V2 ticket 0.22 |
 | ADR-5 | Opaque server-side session tokens (hashed) over JWT | Immediate revocation is a hard requirement (caregiver revocation, session revocation); JWT statelessness fights that |
 | ADR-6 | **Zod** shared validation (`packages/validation`) | One schema source for client + server + offline payloads |
 | ADR-7 | UUIDv7 primary keys | Time-ordered (index locality) + opaque |

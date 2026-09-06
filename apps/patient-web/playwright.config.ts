@@ -7,6 +7,14 @@ import { defineConfig } from "@playwright/test";
  * OTP_TRANSPORT=log with the fixed dev code) and the built Next app on
  * :3000 — not mocks, matching the repo's live-verification standard.
  */
+// E2E_API_URL (also honoured by global-setup and the specs) points the
+// suite at an API other than the default :4000 — e.g. a freshly built one
+// on another port while a developer's older instance keeps :4000.
+const API_URL = process.env.E2E_API_URL ?? "http://localhost:4000";
+// E2E_BASE_URL points the browser (and the webServer readiness probe) at a
+// patient-web instance other than the default :3000.
+const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
@@ -18,7 +26,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["github"]] : [["list"]],
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    baseURL: BASE_URL,
     storageState: "e2e/.auth/storage-state.json",
     // A CI-only failure is undebuggable from list output alone; the trace
     // carries DOM snapshots, console, and network for the retry attempt.
@@ -30,14 +38,14 @@ export default defineConfig({
       // workflow env is already populated and no .env file exists.
       command: "node --env-file-if-exists=apps/api/.env apps/api/dist/main.js",
       cwd: "../..",
-      url: "http://localhost:4000/healthz",
+      url: `${API_URL}/healthz`,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
     {
       command: "pnpm --filter @medpass/patient-web start",
       cwd: "../..",
-      url: "http://localhost:3000",
+      url: BASE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
