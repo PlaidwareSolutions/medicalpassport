@@ -53,7 +53,7 @@ Scoring: likelihood L1–5 × impact I1–5.
 Surfaced by the new worker test suite on 2026-09-06:
 
 1. **Fixed 2026-09-06.** `PDF_TEXT_ENGINE_VERSION`/`OCR_ENGINE_VERSION` were hand-pinned (1.1.1 vs installed 1.1.4); both now read the installed package version so extraction provenance cannot drift.
-2. **Open (P2, needs a `retryAfter` column).** The job runner has no retry backoff: a failing job is retried on the next 500 ms poll until it dead-letters.
+2. **Fixed 2026-09-06.** Retry backoff: `failJob` sets `retryAfter` (30 s doubling to a 15 m cap, ±25 % jitter) and `claimNextJob` skips queued rows whose `retry_after` is in the future; replay and re-process paths clear it.
 3. **Fixed 2026-09-06.** Stale-lock recovery: `claimNextJob` also reclaims rows `running` for more than 15 minutes (`STALE_LOCK_MINUTES`), and `shutdown()` now waits up to 60 s for the in-flight job.
 4. **Fixed 2026-09-06.** OCR worker poison: a failed `createWorker` no longer stays cached; `terminateOcrWorker` tolerates a never-started worker.
 5. **Open (P3 with the extraction targets).** OCR engine confidence is discarded; candidates carry fixed rule confidences.

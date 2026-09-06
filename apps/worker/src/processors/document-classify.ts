@@ -169,7 +169,7 @@ async function enqueueExtract(
     // silently returning the previous run's candidates.
     await tx.backgroundJob.update({
       where: { id: existing.id },
-      data: { status: "queued", lockedAt: null, lockedBy: null, attempts: 0, completedAt: null, errorDigest: null },
+      data: { status: "queued", lockedAt: null, lockedBy: null, attempts: 0, completedAt: null, errorDigest: null, retryAfter: null },
     });
     return;
   }

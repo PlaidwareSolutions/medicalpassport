@@ -30,6 +30,24 @@ export const WORKER_ID = `${process.pid}-${randomUUID().slice(0, 8)}`;
  */
 export const STALE_LOCK_MINUTES = 15;
 
+/**
+ * Retry backoff (docs_v2/16 §3 defect 2). A failed job used to be reclaimed
+ * on the very next 500 ms poll, so a transient outage (OCR engine warming
+ * up, object store hiccup) burned every attempt in under two seconds and
+ * dead-lettered work that would have succeeded a minute later. Delay grows
+ * 30 s → 60 s → 2 m → 4 m … capped at 15 m, with ±25 % jitter so a burst of
+ * failures does not come back as a burst.
+ */
+export const RETRY_BASE_MS = 30_000;
+export const RETRY_MAX_MS = 15 * 60_000;
+
+export function retryDelayMs(attempt: number, random: () => number = Math.random): number {
+  const exponent = Math.max(0, attempt - 1);
+  const base = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** exponent);
+  const jitter = 1 + (random() * 2 - 1) * 0.25;
+  return Math.round(base * jitter);
+}
+
 export async function claimNextJob(prisma: PrismaClient, queue: BackgroundJobQueue): Promise<ClaimedJob | null> {
   const rows = await prisma.$queryRaw<
     Array<{ id: string; queue: BackgroundJobQueue; payload: unknown; attempts: number; maxAttempts: number; correlationId: string | null }>
@@ -40,7 +58,7 @@ export async function claimNextJob(prisma: PrismaClient, queue: BackgroundJobQue
       SELECT id FROM background_jobs
       WHERE queue = ${queue}::"BackgroundJobQueue"
         AND (
-          status = 'queued'
+          (status = 'queued' AND (retry_after IS NULL OR retry_after <= now()))
           OR (status = 'running' AND locked_at < now() - (${STALE_LOCK_MINUTES}::int * interval '1 minute'))
         )
       ORDER BY created_at ASC
@@ -59,8 +77,16 @@ export async function completeJob(prisma: PrismaClient, jobId: string, result: u
   });
 }
 
-/** Retries until maxAttempts, then moves the job to the dead-letter table — never silently dropped. */
-export async function failJob(prisma: PrismaClient, job: ClaimedJob, errorDigest: string): Promise<void> {
+/**
+ * Retries (with backoff) until maxAttempts, then moves the job to the
+ * dead-letter table — never silently dropped.
+ */
+export async function failJob(
+  prisma: PrismaClient,
+  job: ClaimedJob,
+  errorDigest: string,
+  now: () => Date = () => new Date(),
+): Promise<void> {
   if (job.attempts >= job.maxAttempts) {
     await prisma.$transaction([
       prisma.backgroundJob.update({
@@ -74,7 +100,13 @@ export async function failJob(prisma: PrismaClient, job: ClaimedJob, errorDigest
   } else {
     await prisma.backgroundJob.update({
       where: { id: job.id },
-      data: { status: "queued", lockedAt: null, lockedBy: null, errorDigest },
+      data: {
+        status: "queued",
+        lockedAt: null,
+        lockedBy: null,
+        errorDigest,
+        retryAfter: new Date(now().getTime() + retryDelayMs(job.attempts)),
+      },
     });
   }
 }

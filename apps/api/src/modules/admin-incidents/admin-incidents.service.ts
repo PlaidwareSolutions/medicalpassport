@@ -29,7 +29,7 @@ export class AdminIncidentsService {
     await this.prisma.$transaction(async (tx) => {
       await tx.backgroundJob.update({
         where: { id: dlq.originalJobId },
-        data: { status: "queued", attempts: 0, lockedAt: null, lockedBy: null, errorDigest: null, startedAt: null, completedAt: null },
+        data: { status: "queued", attempts: 0, lockedAt: null, lockedBy: null, errorDigest: null, startedAt: null, completedAt: null, retryAfter: null },
       });
       const result = await tx.deadLetterJob.updateMany({ where: { id: dlq.id, replayedAt: null }, data: { replayedAt: new Date() } });
       if (result.count === 0) throw new ApiProblem(ERROR_CODES.INVALID_STATUS_TRANSITION, "This job has already been replayed", 409);

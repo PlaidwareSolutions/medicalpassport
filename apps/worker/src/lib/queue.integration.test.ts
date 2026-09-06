@@ -82,8 +82,8 @@ describe.skipIf(!DATABASE_URL)("queue runner (postgres)", () => {
   it("claim → retry → dead-letter after maxAttempts, never silently dropped", async () => {
     const row = await enqueue({ maxAttempts: 2 });
 
-    // Attempt 1 fails: back to queued with the lock cleared (no backoff —
-    // the row is immediately claimable again).
+    // Attempt 1 fails: back to queued with the lock cleared and a backoff,
+    // so the row is NOT claimable on the next poll.
     const first = await claimNextJob(prisma, "ocr_extraction");
     expect(first?.id).toBe(row.id);
     expect(first?.attempts).toBe(1);
@@ -95,9 +95,19 @@ describe.skipIf(!DATABASE_URL)("queue runner (postgres)", () => {
     expect(requeued.lockedBy).toBeNull();
     expect(requeued.attempts).toBe(1);
     expect(requeued.errorDigest).toBe("attempt one failed");
+    expect(requeued.retryAfter).toBeInstanceOf(Date);
+    expect(requeued.retryAfter!.getTime()).toBeGreaterThan(Date.now() + 20_000);
     await expect(prisma.deadLetterJob.count({ where: { originalJobId: row.id } })).resolves.toBe(0);
 
-    // Attempt 2 (== maxAttempts) fails: terminal.
+    // While retry_after is in the future the claim SQL must skip this row.
+    // Read the row back instead of claiming again: a second claim on the
+    // shared local database could grab a real queued job.
+    const stillWaiting = await prisma.backgroundJob.findUniqueOrThrow({ where: { id: row.id } });
+    expect(stillWaiting.status).toBe("queued");
+    expect(stillWaiting.lockedBy).toBeNull();
+
+    // Backoff elapsed (simulated): attempt 2 (== maxAttempts) fails: terminal.
+    await prisma.backgroundJob.update({ where: { id: row.id }, data: { retryAfter: new Date(0) } });
     const second = await claimNextJob(prisma, "ocr_extraction");
     expect(second?.id).toBe(row.id);
     expect(second?.attempts).toBe(2);

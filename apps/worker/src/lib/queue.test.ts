@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PrismaClient } from "@medpass/database";
-import { WORKER_ID, completeJob, failJob, type ClaimedJob } from "./queue";
+import { RETRY_BASE_MS, RETRY_MAX_MS, WORKER_ID, completeJob, failJob, retryDelayMs, type ClaimedJob } from "./queue";
 
 // The retry / dead-letter decision is pure logic over the claimed row —
 // exercised here against a fake client so it runs without Postgres. The
@@ -52,10 +52,10 @@ describe("failJob — retry vs dead-letter decision", () => {
     await failJob(client, job({ attempts: 1, maxAttempts: 3 }), "boom");
 
     expect(backgroundJob.update).toHaveBeenCalledTimes(1);
-    expect(backgroundJob.update).toHaveBeenCalledWith({
-      where: { id: "11111111-1111-4111-8111-111111111111" },
-      data: { status: "queued", lockedAt: null, lockedBy: null, errorDigest: "boom" },
-    });
+    const call = backgroundJob.update.mock.calls[0]?.[0] as { where: unknown; data: Record<string, unknown> };
+    expect(call.where).toEqual({ id: "11111111-1111-4111-8111-111111111111" });
+    expect(call.data).toMatchObject({ status: "queued", lockedAt: null, lockedBy: null, errorDigest: "boom" });
+    expect(call.data.retryAfter).toBeInstanceOf(Date);
     expect(deadLetterJob.create).not.toHaveBeenCalled();
     expect($transaction).not.toHaveBeenCalled();
   });
@@ -67,14 +67,27 @@ describe("failJob — retry vs dead-letter decision", () => {
     expect(deadLetterJob.create).not.toHaveBeenCalled();
   });
 
-  it("re-queues immediately — there is no backoff delay between attempts", async () => {
-    // Pinned as current behaviour: a transient failure is retried on the
-    // very next poll (~500 ms), not after an increasing delay.
+  it("re-queues with a backoff so a transient failure is not retried on the next poll", async () => {
+    // docs_v2/16 §3 defect 2. The first retry waits about 30 s; the exact
+    // delay carries jitter, so assert the window rather than the instant.
     const { client, backgroundJob } = fakePrisma();
-    await failJob(client, job({ attempts: 1, maxAttempts: 3 }), "boom");
+    const now = new Date("2026-09-06T10:00:00Z");
+    await failJob(client, job({ attempts: 1, maxAttempts: 3 }), "boom", () => now);
     const data = (backgroundJob.update.mock.calls[0]?.[0] as { data: Record<string, unknown> }).data;
     expect(data.lockedAt).toBeNull();
-    expect(Object.keys(data).sort()).toEqual(["errorDigest", "lockedAt", "lockedBy", "status"]);
+    const retryAfter = data.retryAfter as Date;
+    const delay = retryAfter.getTime() - now.getTime();
+    expect(delay).toBeGreaterThanOrEqual(RETRY_BASE_MS * 0.75);
+    expect(delay).toBeLessThanOrEqual(RETRY_BASE_MS * 1.25);
+    expect(Object.keys(data).sort()).toEqual(["errorDigest", "lockedAt", "lockedBy", "retryAfter", "status"]);
+  });
+
+  it("dead-letters without a retryAfter — a terminal row must never look claimable", async () => {
+    const { client, backgroundJob } = fakePrisma();
+    await failJob(client, job({ attempts: 3, maxAttempts: 3 }), "boom");
+    const data = (backgroundJob.update.mock.calls[0]?.[0] as { data: Record<string, unknown> }).data;
+    expect(data.status).toBe("failed");
+    expect("retryAfter" in data).toBe(false);
   });
 
   it("dead-letters atomically once attempts reach maxAttempts", async () => {
@@ -106,5 +119,28 @@ describe("failJob — retry vs dead-letter decision", () => {
     const { client, deadLetterJob } = fakePrisma();
     await failJob(client, job({ attempts: 1, maxAttempts: 1 }), "boom");
     expect(deadLetterJob.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("retryDelayMs", () => {
+  const noJitter = () => 0.5;
+
+  it("doubles per attempt from the 30 s base", () => {
+    expect(retryDelayMs(1, noJitter)).toBe(30_000);
+    expect(retryDelayMs(2, noJitter)).toBe(60_000);
+    expect(retryDelayMs(3, noJitter)).toBe(120_000);
+    expect(retryDelayMs(4, noJitter)).toBe(240_000);
+  });
+
+  it("caps at 15 minutes however many attempts a job is allowed", () => {
+    expect(retryDelayMs(6, noJitter)).toBe(RETRY_MAX_MS);
+    expect(retryDelayMs(40, noJitter)).toBe(RETRY_MAX_MS);
+  });
+
+  it("jitters by at most ±25 % and never goes negative for odd inputs", () => {
+    expect(retryDelayMs(1, () => 0)).toBe(22_500);
+    expect(retryDelayMs(1, () => 1)).toBe(37_500);
+    expect(retryDelayMs(0, noJitter)).toBe(30_000);
+    expect(retryDelayMs(-3, noJitter)).toBe(30_000);
   });
 });
