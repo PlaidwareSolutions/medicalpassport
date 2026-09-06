@@ -113,7 +113,7 @@ export default function NewDiagnosticReportPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("reports.new_title")} readAloud={[{ text: t("guide.screen.report_new") }]} />
+      <PageHeader title={t("reports.new_title")} readAloud={[{ audio: "screen.report_new" }]} />
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       {busy ? (

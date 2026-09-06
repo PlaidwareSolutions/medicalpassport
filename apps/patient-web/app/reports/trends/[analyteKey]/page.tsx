@@ -54,7 +54,7 @@ export default function ResultTrendPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("trend.title", { name: trend.label })} readAloud={[{ text: t("guide.screen.result_trend") }]} />
+      <PageHeader title={t("trend.title", { name: trend.label })} readAloud={[{ audio: "screen.result_trend" }]} />
 
       {trend.points.length === 0 && trend.unconvertible.length === 0 ? (
         <EmptyState glyph="report" titleKey="reports.history_empty_title" bodyKey="trend.empty_body" cta={{ labelKey: "reports.add", href: "/reports/new" }} />

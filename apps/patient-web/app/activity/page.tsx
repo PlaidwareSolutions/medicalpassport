@@ -42,7 +42,7 @@ export default function ActivityPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("activity.title")} readAloud={[{ text: t("activity.read_aloud") }]} />
+      <PageHeader title={t("activity.title")} readAloud={[{ audio: "screen.activity" }]} />
 
       {error && !items ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}

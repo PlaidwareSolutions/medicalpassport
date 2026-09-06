@@ -85,7 +85,7 @@ export default function ConditionHubPage() {
 
   return (
     <AppShell>
-      <PageHeader title={condition.label} readAloud={[{ text: t("guide.screen.condition_hub") }]} />
+      <PageHeader title={condition.label} readAloud={[{ audio: "screen.condition_hub" }]} />
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
 
       {/*

@@ -22,7 +22,7 @@ export default function DischargeExplanationPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("documents.discharge_title")} readAloud={[{ text: `${t("documents.discharge_body_1")} ${t("documents.discharge_body_2")}` }]} />
+      <PageHeader title={t("documents.discharge_title")} readAloud={[{ audio: "screen.discharge" }]} />
       <Card tone="info" data-testid="discharge-explanation">
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-sm)", textAlign: "center", padding: "var(--space-sm) 0" }}>
           <span style={{ color: "var(--color-primary)" }}>

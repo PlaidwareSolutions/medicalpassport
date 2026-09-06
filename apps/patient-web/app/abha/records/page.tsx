@@ -44,7 +44,7 @@ export default function AbdmRecordsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("abha.records_title")} readAloud={[{ text: `${t("abha.records_title")}. ${t("abha.records_intro")}` }]} />
+      <PageHeader title={t("abha.records_title")} readAloud={[{ audio: "screen.abha_records" }]} />
       <p style={{ margin: "0 0 var(--space-md)" }}>{t("abha.records_intro")}</p>
 
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}

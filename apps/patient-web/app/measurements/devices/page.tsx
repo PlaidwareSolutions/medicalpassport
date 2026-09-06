@@ -81,7 +81,7 @@ export default function MeasurementDevicesPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("device.title")} readAloud={[{ text: t("guide.screen.devices") }]} />
+      <PageHeader title={t("device.title")} readAloud={[{ audio: "screen.devices" }]} />
       <Banner tone="info">{t("device.sync_later")}</Banner>
       {error && !items ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}

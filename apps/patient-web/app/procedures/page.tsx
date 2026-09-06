@@ -55,7 +55,7 @@ export default function ProceduresPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("procedure.title")} readAloud={[{ text: t("guide.screen.procedures") }]} />
+      <PageHeader title={t("procedure.title")} readAloud={[{ audio: "screen.procedures" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 

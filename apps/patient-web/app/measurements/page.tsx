@@ -24,7 +24,7 @@ export default function MeasurementsHubPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("measure.title")} readAloud={[{ text: t("guide.screen.measurements") }]} />
+      <PageHeader title={t("measure.title")} readAloud={[{ audio: "screen.measurements" }]} />
       {error && !items ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}

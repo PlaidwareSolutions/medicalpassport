@@ -98,7 +98,9 @@ export default function CareContextsPage() {
   if (status?.linked === false) {
     return (
       <AppShell>
-        <PageHeader title={t("abha.care_contexts_title")} />
+        {/* The guidance describes what this screen is for, which is true
+            before the ABHA is linked as well — so it speaks here too. */}
+        <PageHeader title={t("abha.care_contexts_title")} readAloud={[{ audio: "screen.abha_care_contexts" }]} />
         <Banner tone="warning">{t("abha.needs_link_first")}</Banner>
         <Link href="/abha">
           <Button fullWidth>{t("abha.back_to_abha")}</Button>
@@ -109,7 +111,7 @@ export default function CareContextsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("abha.care_contexts_title")} readAloud={[{ text: `${t("abha.care_contexts_title")}. ${t("abha.care_contexts_intro")}` }]} />
+      <PageHeader title={t("abha.care_contexts_title")} readAloud={[{ audio: "screen.abha_care_contexts" }]} />
       <p style={{ margin: "0 0 var(--space-md)" }}>{t("abha.care_contexts_intro")}</p>
 
       {error ? <Banner tone="danger">{error}</Banner> : null}

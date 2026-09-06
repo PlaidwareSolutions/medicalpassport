@@ -46,7 +46,7 @@ export default function AbdmConsentsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("abha.consents_title")} readAloud={[{ text: `${t("abha.consents_title")}. ${t("abha.consents_intro")}` }]} />
+      <PageHeader title={t("abha.consents_title")} readAloud={[{ audio: "screen.abha_consents" }]} />
       <p style={{ margin: "0 0 var(--space-sm)" }}>{t("abha.consents_intro")}</p>
       {/* The distinction is the point of this screen — say it, don't imply it. */}
       <Banner tone="info">{t("abha.consents_not_shares")}</Banner>

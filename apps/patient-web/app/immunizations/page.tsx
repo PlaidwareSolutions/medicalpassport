@@ -69,7 +69,7 @@ export default function ImmunizationsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("immunization.title")} readAloud={[{ text: t("guide.screen.immunizations") }]} />
+      <PageHeader title={t("immunization.title")} readAloud={[{ audio: "screen.immunizations" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 

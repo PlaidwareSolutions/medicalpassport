@@ -154,7 +154,7 @@ export default function CreateSharePage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("share.new_title")} readAloud={[{ text: t("share.new_read_aloud") }]} />
+      <PageHeader title={t("share.new_title")} readAloud={[{ audio: "screen.share_new" }]} />
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       {/* WHAT */}

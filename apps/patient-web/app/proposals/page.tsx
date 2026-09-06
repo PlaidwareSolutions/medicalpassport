@@ -26,7 +26,7 @@ export default function ProposalsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("proposals.title")} readAloud={[{ text: `${t("proposals.title")}. ${t("guide.screen.proposals")}` }]} />
+      <PageHeader title={t("proposals.title")} readAloud={[{ audio: "screen.proposals" }]} />
       <p style={{ margin: "0 0 var(--space-md)" }}>{t("proposals.intro")}</p>
 
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}

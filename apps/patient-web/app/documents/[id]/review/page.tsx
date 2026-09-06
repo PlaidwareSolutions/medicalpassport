@@ -360,7 +360,7 @@ export default function ReviewDocumentPage() {
   if (groups.length === 0) {
     return (
       <AppShell>
-        <PageHeader title={t("documents.review_title")} readAloud={[{ text: t("guide.screen.documents_review") }]} />
+        <PageHeader title={t("documents.review_title")} readAloud={[{ audio: "screen.documents_review" }]} />
         <Card tone="info">
           <strong>{t("documents.nothing_found_title")}</strong>
           <span>{t("documents.nothing_found_body")}</span>
@@ -385,7 +385,7 @@ export default function ReviewDocumentPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("documents.review_title")} readAloud={[{ text: t("guide.screen.documents_review") }]} style={{ margin: "0 0 var(--space-xs)" }} />
+      <PageHeader title={t("documents.review_title")} readAloud={[{ audio: "screen.documents_review" }]} style={{ margin: "0 0 var(--space-xs)" }} />
       <p style={{ color: "var(--color-text-muted)", margin: "0 0 var(--space-md)" }}>{t("documents.review_intro")}</p>
 
       {saveError ? <Banner tone="danger">{saveError}</Banner> : null}
@@ -665,7 +665,7 @@ function DoneView({ documentId, groups, t }: { documentId: string; groups: Candi
 
   return (
     <AppShell>
-      <PageHeader title={t("documents.done_title")} readAloud={[{ text: t("documents.done_body") }]} />
+      <PageHeader title={t("documents.done_title")} readAloud={[{ audio: "screen.documents_done" }]} />
       <Card tone="info" data-testid="review-done">
         <span>{rows.length > 0 ? t("documents.done_body") : t("documents.done_body_empty")}</span>
       </Card>

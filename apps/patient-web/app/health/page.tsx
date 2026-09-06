@@ -56,7 +56,7 @@ export default function HealthTimelinePage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("health.title")} readAloud={[{ text: t("guide.screen.health") }]} />
+      <PageHeader title={t("health.title")} readAloud={[{ audio: "screen.health" }]} />
 
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}

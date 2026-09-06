@@ -64,7 +64,7 @@ export default function HealthDetailsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("health_details.title")} readAloud={[{ text: t("guide.screen.health_details") }]} />
+      <PageHeader title={t("health_details.title")} readAloud={[{ audio: "screen.health_details" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {!profile && !error ? <PillSpinner label={t("common.loading")} /> : null}
 

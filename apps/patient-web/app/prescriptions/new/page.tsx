@@ -95,7 +95,7 @@ export default function NewPrescriptionPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("prescriptions.new_title")} readAloud={[{ text: t("guide.screen.prescription_new") }]} />
+      <PageHeader title={t("prescriptions.new_title")} readAloud={[{ audio: "screen.prescription_new" }]} />
       {error ? <Banner tone="danger">{error}</Banner> : null}
 
       {busy ? (

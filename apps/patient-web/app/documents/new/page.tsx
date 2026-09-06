@@ -232,7 +232,7 @@ function NewDocumentFlow() {
 
   return (
     <AppShell>
-      <PageHeader title={t("documents.new_title")} readAloud={[{ text: t("guide.screen.documents_new") }]} />
+      <PageHeader title={t("documents.new_title")} readAloud={[{ audio: "screen.documents_new" }]} />
 
       {error ? <Banner tone="danger">{error}</Banner> : null}
       {approachingQuota ? <Banner tone="warning">{t("scan.approaching_storage_quota")}</Banner> : null}

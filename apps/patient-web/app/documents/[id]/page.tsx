@@ -129,7 +129,7 @@ export default function DocumentDetailPage() {
 
   return (
     <AppShell>
-      <PageHeader title={doc.title ?? kindLabel} right={<Chip tone={chip.tone}>{t(chip.key)}</Chip>} readAloud={[{ text: t("guide.screen.document_detail") }]} />
+      <PageHeader title={doc.title ?? kindLabel} right={<Chip tone={chip.tone}>{t(chip.key)}</Chip>} readAloud={[{ audio: "screen.document_detail" }]} />
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
       {doc.status === "quarantined" ? <Banner tone="danger">{t("documents.quarantined")}</Banner> : null}
 

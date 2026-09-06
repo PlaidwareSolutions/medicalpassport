@@ -41,7 +41,7 @@ export default function FamilyDashboardPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("household.title")} readAloud={[{ text: t("household.read_aloud") }]} />
+      <PageHeader title={t("household.title")} readAloud={[{ audio: "screen.family" }]} />
 
       {error && !items ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}

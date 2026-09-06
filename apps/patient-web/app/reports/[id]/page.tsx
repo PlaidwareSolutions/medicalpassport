@@ -115,7 +115,7 @@ function DiagnosticReportDetail({ id }: { id: string }) {
 
   return (
     <AppShell>
-      <PageHeader title={report.title} readAloud={[{ text: t("guide.screen.report_detail") }, { text: spoken }]} />
+      <PageHeader title={report.title} readAloud={[{ audio: "screen.report_detail" }, { text: spoken }]} />
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
 
       <Card>

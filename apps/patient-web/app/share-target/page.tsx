@@ -51,7 +51,7 @@ function ShareTargetLanding() {
 
   return (
     <AppShell>
-      <PageHeader title={t("documents.share_title")} readAloud={[{ text: t("guide.screen.share_target") }]} />
+      <PageHeader title={t("documents.share_title")} readAloud={[{ audio: "screen.share_target" }]} />
       {failed ? <Banner tone="danger">{t("documents.share_failed")}</Banner> : null}
 
       {files === undefined ? <PillSpinner label={t("common.loading")} /> : null}

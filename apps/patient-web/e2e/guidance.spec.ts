@@ -34,7 +34,9 @@ function expectedAudio(route: string): GuidanceAudioId | null {
   // The check-ups screen (moved off /blood-sugar's second tab) has no header
   // audio; on the empty fixture profile its teaching empty state speaks the
   // pre-generated empty.bloodsugar_checkups, and that is the button seen.
-  if (route === "/measurements/checkups") return "empty.bloodsugar_checkups";
+  // V2: the check-ups screen now speaks its own header audio, which comes
+  // before the empty state's button in the tree.
+  if (route === "/measurements/checkups") return "screen.checkups";
   if (route === "/caregivers") return "screen.caregivers";
   if (route === "/caregivers/invitations") return "screen.caregiver_invitations";
   if (route === "/help") return "screen.help";
@@ -53,6 +55,36 @@ function expectedAudio(route: string): GuidanceAudioId | null {
   if (route === "/timeline") return "screen.timeline";
   if (route === "/tour") return "tour.1";
   if (route === "/visit") return "screen.visit";
+  // V2 screens (docs_v2/06 P1-5): each speaks pre-generated audio.
+  if (route === "/health") return "screen.health";
+  if (route === "/health/visits") return "screen.visits";
+  if (route === "/conditions") return "screen.conditions";
+  if (/^\/conditions\/[^/]+$/.test(route)) return "screen.condition_hub";
+  if (route === "/immunizations") return "screen.immunizations";
+  if (route === "/procedures") return "screen.procedures";
+  if (route === "/family-history") return "screen.family_history";
+  if (route === "/organizations") return "screen.organizations";
+  if (route === "/profile/health-details") return "screen.health_details";
+  if (route === "/documents") return "screen.documents";
+  if (route === "/documents/new") return "screen.documents_new";
+  if (route === "/share-target") return "screen.share_target";
+  if (route === "/measurements") return "screen.measurements";
+  if (/^\/measurements\/[^/]+\/trends$/.test(route)) return "screen.measurement_trend";
+  if (route === "/measurements/devices") return "screen.devices";
+  if (/^\/reports\/trends\/[^/]+$/.test(route)) return "screen.result_trend";
+  if (route === "/reports/new") return "screen.report_new";
+  if (route === "/prescriptions/new") return "screen.prescription_new";
+  if (route === "/proposals") return "screen.proposals";
+  if (route === "/connections") return "screen.connections";
+  if (route === "/connections/code") return "screen.connections_code";
+  if (route === "/abha") return "screen.abha";
+  if (route === "/abha/care-contexts") return "screen.abha_care_contexts";
+  if (route === "/abha/consents") return "screen.abha_consents";
+  if (route === "/abha/records") return "screen.abha_records";
+  if (route === "/family") return "screen.family";
+  if (route === "/activity") return "screen.activity";
+  if (route === "/profile/notifications") return "screen.notifications";
+  if (route === "/share/new") return "screen.share_new";
   return null;
 }
 

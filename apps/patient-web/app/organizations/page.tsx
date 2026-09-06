@@ -73,7 +73,7 @@ export default function OrganizationsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("clinic.title")} readAloud={[{ text: t("guide.screen.organizations") }]} />
+      <PageHeader title={t("clinic.title")} readAloud={[{ audio: "screen.organizations" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 

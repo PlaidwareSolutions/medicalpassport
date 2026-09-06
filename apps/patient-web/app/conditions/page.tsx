@@ -92,7 +92,7 @@ export default function ConditionsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("condition.title")} readAloud={[{ text: t("guide.screen.conditions") }]} />
+      <PageHeader title={t("condition.title")} readAloud={[{ audio: "screen.conditions" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 

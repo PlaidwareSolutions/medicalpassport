@@ -77,7 +77,7 @@ export default function NotificationSettingsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("notify.title")} readAloud={[{ text: t("notify.read_aloud") }]} />
+      <PageHeader title={t("notify.title")} readAloud={[{ audio: "screen.notifications" }]} />
 
       {error && !prefs ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {saveError ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}

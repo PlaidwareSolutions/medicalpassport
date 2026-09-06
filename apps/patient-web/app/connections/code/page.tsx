@@ -120,7 +120,7 @@ export default function ShowClinicCodePage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("connections.code_title")} readAloud={[{ text: `${t("connections.code_title")}. ${t("connections.code_intro")}` }]} />
+      <PageHeader title={t("connections.code_title")} readAloud={[{ audio: "screen.connections_code" }]} />
       <p style={{ margin: "0 0 var(--space-md)" }}>{t("connections.code_intro")}</p>
 
       {error ? <Banner tone="danger">{error}</Banner> : null}

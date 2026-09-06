@@ -169,7 +169,7 @@ export default function CheckupsPage() {
   const { t } = useI18n();
   return (
     <AppShell>
-      <PageHeader title={t("bloodsugar.tab_checkups")} readAloud={[{ text: t("guide.screen.checkups") }]} />
+      <PageHeader title={t("bloodsugar.tab_checkups")} readAloud={[{ audio: "screen.checkups" }]} />
       <CheckupsTab />
     </AppShell>
   );

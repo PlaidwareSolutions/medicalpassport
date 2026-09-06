@@ -64,7 +64,7 @@ export default function FamilyHistoryPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("family.title")} readAloud={[{ text: t("guide.screen.family_history") }]} />
+      <PageHeader title={t("family.title")} readAloud={[{ audio: "screen.family_history" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {activeProfile && profiles.length > 1 ? <Banner tone="info">{t("family.for_profile", { name: activeProfile.displayName })}</Banner> : null}
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}

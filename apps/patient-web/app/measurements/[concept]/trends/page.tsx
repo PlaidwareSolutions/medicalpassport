@@ -68,7 +68,7 @@ export default function MeasurementTrendPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("measure.trend_title", { name: t(`measure.concept.${concept}` as never) })} readAloud={[{ text: t("guide.screen.measurement_trend") }]} />
+      <PageHeader title={t("measure.trend_title", { name: t(`measure.concept.${concept}` as never) })} readAloud={[{ audio: "screen.measurement_trend" }]} />
       {error && !trend ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
       <div role="group" aria-label={t("measure.window_label")} style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>

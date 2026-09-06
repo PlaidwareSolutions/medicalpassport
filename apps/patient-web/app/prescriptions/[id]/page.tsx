@@ -177,7 +177,7 @@ export default function PrescriptionDetailPage() {
     <AppShell>
       <PageHeader
         title={prescription.practitionerName ?? t("prescriptions.unnamed_doctor")}
-        readAloud={[{ text: t("guide.screen.prescription_detail") }, { text: spoken }]}
+        readAloud={[{ audio: "screen.prescription_detail" }, { text: spoken }]}
       />
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
       {startedNotice ? (

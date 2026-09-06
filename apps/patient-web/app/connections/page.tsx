@@ -51,7 +51,7 @@ export default function ConnectionsPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("connections.title")} readAloud={[{ text: `${t("connections.title")}. ${t("guide.screen.connections")}` }]} />
+      <PageHeader title={t("connections.title")} readAloud={[{ audio: "screen.connections" }]} />
       <p style={{ margin: "0 0 var(--space-md)" }}>{t("connections.intro")}</p>
 
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
