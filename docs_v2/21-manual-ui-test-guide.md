@@ -296,7 +296,7 @@ The hi/te/ur strings are **drafts**. Read them as a native speaker if you can; n
 
 Found by reconciling every plan row against the code on 2026-09-06.
 
-1. **Key rotation misses three encrypted columns** — emergency-contact phone, organisation phone, ABHA number. Running the rotation runbook and retiring the old key would make them unreadable. Fix in `apps/cron/src/jobs/rotate-field-encryption.ts` plus a test that enumerates every `*_ciphertext` column in the schema.
+1. ~~**Key rotation misses three encrypted columns**~~ **Fixed 2026-09-06**: the column list is schema-guarded and unreadable rows are skipped and reported. — emergency-contact phone, organisation phone, ABHA number. Running the rotation runbook and retiring the old key would make them unreadable. Fix in `apps/cron/src/jobs/rotate-field-encryption.ts` plus a test that enumerates every `*_ciphertext` column in the schema.
 2. **Audit writes on read paths** behind one global lock (open incident remediation, ticket 0.18).
 3. **Offline sync does not cover measurements or document captures** (§14 of the API contract); they are lost offline.
 4. **CI does not run on the `v2` branch**, and there is no scheduled Windows job (ticket 0.10).

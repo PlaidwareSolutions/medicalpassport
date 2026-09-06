@@ -82,11 +82,13 @@ export default defineRailway(() => {
       // /for-clinics/ lead form's browser fetch to /v1/public/leads is not
       // CORS-blocked — it is a distinct origin from the patient/admin apps.
       CORS_ORIGINS:
-        "https://staging-app.medidocs.app,https://staging-admin.medidocs.app,https://patient-web-production-6da0.up.railway.app,https://staging.medidocs.app",
+        "https://staging-app.medidocs.app,https://staging-admin.medidocs.app,https://patient-web-production-6da0.up.railway.app,https://staging.medidocs.app,https://staging-clinic.medidocs.app",
       // Set out-of-band via `railway variable set --stdin` (docs/28: secrets
       // only in Railway variables) — preserve() tells apply not to touch them.
       OTP_HASH_PEPPER: preserve(),
       SESSION_TOKEN_PEPPER: preserve(),
+      // V2 Phase 7: peppered share-link hashes (legacy unpeppered links still verify).
+      SHARE_TOKEN_PEPPER: preserve(),
       // Admin auth (docs/18, admin-portal follow-up) — its own dedicated pepper.
       ADMIN_PASSWORD_PEPPER: preserve(),
       FIELD_ENCRYPTION_KEY: preserve(),
@@ -108,6 +110,11 @@ export default defineRailway(() => {
       // set via `railway variable set --stdin`; the widget's site key
       // (public, safe client-side) lives on patient-web below instead.
       TURNSTILE_SECRET_KEY: preserve(),
+      // Marketing lead form (docs/landing-page): both already set on the dev
+      // api out-of-band. Declared so a plan never proposes deleting them —
+      // the 2026-09-06 plan did exactly that because they were missing here.
+      LEAD_TURNSTILE_SECRET_KEY: preserve(),
+      LEAD_TURNSTILE_HOSTNAMES: preserve(),
     },
   });
 
@@ -160,6 +167,43 @@ export default defineRailway(() => {
       // allowlist was extended to include staging-admin.medidocs.app
       // (admin-portal follow-up) rather than provisioning a second widget.
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "0x4AAAAAAD6vGglnBMbvP_EJ",
+    },
+  });
+
+
+  // V2 Phase 11 (docs_v2/06 P11-2, docs_v2/12 §3): the clinic / pharmacy /
+  // lab / hospital portal. Own hostname, own Turnstile site (its key is set
+  // out-of-band and preserved), own session cookie name; talks to the same
+  // api, which lists its origin in CORS_ORIGINS above.
+  const providerWeb = service("provider-web", {
+    source: repo,
+    build: { builder: "DOCKERFILE", dockerfilePath: "apps/provider-web/Dockerfile" },
+    healthcheck: "/login",
+    replicas: { [region]: 1 },
+    env: {
+      NODE_ENV: "production",
+      PORT: "3003",
+      NEXT_PUBLIC_API_URL: "https://staging-api.medidocs.app",
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: preserve(),
+    },
+  });
+
+  // V2 Phase 8 (docs_v2/08 §4): the ABDM callback gateway. Declared here in
+  // mock mode so the container is built and exercised; the api keeps its
+  // in-process mock (ABDM_GATEWAY_URL unset) until NHA sandbox credentials
+  // exist (ticket 0.8), at which point ABDM_GATEWAY_ENV/CLIENT_* are set
+  // out-of-band and the api is pointed at http://abdm-gateway.railway.internal:4100.
+  const abdmGateway = service("abdm-gateway", {
+    source: repo,
+    build: { builder: "DOCKERFILE", dockerfilePath: "apps/abdm-gateway/Dockerfile" },
+    replicas: { [region]: 1 },
+    env: {
+      NODE_ENV: "staging",
+      PORT: "4100",
+      DATABASE_URL: db.env.DATABASE_URL,
+      ABDM_GATEWAY_ENV: "mock",
+      MOCK: "true",
+      ABDM_INTERNAL_TOKEN: preserve(),
     },
   });
 
@@ -217,6 +261,12 @@ export default defineRailway(() => {
   // is chosen.
   const operationalReport = cronJob("cron-operational-report", "0 7 * * *", "operational-report");
 
+  // V2 Phase 17 (docs_v2/06 P17): test-due schedules once a night; measurement
+  // reminder slots every five minutes inside their 15-minute window. Both only
+  // queue notification rows — delivery stays with detect-due-reminders' pass.
+  const detectTestDue = cronJob("cron-detect-test-due", "30 2 * * *", "detect-test-due");
+  const detectMeasurementReminders = cronJob("cron-detect-measurement-reminders", "*/5 * * * *", "detect-measurement-reminders");
+
   return project("medpass-dev", {
     resources: [
       db,
@@ -224,6 +274,8 @@ export default defineRailway(() => {
       worker,
       patientWeb,
       adminWeb,
+      providerWeb,
+      abdmGateway,
       cleanupExpiredOtps,
       cleanupExpiredSessions,
       verifyAuditChain,
@@ -232,6 +284,8 @@ export default defineRailway(() => {
       cleanupAbandonedUploads,
       detectDueReminders,
       generateRefillReminders,
+      detectTestDue,
+      detectMeasurementReminders,
       cleanupRateLimitBuckets,
       retentionCleanup,
       cleanupProfessionalLeads,

@@ -93,11 +93,13 @@ export default defineRailway(() => {
       // (medicinepassport.app becomes primary; both brands coexist during the
       // transition). medidocs origins kept until the redirect/migration completes.
       CORS_ORIGINS:
-        "https://app.medidocs.app,https://admin.medidocs.app,https://medidocs.app,https://medicinepassport.app,https://app.medicinepassport.app",
+        "https://app.medidocs.app,https://admin.medidocs.app,https://medidocs.app,https://medicinepassport.app,https://app.medicinepassport.app,https://clinic.medicinepassport.app,https://clinic.medidocs.app",
       // Set out-of-band via `railway variable set --stdin` (docs/28: secrets
       // only in Railway variables) — preserve() tells apply not to touch them.
       OTP_HASH_PEPPER: preserve(),
       SESSION_TOKEN_PEPPER: preserve(),
+      // V2 Phase 7: peppered share-link hashes (legacy unpeppered links still verify).
+      SHARE_TOKEN_PEPPER: preserve(),
       // Admin auth (docs/18, admin-portal follow-up) — its own dedicated pepper.
       ADMIN_PASSWORD_PEPPER: preserve(),
       FIELD_ENCRYPTION_KEY: preserve(),
@@ -173,6 +175,28 @@ export default defineRailway(() => {
     },
   });
 
+
+  // V2 Phase 11 (docs_v2/06 P11-2, docs_v2/12 §3): the clinic / pharmacy /
+  // lab / hospital portal. Own hostname, own Turnstile site (its key is set
+  // out-of-band and preserved), own session cookie name; talks to the same
+  // api, which lists its origin in CORS_ORIGINS above.
+  const providerWeb = service("provider-web", {
+    source: repo,
+    build: { builder: "DOCKERFILE", dockerfilePath: "apps/provider-web/Dockerfile" },
+    healthcheck: "/login",
+    replicas: { [region]: 1 },
+    env: {
+      NODE_ENV: "production",
+      PORT: "3003",
+      NEXT_PUBLIC_API_URL: "https://api.medidocs.app",
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: preserve(),
+    },
+  });
+
+  // abdm-gateway is not declared for production: without NHA credentials it
+  // would only run in mock mode, which the gateway refuses under
+  // NODE_ENV=production. Add it alongside the sandbox exit (docs_v2/08 M8E).
+
   // Cron jobs (docs/25 schedule table) — one service per job, all sharing
   // apps/cron/Dockerfile, distinguished only by `start`. FIELD_ENCRYPTION_KEY
   // must match api's value exactly; set via `railway variable set --stdin`.
@@ -232,6 +256,12 @@ export default defineRailway(() => {
   // is chosen.
   const operationalReport = cronJob("cron-operational-report", "0 7 * * *", "operational-report");
 
+  // V2 Phase 17 (docs_v2/06 P17): test-due schedules once a night; measurement
+  // reminder slots every five minutes inside their 15-minute window. Both only
+  // queue notification rows — delivery stays with detect-due-reminders' pass.
+  const detectTestDue = cronJob("cron-detect-test-due", "30 2 * * *", "detect-test-due");
+  const detectMeasurementReminders = cronJob("cron-detect-measurement-reminders", "*/5 * * * *", "detect-measurement-reminders");
+
   return project("medpass-prod", {
     resources: [
       db,
@@ -239,6 +269,7 @@ export default defineRailway(() => {
       worker,
       patientWeb,
       adminWeb,
+      providerWeb,
       cleanupExpiredOtps,
       cleanupExpiredSessions,
       verifyAuditChain,
@@ -247,6 +278,8 @@ export default defineRailway(() => {
       cleanupAbandonedUploads,
       detectDueReminders,
       generateRefillReminders,
+      detectTestDue,
+      detectMeasurementReminders,
       cleanupRateLimitBuckets,
       retentionCleanup,
       cleanupProfessionalLeads,
