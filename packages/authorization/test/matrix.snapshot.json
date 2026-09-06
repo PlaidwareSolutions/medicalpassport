@@ -94,6 +94,13 @@
       "edit_profile",
       "view_profile"
     ],
+    "modules/journey/journey.controller.ts": [
+      "edit_profile",
+      "view_measurements",
+      "view_medications",
+      "view_profile",
+      "view_tests"
+    ],
     "modules/medications/medications.controller.ts": [
       "add_medications",
       "edit_medications",
