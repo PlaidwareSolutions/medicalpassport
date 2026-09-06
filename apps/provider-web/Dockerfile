@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 COPY --from=build /repo /repo
 USER node
 WORKDIR /repo/apps/provider-web
-EXPOSE 3002
+EXPOSE 3003
 # Not "pnpm start": Corepack lazily fetches pnpm over the network on first
 # invocation, a flaky and unnecessary dependency for a runtime container.
-CMD ["node_modules/.bin/next", "start", "-p", "3002"]
+CMD ["node_modules/.bin/next", "start", "-p", "3003"]

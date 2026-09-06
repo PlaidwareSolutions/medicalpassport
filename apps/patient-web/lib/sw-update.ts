@@ -34,7 +34,15 @@ export function useServiceWorkerUpdate() {
     // rather than only after a long background interval.
     function nudgeUpdateCheck() {
       if (document.visibilityState === "visible") {
-        void navigator.serviceWorker.getRegistration().then((reg) => reg?.update());
+        // `update()` rejects when the registration is mid-install, being
+        // replaced, or the tab is going away ("The object is in an invalid
+        // state"). Nothing to do in any of those cases — the next nudge or
+        // navigation checks again — so swallow it rather than let it surface
+        // as an unhandled rejection on every page load in that window.
+        void navigator.serviceWorker
+          .getRegistration()
+          .then((reg) => reg?.update())
+          .catch(() => {});
       }
     }
     document.addEventListener("visibilitychange", nudgeUpdateCheck);
