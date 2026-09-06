@@ -181,4 +181,21 @@ export default tseslint.config(
     files: ["apps/*/app/sw.ts", "apps/*/**/sw.ts"],
     languageOptions: { globals: { ...globals.serviceworker, ...globals.browser } },
   },
+
+  /**
+   * NestJS services: `consistent-type-imports` is OFF here, and this is a
+   * safety rule, not a preference.
+   *
+   * Both Nest apps compile with `emitDecoratorMetadata`, which is how
+   * constructor injection resolves: TypeScript emits the constructor's
+   * parameter types as runtime metadata. An `import type` is erased, so the
+   * metadata becomes `Object` and Nest can no longer resolve the dependency.
+   * The rule is auto-fixable, so a single `eslint --fix` would rewrite the
+   * constructor imports and break injection at runtime with nothing failing
+   * at compile time. That happened once while this config was being written.
+   */
+  {
+    files: ["apps/api/**/*.ts", "apps/abdm-gateway/**/*.ts"],
+    rules: { "@typescript-eslint/consistent-type-imports": "off" },
+  },
 );

@@ -26,12 +26,13 @@ each with its reason in a comment there. Summarised:
 | `no-unmodified-loop-condition` | Cannot see asynchronous mutation, so it calls the worker's `while (!shuttingDown)` drain loop a bug when the flag is set by a SIGTERM handler. |
 | `jsx-a11y/no-redundant-roles` | The screens set `role="list"` on purpose: removing bullets with `list-style: none` also drops list semantics in Safari/VoiceOver. |
 | `jsx-a11y/no-autofocus`, `jsx-a11y/label-has-associated-control` | The design system draws its own controls; both are covered by the axe suite, which is the actual release gate. |
+| `@typescript-eslint/consistent-type-imports` (in `apps/api` and `apps/abdm-gateway` only) | **Safety, not preference.** Both Nest apps compile with `emitDecoratorMetadata`, which is how constructor injection resolves: TypeScript emits the constructor's parameter types as runtime metadata, and an `import type` is erased, so the metadata becomes `Object` and Nest cannot resolve the dependency. The rule is auto-fixable, so one `eslint --fix` would break injection at runtime with nothing failing at compile time. This happened once while the config was being written. |
 
 ## Warnings accepted, with the work that would clear them
 
 | Count | Rule | Where | To clear |
 |---|---|---|---|
-| ~216 | `@typescript-eslint/no-explicit-any` | mostly `apps/api` | `any` is sometimes the honest type at a boundary (Prisma `Json`, inbound FHIR). Worth narrowing opportunistically; not worth a sweep. The count is the signal — it should fall, never rise. |
+| ~40 | `@typescript-eslint/no-explicit-any` | scattered | `any` is sometimes the honest type at a boundary (Prisma `Json`, inbound FHIR). Worth narrowing opportunistically; not worth a sweep. The count is the signal — it should fall, never rise. |
 | 2 | `jsx-a11y/media-has-caption` | `apps/marketing-web` `AudioSample.tsx`, `CommercialFilm.tsx` | **Real accessibility debt.** The voice samples and the film have no caption files. Needs caption tracks authored per locale, which is part of the P16 locale work. Kept as a warning so it stays visible rather than silenced. |
 | 3 | `@next/next/no-img-element` | documents screens, `PageCrop.tsx` | Deliberate and disabled per line: routing a presigned document URL through Next's image optimiser would proxy PHI through it. These will not be cleared. |
 | a few | `@typescript-eslint/consistent-type-imports` | `apps/worker` | `import()` type annotations in two processors. Cosmetic; clear when those files are next touched. |
