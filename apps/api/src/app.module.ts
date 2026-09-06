@@ -119,6 +119,10 @@ import { AbdmController } from "./modules/abdm/abdm.controller";
 import { AbdmService } from "./modules/abdm/abdm.service";
 import { AbdmImportService } from "./modules/abdm/abdm-import.service";
 import { ABDM_GATEWAY_CLIENT, HttpAbdmGatewayClient, MockAbdmGatewayClient, type AbdmGatewayClient } from "./modules/abdm/gateway-client";
+// V2 Phase 10 (docs_v2/06 P10): the treatment journey — relationship edges, before/after views, condition hub.
+import { JourneyController } from "./modules/journey/journey.controller";
+import { JourneyService } from "./modules/journey/journey.service";
+import { ClinicalRelationshipsService } from "./modules/journey/clinical-relationships.service";
 
 export const logger = createLogger("api");
 
@@ -191,6 +195,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminFhirFailuresController,
     AdminIntegrationsController,
     AdminNotificationFailuresController,
+    JourneyController,
   ],
   providers: [
     PrismaService,
@@ -240,6 +245,8 @@ const OTP_SENDER = "OTP_SENDER";
     FeatureFlagService,
     TestDueService,
     BreakGlassService,
+    ClinicalRelationshipsService,
+    JourneyService,
     {
       // docs_v2/08 §4/§9: the API talks to apps/abdm-gateway's private API; with no
       // ABDM_GATEWAY_URL an in-process mock replays sandbox fixtures (local, CI).

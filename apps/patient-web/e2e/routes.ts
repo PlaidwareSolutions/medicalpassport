@@ -13,6 +13,8 @@ export function screenRoutes(): string[] {
     medicationId: string;
     /** Present only when the API exposed encounters at seed time (Phase 1 P1-2). */
     encounterId?: string;
+    /** Present only when the API exposed conditions at seed time (Phase 10 P10-3). */
+    conditionId?: string;
   };
   return [
     "/",
@@ -84,5 +86,29 @@ export function screenRoutes(): string[] {
     "/measurements/checkups",
     "/measurements/devices",
     "/reports/trends/hba1c",
+    // Phase 8 / P11-5 (docs_v2/05 §10-§11, docs_v2/06 P11-3/P11-5): the
+    // proposals inbox, provider connections and the ABHA/ABDM screens.
+    // /proposals/[id] needs a provider-sent proposal, which the global
+    // setup cannot mint without a provider session — it is covered by
+    // e2e/proposals.spec.ts instead.
+    "/proposals",
+    "/connections",
+    "/connections/code",
+    "/abha",
+    "/abha/care-contexts",
+    "/abha/consents",
+    "/abha/records",
+    // Phase 6/7 (docs_v2/06 P6-3, P6-4, P7-3): the family dashboard, the
+    // who-changed-what list and the per-kind notification settings. The
+    // caregiver invite/edit screens are already listed above; the edit one
+    // needs a seeded relationship and is covered by
+    // e2e/family-and-sharing.spec.ts instead.
+    "/family",
+    "/activity",
+    "/profile/notifications",
+    // Phase 10 (docs_v2/06 P10-3): the condition hub. Rides on the condition
+    // the global setup seeds; tolerated as absent so the sweep still runs
+    // against an API that predates the journey endpoints.
+    ...(fixture.conditionId ? [`/conditions/${fixture.conditionId}`] : []),
   ];
 }

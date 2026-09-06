@@ -132,10 +132,32 @@ export class NotificationsService {
     await this.prisma.$transaction(async (tx) => {
       const channelFrequencyJson: Prisma.InputJsonObject | undefined =
         channelFrequency === undefined ? undefined : (channelFrequency as Prisma.InputJsonObject);
+
+      // Replacing the per-kind map would drop a reminder plan still sitting
+      // under the pre-column reserved key, and the settings screen has no way
+      // to send it back — it never sees it. So carry any such plan into its
+      // own column first; after this the legacy copy is gone for good.
+      let rescuedPlan: Prisma.InputJsonValue | undefined;
+      if (channelFrequencyJson !== undefined) {
+        const existing = await tx.notificationPreference.findUnique({
+          where: { patientProfileId: profileId },
+          select: { channelFrequencyJson: true, measurementRemindersJson: true },
+        });
+        const alreadyMoved = Object.keys(readMeasurementReminders(existing?.measurementRemindersJson).concepts).length > 0;
+        if (!alreadyMoved) {
+          const legacy = readMeasurementReminders(existing?.channelFrequencyJson);
+          if (Object.keys(legacy.concepts).length > 0) rescuedPlan = legacy as unknown as Prisma.InputJsonValue;
+        }
+      }
+
       await tx.notificationPreference.upsert({
         where: { patientProfileId: profileId },
         create: { patientProfileId: profileId, ...columns, ...(channelFrequencyJson === undefined ? {} : { channelFrequencyJson }) },
-        update: { ...columns, ...(channelFrequencyJson === undefined ? {} : { channelFrequencyJson }) },
+        update: {
+          ...columns,
+          ...(channelFrequencyJson === undefined ? {} : { channelFrequencyJson }),
+          ...(rescuedPlan === undefined ? {} : { measurementRemindersJson: rescuedPlan }),
+        },
       });
       await writeAudit(tx, {
         action: "notification.preferences_updated",

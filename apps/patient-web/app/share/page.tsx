@@ -6,12 +6,15 @@ import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
+import { ScopeNotice } from "../../components/ScopeGate";
 import { useI18n } from "../../lib/i18n";
-import { fetchAccessLog, revokeShare, useShares } from "../../lib/sharing";
+import { useProfileAccess } from "../../lib/scopes";
+import { SHARE_SECTIONS, fetchAccessLog, revokeShare, useShares, type ShareListItem } from "../../lib/sharing";
 
 /** Screen 29 (list part): active shares with access history and revoke. */
 export default function SharesPage() {
   const { t } = useI18n();
+  const access = useProfileAccess();
   const { items, error, reload } = useShares();
   const [expandedId, setExpandedId] = useState<string | undefined>();
   const [accessLog, setAccessLog] = useState<ShareAccessEventDto[]>([]);
@@ -40,6 +43,15 @@ export default function SharesPage() {
   const isActive = (s: { expiresAt: string; revokedAt: string | null }) =>
     !s.revokedAt && new Date(s.expiresAt) > new Date();
 
+  if (access.ready && !access.can("share_records")) {
+    return (
+      <AppShell>
+        <PageHeader title={t("share.view_all")} />
+        <ScopeNotice action="share_records" />
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <PageHeader title={t("share.view_all")} readAloud={[{ audio: "screen.share" }]} />
@@ -62,6 +74,10 @@ export default function SharesPage() {
       ) : null}
 
       {items && items.length > 0 ? (
+        <span style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>{t("share.frozen_note")}</span>
+      ) : null}
+
+      {items && items.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
           {items.map((s) => {
             const active = isActive(s);
@@ -76,6 +92,7 @@ export default function SharesPage() {
                 <span style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
                   {t("share.expires", { time: new Date(s.expiresAt).toLocaleString() })}
                 </span>
+                <SharedSections share={s} />
                 <button
                   type="button"
                   aria-expanded={expandedId === s.id}
@@ -107,5 +124,34 @@ export default function SharesPage() {
         </div>
       ) : null}
     </AppShell>
+  );
+}
+
+/**
+ * What one existing link actually shows. Read from the link's own frozen
+ * section map, never recomputed from today's defaults — that frozen map is
+ * the guarantee an old link never widens when the app learns new sections
+ * (docs_v2/06 P7 exit gate), and the only way a patient can see the
+ * guarantee held is if the screen reads the same thing the server does.
+ */
+function SharedSections({ share }: { share: ShareListItem }) {
+  const { t } = useI18n();
+  const sections = (share.sections ?? {}) as Record<string, boolean>;
+  const full = sections.full_passport === true;
+  const names = full
+    ? [t("share.section.full_passport")]
+    : SHARE_SECTIONS.filter((key) => sections[key]).map((key) => t(`share.section.${key}` as never));
+
+  return (
+    <div style={{ fontSize: "var(--font-small)" }}>
+      {share.audience && share.audience !== "unspecified" ? (
+        <div style={{ marginBottom: "var(--space-xs)" }}>
+          <Chip>{t(`share.audience.${share.audience}` as never)}</Chip>
+        </div>
+      ) : null}
+      <span style={{ color: "var(--color-text-muted)" }}>
+        {names.length === 0 ? t("share.shows_nothing") : t("share.shows", { sections: names.join(", ") })}
+      </span>
+    </div>
   );
 }

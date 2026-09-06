@@ -200,6 +200,9 @@ export const AUDIT_ACTIONS = [
   "admin.break_glass_granted",
   "admin.break_glass_listed",
   "admin.consent_audit_viewed",
+  /** V2 Phase 10 (docs_v2/06 P10-1): the patient answering a suggested clinical relationship. */
+  "clinical_relationship.confirmed",
+  "clinical_relationship.dismissed",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -6,8 +6,10 @@ import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { GuideGlyph } from "../../components/GuideGlyph";
 import { PageHeader } from "../../components/PageHeader";
+import { ScopeGate } from "../../components/ScopeGate";
 import { FILTER_KINDS, kindGlyph, kindLabelKey, useDocuments, type DocumentKind, type DocumentSummaryDto } from "../../lib/documents";
 import { useI18n } from "../../lib/i18n";
+import { useProfileAccess } from "../../lib/scopes";
 import { formatCalendarDate, formatPatientDate, useActiveTimezone } from "../../lib/patient-time";
 
 function statusOf(d: DocumentSummaryDto): { key: "documents.status.uploading" | "documents.status.reading" | "documents.status.ready" | "documents.status.failed" | "documents.status.quarantined"; tone: "default" | "success" | "warning" | "danger" } {
@@ -29,6 +31,7 @@ export default function DocumentsPage() {
   const timezone = useActiveTimezone();
   const [kind, setKind] = useState<DocumentKind | undefined>();
   const { items, error, fromCache, hasMore, loadMore, loadingMore } = useDocuments(kind);
+  const canUpload = useProfileAccess().can("upload_documents");
 
   return (
     <AppShell>
@@ -37,9 +40,14 @@ export default function DocumentsPage() {
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
 
-      <Link href="/documents/new">
-        <Button fullWidth>{t("documents.add")}</Button>
-      </Link>
+      {/* Uploading a document is its own permission now (docs_v2/04 §2.2):
+          a caregiver trusted to read the file cabinet is not automatically
+          trusted to put things in it. */}
+      <ScopeGate action="upload_documents">
+        <Link href="/documents/new">
+          <Button fullWidth>{t("documents.add")}</Button>
+        </Link>
+      </ScopeGate>
 
       <div role="group" aria-label={t("documents.filter_label")} style={{ display: "flex", flexWrap: "wrap", gap: "var(--size-touch-gap)", margin: "var(--space-sm) 0" }}>
         <Button variant={kind === undefined ? "primary" : "secondary"} aria-pressed={kind === undefined} onClick={() => setKind(undefined)} style={{ flex: "1 1 auto" }}>
@@ -56,7 +64,12 @@ export default function DocumentsPage() {
 
       {items && items.length === 0 ? (
         kind === undefined ? (
-          <EmptyState glyph="document" titleKey="documents.empty_title" bodyKey="documents.empty_body" cta={{ labelKey: "documents.add", href: "/documents/new" }} />
+          <EmptyState
+            glyph="document"
+            titleKey="documents.empty_title"
+            bodyKey="documents.empty_body"
+            cta={canUpload ? { labelKey: "documents.add", href: "/documents/new" } : undefined}
+          />
         ) : (
           <Card tone="info">
             <span style={{ color: "var(--color-text-muted)" }}>{t("documents.filter_empty")}</span>

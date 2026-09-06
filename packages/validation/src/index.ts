@@ -38,3 +38,4 @@ export * from "./abdm.js";
 export * from "./test-due.js";
 export * from "./measurement-reminders.js";
 export * from "./admin-platform.js";
+export * from "./journey.js";

@@ -7210,6 +7210,192 @@
         "x-step-up": false
       }
     },
+    "/v1/clinical-relationships/{id}/confirm": {
+      "post": {
+        "operationId": "JourneyController_confirm",
+        "summary": "Confirm a suggested link",
+        "description": "Records who answered yes (`confirmedByUserId`, `confirmedAt`) and moves `verification` to `patient_confirmed`. The row keeps `provenanceSource: system_derived` and its `basis`, so how the edge was found stays visible. Another profile's edge is a 404.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Clinical profile"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/clinical-relationships/{id}/dismiss": {
+      "post": {
+        "operationId": "JourneyController_dismiss",
+        "summary": "Dismiss a suggested link",
+        "description": "Records who answered no and stops the edge being suggested again.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Clinical profile"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/conditions/{id}": {
       "delete": {
         "operationId": "ClinicalProfileController_deleteCondition",
@@ -10675,6 +10861,99 @@
         ],
         "x-auth": "patient",
         "x-profile-scope": "edit_medications",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/medications/{id}/before-after": {
+      "get": {
+        "operationId": "JourneyController_beforeAfter",
+        "summary": "Readings around a medicine's start date, and at roughly 30 and 90 days after",
+        "description": "docs_v2/06 P10-2. Three fixed, server-owned windows — baseline (−30…0 days), day 30 (+15…+45) and day 90 (+75…+105) — each returned with its absolute bounds and the descriptive statistics the trend endpoints already produce (count, average, min, max). There is deliberately no difference, percentage, direction, rating or verdict field: two numbers either side of a date are a coincidence in time, and computing anything from them would be a clinical claim this app is not entitled to make (docs_v2/10 §1). `hasEnoughPoints: false` means too few of the patient's own readings, never \"no effect\". Requires `view_medications` plus `view_tests` (with `analyteKey`) or `view_measurements` (with `concept`).\n\nPatient session (cookie or bearer). Profile access: `view_medications` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "name": "analyteKey",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "required": false
+          },
+          {
+            "name": "concept",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 1
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Medications"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_medications",
         "x-response-schema-source": "hand-written",
         "x-step-up": false
       }
@@ -16780,6 +17059,134 @@
         "x-step-up": false
       }
     },
+    "/v1/profiles/current/clinical-relationships": {
+      "get": {
+        "operationId": "JourneyController_list",
+        "summary": "Clinical relationship edges (condition ↔ medicine ↔ result ↔ measurement ↔ provider)",
+        "description": "Reading the list also refreshes the derived edges. Every derived edge is `origin: inferred`, `status: suggested` and carries the `basis` it was read off (a medicine's `reasonConditionId`, a prescription's practitioner, or an analyte the condition is usually followed with — the last only when the patient already has results for it). A suggestion is a question, never a claim; nothing here asserts that one thing caused another (docs_v2/10 §1, exit gate M10). Answered edges survive every later refresh.\n\nPatient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "conditionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false
+          },
+          {
+            "name": "medicationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "suggested",
+                "confirmed",
+                "dismissed"
+              ]
+            },
+            "required": false
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "medicine_for_condition",
+                "result_tracks_condition",
+                "measurement_tracks_condition",
+                "provider_for_condition",
+                "provider_for_medicine"
+              ]
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Clinical profile"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/profiles/current/conditions": {
       "get": {
         "operationId": "ClinicalProfileController_conditions",
@@ -16948,6 +17355,79 @@
         ],
         "x-auth": "patient",
         "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/profiles/current/conditions/{id}/journey": {
+      "get": {
+        "operationId": "JourneyController_conditionHub",
+        "summary": "Condition hub: medicines, tracked tests and measurements, doctors, suggestions and before/after views",
+        "description": "Four independently scoped sections (docs_v2/04 §2.2): a caregiver without `view_tests` gets the condition and an empty `results` with `sections.tests: false`, not a 403 for the whole screen. `medicines[].linkSource` says whether the medicine itself names this condition as its reason or the patient confirmed a suggested link. `beforeAfter` carries at most three views and no comparison of any kind.\n\nPatient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Clinical profile"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
         "x-response-schema-source": "hand-written",
         "x-step-up": false
       }

@@ -4,10 +4,12 @@ import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/
 import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
+import { ScopeGate } from "../../components/ScopeGate";
 import { TrustBadge } from "../../components/TrustBadge";
 import { formatDateOnly, groupReportsByKind, useDiagnosticReports } from "../../lib/diagnostics";
 import { useI18n } from "../../lib/i18n";
 import { useReports } from "../../lib/reports";
+import { useProfileAccess } from "../../lib/scopes";
 
 /**
  * The diagnostics hub (docs_v2/06 P4-4): every lab and imaging report,
@@ -18,6 +20,7 @@ import { useReports } from "../../lib/reports";
 export default function ReportsHubPage() {
   const { t, locale } = useI18n();
   const { items, unavailable, error } = useDiagnosticReports();
+  const canUpload = useProfileAccess().can("upload_tests");
 
   if (unavailable) return <LegacyReportsList />;
 
@@ -28,9 +31,13 @@ export default function ReportsHubPage() {
       <PageHeader title={t("reports.title")} readAloud={[{ audio: "screen.reports" }]} />
       {error && !items ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
 
-      <Link href="/reports/new">
-        <Button fullWidth>{t("reports.add")}</Button>
-      </Link>
+      {/* `upload_tests` is separate from `view_tests` (docs_v2/04 §2.2):
+          reading a result and writing one are different powers. */}
+      <ScopeGate action="upload_tests">
+        <Link href="/reports/new">
+          <Button fullWidth>{t("reports.add")}</Button>
+        </Link>
+      </ScopeGate>
       <Link href="/reports/values">
         <Button variant="secondary" fullWidth>
           {t("reports.values_history_link")}
@@ -40,7 +47,7 @@ export default function ReportsHubPage() {
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
 
       {items && items.length === 0 ? (
-        <EmptyState glyph="report" titleKey="reports.empty_title" bodyKey="dx.empty_body" cta={{ labelKey: "reports.add", href: "/reports/new" }} />
+        <EmptyState glyph="report" titleKey="reports.empty_title" bodyKey="dx.empty_body" cta={canUpload ? { labelKey: "reports.add", href: "/reports/new" } : undefined} />
       ) : null}
 
       {groups.map(({ kind, reports }) => (
@@ -78,9 +85,11 @@ function LegacyReportsList() {
     <AppShell>
       <PageHeader title={t("reports.title")} readAloud={[{ audio: "screen.reports" }]} />
       {error ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
-      <Link href="/reports/new">
-        <Button fullWidth>{t("reports.add")}</Button>
-      </Link>
+      <ScopeGate action="upload_tests">
+        <Link href="/reports/new">
+          <Button fullWidth>{t("reports.add")}</Button>
+        </Link>
+      </ScopeGate>
       <Link href="/reports/values">
         <Button variant="secondary" fullWidth>
           {t("reports.values_history_link")}

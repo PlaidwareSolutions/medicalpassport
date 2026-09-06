@@ -9,6 +9,7 @@ import { FindingCard } from "../components/FindingCard";
 import { InstallEducationCard } from "../components/InstallEducationCard";
 import { MyHealthCard } from "../components/MyHealthCard";
 import { PageHeader } from "../components/PageHeader";
+import { ProposalsInboxCard } from "../components/ProposalsInboxCard";
 import { RefillReminderCard } from "../components/RefillReminderCard";
 import { useGlucoseReadings } from "../lib/blood-sugar";
 import { useCaregiverAlerts } from "../lib/caregiver-alerts";
@@ -49,6 +50,10 @@ export default function HomePage() {
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
 
       {medications === undefined && !medError ? <PillSpinner label={t("common.loading")} /> : null}
+
+      {/* Anything a clinic, pharmacy, lab or hospital is waiting on an
+          answer for (docs_v2/06 P11-5) — hidden entirely when nothing is. */}
+      <ProposalsInboxCard />
 
       {noMedicinesAtAll ? (
         <EmptyState

@@ -1,5 +1,4 @@
 import { randomInt } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, request, test, type APIRequestContext, type Page } from "@playwright/test";
 

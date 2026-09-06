@@ -79,11 +79,27 @@ export default async function globalSetup(_config: FullConfig) {
   if (encounterRes.ok()) encounterId = ((await encounterRes.json()) as { id: string }).id;
   else if (encounterRes.status() !== 404) throw new Error(`encounter create failed: ${encounterRes.status()} ${await encounterRes.text()}`);
 
+  // Phase 10 (docs_v2/06 P10-3): one condition so `/conditions/:id` — the
+  // condition hub — is in the sweep, with a label the monitoring lookup
+  // recognises so the screen has suggestions to render as questions.
+  // Tolerated as absent (404) on an API that predates the journey endpoints.
+  let conditionId: string | undefined;
+  const conditionRes = await ctx.post("/v1/profiles/current/conditions", {
+    headers: { "x-profile-id": profile.id },
+    data: { label: "Type 2 diabetes mellitus", clinicalStatus: "active", onsetDate: "2024-06-01" },
+  });
+  if (conditionRes.ok()) conditionId = ((await conditionRes.json()) as { id: string }).id;
+  else if (conditionRes.status() !== 404) throw new Error(`condition create failed: ${conditionRes.status()} ${await conditionRes.text()}`);
+
   mkdirSync(dirname(STORAGE_STATE), { recursive: true });
   await ctx.storageState({ path: STORAGE_STATE });
   writeFileSync(
     FIXTURE_PATH,
-    JSON.stringify({ phone, profileId: profile.id, medicationId: medication.id, ...(encounterId ? { encounterId } : {}) }, null, 2),
+    JSON.stringify(
+      { phone, profileId: profile.id, medicationId: medication.id, ...(encounterId ? { encounterId } : {}), ...(conditionId ? { conditionId } : {}) },
+      null,
+      2,
+    ),
   );
   await ctx.dispose();
 }

@@ -8,11 +8,13 @@ import { AppShell } from "../../../components/AppShell";
 import { EmptyState } from "../../../components/EmptyState";
 import { ObservationEntrySheet } from "../../../components/ObservationEntrySheet";
 import { PageHeader } from "../../../components/PageHeader";
+import { ScopeGate } from "../../../components/ScopeGate";
 import { TrustBadge } from "../../../components/TrustBadge";
 import type { GuidanceAudioId } from "../../../lib/guidance-audio-entries";
 import { useI18n } from "../../../lib/i18n";
 import { conceptGlyph, deleteObservation, displayUnit, isHubConcept, observationValueText, useObservations, type HubConcept } from "../../../lib/observations";
 import { formatPatientDateTime, useActiveTimezone } from "../../../lib/patient-time";
+import { useProfileAccess } from "../../../lib/scopes";
 import type { SpeechSegment } from "../../../lib/read-aloud";
 
 /** The V1 diaries had pre-generated screen audio; their hub twins keep speaking it. */
@@ -37,6 +39,7 @@ export default function MeasurementDiaryPage() {
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
+  const canAdd = useProfileAccess().can("add_measurements");
 
   if (!concept) {
     return (
@@ -100,9 +103,13 @@ export default function MeasurementDiaryPage() {
           }}
         />
       ) : (
-        <Button fullWidth onClick={() => setShowForm(true)}>
-          {t("bp.add_reading")}
-        </Button>
+        // Recording a reading is its own permission (docs_v2/04 §2.2) — a
+        // caregiver who may read the diary is not thereby allowed to write in it.
+        <ScopeGate action="add_measurements">
+          <Button fullWidth onClick={() => setShowForm(true)}>
+            {t("bp.add_reading")}
+          </Button>
+        </ScopeGate>
       )}
 
       {items === undefined && !error ? <PillSpinner label={t("common.loading")} /> : null}
@@ -134,9 +141,13 @@ export default function MeasurementDiaryPage() {
                     <TrustBadge verification={o.verification} provenanceSource={o.provenanceSource} />
                   </div>
                 </div>
-                <Button variant="danger" loading={deletingId === o.id} disabled={deletingId === o.id} onClick={() => void remove(o.id)}>
-                  {t("bp.delete")}
-                </Button>
+                {/* Quiet: one explanation above the list is enough — repeating
+                    it on every row would bury the readings themselves. */}
+                {canAdd ? (
+                  <Button variant="danger" loading={deletingId === o.id} disabled={deletingId === o.id} onClick={() => void remove(o.id)}>
+                    {t("bp.delete")}
+                  </Button>
+                ) : null}
               </div>
             </Card>
           ))}

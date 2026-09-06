@@ -6,8 +6,10 @@ import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { DoseVisual } from "../../components/DoseVisual";
 import { PageHeader } from "../../components/PageHeader";
+import { ScopeGate } from "../../components/ScopeGate";
 import { useI18n } from "../../lib/i18n";
 import { needsTypeConfirmation, scheduleSummary, useMedications } from "../../lib/medications";
+import { useProfileAccess } from "../../lib/scopes";
 
 /** Screen 9/10: current passport + previous medicines (docs/07). */
 export default function MedicinesPage() {
@@ -17,6 +19,7 @@ export default function MedicinesPage() {
   // equality over the same ordering, so "current" is derived client-side and
   // switching tabs costs nothing.
   const all = useMedications();
+  const access = useProfileAccess();
 
   const current = (all.items ?? []).filter((m) => m.status === "current");
   const previous = (all.items ?? []).filter((m) => m.status !== "current");
@@ -34,13 +37,19 @@ export default function MedicinesPage() {
   return (
     <AppShell>
       <PageHeader title={t("nav.medicines")} readAloud={[{ audio: "screen.medicines" }]} />
+      {/* The offer to confirm medicine types is an edit. Hidden without the
+          permission rather than offered and refused — and quietly, because a
+          caregiver who cannot edit has no use for the explanation here; the
+          screen they came for (the list) still works. */}
       {unconfirmed.length > 0 ? (
-        <Link href="/medicines/confirm-type" style={{ textDecoration: "none" }}>
-          <Card tone="info">
-            <strong>{t("confirmtype.banner_title", { count: unconfirmed.length })}</strong>
-            <span style={{ fontSize: "var(--font-small)" }}>{t("confirmtype.banner_body")}</span>
-          </Card>
-        </Link>
+        <ScopeGate action="edit_medications" quiet>
+          <Link href="/medicines/confirm-type" style={{ textDecoration: "none" }}>
+            <Card tone="info">
+              <strong>{t("confirmtype.banner_title", { count: unconfirmed.length })}</strong>
+              <span style={{ fontSize: "var(--font-small)" }}>{t("confirmtype.banner_body")}</span>
+            </Card>
+          </Link>
+        </ScopeGate>
       ) : null}
       <Tabs
         label={t("nav.medicines")}
@@ -61,7 +70,8 @@ export default function MedicinesPage() {
             titleKey="meds.empty_title"
             bodyKey="meds.empty_body"
             audioId="empty.meds"
-            cta={{ labelKey: "home.add_first", href: "/add" }}
+            /* No "add your first medicine" for someone who is not allowed to add one. */
+            cta={access.can("add_medications") ? { labelKey: "home.add_first", href: "/add" } : undefined}
           />
         ) : (
           // An empty "previous" tab is just an empty history — nothing to teach.

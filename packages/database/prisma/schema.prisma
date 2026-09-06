@@ -3643,3 +3643,109 @@ model BreakGlassGrant {
   @@index([adminUserId, grantedAt])
   @@map("break_glass_grants")
 }
+
+// ---------- Phase 10: treatment journey (docs_v2/06 P10-1) ----------
+
+/// Which end of an edge is being named. Two of these are *codes*, not rows:
+/// a condition is monitored by an analyte or by a measurement concept in
+/// general, not by one particular result row, so those ends carry a
+/// terminology key instead of a uuid.
+enum ClinicalRelationshipEntity {
+  condition
+  medication
+  practitioner
+  analyte
+  observation_concept
+  diagnostic_result
+  observation
+}
+
+enum ClinicalRelationshipKind {
+  medicine_for_condition
+  result_tracks_condition
+  measurement_tracks_condition
+  provider_for_condition
+  provider_for_medicine
+}
+
+/// The existing link the edge was read off. Never a clinical judgement of
+/// its own: every basis names a fact the patient (or their clinic) already
+/// recorded, or a code-level "this test is usually used to follow this
+/// condition" lookup that only ever produces a question.
+enum ClinicalRelationshipBasis {
+  medicine_reason_condition
+  medicine_practitioner
+  prescription_practitioner
+  condition_usual_monitoring
+  patient_stated
+}
+
+enum ClinicalRelationshipOrigin {
+  inferred
+  patient_stated
+}
+
+/// `suggested` is the only state an inferred edge is ever created in. It is
+/// shown as a question and never as a fact; `confirmed` records who answered
+/// yes, `dismissed` who answered no (and stops it being re-suggested).
+enum ClinicalRelationshipStatus {
+  suggested
+  confirmed
+  dismissed
+}
+
+/// One edge of the treatment journey graph (docs_v2/06 P10-1): condition ↔
+/// medicine ↔ result ↔ measurement ↔ provider. Derived edges are marked
+/// `inferred` + `suggested` and carry no clinical assertion until the
+/// patient confirms them (exit gate M10). No Prisma relation fields on
+/// purpose — the ends are polymorphic and two of them are codes, so this
+/// follows `DiagnosticResult.patientProfileId`'s precedent of a plain,
+/// service-scoped column rather than seven optional FKs.
+model ClinicalRelationship {
+  id               String                     @id @default(uuid()) @db.Uuid
+  patientProfileId String                     @map("patient_profile_id") @db.Uuid
+  kind             ClinicalRelationshipKind
+  fromType         ClinicalRelationshipEntity @map("from_type")
+  fromId           String?                    @map("from_id") @db.Uuid
+  /// Terminology key when `fromType` is a code end (`analyte`, `observation_concept`).
+  fromKey          String?                    @map("from_key")
+  toType           ClinicalRelationshipEntity @map("to_type")
+  toId             String?                    @map("to_id") @db.Uuid
+  toKey            String?                    @map("to_key")
+  /// Deterministic identity of the edge — `kind|fromType:ref|toType:ref`.
+  /// A text column rather than a composite unique because half the ends are
+  /// nullable, and Postgres treats NULLs in a unique index as distinct.
+  edgeKey          String                     @map("edge_key")
+  status           ClinicalRelationshipStatus @default(suggested)
+  origin           ClinicalRelationshipOrigin
+  basis            ClinicalRelationshipBasis
+  /// Ids of the rows the inference read (a prescription, a medication), so
+  /// the suggestion can explain itself. Never free clinical text.
+  basisDetail      Json?                      @map("basis_detail")
+  confirmedByUserId String?                   @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt      DateTime?                  @map("confirmed_at") @db.Timestamptz(6)
+  dismissedByUserId String?                   @map("dismissed_by_user_id") @db.Uuid
+  dismissedAt      DateTime?                  @map("dismissed_at") @db.Timestamptz(6)
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([patientProfileId, edgeKey])
+  @@index([patientProfileId, status])
+  @@index([patientProfileId, kind, toId])
+  @@map("clinical_relationships")
+}

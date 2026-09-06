@@ -11,10 +11,12 @@ import { authHeaders, patientSignIn } from "./helpers/provider";
 
 /**
  * P17 measurement reminders (`GET/PUT profiles/current/measurement-reminders`)
- * and the WhatsApp placeholder. The plan shares `channelFrequencyJson`
- * with the per-kind controls under a reserved key: each side must survive
- * the other being replaced, and the reserved key must never surface on the
- * preferences endpoint nor be settable through it.
+ * and the WhatsApp placeholder. The plan has its own column, so it cannot
+ * collide with a NotificationKind; rows written before that column existed
+ * kept it under a reserved key inside `channelFrequencyJson`, and those are
+ * still read and are moved across on the next preferences write. The reserved
+ * key must never surface on the preferences endpoint nor be settable through
+ * it.
  */
 describe("Measurement reminders e2e", () => {
   let app: INestApplication;
@@ -141,6 +143,32 @@ describe("Measurement reminders e2e", () => {
     // And the reserved key still never leaks through the preferences endpoint.
     const prefsBody = await authHeaders(token, profileId)(request(server()).get("/v1/profiles/current/notification-preferences")).expect(200);
     expect(JSON.stringify(prefsBody.body)).not.toContain(MEASUREMENT_REMINDERS_JSON_KEY);
+  });
+
+  it("moves a pre-column plan into its own column rather than dropping it on a preferences replace", async () => {
+    // The settings screen never sees the legacy copy, so a full replace of
+    // the per-kind map would silently delete the patient's reminders.
+    await prisma.notificationPreference.update({
+      where: { patientProfileId: profileId },
+      data: {
+        measurementRemindersJson: Prisma.DbNull,
+        channelFrequencyJson: {
+          refill: { channels: ["sms"], frequency: "off" },
+          [MEASUREMENT_REMINDERS_JSON_KEY]: { concepts: { blood_glucose: { times: ["21:00"], days: [2, 4] } } },
+        },
+      },
+    });
+
+    await authHeaders(token, profileId)(request(server()).put("/v1/profiles/current/notification-preferences"))
+      .send({ ...prefs, channelFrequency: { refill: { channels: ["web_push"], frequency: "immediate" } } })
+      .expect(200);
+
+    const after = await authHeaders(token, profileId)(request(server()).get("/v1/profiles/current/measurement-reminders")).expect(200);
+    expect(after.body).toEqual({ concepts: { blood_glucose: { times: ["21:00"], days: [2, 4] } } });
+
+    const row = await prisma.notificationPreference.findUniqueOrThrow({ where: { patientProfileId: profileId } });
+    expect(row.measurementRemindersJson).toEqual({ concepts: { blood_glucose: { times: ["21:00"], days: [2, 4] } } });
+    expect(Object.keys(row.channelFrequencyJson as object)).toEqual(["refill"]);
   });
 
   it("WhatsApp opt-in answers 501 channel_not_available until a BSP exists (OD-10)", async () => {

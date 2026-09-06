@@ -34,6 +34,8 @@ export const PROVENANCE_MODELS = [
   "DiagnosticReport",
   "DiagnosticResult",
   "Observation",
+  // wave 3 (phase 10)
+  "ClinicalRelationship",
 ];
 
 export const PROVENANCE_FIELDS = [
