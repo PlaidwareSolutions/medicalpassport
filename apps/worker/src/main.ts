@@ -15,6 +15,8 @@ import { getPrisma } from "@medpass/database";
 import { loadEnv, workerEnvShape } from "@medpass/config";
 import { createLogger } from "@medpass/observability";
 import { createObjectStorage } from "@medpass/object-storage";
+import { createMalwareScanner } from "./lib/malware";
+import { resolveProviders } from "./lib/providers";
 import { claimNextJob, completeJob, failJob } from "./lib/queue";
 import { processOcrExtraction, type OcrExtractionPayload } from "./processors/ocr-extraction";
 import { terminateOcrWorker } from "./processors/ocr";
@@ -49,6 +51,11 @@ const objectStorage = createObjectStorage({
     secret: createHash("sha256").update(env.OBJECT_STORAGE_ROOT + ":object-storage").digest("hex"),
   },
 });
+
+// Adapters chosen by configuration (docs_v2/09 §7, docs_v2/06 P3-2/P3-3): an unknown
+// provider name fails here, at startup, with the registered names in the message.
+const providers = resolveProviders(env);
+const malwareScanner = createMalwareScanner(env);
 
 const POLL_INTERVAL_MS = 500;
 // document_classify / document_extract are the two halves of the V2 document
@@ -87,10 +94,10 @@ async function runJob(queue: (typeof QUEUES)[number], job: NonNullable<Awaited<R
       const pdf = await renderPdf((job.payload as { summary: VisitSummaryDto }).summary);
       result = { pdfBase64: pdf.toString("base64") };
     } else if (queue === "document_classify") {
-      await processDocumentClassify(prisma, objectStorage, job.payload as DocumentClassifyPayload);
+      await processDocumentClassify(prisma, objectStorage, job.payload as DocumentClassifyPayload, { scanner: malwareScanner, ocr: providers.ocr });
       result = { ok: true };
     } else if (queue === "document_extract") {
-      await processDocumentExtract(prisma, objectStorage, job.payload as DocumentExtractPayload);
+      await processDocumentExtract(prisma, objectStorage, job.payload as DocumentExtractPayload, { documentAi: providers.documentAi });
       result = { ok: true };
     } else {
       await processContentEnrichment(prisma, job.payload as ContentEnrichmentPayload, env.OPENFDA_API_KEY);

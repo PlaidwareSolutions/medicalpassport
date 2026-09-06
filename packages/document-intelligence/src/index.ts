@@ -44,3 +44,39 @@ export {
   type PipelineResult,
   type DroppedCandidate,
 } from "./pipeline.js";
+// docs_v2/06 P3-3 — malware scanning (bytes in, verdict out; the worker wires clamd's socket)
+export {
+  MagicByteScanner,
+  MAGIC_BYTE_SCANNER_ENGINE,
+  MAGIC_BYTE_SCANNER_VERSION,
+  scanMagicBytes,
+  findPdfActiveContent,
+} from "./malware/magic-byte-scanner.js";
+export {
+  ClamAvScanner,
+  CLAMAV_SCANNER_ENGINE,
+  CLAMD_CHUNK_BYTES,
+  instreamFrames,
+  versionFrames,
+  parseReply,
+  parseVersion,
+  type ClamdTransport,
+  type ClamdVerdict,
+  type ClamAvScannerOptions,
+} from "./malware/clamav-scanner.js";
+// docs_v2/06 P3-2 — provider registry, the default AI provider, and the vendor contract checklist
+export { ProviderRegistry } from "./providers/registry.js";
+export {
+  NullDocumentAiProvider,
+  NULL_DOCUMENT_AI_PROVENANCE,
+  DEFAULT_DOCUMENT_AI_MAX_INPUT_CHARS,
+  documentInputChars,
+} from "./providers/null-document-ai.js";
+export {
+  ocrProviderContract,
+  documentAiProviderContract,
+  type ContractCheck,
+  type OcrContractOptions,
+  type DocumentAiContractOptions,
+} from "./testing/provider-contract.js";
+export { documentAiAsExtractor, composeExtractors } from "./providers/document-ai-extractor.js";

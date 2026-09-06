@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAuditDeferred } from "@medpass/audit";
 import { adminAuditSearchSchema } from "@medpass/validation";
 import { Public } from "../../common/auth.guard";
 import { AdminAuthGuard } from "../../common/admin-auth.guard";
@@ -39,7 +39,7 @@ export class AdminAuditController {
     const hasMore = items.length > input.limit;
     const page = hasMore ? items.slice(0, input.limit) : items;
 
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "admin.audit_searched",
       actorUserId: req.adminAuth!.adminUserId,
       actorType: "admin",

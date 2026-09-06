@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { awaitReadAudits } from "./helpers/audit";
 import { hashPassword, newOpaqueToken, hashSessionToken } from "../src/common/crypto";
 
 /**
@@ -108,7 +109,8 @@ describe("Admin users e2e", () => {
     expect(weeks.length).toBeGreaterThanOrEqual(1);
     expect(weeks.reduce((acc: number, w: { count: number }) => acc + w.count, 0)).toBe(1);
 
-    // The view itself is on the audit chain.
+    // The view itself is on the audit chain (queued, so drain it first).
+    await awaitReadAudits();
     const audit = await prisma.auditEvent.findFirst({ where: { action: "admin.users_viewed" } });
     expect(audit).toBeTruthy();
   });

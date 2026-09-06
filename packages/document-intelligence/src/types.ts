@@ -42,6 +42,12 @@ export interface PageInput {
   /** Raw text (pdf text layer or OCR). When absent, lines are rebuilt from `words`. */
   text?: string;
   words?: OcrWord[];
+  /**
+   * Page-level OCR confidence 0–1 as the engine reported it. Used as the word-confidence
+   * fallback for lines that no word box backs (docs_v2/16 §3 defect 5): an engine that was
+   * unsure about the whole page must not produce candidates that look sure.
+   */
+  confidence?: number;
 }
 
 export interface DocumentInput {
@@ -101,20 +107,74 @@ export interface ExtractionCandidateDraft {
 }
 
 // ---------------------------------------------------------------------------
-// Provider adapters (docs_v2/09 §7)
+// Provider adapters (docs_v2/09 §7, docs_v2/06 P3-2)
 // ---------------------------------------------------------------------------
+
+/** One OCR line: its text, the engine's line confidence (0–1), its box and the words it holds. */
+export interface OcrLine {
+  text: string;
+  confidence: number;
+  box?: BoundingBox;
+  words: OcrWord[];
+}
+
+/** What an OCR adapter is given: the page bytes and what the upload declared them to be. */
+export interface OcrInput {
+  bytes: Uint8Array;
+  contentType: string;
+  /** 1-based, matches `DocumentPage.pageNumber`; echoed for provenance only. */
+  pageNumber: number;
+  /** BCP-47 / engine language hints in preference order (e.g. ["eng", "hin"]). */
+  languageHints?: string[];
+}
 
 export interface OcrResult {
   text: string;
+  /** Per-line text with confidence 0–1 (the vendor contract's first requirement). */
+  lines: OcrLine[];
+  /** Every word with confidence 0–1 and a normalized box, in reading order. */
   words: OcrWord[];
-  /** BCP-47 / tesseract language code when known. */
+  /** BCP-47 / engine language code when known. */
   language?: string;
   /** Page-level confidence 0–1. */
   confidence: number;
+  /** Source image size in pixels when the adapter knows it (boxes are normalized regardless). */
+  width?: number;
+  height?: number;
+  /** Provenance, copied from the provider that produced this result. */
+  engine: string;
+  engineVersion: string;
 }
 
+/**
+ * OCR adapter contract (docs_v2/09 §7 `OcrProvider`). Every implementation — Tesseract in
+ * the worker, a vendor behind OD-11 — must pass `ocrProviderContract` (src/testing).
+ */
 export interface OcrProvider {
-  extract(page: PageInput): Promise<OcrResult>;
+  readonly engine: string;
+  readonly engineVersion: string;
+  /** Largest input accepted, in bytes; anything larger is rejected before any engine work. */
+  readonly maxInputBytes: number;
+  recognize(input: OcrInput): Promise<OcrResult>;
+}
+
+export interface DocumentAiInput {
+  document: DocumentInput;
+  /** Effective classification (user choice already applied). */
+  classification?: ClassificationResult;
+}
+
+/**
+ * AI extractor contract (docs_v2/09 §7 `LlmClinicalExtractor`, §8). Output is candidates only —
+ * never clinical rows — and every candidate carries the provider's `ModelProvenance`. Real
+ * providers stay behind OD-12 (contractual no-training terms); `NullDocumentAiProvider` is the
+ * default everywhere.
+ */
+export interface DocumentAiProvider {
+  readonly provenance: ModelProvenance;
+  /** Largest document (sum of page text lengths, in characters) accepted. */
+  readonly maxInputChars: number;
+  extract(input: DocumentAiInput): Promise<ExtractionCandidateDraft[]>;
 }
 
 export interface DocumentClassifier {
@@ -150,23 +210,5 @@ export interface ClinicalExtractor {
   extract(input: ExtractionInput): Promise<ExtractionCandidateDraft[]>;
 }
 
-/** Opaque storage reference (docs_v2/09 §9: no PHI in keys). */
-export interface ObjectRef {
-  bucket: string;
-  objectKey: string;
-  sha256?: string;
-  contentType?: string;
-  sizeBytes?: number;
-}
-
-export interface ScanResult {
-  status: "clean" | "infected" | "error";
-  threatName?: string;
-  scanner: { name: string; version: string };
-  /** ISO-8601 timestamp. */
-  scannedAt: string;
-}
-
-export interface MalwareScanner {
-  scan(object: ObjectRef): Promise<ScanResult>;
-}
+/** Malware scanning lives in ./malware (docs_v2/06 P3-3); re-exported from the index. */
+export type { MalwareScanner, MalwareScanResult, MalwareVerdict } from "./malware/types.js";

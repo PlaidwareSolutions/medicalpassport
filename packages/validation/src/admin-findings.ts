@@ -12,3 +12,12 @@ export const adminFindingsSearchSchema = z.object({
   limit: z.coerce.number().int().positive().max(200).default(50),
 });
 export type AdminFindingsSearchInput = z.infer<typeof adminFindingsSearchSchema>;
+
+/** `GET admin/rules/quality?from&to` (docs_v2/06 P9-4): the window defaults to the trailing 30 days. */
+export const adminRulesQualityQuerySchema = z
+  .object({
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+  })
+  .refine((v) => !v.from || !v.to || v.from <= v.to, { message: "from must not be after to", path: ["from"] });
+export type AdminRulesQualityQuery = z.infer<typeof adminRulesQualityQuerySchema>;

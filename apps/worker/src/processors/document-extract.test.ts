@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@medpass/audit", () => ({ writeAudit: vi.fn(async () => undefined) }));
 
 import { writeAudit } from "@medpass/audit";
+import { combine, MATCH_QUALITY, NullDocumentAiProvider, type OcrWord } from "@medpass/document-intelligence";
 import { processDocumentExtract } from "./document-extract";
+import { encodeOcrTextObject } from "./ocr-text-object";
 import { fakePrisma, fakeStorage, type FakeDocument } from "./document-fakes";
 
 const PRESCRIPTION_TEXT = [
@@ -63,6 +65,8 @@ const payload = {
   correlationId: "corr-1",
 };
 
+const DEPS = { documentAi: new NullDocumentAiProvider() };
+
 function candidatesOf(prisma: ReturnType<typeof fakePrisma>) {
   return prisma.created.candidates as Array<Record<string, unknown>>;
 }
@@ -74,7 +78,7 @@ describe("processDocumentExtract", () => {
 
   it("records the extraction run with the package's own engine name and version", async () => {
     const { prisma, storage } = setup();
-    await processDocumentExtract(prisma, storage, payload);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
 
     expect(prisma.created.extractions[0]).toMatchObject({
       documentId: "doc-1",
@@ -89,7 +93,7 @@ describe("processDocumentExtract", () => {
 
   it("proposes the catalog-matched medicine from the printed line, citing that exact line", async () => {
     const { prisma, storage } = setup();
-    await processDocumentExtract(prisma, storage, payload);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
 
     const brand = candidatesOf(prisma).find((c) => c.targetEntity === "medication" && c.targetField === "brandName");
     expect(brand).toBeDefined();
@@ -102,7 +106,7 @@ describe("processDocumentExtract", () => {
 
   it("reads frequency, food and duration off the same line and groups them together", async () => {
     const { prisma, storage } = setup();
-    await processDocumentExtract(prisma, storage, payload);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
 
     const medication = candidatesOf(prisma).filter((c) => c.targetEntity === "medication");
     const byField = Object.fromEntries(medication.map((c) => [c.targetField, c]));
@@ -115,7 +119,7 @@ describe("processDocumentExtract", () => {
 
   it("never proposes a dose quantity from a photo (docs_v2/09 §1 rule 4, H-02)", async () => {
     const { prisma, storage } = setup();
-    await processDocumentExtract(prisma, storage, payload);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
 
     expect(candidatesOf(prisma).some((c) => c.targetField === "doseQuantity")).toBe(false);
     expect(candidatesOf(prisma).some((c) => c.targetField === "interpretation")).toBe(false);
@@ -123,7 +127,7 @@ describe("processDocumentExtract", () => {
 
   it("marks the extraction succeeded and the document processed", async () => {
     const { prisma, storage } = setup();
-    await processDocumentExtract(prisma, storage, payload);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
 
     expect(prisma.updated.extractions[0]).toMatchObject({ data: { status: "succeeded" } });
     expect(prisma.updated.documents[0]).toMatchObject({ data: { status: "processed" } });
@@ -145,7 +149,7 @@ describe("processDocumentExtract", () => {
       storedObject: { id: "so-2", bucket: "patient_docs", objectKey: "key-2", contentType: "image/png", status: "verified" },
     });
     const { prisma, storage } = setup(document);
-    await processDocumentExtract(prisma, storage, payload);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
 
     expect(storage.getObjectBytes).toHaveBeenCalledTimes(2);
     expect(prisma.created.extractions).toHaveLength(1);
@@ -155,8 +159,71 @@ describe("processDocumentExtract", () => {
     const { prisma } = setup();
     const storage = fakeStorage(new Map());
 
-    await expect(processDocumentExtract(prisma, storage, payload)).rejects.toThrow();
+    await expect(processDocumentExtract(prisma, storage, payload, DEPS)).rejects.toThrow();
     expect(prisma.updated.extractions[0]).toMatchObject({ data: { status: "failed" } });
     expect(prisma.updated.documents[0]).toMatchObject({ data: { status: "failed" } });
+  });
+});
+
+describe("OCR confidence flows into candidates (docs_v2/16 §3 defect 5)", () => {
+  function wordsFor(text: string, confidence: number): OcrWord[] {
+    return text.split("\n").flatMap((line, row) =>
+      line.split(/\s+/).filter(Boolean).map((w, i) => ({ text: w, confidence, box: { x: Math.min(0.9, i * 0.1), y: row * 0.05, w: 0.08, h: 0.04 } })),
+    );
+  }
+
+  function setupWith(body: Buffer) {
+    const document = documentFixture();
+    const prisma = fakePrisma({
+      document,
+      storedObjects: [
+        ...document.pages.map((p) => p.storedObject),
+        { id: "text-1", bucket: "ocr_tmp", objectKey: "ocr/key-1", contentType: "application/json", status: "verified" },
+      ],
+      products: PRODUCTS,
+    });
+    return { prisma, storage: fakeStorage(new Map([["ocr/key-1", body]])) };
+  }
+
+  it("uses the stored word confidences: a blurry page yields low-confidence candidates with boxes", async () => {
+    const body = encodeOcrTextObject({
+      version: 1,
+      text: PRESCRIPTION_TEXT,
+      words: wordsFor(PRESCRIPTION_TEXT, 0.5),
+      confidence: 0.5,
+      engine: "tesseract.js",
+      engineVersion: "7.0.0",
+      pdfTextLayer: false,
+    });
+    const { prisma, storage } = setupWith(body);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
+
+    const frequency = candidatesOf(prisma).find((c) => c.targetField === "frequency");
+    expect(frequency?.confidence).toBe(combine(0.5, MATCH_QUALITY.frequencyPattern));
+    expect(frequency?.boundingBox).toMatchObject({ x: expect.any(Number), w: expect.any(Number) });
+    const entry = vi.mocked(writeAudit).mock.calls.at(-1)?.[1] as { context: Record<string, unknown> };
+    expect(entry.context.pagesWithWordBoxes).toBe(1);
+  });
+
+  it("uses the page-level confidence when the engine gave text but no word boxes", async () => {
+    const body = encodeOcrTextObject({ version: 1, text: PRESCRIPTION_TEXT, words: [], confidence: 0.7, engine: "e", engineVersion: "1", pdfTextLayer: false });
+    const { prisma, storage } = setupWith(body);
+    await processDocumentExtract(prisma, storage, payload, DEPS);
+    const frequency = candidatesOf(prisma).find((c) => c.targetField === "frequency");
+    expect(frequency?.confidence).toBe(combine(0.7, MATCH_QUALITY.frequencyPattern));
+  });
+
+  it("still reads a legacy plain-text object written before word boxes were stored", async () => {
+    const { prisma, storage } = setupWith(Buffer.from(PRESCRIPTION_TEXT, "utf8"));
+    await processDocumentExtract(prisma, storage, payload, DEPS);
+    expect(candidatesOf(prisma).some((c) => c.targetField === "brandName")).toBe(true);
+  });
+
+  it("records no model provenance with the null AI provider — an honest extraction row", async () => {
+    const { prisma, storage } = setup();
+    await processDocumentExtract(prisma, storage, payload, DEPS);
+    const row = prisma.created.extractions[0] as Record<string, unknown>;
+    expect(row.modelProvider).toBeUndefined();
+    expect(row.engine).toBe("deterministic-extractor");
   });
 });

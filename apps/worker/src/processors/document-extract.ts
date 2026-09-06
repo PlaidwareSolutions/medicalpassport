@@ -3,17 +3,23 @@ import type { Prisma, PrismaClient } from "@medpass/database";
 import type { AuditActorType } from "@medpass/domain";
 import {
   classifyThenExtract,
+  composeExtractors,
   DeterministicClassifier,
   DeterministicExtractor,
   DETERMINISTIC_EXTRACTOR,
+  documentAiAsExtractor,
+  NULL_DOCUMENT_AI_PROVENANCE,
   type CatalogMatch,
   type CatalogMatcher,
+  type ClinicalExtractor,
+  type DocumentAiProvider,
   type DocumentInput,
   type PageInput,
 } from "@medpass/document-intelligence";
 import type { ObjectStorage } from "@medpass/object-storage";
 import { matchBrandInLine, type CatalogProduct } from "./candidate-detection";
 import { toIntelligenceKind } from "./document-kinds";
+import { decodeOcrTextObject, toPageInput } from "./ocr-text-object";
 
 export interface DocumentExtractPayload {
   documentId: string;
@@ -23,10 +29,15 @@ export interface DocumentExtractPayload {
   correlationId?: string;
 }
 
+/** The AI extractor chosen by configuration (docs_v2/09 §7); `NullDocumentAiProvider` by default. */
+export interface DocumentExtractDeps {
+  documentAi: DocumentAiProvider;
+}
+
 /**
  * Stage 2 of the V2 document pipeline (docs_v2/09 §2): deterministic clinical
- * extraction over the text `document-classify` already stored, producing
- * `DocumentCandidate` rows and nothing else.
+ * extraction over the text and word boxes `document-classify` already stored,
+ * producing `DocumentCandidate` rows and nothing else.
  *
  * Not one of these rows is clinical data. They are proposals with a citation:
  * the exact source line, the page, the box, and a confidence. They become
@@ -35,14 +46,17 @@ export interface DocumentExtractPayload {
  *
  * `DocumentExtraction` records engine and version — read from the package, not
  * hardcoded here — so every candidate is traceable to the code that made it
- * (docs_v2/09 §8). A model-backed extractor would additionally fill
- * modelProvider/modelName/modelVersion/promptVersion; the deterministic one
- * leaves them null, which is the honest answer.
+ * (docs_v2/09 §8). When a real `DocumentAiProvider` is configured (OD-12) its
+ * candidates run through the same pipeline guards as the deterministic ones
+ * and the row additionally records modelProvider/modelName/modelVersion/
+ * promptVersion; with the null provider those stay null, which is the honest
+ * answer.
  */
 export async function processDocumentExtract(
   prisma: PrismaClient,
   storage: ObjectStorage,
   payload: DocumentExtractPayload,
+  deps: DocumentExtractDeps,
 ): Promise<void> {
   const { documentId, profileId, actorUserId, actorType, correlationId } = payload;
 
@@ -51,11 +65,22 @@ export async function processDocumentExtract(
     include: { pages: { orderBy: { pageNumber: "asc" }, include: { storedObject: true } } },
   });
 
+  const ai = deps.documentAi;
+  const aiActive = ai.provenance.provider !== NULL_DOCUMENT_AI_PROVENANCE.provider;
+
   const extraction = await prisma.documentExtraction.create({
     data: {
       documentId,
       engine: DETERMINISTIC_EXTRACTOR.name,
       engineVersion: DETERMINISTIC_EXTRACTOR.version,
+      ...(aiActive
+        ? {
+            modelProvider: ai.provenance.provider,
+            modelName: ai.provenance.model,
+            modelVersion: ai.provenance.version,
+            promptVersion: ai.provenance.promptVersion,
+          }
+        : {}),
       status: "running",
       startedAt: new Date(),
     },
@@ -70,7 +95,7 @@ export async function processDocumentExtract(
       const object = await prisma.storedObject.findUnique({ where: { id: page.ocrTextObjectId } });
       if (!object) continue;
       const bytes = await storage.getObjectBytes({ bucket: "ocr-tmp", objectKey: object.objectKey });
-      pages.push({ pageNumber: page.pageNumber, text: bytes.toString("utf8") });
+      pages.push(toPageInput(page.pageNumber, decodeOcrTextObject(bytes)));
       if (page.storedObject.contentType === "application/pdf") {
         mimeType = "application/pdf";
         pdfTextLayer = true;
@@ -88,9 +113,10 @@ export async function processDocumentExtract(
       ...(document.classifiedBy === "user" ? { kind: toIntelligenceKind(document.kind) } : {}),
     };
 
+    const deterministic: ClinicalExtractor = new DeterministicExtractor();
     const result = await classifyThenExtract(input, {
       classifier: new DeterministicClassifier(),
-      extractor: new DeterministicExtractor(),
+      extractor: aiActive ? composeExtractors(deterministic, documentAiAsExtractor(ai)) : deterministic,
       catalogMatcher: await buildCatalogMatcher(prisma),
     });
 
@@ -133,6 +159,8 @@ export async function processDocumentExtract(
           droppedReasons: [...new Set(result.dropped.flatMap((d) => d.reasons))].slice(0, 12),
           engine: DETERMINISTIC_EXTRACTOR.name,
           engineVersion: DETERMINISTIC_EXTRACTOR.version,
+          modelProvider: ai.provenance.provider,
+          pagesWithWordBoxes: pages.filter((p) => (p.words?.length ?? 0) > 0).length,
         },
       });
     });

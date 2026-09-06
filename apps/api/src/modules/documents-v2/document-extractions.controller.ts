@@ -78,6 +78,7 @@ export class DocumentExtractionsController {
       actorRole,
       correlationId: req.correlationId,
       recordedVia: recordedViaFor(req),
+      locale: req.auth?.preferredLocale,
     };
   }
 }

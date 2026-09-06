@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { OfflineMutation } from "./contract.js";
+import type { DocumentIntentProgress, OfflineMutation } from "./contract.js";
 
 interface CacheRecord<T> {
   key: string;
@@ -41,10 +41,37 @@ interface OfflineSchema extends DBSchema {
     key: string; // clientMutationId
     value: StoredConflict;
   };
+  /**
+   * Page bytes of a document captured offline (docs_v2/05 §14) — PHI, so
+   * IndexedDB and never a service-worker cache (docs/15). Keyed per page so
+   * one page can be dropped once it has been uploaded and completed.
+   */
+  documentPages: {
+    key: string; // `${clientMutationId}:${pageNumber}`
+    value: StoredDocumentPage;
+    indexes: { "by-mutation": string };
+  };
+  /** Replay progress per queued document intent — see `DocumentIntentProgress`. */
+  documentIntents: {
+    key: string; // clientMutationId
+    value: DocumentIntentProgress;
+  };
+}
+
+export interface StoredDocumentPage {
+  key: string;
+  clientMutationId: string;
+  profileId: string;
+  pageNumber: number;
+  contentType: string;
+  sizeBytes: number;
+  /** The file's own name, shown on the pending screen; never sent anywhere. */
+  name: string;
+  bytes: ArrayBuffer;
 }
 
 const DB_NAME = "medpass-offline";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<OfflineSchema>> | undefined;
 
@@ -65,6 +92,11 @@ export function openOfflineDb(): Promise<IDBPDatabase<OfflineSchema>> {
         store.createIndex("by-capturedAt", "capturedAt");
       }
       if (!db.objectStoreNames.contains("conflicts")) db.createObjectStore("conflicts", { keyPath: "clientMutationId" });
+      if (!db.objectStoreNames.contains("documentPages")) {
+        const store = db.createObjectStore("documentPages", { keyPath: "key" });
+        store.createIndex("by-mutation", "clientMutationId");
+      }
+      if (!db.objectStoreNames.contains("documentIntents")) db.createObjectStore("documentIntents", { keyPath: "clientMutationId" });
     },
   });
   return dbPromise;

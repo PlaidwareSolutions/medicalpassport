@@ -39,3 +39,4 @@ export * from "./test-due.js";
 export * from "./measurement-reminders.js";
 export * from "./admin-platform.js";
 export * from "./journey.js";
+export * from "./admin-metrics.js";

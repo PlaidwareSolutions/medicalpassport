@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAudit, writeAuditDeferred } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import { recordFindingActionSchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
@@ -13,6 +13,8 @@ const ACTION_TO_STATUS = {
   acknowledged: "acknowledged",
   reviewed_with_professional: "reviewed_with_professional",
   resolved: "resolved",
+  // "Not relevant to me" closes the finding and is what Gate 3 counts as a false positive (docs_v2/06 P9-4).
+  dismissed_not_relevant: "resolved",
   // note_added leaves status untouched — it's an annotation, not a state change.
 } as const;
 
@@ -37,7 +39,7 @@ export class SafetyController {
     const { profileId, actorRole } = await this.access.require(req, "review_concerns");
     const items = await this.safety.currentFindings(profileId, status);
     if (actorRole === "caregiver") {
-      await writeAudit(this.prisma, {
+      await writeAuditDeferred(this.prisma, {
         action: "finding.viewed",
         actorUserId: req.auth!.userId,
         actorType: "caregiver",

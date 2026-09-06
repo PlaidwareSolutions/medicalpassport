@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import type {
   MeasurementDeviceKind,
   MeasurementDevicePlatform,
@@ -8,9 +9,12 @@ import type {
   TrendBucket,
   TrendWindow,
 } from "@medpass/domain";
-import { api, getActiveProfileId } from "./api";
+import { ApiError } from "@medpass/api-client";
+import { enqueueMutation, type SyncChangeSignal } from "@medpass/offline-sync";
+import { api, getActiveProfileId, newIdempotencyKey } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
 import { invalidateHealthTimeline, type ProvenanceSource, type VerificationState } from "./health-timeline";
+import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
 
 /**
  * Observations (docs_v2/04 §5, docs_v2/06 P5-3): every home measurement in
@@ -148,6 +152,22 @@ export function useObservations(concept?: ObservationConcept) {
     path,
     fetcher: async () => (await api.get<{ items: ObservationDto[] }>(path, { profileId: getActiveProfileId() })).items,
   });
+
+  // A reading that landed from elsewhere — another device, or this device's
+  // own offline queue replaying (docs_v2/05 §14) — reloads the diary the
+  // same way the medicines list does (docs/15 incremental sync).
+  useEffect(() => {
+    function onRemoteChange(e: Event) {
+      const change = (e as CustomEvent<SyncChangeSignal>).detail;
+      if (change.scope === "observations" && change.profileId === getActiveProfileId()) {
+        bust();
+        void reload();
+      }
+    }
+    window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+    return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+  }, [reload]);
+
   return { items: data, error, reload, fromCache };
 }
 
@@ -170,10 +190,37 @@ export function useObservationConcepts() {
   return { concepts: data, error };
 }
 
-export async function createObservation(input: ObservationInput) {
-  const res = await api.post<ObservationDto>(LIST_PATH, input, { profileId: getActiveProfileId() });
-  bust();
-  return res;
+/**
+ * Records a reading. With no connection — `navigator.onLine` false, or the
+ * request failing without an HTTP answer — the reading is queued for
+ * `POST /v1/sync` (docs_v2/05 §14 `observation/create`) instead of being
+ * lost, exactly as an offline dose is. The clientMutationId travels in the
+ * body on the online path too, so a request that did reach the server but
+ * whose answer never came back is not recorded twice on replay. A real
+ * rejection (an implausible value, a refused unit) is thrown, never queued:
+ * the server's checks are the same offline (H-25 stays server-side).
+ */
+export async function createObservation(input: ObservationInput): Promise<{ queuedOffline: boolean; observation?: ObservationDto }> {
+  const profileId = getActiveProfileId();
+  const clientMutationId = newIdempotencyKey();
+  const payload = { ...input, clientMutationId };
+
+  async function queue(): Promise<{ queuedOffline: true }> {
+    if (!profileId) throw new Error("no_active_profile");
+    await enqueueMutation({ clientMutationId, entity: "observation", operation: "create", payload, capturedAt: new Date().toISOString(), profileId });
+    notifyMutationQueued();
+    return { queuedOffline: true };
+  }
+
+  if (typeof navigator !== "undefined" && !navigator.onLine) return queue();
+  try {
+    const res = await api.post<ObservationDto>(LIST_PATH, payload, { profileId });
+    bust();
+    return { queuedOffline: false, observation: res };
+  } catch (err) {
+    if (err instanceof ApiError || !profileId) throw err; // a real rejection — never hide it
+    return queue();
+  }
 }
 
 export async function deleteObservation(id: string) {

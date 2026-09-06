@@ -4,7 +4,6 @@ import cookieParser from "cookie-parser";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule, logger } from "./app.module";
 import { env } from "./common/env";
-import { securityHeaders } from "./common/security-headers";
 
 async function bootstrap(): Promise<void> {
   const config = env(); // fail fast on invalid environment
@@ -16,8 +15,13 @@ async function bootstrap(): Promise<void> {
   app.use(cookieParser());
   app.disable("x-powered-by"); // SEC-2 (Session 15): no framework disclosure
   app.set("trust proxy", true); // CF-Connecting-IP / X-Forwarded-For via Cloudflare
-  app.use(securityHeaders);
   app.setGlobalPrefix("v1", { exclude: ["healthz", "readyz"] });
+  // Security headers are applied from AppModule.configure (ticket 0.19), so
+  // the e2e harness sees the same responses this process serves.
+  //
+  // SIGTERM/SIGINT → app.close() → the destroy hooks drain the deferred
+  // audit queue (AuditQueueService, then PrismaService right before it
+  // disconnects — ticket 0.18) so no queued read-audit row is lost on deploy.
   app.enableShutdownHooks();
 
   if (config.CORS_ORIGINS) {

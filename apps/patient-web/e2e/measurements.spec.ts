@@ -201,7 +201,8 @@ test("the V1 diary routes redirect to the hub concept pages", async ({ page }) =
 
 test("devices are recorded by hand and the screen says sync arrives later", async ({ page }) => {
   await openAs(page, "/measurements/devices");
-  await expect(page.getByText(/Automatic sync .* arrives in a later release/)).toBeVisible();
+  // Chromium with Web Bluetooth shows the "Connect" sentence instead; either way the screen explains itself.
+  await expect(page.getByText(/Automatic sync .* arrives in a later release|can read a Bluetooth blood pressure monitor/)).toBeVisible();
   await page.getByRole("button", { name: "Add a device" }).click();
   await page.getByRole("radio", { name: "Blood pressure monitor", exact: true }).click();
   await page.getByLabel("A name for it (optional)").fill("Bedroom BP machine (e2e)");

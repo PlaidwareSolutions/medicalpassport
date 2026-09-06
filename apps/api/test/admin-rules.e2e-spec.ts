@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { awaitReadAudits } from "./helpers/audit";
 import { hashPassword, newOpaqueToken, hashSessionToken } from "../src/common/crypto";
 
 /** Admin rules/findings review e2e: read-only rule versions + cross-profile findings. */
@@ -108,6 +109,7 @@ describe("Admin rules e2e", () => {
     expect(detail.body.evaluation.appVersion).toBe("test");
     expect(detail.body.actions).toEqual([]);
 
+    await awaitReadAudits();
     const auditEvents = await prisma.auditEvent.findMany({ where: { action: "admin.findings_viewed" } });
     expect(auditEvents.length).toBeGreaterThanOrEqual(2); // list + detail
   });

@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { awaitReadAudits } from "./helpers/audit";
 import { encryptField, hashPassword, hashSessionToken, newOpaqueToken } from "../src/common/crypto";
 import { generateTotpSecret } from "../src/common/totp";
 import { BreakGlassService } from "../src/modules/admin-platform/break-glass.service";
@@ -232,6 +233,7 @@ describe("Admin platform e2e", () => {
     expect((await admin(auditor)(request(server()).get("/v1/admin/break-glass?active=false")).expect(200)).body.items).toEqual([]);
     expect(JSON.stringify(list.body)).not.toContain(PATIENT_NAME);
     // Two reads here plus the one the duty-gating walk made earlier.
+    await awaitReadAudits();
     expect(await prisma.auditEvent.count({ where: { action: "admin.break_glass_listed", actorUserId: auditorId } })).toBe(3);
 
     const detail = await admin(support)(request(server()).get(`/v1/admin/support-cases/${caseId}`)).expect(200);
@@ -283,6 +285,7 @@ describe("Admin platform e2e", () => {
 
     await admin(auditor)(request(server()).get(`/v1/admin/consent-audit?profileId=${randomUUID()}`)).expect(404);
     await admin(auditor)(request(server()).get("/v1/admin/consent-audit")).expect(400);
+    await awaitReadAudits();
     const audit = await prisma.auditEvent.findFirst({ where: { action: "admin.consent_audit_viewed" } });
     expect(audit).toMatchObject({ actorUserId: auditorId, patientProfileId: profileId });
   });

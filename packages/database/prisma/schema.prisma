@@ -916,6 +916,10 @@ model MedicationProduct {
   /// Source registry entry + version this product row came from (docs/11).
   sourceName    String?              @map("source_name")
   sourceVersion String?              @map("source_version")
+  /// Adapter-stable product key within `sourceName` (docs_v2/06 P2-6) — what the catalog import upserts on.
+  catalogProductKey String?           @map("catalog_product_key")
+  /// `MedicationCatalogAdapter.version()` of the import that last touched this row.
+  catalogVersion    String?           @map("catalog_version")
   status        CatalogStatus        @default(active)
   createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -925,6 +929,7 @@ model MedicationProduct {
   medications     PatientMedication[]
   clinicalContent ClinicalContent[]
 
+  @@unique([sourceName, catalogProductKey])
   @@index([genericName])
   @@map("medication_products")
 }
@@ -1549,6 +1554,8 @@ enum SafetyFindingActionType {
   note_added
   reviewed_with_professional
   resolved
+  /// "Not relevant to me" — the Gate 3 false-positive signal (docs_v2/06 P9-4, docs_v2/10 §4).
+  dismissed_not_relevant
 }
 
 /// Append-only action log per finding (docs/13) — the audit trail behind
@@ -3748,4 +3755,27 @@ model ClinicalRelationship {
   @@index([patientProfileId, status])
   @@index([patientProfileId, kind, toId])
   @@map("clinical_relationships")
+}
+
+/// Product analytics (docs_v2/06 P1-7, docs_v2/14 §6) — PHI-free by
+/// construction. One row per catalogue event (`@medpass/observability`
+/// PRODUCT_EVENTS); `profileDigest`/`userDigest` are peppered HMACs of the
+/// ids, never the ids, and `properties` holds only catalogue-declared keys.
+/// Written asynchronously from a bounded in-process buffer; never on a
+/// request's critical path. No relations on purpose: this table must stay
+/// joinable to nothing.
+model ProductEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  occurredAt    DateTime @map("occurred_at") @db.Timestamptz(6)
+  profileDigest String?  @map("profile_digest")
+  userDigest    String?  @map("user_digest")
+  properties    Json     @default("{}")
+  locale        String?
+  clientKind    String?  @map("client_kind")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([name, occurredAt])
+  @@index([occurredAt])
+  @@map("product_events")
 }

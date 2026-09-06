@@ -1,5 +1,5 @@
 import { Controller, Get, Req, UseGuards } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAuditDeferred } from "@medpass/audit";
 import { Public } from "../../common/auth.guard";
 import { AdminAuthGuard } from "../../common/admin-auth.guard";
 import { requireAdminDuty } from "../../common/admin-access";
@@ -32,7 +32,7 @@ export class AdminUsersController {
   @Get("overview")
   async overview(@Req() req: ApiRequest) {
     requireAdminDuty(req, "view_users");
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "admin.users_viewed",
       actorUserId: req.adminAuth!.adminUserId,
       actorType: "admin",

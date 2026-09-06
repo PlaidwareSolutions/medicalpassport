@@ -12,6 +12,7 @@ import type { ApiRequest } from "../../common/http";
 import { computeProfileRelationships } from "../../common/profile-relationship";
 import { AuthService, type IssuedSession } from "./auth.service";
 import { PrismaService } from "../../common/prisma.service";
+import { emitProductEvent, productEventContext } from "../product-events/product-events.service";
 
 const REFRESH_COOKIE = "medpass_refresh";
 const DEVICE_TRUST_COOKIE = "medpass_device_trust";
@@ -64,6 +65,8 @@ export class AuthController {
     // than leave a credential in the browser that no longer resolves.
     if (session.deviceTrustToken) this.setDeviceTrustCookie(res, session.deviceTrustToken);
     else res.clearCookie(DEVICE_TRUST_COOKIE, { path: "/v1/auth" });
+    // Product metrics (docs_v2/06 P1-7): the user id is hashed at rest; the phone never leaves this handler.
+    emitProductEvent({ ...productEventContext(req), name: "acquisition.sign_in", userId: session.userId, locale: input.locale, properties: { method: "otp", deviceKind: input.device.kind } });
     return this.sessionResponse(session);
   }
 
@@ -82,6 +85,7 @@ export class AuthController {
     const session = await this.auth.deviceLogin(input, incomingTrustToken, req.correlationId);
     this.setSessionCookies(res, session);
     this.setDeviceTrustCookie(res, session.deviceTrustToken!);
+    emitProductEvent({ ...productEventContext(req), name: "acquisition.sign_in", userId: session.userId, properties: { method: "device_trust" } });
     return this.sessionResponse(session);
   }
 

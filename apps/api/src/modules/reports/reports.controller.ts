@@ -7,6 +7,7 @@ import { parseWith } from "../../common/zod";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { recordedViaFor } from "../../common/provenance";
 import { ReportsService } from "./reports.service";
+import { emitProductEvent, productEventContext } from "../product-events/product-events.service";
 
 /**
  * Test reports (docs/07 screen 44). Gated on view_profile/edit_profile — the
@@ -31,12 +32,15 @@ export class ReportsController {
   async create(@Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId, actorRole } = await this.access.require(req, "edit_profile");
     const input = parseWith(createReportSchema, body);
-    return this.reports.create(profileId, input, {
+    const report = await this.reports.create(profileId, input, {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
       recordedVia: recordedViaFor(req),
     });
+    // Product metrics (docs_v2/06 P1-7): the report kind enum — never its label, facility or values.
+    emitProductEvent({ ...productEventContext(req), name: "engagement.report_added", profileId, properties: { kind: input.kind, hasEncounter: !!input.encounterId } });
+    return report;
   }
 
   @Get("reports/:id")

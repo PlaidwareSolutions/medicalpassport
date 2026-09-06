@@ -8,6 +8,8 @@ import { AppShell } from "../../../components/AppShell";
 import { DocumentUploadButtons } from "../../../components/DocumentUploadButtons";
 import { GuideGlyph } from "../../../components/GuideGlyph";
 import { PageHeader } from "../../../components/PageHeader";
+import { newIdempotencyKey } from "../../../lib/api";
+import { queueDocumentUploadIntent } from "../../../lib/document-intents";
 import {
   CHOOSABLE_KINDS,
   MAX_DOCUMENT_PAGES,
@@ -21,6 +23,7 @@ import {
   pageContentTypeFor,
   pageTooLarge,
   updateDocument,
+  UploadError,
   uploadPageBytes,
   type ClassificationDto,
   type DocumentKind,
@@ -38,9 +41,16 @@ interface CapturedPage {
   channel: SourceChannel;
 }
 
-type Step = "capture" | "uploading" | "classifying" | "kind";
+type Step = "capture" | "uploading" | "classifying" | "kind" | "queued";
 
 class QuarantinedError extends Error {}
+
+/** No connection, or a request that never got an HTTP answer — the docs_v2/05 §14 "queue it" cases; a server refusal is neither. */
+function isNetworkFailure(err: unknown): boolean {
+  if (err instanceof ApiError || err instanceof QuarantinedError) return false;
+  if (err instanceof UploadError) return err.reason === "network";
+  return true;
+}
 
 const CLASSIFY_POLL_MS = 1500;
 /** Tesseract on a phone-sized page takes a while; past this we stop waiting and simply ask. */
@@ -57,6 +67,13 @@ const CLASSIFY_TIMEOUT_MS = 90_000;
  *
  * `?kind=` pre-selects the kind (the /add/scan hand-off); `?source=
  * share_target` drains the share-target inbox the service worker filled.
+ *
+ * Offline (docs_v2/05 §14): with no connection — or when the connection
+ * drops mid-upload — the pages are parked on the phone with the declared
+ * kind and queued as a `document_upload_intent`; the sync engine runs the
+ * same create → upload → complete → process sequence when the network is
+ * back. The kind is asked for BEFORE queueing when nothing pre-set it,
+ * since the classifier's guess can't be shown without a server.
  */
 function NewDocumentFlow() {
   const { t } = useI18n();
@@ -75,6 +92,10 @@ function NewDocumentFlow() {
   const [chosenKind, setChosenKind] = useState<DocumentKind | undefined>(presetKind);
   const [saving, setSaving] = useState(false);
   const [approachingQuota, setApproachingQuota] = useState(false);
+  /** The kind chooser is being shown to queue offline, not to confirm a classifier's guess. */
+  const [offlineChoice, setOfflineChoice] = useState(false);
+  /** An online attempt that lost the network before the kind was chosen — the replay resumes from here once the kind is picked. */
+  const pendingResumeRef = useRef<{ clientMutationId: string; documentId?: string; completedPages: number[] } | undefined>(undefined);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
 
@@ -153,17 +174,58 @@ function NewDocumentFlow() {
     return list.every((p) => p.contentType === "application/pdf") ? "file" : "gallery";
   }
 
+  /**
+   * Parks the pages on the phone and queues the intent (docs_v2/05 §14).
+   * `resume` carries what an online attempt already achieved — the document
+   * it created and the pages that completed — so the replay continues from
+   * there under the same clientMutationId rather than starting over.
+   */
+  async function queueForLater(kind: DocumentKind, resume?: { clientMutationId: string; documentId?: string; completedPages: number[] }) {
+    await queueDocumentUploadIntent({
+      clientMutationId: resume?.clientMutationId,
+      kind,
+      sourceChannel: sourceChannelFor(pages),
+      pages: pages.map((p) => ({ file: p.file, contentType: p.contentType })),
+      documentId: resume?.documentId,
+      completedPages: resume?.completedPages,
+    });
+    setOfflineChoice(false);
+    setStep("queued");
+  }
+
+  /** Offline with no kind yet: ask now, queue on confirm — the classifier can't be consulted without a server. */
+  function askKindThenQueue() {
+    setOfflineChoice(true);
+    setStep("kind");
+  }
+
   async function upload() {
     if (pages.length === 0) return;
-    setStep("uploading");
     setError(undefined);
+    const kindNow = chosenKind ?? presetKind;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (kindNow) await queueForLater(kindNow);
+      else askKindThenQueue();
+      return;
+    }
+
+    setStep("uploading");
     setProgress({ page: 0, fraction: 0 });
+    // Also the offline queue's key, so a resume finds this very document.
+    const clientMutationId = newIdempotencyKey();
+    let createdId: string | undefined;
+    const completed: number[] = [];
     try {
-      const created = await createDocument({
-        ...(presetKind ? { kind: presetKind } : {}),
-        sourceChannel: sourceChannelFor(pages),
-        pages: pages.map((p) => ({ contentType: p.contentType, sizeBytes: p.file.size })),
-      });
+      const created = await createDocument(
+        {
+          ...(kindNow ? { kind: kindNow } : {}),
+          sourceChannel: sourceChannelFor(pages),
+          pages: pages.map((p) => ({ contentType: p.contentType, sizeBytes: p.file.size })),
+        },
+        { idempotencyKey: clientMutationId },
+      );
+      createdId = created.id;
       setDocumentId(created.id);
       setApproachingQuota(created.approachingStorageQuota === true);
       for (const [index, page] of pages.entries()) {
@@ -172,10 +234,24 @@ function NewDocumentFlow() {
         setProgress({ page: index, fraction: 0 });
         await uploadPageBytes(authorization.uploadUrl, page.file, page.contentType, (fraction) => setProgress({ page: index, fraction }));
         await completePage(created.id, authorization.pageNumber);
+        completed.push(authorization.pageNumber);
       }
       setStep("classifying");
       await waitForClassification(created.id);
     } catch (err) {
+      if (isNetworkFailure(err)) {
+        // The connection went mid-way: keep what reached the server and
+        // queue the rest, exactly as if the capture had started offline.
+        const resume = { clientMutationId, documentId: createdId, completedPages: completed };
+        if (kindNow) {
+          await queueForLater(kindNow, resume);
+        } else {
+          setDocumentId(createdId);
+          askKindThenQueue();
+          pendingResumeRef.current = resume;
+        }
+        return;
+      }
       setStep("capture");
       setError(
         err instanceof QuarantinedError
@@ -205,7 +281,22 @@ function NewDocumentFlow() {
   }
 
   async function confirmKind() {
-    if (!documentId || !chosenKind) return;
+    if (!chosenKind) return;
+    if (offlineChoice) {
+      // Queue path: the kind is the person's declaration, sent with the
+      // create when the intent replays (docs_v2/09 §4 — it outranks the
+      // classifier permanently).
+      setSaving(true);
+      try {
+        await queueForLater(chosenKind, pendingResumeRef.current);
+      } catch {
+        setError(t("common.error_generic"));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    if (!documentId) return;
     setSaving(true);
     setError(undefined);
     try {
@@ -327,19 +418,36 @@ function NewDocumentFlow() {
         </Card>
       ) : null}
 
+      {step === "queued" ? (
+        <Card tone="info" data-testid="document-queued">
+          <strong>{t("documents.queued_title")}</strong>
+          <span>{t("documents.queued_body")}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)", marginTop: "var(--space-sm)" }}>
+            <Link href="/sync/conflicts">
+              <Button variant="secondary" fullWidth>
+                {t("documents.queued_pending")}
+              </Button>
+            </Link>
+            <Link href="/documents" style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+              {t("documents.back_to_list")}
+            </Link>
+          </div>
+        </Card>
+      ) : null}
+
       {step === "kind" ? (
         <>
           <SectionTitle>{t("documents.what_is_this")}</SectionTitle>
-          <Card tone={guessBucket === "high" ? "info" : undefined} data-testid="classifier-guess">
-            <span>{classifyTimedOut ? t("documents.guess_timeout") : guessSentence}</span>
+          <Card tone={offlineChoice ? "warning" : guessBucket === "high" ? "info" : undefined} data-testid="classifier-guess">
+            <span>{offlineChoice ? t("documents.offline_choose_kind") : classifyTimedOut ? t("documents.guess_timeout") : guessSentence}</span>
           </Card>
           <div style={{ height: "var(--space-md)" }} />
           <ChoiceGrid label={t("documents.kind_label")} columns={2} choices={kindChoices} value={chosenKind} onChange={(v) => setChosenKind(isDocumentKind(v) ? v : undefined)} />
           <div style={{ marginTop: "var(--space-lg)", display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
             <Button fullWidth disabled={!chosenKind || saving} loading={saving} onClick={() => void confirmKind()}>
-              {chosenKind && chosenKind === guessKind ? t("documents.kind_confirm_yes") : t("documents.kind_confirm_continue")}
+              {chosenKind && chosenKind === guessKind && !offlineChoice ? t("documents.kind_confirm_yes") : t("documents.kind_confirm_continue")}
             </Button>
-            {documentId ? (
+            {documentId && !offlineChoice ? (
               <Link href={`/documents/${documentId}`} style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                 {t("documents.decide_later")}
               </Link>

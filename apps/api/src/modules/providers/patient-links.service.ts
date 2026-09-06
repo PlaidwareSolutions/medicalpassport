@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAudit, writeAuditDeferred } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import type { ProviderPatientLink } from "@medpass/database";
 import { PROVIDER_LINK_SECTIONS, type CreateOnboardingTokenInput, type ProviderLinkSection } from "@medpass/validation";
@@ -202,7 +202,7 @@ export class PatientLinksService {
       include: { patientProfile: { select: { displayName: true, yearOfBirth: true, sex: true } } },
       orderBy: { createdAt: "desc" },
     });
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "provider.patients_listed",
       actorUserId: actor.userId,
       actorType: "provider",
@@ -241,7 +241,7 @@ export class PatientLinksService {
         snapshot.currentMedications = snapshot.currentMedications.map((m, i) => ({ ...m, patientMedicationId: ids[i]!.id }));
       }
     }
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "provider.snapshot_viewed",
       actorUserId: actor.userId,
       actorType: "provider",

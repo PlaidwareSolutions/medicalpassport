@@ -280,6 +280,10 @@ export class DocumentsService {
 
     const storedObject = await this.prisma.storedObject.findUnique({ where: { objectKey: payload.objectKey } });
     if (!storedObject) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "File not found", 404);
+    // A page the worker quarantined (docs_v2/06 P3-3) or that was never verified is kept
+    // as evidence but never served — even to a link minted before the verdict. 410, not
+    // 404: the file existed, and the client should stop retrying the link.
+    if (storedObject.status !== "verified") throw new ApiProblem(ERROR_CODES.NOT_FOUND, "This file is no longer available", 410);
 
     const path = storage.pathFor(payload.bucket, payload.objectKey);
     res.setHeader("content-type", storedObject.contentType ?? "application/octet-stream");

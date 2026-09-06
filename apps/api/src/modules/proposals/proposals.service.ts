@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAudit, writeAuditDeferred } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import type { Prisma, ProposalKind, ProviderProposal } from "@medpass/database";
 import type { AcceptProposalInput, ProposalsQuery, RejectProposalInput } from "@medpass/validation";
@@ -134,7 +134,7 @@ export class ProposalsService {
   async getForProvider(id: string, actor: ProviderActor) {
     const row = await this.prisma.providerProposal.findFirst({ where: { id, organizationId: actor.organizationId }, include: PROPOSAL_INCLUDE });
     if (!row) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Proposal not found", 404);
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "provider.proposal_viewed",
       actorUserId: actor.userId,
       actorType: "provider",

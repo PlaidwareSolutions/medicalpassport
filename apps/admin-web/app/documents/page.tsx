@@ -97,7 +97,7 @@ export default function DocumentsStatusPage() {
                   );
                 })}
                 <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                  {data.pendingUpload} awaiting upload · {data.quarantined} quarantined
+                  {data.pendingUpload} awaiting upload · {data.quarantined} quarantined{typeof data.malwareQuarantined === "number" ? ` (${data.malwareQuarantined} by malware scan)` : ""}
                 </span>
               </Card>
 

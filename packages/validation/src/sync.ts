@@ -32,3 +32,22 @@ export const syncBatchSchema = z.object({
   mutations: z.array(syncMutationEnvelopeSchema).max(50).default([]),
 });
 export type SyncBatchInput = z.infer<typeof syncBatchSchema>;
+
+/**
+ * Payload of a queued `document_upload_intent/create` (docs_v2/05 §14).
+ * Page bytes never travel through `/sync` — the client replays the online
+ * sequence itself (create → presigned upload → complete → process) using
+ * its clientMutationId as the create's Idempotency-Key, then sends this
+ * envelope as the record of the fulfilled intent. The server verifies the
+ * named document is whole and processing; a document deleted in the
+ * meantime is a `deleted` conflict, one that never finished uploading is
+ * `invalid`. The descriptive fields are what the client declared at capture
+ * time and are kept for the audit trail only.
+ */
+export const documentUploadIntentSchema = z.object({
+  documentId: z.string().uuid(),
+  kind: z.string().trim().max(40).optional(),
+  sourceChannel: z.string().trim().max(40).optional(),
+  pageCount: z.coerce.number().int().positive().max(30).optional(),
+});
+export type DocumentUploadIntentInput = z.infer<typeof documentUploadIntentSchema>;

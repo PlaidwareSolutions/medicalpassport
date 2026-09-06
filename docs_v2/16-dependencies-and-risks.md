@@ -45,7 +45,7 @@ Scoring: likelihood L1–5 × impact I1–5.
 | R16 | Hospital discharge workflow proposes stopped medicines as current (H-34) | 2 | 5 | discharge summaries route only to the transition workflow | WS04/WS07 |
 | R17 | DPDP/NHA require India-region hosting late in the program | 2 | 4 | region-move runbook rehearsed in P0; IaC parameterized | WS14 |
 | R18 | Pilot partners lack devices/connectivity | 3 | 2 | PWA offline (exists); low-end device matrix in Gate 4 | WS17 |
-| R19 | Audit write on read paths causes latency under load (known deferred fix) | 3 | 3 | move audit writes off read paths in P0/P1 (queue the read-audit rows) | WS12 |
+| R19 | Audit write on read paths causes latency under load (known deferred fix) | 3 | 3 | **Mitigated 2026-09-06 (ticket 0.18, §3 item 7):** read-audit rows are queued and batched off the request path; write paths unchanged | WS12 |
 | R20 | Sunset migration irreversibility | 2 | 5 | verified backup + restore-test + parity gate + go/no-go runbook R-MIG-2 | WS12 |
 
 ## 3. Defects found while building Phase 0 (owner: WS12/WS07, fix in P1)
@@ -56,8 +56,9 @@ Surfaced by the new worker test suite on 2026-09-06:
 2. **Fixed 2026-09-06.** Retry backoff: `failJob` sets `retryAfter` (30 s doubling to a 15 m cap, ±25 % jitter) and `claimNextJob` skips queued rows whose `retry_after` is in the future; replay and re-process paths clear it.
 3. **Fixed 2026-09-06.** Stale-lock recovery: `claimNextJob` also reclaims rows `running` for more than 15 minutes (`STALE_LOCK_MINUTES`), and `shutdown()` now waits up to 60 s for the in-flight job.
 4. **Fixed 2026-09-06.** OCR worker poison: a failed `createWorker` no longer stays cached; `terminateOcrWorker` tolerates a never-started worker.
-5. **Open (P3 with the extraction targets).** OCR engine confidence is discarded; candidates carry fixed rule confidences.
+5. **Fixed 2026-09-07 (P3-2).** OCR engine confidence was discarded; the `OcrProvider` contract now returns per-word/line/page confidence (0–1), the worker stores word boxes with the page text, and candidate confidence is OCR word (or page) confidence × rule match quality — the fixed 0.9 is only the fallback when the engine reported nothing.
 6. **Fixed 2026-09-06.** The worker's copy of `VisitSummaryDto` had drifted from the API's (missing `profile.timezone`); a drift test now guards it.
+7. **Fixed 2026-09-06 (ticket 0.18 — the structural remediation INC-2026-001 left open).** Every read endpoint that audits a view (`medication.list_viewed`, `profile.viewed_by_caregiver`, `finding.viewed`, `caregiver.family_viewed`, `provider.patients_listed`, `provider.snapshot_viewed`, `provider.proposal_viewed`, `admin.audit_searched`, `admin.findings_viewed`, `admin.users_viewed`, `admin.break_glass_listed`, `admin.consent_audit_viewed`, and `caregiver.access_used` for `view_*` actions) called `writeAudit` synchronously inside the request, so every read waited on the global chain lock. `packages/audit` now has `writeAuditDeferred`: an in-process queue drained by a single writer every 250 ms or at 100 entries, one lock per batch, arrival order kept, bounded at 1000 with overflow falling back to the synchronous write (never dropped), retry with per-entry isolation, structured batch logging, and `flushAuditQueue()` for tests and for shutdown (AuditQueueService and PrismaService drain it on `app.close()`). Mutation audit rows stay synchronous inside their transaction. Tests: `packages/audit` deferred unit spec (7), `apps/api/test/audit-deferred.e2e-spec.ts` (mixed sync/deferred sequence, batch boundaries, racing writers — `verifyAuditChain` intact), and `test/helpers/audit.ts` `awaitReadAudits()` in the eight suites that assert a read audit.
 
 ## 4. What is explicitly not a dependency
 

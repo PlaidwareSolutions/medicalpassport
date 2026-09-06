@@ -156,9 +156,11 @@
       "share_records"
     ],
     "modules/sync/sync.service.ts": [
+      "add_measurements",
       "add_medications",
       "edit_medications",
       "record_doses",
+      "upload_documents",
       "view_medications"
     ],
     "modules/test-due/test-due.controller.ts": [

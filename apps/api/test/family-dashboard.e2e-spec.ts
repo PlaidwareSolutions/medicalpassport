@@ -6,6 +6,7 @@ import request from "supertest";
 import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { awaitReadAudits } from "./helpers/audit";
 
 /**
  * The family dashboard (docs_v2/05 §8, docs_v2/06 P6-3): one call, every
@@ -157,6 +158,7 @@ describe("Family dashboard e2e", () => {
   });
 
   it("every caregiver-side read of the dashboard is audited against the relationship, the patient's own is not", async () => {
+    await awaitReadAudits();
     const audits = await prisma.auditEvent.findMany({ where: { patientProfileId: profileA, action: "caregiver.family_viewed" } });
     expect(audits.length).toBeGreaterThanOrEqual(2);
     expect(audits.every((a) => a.actorType === "caregiver" && a.entityType === "caregiver_relationship")).toBe(true);

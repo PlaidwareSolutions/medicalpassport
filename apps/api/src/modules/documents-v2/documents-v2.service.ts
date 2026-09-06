@@ -21,9 +21,12 @@ import { signatureMatches } from "../../common/file-signature";
 import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
 import { RateLimitService } from "../../common/rate-limit.service";
 import { getObjectStorage } from "../../common/storage";
+import { emitProductEvent } from "../product-events/product-events.service";
 
 export interface DocumentActor extends ProvenanceActor {
   correlationId?: string;
+  /** The caller's UI locale — a product-metrics dimension only, never stored on the row. */
+  locale?: string;
 }
 
 type Tx = Prisma.TransactionClient | PrismaClient;
@@ -248,6 +251,17 @@ export class DocumentsV2Service {
           profileId,
           actor,
           digest: contentDigest(verified.map((p) => p.storedObject.sha256 ?? "")),
+        });
+        // Product metrics (docs_v2/06 P1-7): once, when the document is whole
+        // — the declared kind enum and the page count, never a title or a byte.
+        emitProductEvent({
+          name: "engagement.document_uploaded",
+          userId: actor.userId,
+          profileId,
+          correlationId: actor.correlationId,
+          clientKind: actor.recordedVia,
+          locale: actor.locale,
+          properties: { kind: updated.kind, pageCount: verified.length },
         });
       }
     });

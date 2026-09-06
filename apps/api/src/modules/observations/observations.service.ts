@@ -26,10 +26,13 @@ import { PrismaService } from "../../common/prisma.service";
 import { rejectClientInterpretation } from "../../common/provenance";
 import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
 import { EncountersService } from "../encounters/encounters.service";
+import { emitProductEvent } from "../product-events/product-events.service";
 import { toLegacyBloodPressure, toLegacyGlucose, toLegacyWeight } from "./legacy-views";
 
 interface Actor extends ProvenanceActor {
   correlationId?: string;
+  /** The caller's UI locale — a product-metrics dimension only, never stored on the row. */
+  locale?: string;
 }
 
 type Tx = Prisma.TransactionClient;
@@ -49,6 +52,14 @@ function requireConcept(concept: string): ObservationConceptEntry {
     ]);
   }
   return entry;
+}
+
+/** Prisma P2002 whose target names `column` — the only failure `create` treats as "someone else already did this". */
+function isUniqueViolationOn(err: unknown, column: string): boolean {
+  const e = err as { code?: string; meta?: { target?: unknown } } | undefined;
+  if (e?.code !== "P2002") return false;
+  const target = e.meta?.target;
+  return Array.isArray(target) ? target.includes(column) : typeof target === "string" ? target.includes(column) : false;
 }
 
 /** Decimal(12,3) on Observation.valueNumeric — round rather than let Prisma refuse the row. */
@@ -203,11 +214,33 @@ export class ObservationsService {
     return row ? observationDto(row) : null;
   }
 
+  /**
+   * The row a client mutation already produced, if any — including a
+   * soft-deleted one, so an offline replay can tell "already saved" from
+   * "saved, then deleted elsewhere" (docs_v2/05 §14). Scoped to the profile:
+   * another profile's id is simply not found.
+   */
+  async byClientMutationId(profileId: string, clientMutationId: string) {
+    const row = await this.prisma.observation.findFirst({ where: { clientMutationId, patientProfileId: profileId } });
+    if (!row) return undefined;
+    return { deletedAt: row.deletedAt, observation: observationDto(row) };
+  }
+
   async create(profileId: string, input: ObservationInput, actor: Actor) {
     const stamp = stampProvenanceFor(actor);
     rejectClientInterpretation(input.interpretation, stamp.provenanceSource);
     const concept = requireConcept(input.concept);
     const value = canonicalize(concept, input);
+
+    // Exactly-once on the client's key (docs/15), the same way a dose event
+    // is: a retried POST or an offline replay of the same reading returns
+    // the row it already made rather than a second one. A live row wins;
+    // a soft-deleted one is left deleted (the patient removed it on purpose)
+    // and its DTO is returned so the caller can see what happened.
+    if (input.clientMutationId) {
+      const existing = await this.byClientMutationId(profileId, input.clientMutationId);
+      if (existing) return existing.observation;
+    }
 
     const created = await this.prisma.$transaction(async (tx) => {
       if (input.encounterId) await EncountersService.requireEncounter(tx, profileId, input.encounterId);
@@ -237,6 +270,26 @@ export class ObservationsService {
         await this.afterCreate(tx, profileId, actor, pulseRow);
       }
       return row;
+    }).catch(async (err: unknown) => {
+      // Two replays of the same mutation racing each other: the loser hits
+      // the unique clientMutationId and simply adopts the winner's row.
+      if (input.clientMutationId && isUniqueViolationOn(err, "client_mutation_id")) {
+        const existing = await this.prisma.observation.findFirst({ where: { clientMutationId: input.clientMutationId, patientProfileId: profileId } });
+        if (existing) return existing;
+      }
+      throw err;
+    });
+    // Product metrics (docs_v2/06 P1-7): the concept enum and whether a
+    // context was tagged — never the number. Emitted here, not in the
+    // controller, so an offline replay through /sync counts the same way.
+    emitProductEvent({
+      name: "engagement.measurement_recorded",
+      userId: actor.userId,
+      profileId,
+      correlationId: actor.correlationId,
+      clientKind: actor.recordedVia,
+      locale: actor.locale,
+      properties: { concept: input.concept, hasContext: input.context !== undefined },
     });
     return (await this.byId(profileId, created.id))!;
   }

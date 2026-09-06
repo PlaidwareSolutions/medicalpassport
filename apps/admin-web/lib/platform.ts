@@ -126,6 +126,8 @@ export interface DocumentsStatus {
   funnel: { uploaded: number; classified: number; extracted: number; confirmed: number };
   pendingUpload: number;
   quarantined: number;
+  /** Quarantines decided by the worker malware scan (docs_v2/06 P3-3); the rest are upload-time signature mismatches. */
+  malwareQuarantined?: number;
   byStatus: Record<string, number>;
   byClassifiedBy: Record<string, number>;
   candidatesByStatus: Record<string, number>;

@@ -25,6 +25,28 @@ export const apiEnvShape = {
   NODE_ENV: NodeEnv.default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().url(),
+  /**
+   * Database roles (docs_v2/12 §7 and §9, docs_v2/19 ticket 0.22; ADR-4
+   * least privilege). `DATABASE_URL` above is the api's *runtime* role: DML
+   * on the application tables only — it cannot CREATE, ALTER or DROP. Both
+   * of these are optional so local and CI keep working with the one URL.
+   *
+   * `MIGRATOR_DATABASE_URL`: the role that owns the schema (DDL). Only the
+   * Railway pre-deploy command uses it — `.railway/railway*.ts` runs
+   * `prisma migrate deploy` with `DATABASE_URL` overridden by this value when
+   * it is set — so the running api never holds a credential that can change
+   * the schema. The api process itself never reads it.
+   */
+  MIGRATOR_DATABASE_URL: z.string().url().optional(),
+  /**
+   * `READONLY_DATABASE_URL`: a SELECT-only role for admin reporting and
+   * ad-hoc operational queries (docs_v2/12 §9 "admin reads"). Declared here
+   * so the api's environment is the single validated inventory; nothing in
+   * the api routes through it yet — the first consumer (admin explorer
+   * reads on a second Prisma client) is a later ticket. Role SQL for both is
+   * in infra/railway/README.md.
+   */
+  READONLY_DATABASE_URL: z.string().url().optional(),
   /** Pepper mixed into OTP hashes. Required in every environment. */
   OTP_HASH_PEPPER: z.string().min(16),
   /** Pepper mixed into session token hashes. */
@@ -44,6 +66,15 @@ export const apiEnvShape = {
    * dual-accept window as the session pepper (docs_v2/12 §6).
    */
   SHARE_TOKEN_PEPPER: z.string().min(16).optional(),
+  /**
+   * Pepper for the profile/user digests on `product_events` rows
+   * (docs_v2/06 P1-7, docs_v2/14 §6): analytics never stores a raw profile
+   * id, only `HMAC(pepper, id)`, so the table alone can't be joined back to
+   * a person. Optional: without it the API derives a dedicated key from
+   * SESSION_TOKEN_PEPPER under a domain separator, so every environment has
+   * a pepper and none has to add a variable to get metrics.
+   */
+  PRODUCT_EVENT_PEPPER: z.string().min(16).optional(),
   /** AES-256 key (base64, 32 bytes) for application-level field encryption — keyring version 1. */
   FIELD_ENCRYPTION_KEY: z.string().min(32),
   /**
@@ -232,6 +263,23 @@ export const workerEnvShape = {
    * per distinct ingredient, ever), just with a lower ceiling.
    */
   OPENFDA_API_KEY: z.string().optional(),
+  /**
+   * Malware scanning of uploaded pages (docs_v2/09 §2, docs_v2/06 P3-3). When CLAMAV_HOST
+   * is set the worker streams every page to clamd (INSTREAM) before OCR; when unset only
+   * the built-in magic-byte scanner runs, which is the floor every environment has (CI
+   * included). Production should set it — the magic-byte scanner knows signatures, not
+   * malware.
+   */
+  CLAMAV_HOST: z.string().optional(),
+  CLAMAV_PORT: z.coerce.number().int().positive().default(3310),
+  /**
+   * Provider selection (docs_v2/09 §7 "configuration per environment", docs_v2/06 P3-2).
+   * Names are looked up in the worker's provider registries; an unknown name fails the
+   * worker at startup with the list of registered names. Local and CI run
+   * `tesseract` + `null`; a vendor adapter (OD-11 / OD-12) registers under its own name.
+   */
+  OCR_PROVIDER: z.string().min(1).default("tesseract"),
+  DOCUMENT_AI_PROVIDER: z.string().min(1).default("null"),
 } as const;
 
 export const cronEnvShape = {

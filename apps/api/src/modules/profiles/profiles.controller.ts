@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch, Post, Req } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAudit, writeAuditDeferred } from "@medpass/audit";
 import { CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES, isMinorByBirthYear } from "@medpass/domain";
 import { createDependentSchema, createSelfProfileSchema, updateProfileSchema } from "@medpass/validation";
 
@@ -13,6 +13,7 @@ import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { rejectClientProvenance } from "../../common/provenance";
 import { SchedulingService } from "../scheduling/scheduling.service";
+import { emitProductEvent, productEventContext } from "../product-events/product-events.service";
 
 @Controller("profiles")
 export class ProfilesController {
@@ -115,7 +116,7 @@ export class ProfilesController {
       throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "You already have a profile", 400);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const profile = await tx.patientProfile.create({
         data: {
           ownerUserId: userId,
@@ -147,6 +148,8 @@ export class ProfilesController {
       });
       return { id: profile.id, displayName: profile.displayName, rowVersion: profile.rowVersion };
     });
+    emitProductEvent({ ...productEventContext(req), name: "acquisition.profile_created", profileId: created.id, properties: { kind: "self" } });
+    return created;
   }
 
   @Post("dependents")
@@ -171,7 +174,7 @@ export class ProfilesController {
       ? { guardianAttestedByUserId: userId, guardianAttestedAt: new Date(), guardianAttestationVersion: GUARDIAN_ATTESTATION_VERSION }
       : {};
 
-    return this.prisma.$transaction(async (tx) => {
+    const dependent = await this.prisma.$transaction(async (tx) => {
       const profile = await tx.patientProfile.create({
         data: {
           ownerUserId: userId,
@@ -207,6 +210,8 @@ export class ProfilesController {
       });
       return { id: profile.id, displayName: profile.displayName, rowVersion: profile.rowVersion };
     });
+    emitProductEvent({ ...productEventContext(req), name: "acquisition.profile_created", profileId: dependent.id, properties: { kind: "dependent" } });
+    return dependent;
   }
 
   @Get("current")
@@ -214,7 +219,7 @@ export class ProfilesController {
     const { profileId, actorRole } = await this.access.require(req, "view_profile");
     const profile = await this.prisma.patientProfile.findUniqueOrThrow({ where: { id: profileId } });
     if (actorRole === "caregiver") {
-      await writeAudit(this.prisma, {
+      await writeAuditDeferred(this.prisma, {
         action: "profile.viewed_by_caregiver",
         actorUserId: req.auth!.userId,
         actorType: "caregiver",

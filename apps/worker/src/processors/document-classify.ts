@@ -6,12 +6,17 @@ import {
   DeterministicClassifier,
   DETERMINISTIC_CLASSIFIER_VERSION,
   type DocumentInput,
+  type MalwareScanner,
+  type OcrProvider,
   type PageInput,
 } from "@medpass/document-intelligence";
 import { opaqueObjectKey, type ObjectStorage } from "@medpass/object-storage";
+import { createLogger } from "@medpass/observability";
 import { toIntelligenceKind, toPrismaDocumentKind } from "./document-kinds";
-import { OCR_ENGINE, OCR_ENGINE_VERSION, runOcr } from "./ocr";
+import { encodeOcrTextObject, fromOcrResult, fromPdfText, OCR_TEXT_OBJECT_CONTENT_TYPE, type OcrTextObjectV1 } from "./ocr-text-object";
 import { PDF_TEXT_ENGINE, PDF_TEXT_ENGINE_VERSION, extractPdfText } from "./pdf-text";
+
+const logger = createLogger("worker-document-classify");
 
 export interface DocumentClassifyPayload {
   documentId: string;
@@ -21,16 +26,30 @@ export interface DocumentClassifyPayload {
   correlationId?: string;
 }
 
+/** The two adapters this stage depends on, chosen by configuration in main.ts (docs_v2/09 §7). */
+export interface DocumentClassifyDeps {
+  scanner: MalwareScanner;
+  ocr: OcrProvider;
+}
+
 /**
- * Stage 1 of the V2 document pipeline (docs_v2/09 §2): get text for every
- * page, decide what the document is, and hand the work on to extraction.
+ * Stage 1 of the V2 document pipeline (docs_v2/09 §2): scan every page for
+ * malware, get text for every page, decide what the document is, and hand the
+ * work on to extraction.
+ *
+ * Scanning comes first and covers every page before OCR touches any of them
+ * (docs_v2/06 P3-3): an infected page quarantines the whole document — the
+ * object rows stay (nothing is served while quarantined, see documents-v2
+ * `byId` and dev-storage download) and the job ends there, successfully. The
+ * patient sees `documents.quarantined`; the admin funnel counts it.
  *
  * Text first, classification second — the classifier reads the whole document,
  * not a page at a time, so a two-page discharge summary whose medicine list is
- * on page 2 is still a discharge summary (H-34). Each page's raw text is
- * stored as its own `ocr-tmp` object (48 h lifecycle, docs_v2/09 §9) rather
- * than a column: it is derived data, it is regenerable, and it must not sit in
- * the clinical tables.
+ * on page 2 is still a discharge summary (H-34). Each page's text — and, from
+ * the OCR provider, its word boxes with their confidences — is stored as its
+ * own `ocr-tmp` object (48 h lifecycle, docs_v2/09 §9) rather than a column:
+ * it is derived data, it is regenerable, and it must not sit in the clinical
+ * tables.
  *
  * The one thing this job may never do is re-label a document the patient
  * already labelled. `classifiedBy = "user"` is a decision, not a hint
@@ -41,6 +60,7 @@ export async function processDocumentClassify(
   prisma: PrismaClient,
   storage: ObjectStorage,
   payload: DocumentClassifyPayload,
+  deps: DocumentClassifyDeps,
 ): Promise<void> {
   const { documentId, profileId, actorUserId, actorType, correlationId } = payload;
 
@@ -49,23 +69,54 @@ export async function processDocumentClassify(
     include: { pages: { orderBy: { pageNumber: "asc" }, include: { storedObject: true } } },
   });
 
+  const verifiedPages = document.pages.filter((p) => p.storedObject.status === "verified");
+
+  // ---- 1. Malware scan, every page, before any OCR (docs_v2/06 P3-3) ----
+  const bytesByPage = new Map<string, Buffer>();
+  for (const page of verifiedPages) {
+    const contentType = page.storedObject.contentType ?? "";
+    const bytes = await storage.getObjectBytes({ bucket: "patient-docs", objectKey: page.storedObject.objectKey });
+    const scan = await deps.scanner.scan(bytes, contentType);
+    if (scan.verdict === "infected") {
+      await quarantine(prisma, payload, page.storedObjectId, page.pageNumber, scan);
+      return;
+    }
+    if (scan.verdict === "unsupported") {
+      // The API already verified the signature on upload; an unsupported declared type
+      // here is a configuration gap worth a log line, not a reason to block the patient.
+      logger.warn({ documentId, pageNumber: page.pageNumber, reason: scan.reason, engine: scan.engine }, "malware scan could not cover this page");
+    }
+    bytesByPage.set(page.id, bytes);
+  }
+
+  // ---- 2. Text for every page ----
   const pages: PageInput[] = [];
   let sawPdfTextLayer = false;
   let mimeType = "application/octet-stream";
 
-  for (const page of document.pages) {
-    if (page.storedObject.status !== "verified") continue;
+  for (const page of verifiedPages) {
     const contentType = page.storedObject.contentType ?? "";
     mimeType = contentType || mimeType;
-    const bytes = await storage.getObjectBytes({ bucket: "patient-docs", objectKey: page.storedObject.objectKey });
+    const bytes = bytesByPage.get(page.id)!;
     const isPdf = contentType === "application/pdf";
-    const text = isPdf ? await extractPdfText(bytes) : await runOcr(bytes);
-    if (isPdf && text.trim().length > 0) sawPdfTextLayer = true;
 
-    await storeOcrText(prisma, storage, page.id, page.ocrTextObjectId, text);
-    pages.push({ pageNumber: page.pageNumber, text });
+    let stored: OcrTextObjectV1;
+    if (isPdf) {
+      const text = await extractPdfText(bytes);
+      if (text.trim().length > 0) sawPdfTextLayer = true;
+      stored = fromPdfText(text, PDF_TEXT_ENGINE, PDF_TEXT_ENGINE_VERSION);
+    } else {
+      stored = fromOcrResult(await deps.ocr.recognize({ bytes, contentType, pageNumber: page.pageNumber }));
+    }
+
+    await storeOcrText(prisma, storage, page.id, page.ocrTextObjectId, encodeOcrTextObject(stored));
+    const input: PageInput = { pageNumber: page.pageNumber, text: stored.text };
+    if (stored.words.length > 0) input.words = stored.words;
+    if (!stored.pdfTextLayer && typeof stored.confidence === "number") input.confidence = stored.confidence;
+    pages.push(input);
   }
 
+  // ---- 3. Classification ----
   // The patient's own choice, translated into the classifier's vocabulary, so
   // the pipeline reports "user-selected-kind" instead of guessing.
   const chosenKind = document.classifiedBy === "user" ? toIntelligenceKind(document.kind) : undefined;
@@ -105,8 +156,11 @@ export async function processDocumentClassify(
         classifierVersion: DETERMINISTIC_CLASSIFIER_VERSION,
         keptUserKind: userChose,
         pages: pages.length,
-        engine: sawPdfTextLayer ? PDF_TEXT_ENGINE : OCR_ENGINE,
-        engineVersion: sawPdfTextLayer ? PDF_TEXT_ENGINE_VERSION : OCR_ENGINE_VERSION,
+        // Provenance comes from the provider that actually ran (docs_v2/06 P3-2).
+        engine: sawPdfTextLayer ? PDF_TEXT_ENGINE : deps.ocr.engine,
+        engineVersion: sawPdfTextLayer ? PDF_TEXT_ENGINE_VERSION : deps.ocr.engineVersion,
+        scanner: deps.scanner.engine,
+        scannerVersion: deps.scanner.engineVersion,
       },
     });
     await enqueueExtract(tx, payload);
@@ -114,7 +168,46 @@ export async function processDocumentClassify(
 }
 
 /**
- * Writes one page's raw text to the `ocr-tmp` bucket and points the page at
+ * Quarantine (docs_v2/06 P3-3): the infected page's object and the document
+ * flip to `quarantined` in one transaction with the audit row, so a crash
+ * between them cannot leave a served page. Nothing is deleted — the bytes are
+ * evidence, and retention (OD-7) decides their fate — and no further job is
+ * queued for this document. The audit context names the engine and the
+ * reason code (a signature name, never page content).
+ */
+async function quarantine(
+  prisma: PrismaClient,
+  payload: DocumentClassifyPayload,
+  storedObjectId: string,
+  pageNumber: number,
+  scan: { reason?: string; engine: string; engineVersion: string },
+): Promise<void> {
+  const { documentId, profileId, actorUserId, actorType, correlationId } = payload;
+  await prisma.$transaction(async (tx) => {
+    await tx.storedObject.update({ where: { id: storedObjectId }, data: { status: "quarantined" } });
+    await tx.patientDocument.update({ where: { id: documentId }, data: { status: "quarantined" } });
+    await writeAudit(tx, {
+      action: "document.quarantined",
+      actorUserId,
+      actorType,
+      entityType: "patient_document",
+      entityId: documentId,
+      patientProfileId: profileId,
+      correlationId,
+      context: {
+        pageNumber,
+        reason: (scan.reason ?? "unspecified").slice(0, 120),
+        engine: scan.engine,
+        engineVersion: scan.engineVersion,
+        stage: "document_classify",
+      },
+    });
+  });
+  logger.warn({ documentId, pageNumber, engine: scan.engine, reason: scan.reason }, "document quarantined by malware scan");
+}
+
+/**
+ * Writes one page's OCR object to the `ocr-tmp` bucket and points the page at
  * it. A re-run reuses the page's existing object row rather than orphaning it,
  * so re-processing a document does not leak objects.
  */
@@ -123,30 +216,29 @@ async function storeOcrText(
   storage: ObjectStorage,
   pageId: string,
   existingObjectId: string | null,
-  text: string,
+  body: Buffer,
 ): Promise<void> {
-  const body = Buffer.from(text, "utf8");
   const sha256 = createHash("sha256").update(body).digest("hex");
 
   if (existingObjectId) {
     const existing = await prisma.storedObject.findUnique({ where: { id: existingObjectId } });
     if (existing) {
-      await storage.putObjectBytes({ bucket: "ocr-tmp", objectKey: existing.objectKey, body, contentType: "text/plain" });
+      await storage.putObjectBytes({ bucket: "ocr-tmp", objectKey: existing.objectKey, body, contentType: OCR_TEXT_OBJECT_CONTENT_TYPE });
       await prisma.storedObject.update({
         where: { id: existing.id },
-        data: { sha256, sizeBytes: body.length, status: "verified" },
+        data: { sha256, sizeBytes: body.length, status: "verified", contentType: OCR_TEXT_OBJECT_CONTENT_TYPE },
       });
       return;
     }
   }
 
   const objectKey = opaqueObjectKey("ocr", pageId);
-  await storage.putObjectBytes({ bucket: "ocr-tmp", objectKey, body, contentType: "text/plain" });
+  await storage.putObjectBytes({ bucket: "ocr-tmp", objectKey, body, contentType: OCR_TEXT_OBJECT_CONTENT_TYPE });
   const stored = await prisma.storedObject.create({
     data: {
       bucket: "ocr_tmp",
       objectKey,
-      contentType: "text/plain",
+      contentType: OCR_TEXT_OBJECT_CONTENT_TYPE,
       sha256,
       sizeBytes: body.length,
       status: "verified",

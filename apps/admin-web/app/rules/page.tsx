@@ -30,7 +30,10 @@ export default function RulesPage() {
     <AdminShell>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: "var(--font-title)" }}>Rules</h1>
-        <Link href="/rules/findings"><Button variant="secondary">Browse findings</Button></Link>
+        <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+          <Link href="/rules/quality"><Button variant="secondary">Alert quality (Gate 3)</Button></Link>
+          <Link href="/rules/findings"><Button variant="secondary">Browse findings</Button></Link>
+        </div>
       </div>
       <p style={{ color: "var(--color-text-muted)" }}>
         Rule versions are code constants, read-only here — editing requires an appointed clinical lead (OD-6) to act as the maker-checker&apos;s

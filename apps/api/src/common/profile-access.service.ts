@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { decideProfileAccess, type ProfileAction } from "@medpass/authorization";
 import { ERROR_CODES, type CaregiverScope } from "@medpass/domain";
-import { writeAudit } from "@medpass/audit";
+import { writeAudit, writeAuditDeferred } from "@medpass/audit";
 import { ApiProblem } from "./errors";
 import { PrismaService } from "./prisma.service";
 import type { ApiRequest } from "./http";
@@ -77,8 +77,15 @@ export class ProfileAccessService {
     // Every caregiver use of delegated access is audited (docs/18) — entity
     // fields let the patient-visible access log (docs/23 E3.3) find exactly
     // this relationship's history, not every caregiver's mixed together.
+    //
+    // A view (`view_*`) is queued and written a moment later under one chain
+    // lock per batch (ticket 0.18) — this row on every caregiver GET is the
+    // write that broke the chain in INC-2026-001 and later made healthy
+    // reads wait on the lock. A mutating action keeps the synchronous write
+    // so its access row is on the chain before the mutation's own row.
     if (decision.actorRole === "caregiver") {
-      await writeAudit(this.prisma, {
+      const write = action.startsWith("view_") ? writeAuditDeferred : writeAudit;
+      await write(this.prisma, {
         action: "caregiver.access_used",
         actorUserId: userId,
         actorType: "caregiver",

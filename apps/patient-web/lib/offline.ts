@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   checkStorageStatus,
+  clearDocumentIntent,
   getLastSynced,
   getSyncCursor,
   listConflicts,
@@ -12,11 +13,36 @@ import {
   setLastSynced,
   setSyncCursor,
   trimToEssentials,
+  type DocumentIntentProgress,
+  type DocumentUploadIntentPayload,
   type OfflineMutation,
+  type SyncChangeSignal,
   type SyncResponse,
   type SyncStatus,
 } from "@medpass/offline-sync";
 import { api, getActiveProfileId } from "./api";
+
+/**
+ * Fired with a `DocumentIntentProgress` detail each time a queued document
+ * capture moves (create done, a page complete, failed) — the pending screen
+ * shows "sending page 2 of 3" from it (docs_v2/05 §14).
+ */
+export const SYNC_PROGRESS_EVENT = "medpass:sync-progress";
+/** Fired whenever the pending queue changed shape — something queued, applied, or parked as a conflict. */
+export const PENDING_CHANGED_EVENT = "medpass:pending-changed";
+
+function dispatch(name: string, detail?: unknown): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
+/**
+ * Entities whose `invalid` outcome is final rather than retryable: the
+ * server ran the same checks it runs online (an implausible reading; a
+ * document whose pages never verified) and retrying the identical payload
+ * can only get the identical answer. They are parked for review, where a
+ * medicine `invalid` today stays queued.
+ */
+const PARK_ON_INVALID = new Set<string>(["observation", "document_upload_intent"]);
 
 /** Fixed +05:30 offset — matches the scheduling engine's Asia/Kolkata simplification (docs/16). */
 function istToday(): string {
@@ -43,35 +69,95 @@ export const REMOTE_CHANGE_EVENT = "medpass:remote-change";
  */
 async function applySyncResponse(res: SyncResponse, batch: OfflineMutation[], profileId: string | undefined): Promise<boolean> {
   let unretryable = false;
-  for (const id of res.applied) await removeMutation(id);
+  const localChanges = new Map<string, SyncChangeSignal>();
+  for (const id of res.applied) {
+    const mutation = batch.find((m) => m.clientMutationId === id);
+    await removeMutation(id);
+    if (mutation?.entity === "document_upload_intent") await clearDocumentIntent(id);
+    // This device's own replay landed: the diary / documents list refresh
+    // now, without waiting for the next cursor poll to say so.
+    if (mutation?.entity === "observation") localChanges.set(`${mutation.profileId}:observations`, { profileId: mutation.profileId, scope: "observations" });
+    if (mutation?.entity === "document_upload_intent") localChanges.set(`${mutation.profileId}:documents`, { profileId: mutation.profileId, scope: "documents" });
+  }
 
   for (const conflict of res.conflicts) {
-    if (conflict.kind === "row_version" || conflict.kind === "field_conflict" || conflict.kind === "deleted") {
-      const mutation = batch.find((m) => m.clientMutationId === conflict.clientMutationId);
-      if (mutation) {
-        await recordConflict({
-          clientMutationId: conflict.clientMutationId,
-          profileId: mutation.profileId,
-          entity: mutation.entity,
-          kind: conflict.kind,
-          unmergedFields: conflict.unmergedFields,
-          serverState: conflict.serverState,
-          detectedAt: new Date().toISOString(),
-        });
-        await removeMutation(conflict.clientMutationId);
-      }
+    const mutation = batch.find((m) => m.clientMutationId === conflict.clientMutationId);
+    const parkable =
+      conflict.kind === "row_version" ||
+      conflict.kind === "field_conflict" ||
+      conflict.kind === "deleted" ||
+      (conflict.kind === "invalid" && mutation !== undefined && PARK_ON_INVALID.has(mutation.entity));
+    if (parkable && mutation) {
+      await recordConflict({
+        clientMutationId: conflict.clientMutationId,
+        profileId: mutation.profileId,
+        entity: mutation.entity,
+        kind: conflict.kind,
+        unmergedFields: conflict.unmergedFields,
+        serverState: conflict.serverState,
+        detectedAt: new Date().toISOString(),
+      });
+      await removeMutation(conflict.clientMutationId);
+      if (mutation.entity === "document_upload_intent") await clearDocumentIntent(conflict.clientMutationId);
     } else {
       unretryable = true; // permission_revoked / invalid — no safe automatic resolution, stays queued
     }
   }
 
-  for (const change of res.changes) {
-    window.dispatchEvent(new CustomEvent(REMOTE_CHANGE_EVENT, { detail: change }));
-  }
+  for (const change of res.changes) localChanges.set(`${change.profileId}:${change.scope}:${(change.dates ?? []).join(",")}`, change);
+  for (const change of localChanges.values()) dispatch(REMOTE_CHANGE_EVENT, change);
 
   if (profileId) await setSyncCursor(profileId, res.nextCursor);
   return unretryable;
 }
+
+/**
+ * Runs the upload sequence for every queued document capture in the batch
+ * (docs_v2/05 §14) BEFORE the batch is posted, so each intent reaches
+ * `/sync` carrying the document it produced. A network failure stops the
+ * flush in capture order, like any other; a server refusal (quota, a
+ * quarantined page) is parked for review — the bytes are dropped with it,
+ * because retrying the identical upload cannot change the answer.
+ * Returns the envelopes ready to post, or `undefined` to stop the flush.
+ */
+async function prepareBatch(batch: OfflineMutation[]): Promise<{ envelopes: ReturnType<typeof toEnvelopes>; sent: OfflineMutation[] } | undefined> {
+  const { replayDocumentUploadIntent, DocumentReplayError } = await import("./document-intents");
+  const sent: OfflineMutation[] = [];
+  const envelopes: ReturnType<typeof toEnvelopes> = [];
+  for (const mutation of batch) {
+    if (mutation.entity !== "document_upload_intent") {
+      sent.push(mutation);
+      envelopes.push(...toEnvelopes([mutation]));
+      continue;
+    }
+    try {
+      const { documentId } = await replayDocumentUploadIntent(mutation as OfflineMutation<DocumentUploadIntentPayload>, (progress) =>
+        dispatch(SYNC_PROGRESS_EVENT, progress),
+      );
+      sent.push(mutation);
+      envelopes.push(...toEnvelopes([{ ...mutation, payload: { ...(mutation.payload as DocumentUploadIntentPayload), documentId } }]));
+    } catch (err) {
+      if (err instanceof DocumentReplayError && err.reason === "rejected") {
+        await recordConflict({
+          clientMutationId: mutation.clientMutationId,
+          profileId: mutation.profileId,
+          entity: mutation.entity,
+          kind: "upload_failed",
+          detectedAt: new Date().toISOString(),
+        });
+        await removeMutation(mutation.clientMutationId);
+        await clearDocumentIntent(mutation.clientMutationId);
+        dispatch(PENDING_CHANGED_EVENT);
+        continue;
+      }
+      return undefined; // a genuine network failure — stop here, keep order
+    }
+  }
+  return { envelopes, sent };
+}
+
+/** Progress of a queued document capture as a plain read, for a screen mounting mid-flush. */
+export type { DocumentIntentProgress };
 
 /** Batch cap per docs/15 — chunked client-side so a large queue still flushes. */
 const SYNC_BATCH_SIZE = 50;
@@ -116,6 +202,7 @@ const MUTATION_QUEUED_EVENT = "medpass:mutation-queued";
  */
 export function notifyMutationQueued(): void {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(MUTATION_QUEUED_EVENT));
+  dispatch(PENDING_CHANGED_EVENT);
 }
 
 /**
@@ -155,12 +242,8 @@ export function useSyncEngine(activeProfileId?: string): SyncState {
     setConflictCount((await listConflicts(profileId)).length);
   }, []);
 
-  const flush = useCallback(async () => {
+  const flushLocked = useCallback(async () => {
     if (flushingRef.current) return;
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      setStatus("offline");
-      return;
-    }
     const profileId = getActiveProfileId();
     const mutations = await listPendingMutations();
     if (mutations.length === 0 && !profileId) {
@@ -178,13 +261,21 @@ export function useSyncEngine(activeProfileId?: string): SyncState {
       const batches = mutations.length > 0 ? chunk(mutations, SYNC_BATCH_SIZE) : [[]];
       for (const batch of batches) {
         try {
+          // Queued document captures upload their pages first (docs_v2/05
+          // §14) so their envelopes carry the document they produced.
+          const prepared = await prepareBatch(batch);
+          if (!prepared) {
+            failed = true;
+            break;
+          }
           const cursor = profileId ? await getSyncCursor(profileId) : undefined;
           // Every mutation replays through the one generic sync endpoint
           // (docs/15), dispatched server-side by entity+operation. Its
           // idempotency ledger on clientMutationId makes this exactly-once
           // even if a previous flush attempt partially succeeded.
-          const res = await api.post<SyncResponse>("/sync", { mutations: toEnvelopes(batch), cursor, profileId });
-          const unretryable = await applySyncResponse(res, batch, profileId);
+          const res = await api.post<SyncResponse>("/sync", { mutations: prepared.envelopes, cursor, profileId });
+          const unretryable = await applySyncResponse(res, prepared.sent, profileId);
+          dispatch(PENDING_CHANGED_EVENT);
           if (unretryable) failed = true;
         } catch {
           failed = true;
@@ -212,6 +303,22 @@ export function useSyncEngine(activeProfileId?: string): SyncState {
       flushingRef.current = false;
     }
   }, [refreshCounts]);
+
+  const flush = useCallback(async () => {
+    if (flushingRef.current) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setStatus("offline");
+      return;
+    }
+    // Two open tabs share one IndexedDB queue and both hear the same
+    // `online` event; without a lock they would replay the same document
+    // capture side by side. The Web Locks API serialises them where it
+    // exists (every browser docs/32 targets); elsewhere the server's
+    // idempotency keys still keep the outcome exactly-once.
+    const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+    if (locks) await locks.request("medpass:sync-flush", () => flushLocked());
+    else await flushLocked();
+  }, [flushLocked]);
 
   // Re-derives profile-scoped counts on every profile switch, without
   // remounting the rest of the engine (see the function doc comment above).

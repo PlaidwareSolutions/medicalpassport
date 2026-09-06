@@ -31,6 +31,7 @@ import { AdminOperationsController } from "./modules/admin-operations/admin-oper
 import { AdminUsersController } from "./modules/admin-users/admin-users.controller";
 import { AdminOrganizationsController } from "./modules/admin-providers/admin-organizations.controller";
 import { AdminRulesController } from "./modules/admin-rules/admin-rules.controller";
+import { AdminRulesQualityController } from "./modules/admin-rules/admin-rules-quality.controller";
 import { ProfilesController } from "./modules/profiles/profiles.controller";
 import { GlucoseController } from "./modules/glucose/glucose.controller";
 import { VitalsController } from "./modules/vitals/vitals.controller";
@@ -123,6 +124,13 @@ import { ABDM_GATEWAY_CLIENT, HttpAbdmGatewayClient, MockAbdmGatewayClient, type
 import { JourneyController } from "./modules/journey/journey.controller";
 import { JourneyService } from "./modules/journey/journey.service";
 import { ClinicalRelationshipsService } from "./modules/journey/clinical-relationships.service";
+// Phase 0 tickets 0.18 / 0.19: deferred read-path audit queue; origin security headers.
+import { HttpAdapterHost } from "@nestjs/core";
+import { AuditQueueService } from "./common/audit-queue.service";
+import { securityHeaders } from "./common/security-headers";
+// docs_v2/06 P1-7: PHI-free product metrics — buffered emitter and the admin aggregate.
+import { ProductEventsService } from "./modules/product-events/product-events.service";
+import { AdminMetricsController } from "./modules/admin-metrics/admin-metrics.controller";
 
 export const logger = createLogger("api");
 
@@ -143,6 +151,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminUsersController,
     AdminOrganizationsController,
     AdminRulesController,
+    AdminRulesQualityController,
     ProfilesController,
     GlucoseController,
     VitalsController,
@@ -196,6 +205,7 @@ const OTP_SENDER = "OTP_SENDER";
     AdminIntegrationsController,
     AdminNotificationFailuresController,
     JourneyController,
+    AdminMetricsController,
   ],
   providers: [
     PrismaService,
@@ -247,6 +257,7 @@ const OTP_SENDER = "OTP_SENDER";
     BreakGlassService,
     ClinicalRelationshipsService,
     JourneyService,
+    ProductEventsService,
     {
       // docs_v2/08 §4/§9: the API talks to apps/abdm-gateway's private API; with no
       // ABDM_GATEWAY_URL an in-process mock replays sandbox fixtures (local, CI).
@@ -291,10 +302,21 @@ const OTP_SENDER = "OTP_SENDER";
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useValue: new ProblemDetailsFilter(logger) },
     { provide: APP_INTERCEPTOR, useValue: new LoggingInterceptor(logger) },
+    // Ticket 0.18: routes the deferred audit queue's batch/failure logs to
+    // pino and drains the queue on app.close() (see also PrismaService).
+    { provide: AuditQueueService, useValue: new AuditQueueService(logger) },
   ],
 })
 export class AppModule implements NestModule {
+  constructor(private readonly adapterHost: HttpAdapterHost) {}
+
   configure(consumer: MiddlewareConsumer): void {
+    // Ticket 0.19: bound to the Express app itself, ahead of every route,
+    // rather than through `consumer.forRoutes("*path")` — that pattern only
+    // covers `/v1/*` plus the excluded health paths, so a 404 outside the
+    // prefix would go out bare. Same effect as the former `app.use` in
+    // main.ts, now also exercised by the e2e harness.
+    this.adapterHost.httpAdapter.getInstance().use(securityHeaders);
     consumer.apply(CorrelationMiddleware).forRoutes("*path");
   }
 }

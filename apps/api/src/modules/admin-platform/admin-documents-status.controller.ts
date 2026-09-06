@@ -28,7 +28,7 @@ export class AdminDocumentsStatusController {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const live = { deletedAt: null, createdAt: { gte: since } } as const;
 
-    const [uploaded, classified, extracted, confirmed, byStatus, byClassifiedBy, failuresByEngine, candidatesByStatus, pendingUpload, quarantined] = await Promise.all([
+    const [uploaded, classified, extracted, confirmed, byStatus, byClassifiedBy, failuresByEngine, candidatesByStatus, pendingUpload, quarantined, malwareQuarantined] = await Promise.all([
       this.prisma.patientDocument.count({ where: { ...live, status: { in: ["uploaded", "verified", "processing", "processed", "failed"] } } }),
       this.prisma.patientDocument.count({ where: { ...live, classification: { not: null } } }),
       this.prisma.patientDocument.count({ where: { ...live, extractions: { some: { status: "succeeded" } } } }),
@@ -39,6 +39,9 @@ export class AdminDocumentsStatusController {
       this.prisma.documentCandidate.groupBy({ by: ["status"], where: { createdAt: { gte: since } }, _count: true }),
       this.prisma.patientDocument.count({ where: { ...live, status: "pending_upload" } }),
       this.prisma.patientDocument.count({ where: { ...live, status: "quarantined" } }),
+      // docs_v2/06 P3-3: quarantines decided by the worker's malware scan (signature
+      // mismatches at upload are the remainder of `quarantined`). Audit rows only, no PHI.
+      this.prisma.auditEvent.count({ where: { action: "document.quarantined", occurredAt: { gte: since } } }),
     ]);
 
     const toRecord = <K extends string>(rows: Array<{ _count: number } & Record<K, unknown>>, key: K) =>
@@ -52,6 +55,7 @@ export class AdminDocumentsStatusController {
       funnel: { uploaded, classified, extracted, confirmed },
       pendingUpload,
       quarantined,
+      malwareQuarantined,
       byStatus: toRecord(byStatus, "status"),
       byClassifiedBy: toRecord(byClassifiedBy, "classifiedBy"),
       candidatesByStatus: toRecord(candidatesByStatus, "status"),

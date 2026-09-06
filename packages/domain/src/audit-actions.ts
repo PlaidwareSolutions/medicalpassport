@@ -114,6 +114,7 @@ export const AUDIT_ACTIONS = [
   "document.updated",
   "document.deleted",
   "document.classified",
+  "document.quarantined",
   "extraction.candidate_confirmed",
   "extraction.candidate_rejected",
   "extraction.materialized",

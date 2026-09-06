@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAuditDeferred } from "@medpass/audit";
 import type { ProfileAction } from "@medpass/authorization";
 import { CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES, addDaysToDateString, dateStringInTz, zonedTimeToInstant, type CaregiverScope } from "@medpass/domain";
 import { getObservationConcept } from "@medpass/terminology";
@@ -114,7 +114,7 @@ export class FamilyService {
         const may = (action: ProfileAction) => this.access.decide(ctx, action);
 
         if (caregiverRelationship) {
-          await writeAudit(this.prisma, {
+          await writeAuditDeferred(this.prisma, {
             action: "caregiver.family_viewed",
             actorUserId: userId,
             actorType: "caregiver",

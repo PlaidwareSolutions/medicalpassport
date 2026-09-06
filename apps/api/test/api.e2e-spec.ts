@@ -4,6 +4,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
 import { stepUp } from "./helpers/step-up";
+import { awaitReadAudits } from "./helpers/audit";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
 import { CLINICAL_CONTENT_KINDS } from "@medpass/domain";
@@ -492,7 +493,8 @@ describe("API e2e", () => {
     expect(denied.status).toBe(403);
     expect(denied.body.code).toBe("caregiver_scope_missing");
 
-    // Caregiver reads are audited.
+    // Caregiver reads are audited (queued off the request path — drain first).
+    await awaitReadAudits();
     const audits = await prisma.auditEvent.findMany({
       where: { patientProfileId: profileA, action: "caregiver.access_used" },
     });

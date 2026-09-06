@@ -4,6 +4,8 @@ import { ERROR_CODES } from "@medpass/domain";
 import type { SyncChangeSignal, SyncConflict, SyncResponse } from "@medpass/offline-sync";
 import {
   createMedicationSchema,
+  documentUploadIntentSchema,
+  observationSchema,
   recordDoseEventSchema,
   updateMedicationSchema,
   type SyncMutationEnvelope,
@@ -13,7 +15,10 @@ import { ApiProblem } from "../../common/errors";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { IdempotencyService } from "../../common/idempotency.service";
 import { PrismaService } from "../../common/prisma.service";
+import { DocumentsV2Service } from "../documents-v2/documents-v2.service";
 import { MedicationsService } from "../medications/medications.service";
+import { ObservationsService } from "../observations/observations.service";
+import { emitProductEvent } from "../product-events/product-events.service";
 import { TimelineService } from "../scheduling/timeline.service";
 import { requiredActionFor } from "./sync-dispatch";
 
@@ -71,16 +76,25 @@ export class SyncService {
     private readonly idempotency: IdempotencyService,
     private readonly medications: MedicationsService,
     private readonly timeline: TimelineService,
+    private readonly observations: ObservationsService,
+    private readonly documents: DocumentsV2Service,
     private readonly prisma: PrismaService,
   ) {}
 
-  async apply(userId: string, mutations: SyncMutationEnvelope[], cursor: string | undefined, profileId: string | undefined, correlationId?: string): Promise<SyncResult> {
+  async apply(
+    userId: string,
+    mutations: SyncMutationEnvelope[],
+    cursor: string | undefined,
+    profileId: string | undefined,
+    correlationId?: string,
+    locale?: string,
+  ): Promise<SyncResult> {
     const nextCursor = new Date().toISOString();
     const applied: string[] = [];
     const conflicts: SyncConflict[] = [];
 
     for (const mutation of mutations) {
-      const outcome = await this.applyOne(userId, mutation, correlationId);
+      const outcome = await this.applyOne(userId, mutation, correlationId, locale);
       if (outcome) conflicts.push({ clientMutationId: mutation.clientMutationId, ...outcome });
       else applied.push(mutation.clientMutationId);
     }
@@ -129,13 +143,79 @@ export class SyncService {
     for (const e of changedEvents) dates.add(istDate(e.effectiveAt));
     if (dates.size > 0) changes.push({ profileId, scope: "timeline", dates: [...dates] });
 
+    // docs_v2/05 §14: the two newly offline-capable lists get the same
+    // invalidation signal, so a reading or a document that landed from
+    // another device (or from this device's own replay) refreshes the diary
+    // and the documents list without either screen polling.
+    const [observationChanged, documentChanged] = await Promise.all([
+      this.prisma.observation.findFirst({ where: { patientProfileId: profileId, updatedAt: { gt: since } }, select: { id: true } }),
+      this.prisma.patientDocument.findFirst({ where: { patientProfileId: profileId, updatedAt: { gt: since } }, select: { id: true } }),
+    ]);
+    if (observationChanged) changes.push({ profileId, scope: "observations" });
+    if (documentChanged) changes.push({ profileId, scope: "documents" });
+
     return changes;
+  }
+
+  /**
+   * `observation/create` (docs_v2/05 §14): the row is keyed on the
+   * envelope's clientMutationId (the model's unique column), so a replay
+   * finds the row it already made and reports it applied — the same
+   * exactly-once rule dose events use. A reading the patient deleted on
+   * another device in the meantime is not re-created: it comes back as a
+   * `deleted` conflict with the server's view, for the person to see on the
+   * "needs your review" screen rather than silently resurrected.
+   */
+  private async applyObservation(
+    mutation: SyncMutationEnvelope,
+    actor: { userId: string; actorRole: "patient" | "caregiver"; correlationId?: string },
+  ): Promise<Omit<SyncConflict, "clientMutationId"> | undefined> {
+    const payload = (mutation.payload ?? {}) as Record<string, unknown>;
+    // The envelope's id is the idempotency key, whatever the payload carried.
+    const input = observationSchema.parse({ ...payload, clientMutationId: mutation.clientMutationId });
+    const existing = await this.observations.byClientMutationId(mutation.profileId, mutation.clientMutationId);
+    if (existing) {
+      if (existing.deletedAt) return { kind: "deleted", serverState: existing.observation };
+      return undefined;
+    }
+    await this.observations.create(mutation.profileId, input, actor);
+    return undefined;
+  }
+
+  /**
+   * `document_upload_intent/create` (docs_v2/05 §14): the client has already
+   * run create → upload → complete → process with its clientMutationId as
+   * the create's Idempotency-Key, so the document exists by the time this
+   * envelope arrives. This is the fulfilment record: the named document
+   * must belong to the profile and be whole. Gone (deleted elsewhere, or
+   * never created) → `deleted`; pages still pending or quarantined →
+   * `invalid`; whole but not yet queued for classification → queue it
+   * (idempotent by content digest) and report applied.
+   */
+  private async applyDocumentUploadIntent(
+    mutation: SyncMutationEnvelope,
+    actor: { userId: string; actorRole: "patient" | "caregiver"; correlationId?: string },
+  ): Promise<Omit<SyncConflict, "clientMutationId"> | undefined> {
+    const input = documentUploadIntentSchema.parse(mutation.payload);
+    const document = await this.prisma.patientDocument.findFirst({
+      where: { id: input.documentId, patientProfileId: mutation.profileId },
+      include: { pages: { include: { storedObject: { select: { status: true } } } } },
+    });
+    if (!document || document.deletedAt) {
+      return { kind: "deleted", serverState: document ? { id: document.id, kind: document.kind, status: document.status } : undefined };
+    }
+    if (document.status === "quarantined" || document.pages.length === 0 || document.pages.some((p) => p.storedObject.status !== "verified")) {
+      return { kind: "invalid" };
+    }
+    if (document.status === "uploaded") await this.documents.process(mutation.profileId, document.id, actor);
+    return undefined;
   }
 
   private async applyOne(
     userId: string,
     mutation: SyncMutationEnvelope,
     correlationId?: string,
+    locale?: string,
   ): Promise<Omit<SyncConflict, "clientMutationId"> | undefined> {
     const action = requiredActionFor(mutation.entity, mutation.operation);
     if (!action) return { kind: "invalid" };
@@ -146,15 +226,20 @@ export class SyncService {
     } catch {
       return { kind: "permission_revoked" };
     }
-    const actor = { userId, actorRole, correlationId };
+    const actor = { userId, actorRole, correlationId, locale };
 
     try {
       if (mutation.entity === "dose_event") {
         const scheduledDoseId = uuid.parse((mutation.payload as { scheduledDoseId?: unknown })?.scheduledDoseId);
         const input = recordDoseEventSchema.parse(mutation.payload);
         await this.timeline.recordDoseEvent(mutation.profileId, scheduledDoseId, input, actor);
+        // Product metrics (docs_v2/06 P1-7): the offline twin of the direct endpoint's emission.
+        emitProductEvent({ name: "engagement.dose_recorded", userId, profileId: mutation.profileId, correlationId, locale, properties: { action: input.action, offline: true } });
         return undefined;
       }
+
+      if (mutation.entity === "observation") return await this.applyObservation(mutation, actor);
+      if (mutation.entity === "document_upload_intent") return await this.applyDocumentUploadIntent(mutation, actor);
 
       if (mutation.operation === "create") {
         const input = createMedicationSchema.parse(mutation.payload);

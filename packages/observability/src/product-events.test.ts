@@ -21,6 +21,14 @@ describe("product events", () => {
     expect(() => validateProductEvent({ name: "engagement.dose_recorded", properties: { action: "x".repeat(65) } })).toThrow(/too long/);
   });
 
+  it("rejects properties the catalogue does not declare for that event, even harmless-looking ones", () => {
+    expect(() => validateProductEvent({ name: "engagement.dose_recorded", properties: { action: "taken", offline: true } })).not.toThrow();
+    expect(() => validateProductEvent({ name: "engagement.dose_recorded", properties: { action: "taken", offline: true, extra: 1 } })).toThrow(/not declared/);
+    // `result` is declared for share_opened only — on any other event it is refused as PHI-looking.
+    expect(() => validateProductEvent({ name: "abdm.abha_linked", properties: { result: "ok" } })).toThrow(/PHI-looking/);
+    expect(() => validateProductEvent({ name: "abdm.records_linked", properties: { count: { nested: true } as never } })).toThrow(/scalar/);
+  });
+
   it("catalogue names are namespaced and stable", () => {
     for (const name of Object.keys(PRODUCT_EVENTS)) expect(name).toMatch(/^(acquisition|activation|engagement|network|abdm|safety|docs)\.[a-z_]+$/);
   });

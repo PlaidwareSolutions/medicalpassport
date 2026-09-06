@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Req } from "@nestjs/common";
 import {
   authorizeDocumentPagesSchema,
   createDocumentV2Schema,
@@ -7,6 +7,7 @@ import {
 } from "@medpass/validation";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
+import { IdempotencyService } from "../../common/idempotency.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { recordedViaFor, rejectClientProvenance } from "../../common/provenance";
 import { RateLimit } from "../../common/rate-limit.guard";
@@ -28,15 +29,33 @@ export class DocumentsV2Controller {
   constructor(
     private readonly access: ProfileAccessService,
     private readonly documents: DocumentsV2Service,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
+  /**
+   * `Idempotency-Key` (docs/14) is honoured here because the offline replay
+   * (docs_v2/05 §14) resumes an interrupted capture by re-sending this
+   * exact create with its clientMutationId as the key: the same document
+   * — and its original page authorizations — come back instead of a second
+   * document with a second set of presigned URLs. A call without the header
+   * behaves as before.
+   */
   @RateLimit({ name: "document_upload", limit: 20, windowSeconds: 3600 })
   @Post("profiles/current/patient-documents")
-  async create(@Body() body: unknown, @Req() req: ApiRequest) {
+  async create(@Body() body: unknown, @Headers("idempotency-key") idempotencyKey: string | undefined, @Req() req: ApiRequest) {
     const { profileId, actorRole } = await this.access.require(req, "upload_documents");
     rejectClientProvenance(body);
     const input = parseWith(createDocumentV2Schema, body);
-    return this.documents.create(profileId, input, this.actor(req, actorRole));
+    const { result } = await this.idempotency.run({
+      key: idempotencyKey,
+      userId: req.auth!.userId,
+      profileId,
+      entity: "patient_document",
+      operation: "create",
+      requestDigestSource: body,
+      execute: () => this.documents.create(profileId, input, this.actor(req, actorRole)),
+    });
+    return result;
   }
 
   @Get("profiles/current/patient-documents")
@@ -97,6 +116,7 @@ export class DocumentsV2Controller {
       actorRole,
       correlationId: req.correlationId,
       recordedVia: recordedViaFor(req),
+      locale: req.auth?.preferredLocale,
     };
   }
 }

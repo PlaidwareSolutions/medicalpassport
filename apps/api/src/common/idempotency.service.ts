@@ -45,17 +45,32 @@ export class IdempotencyService {
     }
 
     const result = await opts.execute();
-    await this.prisma.offlineMutation.create({
-      data: {
-        clientMutationId: opts.key,
-        userId: opts.userId,
-        patientProfileId: opts.profileId,
-        entity: opts.entity,
-        operation: opts.operation,
-        resultDigest: digest,
-        resultBody: result as object,
-      },
-    });
+    try {
+      await this.prisma.offlineMutation.create({
+        data: {
+          clientMutationId: opts.key,
+          userId: opts.userId,
+          patientProfileId: opts.profileId,
+          entity: opts.entity,
+          operation: opts.operation,
+          resultDigest: digest,
+          resultBody: result as object,
+        },
+      });
+    } catch (err) {
+      // Two identical requests in flight at once (two tabs replaying the
+      // same offline queue, docs_v2/05 §14): the loser's ledger insert hits
+      // the unique key after the winner's. Both executed, so answer with the
+      // winner's stored result rather than a 500 — the caller only ever sees
+      // one outcome for one key.
+      if ((err as { code?: string }).code === "P2002") {
+        const winner = await this.prisma.offlineMutation.findUnique({ where: { clientMutationId: opts.key } });
+        if (winner && winner.userId === opts.userId && winner.resultDigest === digest) {
+          return { result: winner.resultBody as T, replayed: true };
+        }
+      }
+      throw err;
+    }
     return { result, replayed: false };
   }
 }

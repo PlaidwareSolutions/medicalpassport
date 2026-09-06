@@ -11,6 +11,8 @@ New global rules:
 - Versioning: additive changes only within `/v1`. Breaking changes ship under `/v2` routes side by side; `/v1` routes are removed one release after the last client version that calls them (contract test enforces).
 - OpenAPI 3.1 document generated at build (`apps/api/openapi.json`), pinned in the repo, diffed in CI (ADR-V2-013).
 
+> **Drift check (2026-09-06).** Where a row below was renamed on the way into code, the row shows the path that ships today (verified against `apps/api/openapi.json`, 306 operations) with a *Renamed:* note carrying the name this document first proposed. The pinned document is the contract of record; this file explains the shape and the intent.
+
 ## 1. Identity and sessions
 
 | Method | Path | Notes |
@@ -51,25 +53,28 @@ New global rules:
 | POST | `prescriptions` | now accepts `items[]` (line items), `diagnosisText`, `validUntil`, `followUpOn`, `encounterId` |
 | GET/POST/PATCH/DELETE | `prescriptions/:id/items[/:itemId]` | |
 | POST | `prescriptions/:id/items/:itemId/start-medication` | creates a `PatientMedication` from a line item (provenance `source` copied from the prescription) |
-| GET | `profiles/current/medication-reconciliations` | list proposals (from providers or self) |
-| POST | `medication-reconciliations/:id/accept` / `reject` | step-up; applying writes `MedicationChange` rows |
+| GET | `profiles/current/proposals` | the patient's inbox of everything awaiting acceptance — reconciliations, prescriptions, encounters, dispenses, diagnostic reports, discharge transitions — cursor-paged, `?status=`; `GET proposals/:id` for one. *Renamed:* proposed as `profiles/current/medication-reconciliations`; built as one proposals inbox across every kind (ADR-V2-009) rather than a medication-only list |
+| POST | `proposals/:id/accept` / `reject` | accept is step-up and is the only path that writes clinical tables — a reconciliation writes `MedicationChange` rows; individual lines can be declined. *Renamed:* proposed as `medication-reconciliations/:id/accept\|reject` |
 
 ## 5. Documents and extraction (Phase 3)
 
+Multi-page documents ship under `patient-documents/*`, candidates under `document-candidates/*` and batch materialization under `document-extractions/*`. *Renamed:* this document first proposed `documents/*`, `extraction-candidates/*` and `extractions/*`; V1's single-object routes already owned those names (`POST profiles/current/documents/authorize-upload`, `documents/:id/{complete,download-url,process,extraction}`, `extraction-candidates/:id/{confirm,reject}`, `extractions/:id/create-medication`) and stay in place, read-mostly, until the §15 sunset — so the V2 family took distinct prefixes rather than overloading V1's.
+
 | Method | Path | Notes |
 |---|---|---|
-| POST | `profiles/current/documents` | creates `PatientDocument` with `kind?`, `title?`, `documentDate?`, `sourceChannel`, links (`prescriptionId?`, `diagnosticReportId?`, `encounterId?`); returns upload authorizations for N pages |
-| POST | `documents/:id/pages/authorize-upload` | add pages later |
-| POST | `documents/:id/pages/:n/complete` | verify + trigger classify/extract |
-| PATCH | `documents/:id` | user override of `kind`, links, title |
-| GET | `documents/:id` | pages with thumbnail/download URLs (short-lived), classification, extraction status |
-| DELETE | `documents/:id` | soft delete; object retention per policy |
-| POST | `documents/:id/process` | re-run extraction (idempotent by content hash + engine version) |
-| GET | `documents/:id/extraction` | candidates grouped by `targetEntity`, with `pageNumber`, `boundingBox`, `confidence` |
-| POST | `extraction-candidates/:id/confirm` | body may carry `correctedValue`; returns the created/updated clinical row id |
-| POST | `extraction-candidates/:id/reject` | |
-| POST | `extractions/:id/materialize` | batch-confirm a set of candidates into one prescription/report (transactional) |
-| POST | `profiles/current/documents/share-target` | Web Share Target sink (multipart) |
+| POST | `profiles/current/patient-documents` | creates `PatientDocument` with `kind?`, `title?`, `documentDate?`, `sourceChannel`, links (`prescriptionId?`, `diagnosticReportId?`, `encounterId?`); returns upload authorizations for N pages. *Renamed:* `profiles/current/documents` |
+| GET | `profiles/current/patient-documents` | list, cursor-paged. *Renamed:* not in the original table; `GET profiles/current/documents` remains the V1 single-object list |
+| POST | `patient-documents/:id/pages/authorize-upload` | add pages later. *Renamed:* `documents/:id/pages/authorize-upload` |
+| POST | `patient-documents/:id/pages/:pageNumber/complete` | verify + trigger classify/extract. *Renamed:* `documents/:id/pages/:n/complete` |
+| PATCH | `patient-documents/:id` | user override of `kind`, links, title. *Renamed:* `documents/:id` |
+| GET | `patient-documents/:id` | pages with thumbnail/download URLs (short-lived), classification, extraction status. *Renamed:* `documents/:id` |
+| DELETE | `patient-documents/:id` | soft delete; object retention per policy. *Renamed:* `documents/:id` |
+| POST | `patient-documents/:id/process` | re-run extraction (idempotent by content hash + engine version). *Renamed:* `documents/:id/process` |
+| GET | `patient-documents/:id/extraction` | candidates grouped by `targetEntity`, with `pageNumber`, `boundingBox`, `confidence`. *Renamed:* `documents/:id/extraction` |
+| POST | `document-candidates/:id/confirm` | body may carry `correctedValue`; returns the created/updated clinical row id. *Renamed:* `extraction-candidates/:id/confirm` — that V1 route still exists and confirms a V1 single-object extraction candidate |
+| POST | `document-candidates/:id/reject` | *Renamed:* `extraction-candidates/:id/reject` (V1 route still exists) |
+| POST | `document-extractions/:id/materialize` | batch-confirm a set of candidates into one prescription/report (transactional). *Renamed:* `extractions/:id/materialize` |
+| — | ~~`POST profiles/current/documents/share-target`~~ | **Replaced, not renamed.** There is no server-side share-target sink. The PWA registers a Web Share Target (`/share-target` in `apps/patient-web`) that receives the shared file in the browser, asks which profile it is for first (H-38), and then runs the ordinary `POST profiles/current/patient-documents` → page upload → complete flow above — so a shared file is never accepted for a profile the user did not pick, and the service worker never caches the route. Native share sheets later go the same way |
 
 ## 6. Diagnostics (Phase 4)
 
@@ -160,14 +165,14 @@ Patient side: `GET profiles/current/provider-links`, `POST provider-links/:id/re
 
 ## 13. Admin (extended)
 
-`admin/providers`, `admin/organizations[/:id/verify]`, `admin/documents/status` (processing funnel), `admin/support-cases`, `admin/consent-audit`, `admin/abdm/transactions`, `admin/fhir/validation-failures`, `admin/integrations`, `admin/notifications/failures`, `admin/flags[/:key]`, `admin/break-glass` (POST with `reason`, time-boxed, audited, notifies the patient).
+`admin/practitioners` (*Renamed:* proposed as `admin/providers`; `GET admin/practitioners` is the directory — global entries in full, patient-entered rows as `{id, patientScoped, verification, counts}` only — with `POST admin/practitioners/:id/verify` recording the HPR id; a practitioner merge is the patient-scoped `POST practitioners/:id/merge`, and the admin-side merge exists for organizations only, below), `admin/organizations[/:id/verify]` (plus `POST admin/organizations/:id/merge`), `admin/documents/status` (processing funnel), `admin/support-cases`, `admin/consent-audit`, `admin/abdm/transactions`, `admin/fhir/validation-failures`, `admin/integrations`, `admin/notifications/failures`, `admin/flags[/:key]`, `admin/break-glass` (POST with `reason`, time-boxed, audited, notifies the patient).
 
 ## 14. Platform
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `meta/flags` | now served from `FeatureFlag` with per-profile evaluation |
-| POST | `sync` | registers `observation` and `document_upload_intent`; contract == dispatcher asserted by test |
+| POST | `sync` | offline mutation batch, dispatched by `(entity, operation)`. **Dispatched today:** `dose_event:create` (scope `record_doses`), `patient_medication:create` (`add_medications`), `patient_medication:update` (`edit_medications`, with the field-level disjoint merge on a `rowVersion` conflict); anything else is answered as an `invalid` conflict, never guessed at. `packages/offline-sync` `SYNC_MUTATIONS` == `apps/api` `DISPATCHED_SYNC_MUTATIONS` is asserted by `sync-contract.spec.ts` (ticket 0.16). `observation` and `document_upload_intent` — proposed here from the start — are being added by the offline-sync engineer now (2026-09-06); they land on both sides of the contract in the same change, or the test fails |
 | GET | `meta/openapi.json` | the pinned spec (public, no PHI) |
 
 ## 15. Deprecations schedule
@@ -176,5 +181,5 @@ Patient side: `GET profiles/current/provider-links`, `POST provider-links/:id/re
 |---|---|---|---|
 | `profiles/current/reports*`, `report-values*` | `diagnostic-reports*` | V2.1 | V2.5 |
 | `*-readings` write endpoints | `observations` | V2.2 | V2.5 |
-| `documents/authorize-upload` (single object) | `documents` + pages | V2.0 | V2.5 |
+| `profiles/current/documents/authorize-upload` (single object), `documents/:id/*`, `extraction-candidates/:id/*`, `extractions/:id/create-medication` | `patient-documents` + pages, `document-candidates`, `document-extractions` (§5) | V2.0 | V2.5 |
 | `profiles/current/checkup-records*` | `encounters` + `observations` | V2.1 | V2.5 |

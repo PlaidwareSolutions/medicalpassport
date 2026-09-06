@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAuditDeferred } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import { adminFindingsSearchSchema } from "@medpass/validation";
 import { RULE_VERSIONS } from "../safety/safety-rules";
@@ -33,7 +33,7 @@ export class AdminRulesController {
   async listFindings(@Query() query: Record<string, string | undefined>, @Req() req: ApiRequest) {
     requireAdminDuty(req, "view_rules");
     const input = parseWith(adminFindingsSearchSchema, query);
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "admin.findings_viewed",
       actorUserId: req.adminAuth!.adminUserId,
       actorType: "admin",
@@ -68,7 +68,7 @@ export class AdminRulesController {
       include: { actions: { orderBy: { occurredAt: "desc" } }, evaluation: true },
     });
     if (!finding) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Finding not found", 404);
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "admin.findings_viewed",
       actorUserId: req.adminAuth!.adminUserId,
       actorType: "admin",

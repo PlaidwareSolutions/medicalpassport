@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { awaitReadAudits } from "./helpers/audit";
 import { stepUp } from "./helpers/step-up";
 import { authHeaders, patientSignIn, providerSignIn, seedOrganization } from "./helpers/provider";
 
@@ -209,6 +210,7 @@ describe("Provider proposals e2e", () => {
     // provider sees the status
     const seen = await authHeaders(orgs.clinic!.token)(request(server()).get(`/v1/provider/proposals/${reconciliationProposalId}`)).expect(200);
     expect(seen.body.status).toBe("accepted");
+    await awaitReadAudits();
     expect(await prisma.auditEvent.count({ where: { action: "provider.proposal_viewed" } })).toBe(1);
 
     // a decision is final

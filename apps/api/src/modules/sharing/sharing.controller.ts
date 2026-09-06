@@ -14,6 +14,7 @@ import { SharingService } from "./sharing.service";
 import { ALL_SECTIONS, VisitSummaryService } from "./visit-summary.service";
 import { VisitSummaryPdfService } from "./visit-summary-pdf.service";
 import { renderVisitSummaryText } from "./visit-summary-text";
+import { emitProductEvent, productEventContext } from "../product-events/product-events.service";
 
 @Controller()
 export class SharingController {
@@ -76,7 +77,12 @@ export class SharingController {
   async create(@Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId } = await this.access.require(req, "share_records");
     const input = parseWith(createShareSchema, body);
-    return this.sharing.create(profileId, req.auth!.userId, input, req.correlationId);
+    const share = await this.sharing.create(profileId, req.auth!.userId, input, req.correlationId);
+    // Product metrics (docs_v2/06 P1-7): how much was shared and for how long — never the token or the content.
+    const sectionCount = Object.values(share.sections).filter(Boolean).length;
+    const expiresInHours = Math.max(0, Math.round((new Date(share.expiresAt).getTime() - Date.now()) / 3_600_000));
+    emitProductEvent({ ...productEventContext(req), name: "network.share_created", profileId, properties: { sectionCount, audience: share.audience, expiresInHours } });
+    return share;
   }
 
   @Get("profiles/current/shares")

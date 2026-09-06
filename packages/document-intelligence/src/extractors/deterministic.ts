@@ -171,6 +171,13 @@ export class DeterministicExtractor implements ClinicalExtractor {
 export function extractDeterministically(input: ExtractionInput): ExtractionCandidateDraft[] {
   const kind: DocumentKind = input.classification?.kind ?? input.document.kind ?? "other";
   const defaultConfidence = input.document.pdfTextLayer ? DEFAULT_TEXT_CONFIDENCE.pdfTextLayer : DEFAULT_TEXT_CONFIDENCE.ocrText;
+  // docs_v2/16 §3 defect 5: a page the engine scored as a whole lends that score to every
+  // line no word box backs, instead of the fixed 0.9 — so a blurry photo cannot produce
+  // candidates that look as sure as a crisp one.
+  const pageConfidence = new Map<number, number>();
+  for (const page of input.document.pages) {
+    if (!input.document.pdfTextLayer && typeof page.confidence === "number") pageConfidence.set(page.pageNumber, page.confidence);
+  }
   const lines = assembleLines(input.document);
   const drafts: ExtractionCandidateDraft[] = [];
 
@@ -182,7 +189,7 @@ export function extractDeterministically(input: ExtractionInput): ExtractionCand
       pageNumber: line.pageNumber,
       detectedText: line.text,
       proposedValue: p.value,
-      confidence: combine(evidence.wordConfidence ?? defaultConfidence, p.quality),
+      confidence: combine(evidence.wordConfidence ?? pageConfidence.get(line.pageNumber) ?? defaultConfidence, p.quality),
       extractor: DETERMINISTIC_EXTRACTOR,
     };
     if (evidence.boundingBox) draft.boundingBox = evidence.boundingBox;

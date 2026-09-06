@@ -11,6 +11,7 @@ import { recordedViaFor } from "../../common/provenance";
 import { parseWith } from "../../common/zod";
 import type { ApiRequest } from "../../common/http";
 import { ProposalsService } from "./proposals.service";
+import { emitProductEvent, productEventContext } from "../product-events/product-events.service";
 
 /**
  * The caregiver scope a decision needs is the scope the resulting write
@@ -62,12 +63,15 @@ export class ProposalsController {
   async accept(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId, actorRole } = await this.requireDecisionAccess(req, id);
     const input = parseWith(acceptProposalSchema, body ?? {});
-    return this.proposals.accept(profileId, id, input, {
+    const accepted = await this.proposals.accept(profileId, id, input, {
       userId: req.auth!.userId,
       actorRole,
       recordedVia: recordedViaFor(req),
       correlationId: req.correlationId,
     });
+    // Product metrics (docs_v2/06 P1-7): the proposal kind and how many lines were declined — never the lines.
+    emitProductEvent({ ...productEventContext(req), name: "network.proposal_accepted", profileId, properties: { kind: String(accepted.kind), declinedLines: input.declinedLines.length } });
+    return accepted;
   }
 
   @Post("proposals/:id/reject")

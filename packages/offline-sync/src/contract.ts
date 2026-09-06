@@ -15,7 +15,48 @@ export const SYNC_MUTATIONS = [
   { entity: "dose_event", operation: "create" },
   { entity: "patient_medication", operation: "create" },
   { entity: "patient_medication", operation: "update" },
+  // docs_v2/05 §14: a home measurement captured offline; the server keys
+  // the row on clientMutationId so a replay never double-inserts.
+  { entity: "observation", operation: "create" },
+  // docs_v2/05 §14: a document captured offline. The page bytes stay in
+  // IndexedDB (see documents.ts); the client replays the online create →
+  // upload → complete → process sequence itself, and this envelope — sent
+  // afterwards with the resulting `documentId` — is the record that the
+  // intent was fulfilled (or the `deleted` / `invalid` conflict if not).
+  { entity: "document_upload_intent", operation: "create" },
 ] as const satisfies readonly { entity: string; operation: string }[];
+
+/**
+ * What the capture screen queues for a document (docs_v2/05 §14). Only the
+ * declaration lives here — the bytes are in the `documentPages` store keyed
+ * by the same clientMutationId, and the replay's progress (the document id
+ * once created, the pages already complete) in `documentIntents`, so the
+ * payload itself never changes between attempts.
+ */
+export interface DocumentUploadIntentPayload {
+  /** The kind the person declared at capture time (the classifier may never re-label it). */
+  kind?: string;
+  title?: string;
+  sourceChannel: string;
+  pages: Array<{ pageNumber: number; contentType: string; sizeBytes: number }>;
+  /** At most one clinical parent, as the create endpoint takes them. */
+  prescriptionId?: string;
+  diagnosticReportId?: string;
+  /** Set only on the envelope that finally goes to `/sync`, once the upload sequence has run. */
+  documentId?: string;
+}
+
+/** Replay bookkeeping for one queued document intent — separate from the payload so the payload stays immutable. */
+export interface DocumentIntentProgress {
+  clientMutationId: string;
+  profileId: string;
+  /** Set once the create call succeeded; a retry resumes on this document rather than creating another. */
+  documentId?: string;
+  /** Page numbers whose upload + complete both succeeded. */
+  completedPages: number[];
+  status: "queued" | "uploading" | "failed";
+  updatedAt: string;
+}
 
 /** One dispatchable (entity, operation) pair. */
 export type SyncMutationKind = (typeof SYNC_MUTATIONS)[number];
@@ -71,7 +112,7 @@ export interface SyncConflict {
  */
 export interface SyncChangeSignal {
   profileId: string;
-  scope: "medications" | "timeline";
+  scope: "medications" | "timeline" | "observations" | "documents";
   /** Only set for `scope: "timeline"` — IST calendar dates (YYYY-MM-DD) affected. */
   dates?: string[];
 }

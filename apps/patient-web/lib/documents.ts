@@ -1,10 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MessageKey } from "@medpass/localization";
+import type { SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId, newIdempotencyKey } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
 import { invalidateHealthTimeline } from "./health-timeline";
 import { invalidateMedicationData } from "./medications";
+import { REMOTE_CHANGE_EVENT } from "./offline";
 import { formatCalendarDate } from "./patient-time";
 
 /**
@@ -357,6 +359,22 @@ export function useDocuments(kind?: DocumentKind) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- kind is encoded in firstPath
   }, [nextCursor, firstPath]);
 
+  // A document that landed from elsewhere — another device, or this
+  // device's own offline capture replaying (docs_v2/05 §14) — reloads the
+  // first page the same way the medicines list does (docs/15).
+  const reloadFirst = first.reload;
+  useEffect(() => {
+    function onRemoteChange(e: Event) {
+      const change = (e as CustomEvent<SyncChangeSignal>).detail;
+      if (change.scope === "documents" && change.profileId === getActiveProfileId()) {
+        invalidate("profile", DOCUMENTS_PATH);
+        void reloadFirst();
+      }
+    }
+    window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+    return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
+  }, [reloadFirst]);
+
   const items = first.data ? dedupe([...first.data.items, ...extra.items]) : undefined;
   return { items, error: first.error, fromCache: first.fromCache, reload: first.reload, hasMore: nextCursor !== null, loadMore, loadingMore };
 }
@@ -433,18 +451,36 @@ export interface CreateDocumentInput {
   links?: DocumentLink;
 }
 
-export async function createDocument(input: CreateDocumentInput): Promise<CreatedDocumentDto> {
+/**
+ * `idempotencyKey` defaults to a fresh one; the offline replay passes its
+ * clientMutationId so a resumed capture gets the same document back
+ * (docs_v2/05 §14). `profileId` overrides the active profile for the same
+ * reason — a queued capture belongs to the profile it was taken for, even
+ * if a caregiver has switched since.
+ */
+export async function createDocument(input: CreateDocumentInput, opts: { idempotencyKey?: string; profileId?: string } = {}): Promise<CreatedDocumentDto> {
   // The API takes the parent record as top-level fields (packages/validation
   // `createDocumentV2Schema` spreads them); the nested `links` here is only
   // so a caller cannot pass two parents by accident.
   const { links, ...rest } = input;
   const body = { ...rest, ...(links ?? {}) };
   const res = await api.post<CreatedDocumentDto>(DOCUMENTS_PATH, body, {
-    idempotencyKey: newIdempotencyKey(),
-    profileId: getActiveProfileId(),
+    idempotencyKey: opts.idempotencyKey ?? newIdempotencyKey(),
+    profileId: opts.profileId ?? getActiveProfileId(),
   });
   invalidate("profile", DOCUMENTS_PATH);
   return res;
+}
+
+/** Thrown by `uploadPageBytes`: `network` never reached storage (retry later); `rejected` did and was refused (an expired URL, a full bucket). */
+export class UploadError extends Error {
+  constructor(
+    readonly reason: "network" | "rejected",
+    readonly status?: number,
+  ) {
+    super(reason === "network" ? "upload_network" : "upload_failed");
+    this.name = "UploadError";
+  }
 }
 
 /**
@@ -452,7 +488,7 @@ export async function createDocument(input: CreateDocumentInput): Promise<Create
  * events). Same headers the V1 path sends; nothing else — the URL itself is
  * the authorization.
  */
-export function uploadPageBytes(uploadUrl: string, file: File, contentType: PageContentType, onProgress: (fraction: number) => void): Promise<void> {
+export function uploadPageBytes(uploadUrl: string, file: Blob, contentType: PageContentType, onProgress: (fraction: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", uploadUrl);
@@ -460,18 +496,18 @@ export function uploadPageBytes(uploadUrl: string, file: File, contentType: Page
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && e.total > 0) onProgress(Math.min(1, e.loaded / e.total));
     };
-    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("upload_failed")));
-    xhr.onerror = () => reject(new Error("upload_failed"));
-    xhr.onabort = () => reject(new Error("upload_failed"));
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new UploadError("rejected", xhr.status)));
+    xhr.onerror = () => reject(new UploadError("network"));
+    xhr.onabort = () => reject(new UploadError("network"));
     xhr.send(file);
   });
 }
 
-export function completePage(documentId: string, pageNumber: number) {
+export function completePage(documentId: string, pageNumber: number, profileId?: string) {
   return api.post<{ id: string; status: DocumentStatus; pageCount: number }>(
     `/patient-documents/${documentId}/pages/${pageNumber}/complete`,
     undefined,
-    { profileId: getActiveProfileId() },
+    { profileId: profileId ?? getActiveProfileId() },
   );
 }
 
@@ -547,8 +583,8 @@ export async function deleteDocument(documentId: string): Promise<void> {
   invalidateDocumentData();
 }
 
-export async function processDocument(documentId: string): Promise<DocumentDetailDto> {
-  const res = await api.post<DocumentDetailDto>(`/patient-documents/${documentId}/process`, undefined, { profileId: getActiveProfileId() });
+export async function processDocument(documentId: string, profileId?: string): Promise<DocumentDetailDto> {
+  const res = await api.post<DocumentDetailDto>(`/patient-documents/${documentId}/process`, undefined, { profileId: profileId ?? getActiveProfileId() });
   invalidate("profile", `/patient-documents/${documentId}`);
   return res;
 }

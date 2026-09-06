@@ -117,7 +117,7 @@ export class ObservationsController {
   }
 
   private actor(req: ApiRequest, actorRole: "patient" | "caregiver") {
-    return { userId: req.auth!.userId, actorRole, correlationId: req.correlationId, recordedVia: recordedViaFor(req) };
+    return { userId: req.auth!.userId, actorRole, correlationId: req.correlationId, recordedVia: recordedViaFor(req), locale: req.auth?.preferredLocale };
   }
 }
 

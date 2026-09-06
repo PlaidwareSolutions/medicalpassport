@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { awaitReadAudits } from "./helpers/audit";
 import { hashPassword, newOpaqueToken, hashSessionToken } from "../src/common/crypto";
 
 /** Admin audit search e2e: filters, pagination, and the self-audit write. */
@@ -66,6 +67,7 @@ describe("Admin audit e2e", () => {
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].action).toBe("profile.created");
 
+    await awaitReadAudits();
     const searchEvents = await prisma.auditEvent.findMany({ where: { action: "admin.audit_searched" } });
     expect(searchEvents).toHaveLength(1);
     expect(searchEvents[0]?.context).toMatchObject({ action: "profile.created" });

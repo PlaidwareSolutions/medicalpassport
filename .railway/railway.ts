@@ -71,11 +71,26 @@ export default defineRailway(() => {
     build: { builder: "DOCKERFILE", dockerfilePath: "apps/api/Dockerfile" },
     healthcheck: "/readyz",
     replicas: { [region]: 1 },
-    deploy: { preDeployCommand: ["pnpm --filter @medpass/database exec prisma migrate deploy"] },
+    // Migrations run as the migrator role when one is configured (docs_v2/19
+    // ticket 0.22, docs_v2/12 §7): MIGRATOR_DATABASE_URL owns the schema
+    // (DDL); DATABASE_URL — the api's runtime role — only has DML. The shell
+    // form is what Railway executes for a pre-deploy command, and the
+    // `${VAR:-default}` fallback keeps the deploy working until the roles are
+    // created (infra/railway/README.md has the SQL) and the variable is set
+    // out-of-band. The api process itself never reads MIGRATOR_DATABASE_URL.
+    deploy: {
+      preDeployCommand: [
+        `sh -c 'DATABASE_URL="\${MIGRATOR_DATABASE_URL:-$DATABASE_URL}" pnpm --filter @medpass/database exec prisma migrate deploy'`,
+      ],
+    },
     env: {
       NODE_ENV: "staging",
       PORT: "4000",
       DATABASE_URL: db.env.DATABASE_URL,
+      // Ticket 0.22 database roles — set out-of-band once the roles exist
+      // (README SQL); preserve() so a plan never proposes deleting them.
+      MIGRATOR_DATABASE_URL: preserve(),
+      READONLY_DATABASE_URL: preserve(),
       OTP_TRANSPORT: "log",
       OTP_DEV_FIXED_CODE: "000000",
       // Includes the marketing site origin (staging.medidocs.app) so the

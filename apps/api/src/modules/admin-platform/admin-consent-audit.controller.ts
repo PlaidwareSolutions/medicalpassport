@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAuditDeferred } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import { consentAuditQuerySchema } from "@medpass/validation";
 import { Public } from "../../common/auth.guard";
@@ -59,7 +59,7 @@ export class AdminConsentAuditController {
     }
     timeline.sort((x, y) => (x.at < y.at ? -1 : x.at > y.at ? 1 : 0));
 
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "admin.consent_audit_viewed",
       actorUserId: req.adminAuth!.adminUserId,
       actorType: "admin",

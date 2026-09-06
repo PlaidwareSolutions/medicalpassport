@@ -3855,6 +3855,83 @@
         "x-step-up": false
       }
     },
+    "/v1/admin/metrics/product": {
+      "get": {
+        "operationId": "AdminMetricsController_product",
+        "summary": "Product metrics: counts per event per day",
+        "description": "PHI-free aggregate over `product_events` (docs_v2/06 P1-7, docs_v2/14 §6). Days are cut on Asia/Kolkata; `from` defaults to seven days before `to`, `to` to now, at most 92 days per call. Never an id, never a value.\n\nAdmin-portal session. Admin duty: `view_operations`.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "adminSessionCookie": []
+          },
+          {
+            "adminBearer": []
+          }
+        ],
+        "tags": [
+          "Admin: Operations"
+        ],
+        "x-admin-duty": "view_operations",
+        "x-auth": "admin",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/admin/notifications/failures": {
       "get": {
         "operationId": "AdminNotificationFailuresController_failures",
@@ -4813,6 +4890,83 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "adminSessionCookie": []
+          },
+          {
+            "adminBearer": []
+          }
+        ],
+        "tags": [
+          "Admin: Rules"
+        ],
+        "x-admin-duty": "view_rules",
+        "x-auth": "admin",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/admin/rules/quality": {
+      "get": {
+        "operationId": "AdminRulesQualityController_quality",
+        "summary": "Gate 3 alert-quality dashboard",
+        "description": "Per rule version over `from..to` (default trailing 30 days): findings raised, acknowledged, reviewed with a professional, dismissed as not relevant, acknowledgement rate, false-positive rate (dismissed ÷ raised), median seconds to acknowledgement. Counts only — no finding, profile or clinical value.\n\nAdmin-portal session. Admin duty: `view_rules`.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
           },
           "401": {
             "$ref": "#/components/responses/Unauthenticated"
@@ -21321,7 +21475,7 @@
       "post": {
         "operationId": "DocumentsV2Controller_create",
         "summary": "Create a multi-page document and authorize its page uploads",
-        "description": "Returns one presigned upload per requested page, in page order. A `kind` sent here is the patient's own choice and outranks the classifier permanently (docs_v2/09 §4).\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`. Rate limit bucket: `document_upload` (per IP).",
+        "description": "Returns one presigned upload per requested page, in page order. A `kind` sent here is the patient's own choice and outranks the classifier permanently (docs_v2/09 §4). An `Idempotency-Key` replays the same document and authorizations — the offline capture replay resumes on it (docs_v2/05 §14).\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`. Rate limit bucket: `document_upload` (per IP).",
         "parameters": [
           {
             "$ref": "#/components/parameters/XClient"
@@ -21334,6 +21488,9 @@
           },
           {
             "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
           },
           {
             "name": "x-client",
@@ -21515,6 +21672,9 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
@@ -33256,7 +33416,8 @@
               "acknowledged",
               "note_added",
               "reviewed_with_professional",
-              "resolved"
+              "resolved",
+              "dismissed_not_relevant"
             ]
           },
           "note": {

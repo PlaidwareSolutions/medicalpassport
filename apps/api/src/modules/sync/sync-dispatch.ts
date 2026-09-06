@@ -16,6 +16,9 @@ export const DISPATCHED_SYNC_MUTATIONS = [
   { entity: "dose_event", operation: "create", action: "record_doses" },
   { entity: "patient_medication", operation: "create", action: "add_medications" },
   { entity: "patient_medication", operation: "update", action: "edit_medications" },
+  // docs_v2/05 §14 — same scopes the direct endpoints require.
+  { entity: "observation", operation: "create", action: "add_measurements" },
+  { entity: "document_upload_intent", operation: "create", action: "upload_documents" },
 ] as const satisfies readonly { entity: SyncEntity; operation: SyncOperation; action: ProfileAction }[];
 
 /**

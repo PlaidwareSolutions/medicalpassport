@@ -109,6 +109,9 @@ export async function clearProfileData(profileId: string): Promise<void> {
     conflictCursor = await conflictCursor.continue();
   }
   await conflictsTx.done;
+  // Queued document intents are unsynced patient data, so — like the
+  // mutation queue — they are left alone here; `clearAllOfflineData` (logout)
+  // is the only thing that discards them.
   await db.delete("meta", `lastSynced:${profileId}`);
   await db.delete("meta", `cursor:${profileId}`);
 }
@@ -167,5 +170,7 @@ export async function clearAllOfflineData(): Promise<void> {
     db.clear("mutations"),
     db.clear("meta"),
     db.clear("conflicts"),
+    db.clear("documentPages"),
+    db.clear("documentIntents"),
   ]);
 }

@@ -39,6 +39,7 @@ export default function MeasurementDiaryPage() {
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | undefined>();
   const [actionError, setActionError] = useState<string | undefined>();
+  const [savedOffline, setSavedOffline] = useState(false);
   const canAdd = useProfileAccess().can("add_measurements");
 
   if (!concept) {
@@ -77,6 +78,11 @@ export default function MeasurementDiaryPage() {
       {error && !items ? <Banner tone="danger">{t("common.error_generic")}</Banner> : null}
       {fromCache ? <Banner tone="warning">{t("common.offline_banner")}</Banner> : null}
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
+      {savedOffline ? (
+        <Banner tone="info">
+          <span data-testid="observation-saved-offline">{t("measure.saved_offline")}</span>
+        </Banner>
+      ) : null}
 
       <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>
         <Link href={`/measurements/${concept}/trends`} style={{ flex: "1 1 45%" }}>
@@ -97,9 +103,12 @@ export default function MeasurementDiaryPage() {
         <ObservationEntrySheet
           concept={concept}
           onClose={() => setShowForm(false)}
-          onSaved={async () => {
+          onSaved={async ({ queuedOffline }) => {
             setShowForm(false);
-            await reload();
+            setSavedOffline(queuedOffline);
+            // Offline there is nothing new to fetch — the reading is in the
+            // queue, and the banner above says so (docs_v2/05 §14).
+            if (!queuedOffline) await reload();
           }}
         />
       ) : (

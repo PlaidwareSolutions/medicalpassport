@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
+import { awaitReadAudits } from "./helpers/audit";
 import { stepUp } from "./helpers/step-up";
 import { authHeaders, patientSignIn, providerSignIn, seedOrganization } from "./helpers/provider";
 
@@ -115,6 +116,7 @@ describe("Provider onboarding e2e", () => {
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0]).toMatchObject({ linkId, patient: { displayName: "Asha Rao" } });
     expect(JSON.stringify(res.body)).not.toContain("Metformin");
+    await awaitReadAudits();
     const audit = await prisma.auditEvent.findFirst({ where: { action: "provider.patients_listed" } });
     expect(audit?.context).toMatchObject({ organizationId: clinicId });
   });
@@ -130,6 +132,7 @@ describe("Provider onboarding e2e", () => {
     expect(res.body.latestResults).toBeUndefined();
     expect(res.body.measurements).toBeUndefined();
     expect(res.body.documents).toBeUndefined();
+    await awaitReadAudits();
     const audit = await prisma.auditEvent.findFirst({ where: { action: "provider.snapshot_viewed", entityId: linkId } });
     expect(audit?.context).toMatchObject({ organizationId: clinicId, sections: ["medications", "allergies"] });
     expect(audit?.patientProfileId).toBe(profileId);

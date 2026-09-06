@@ -39,3 +39,4 @@ export function createLogger(service: string, level?: string): Logger {
 
 export type { Logger };
 export * from "./product-events";
+export * from "./product-event-buffer";

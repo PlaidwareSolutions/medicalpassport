@@ -24,4 +24,14 @@ describe("sync contract == dispatcher", () => {
     expect(requiredActionFor("patient_medication", "soft_delete")).toBeUndefined();
     expect(requiredActionFor("allergy", "create")).toBeUndefined();
   });
+
+  it("registers the §14 entities with the scopes their direct endpoints require", () => {
+    expect(contract).toContain("observation:create");
+    expect(contract).toContain("document_upload_intent:create");
+    expect(requiredActionFor("observation", "create")).toBe("add_measurements");
+    expect(requiredActionFor("document_upload_intent", "create")).toBe("upload_documents");
+    // Only creates are offline-capable for these — an offline delete of a reading is not in the contract.
+    expect(requiredActionFor("observation", "update")).toBeUndefined();
+    expect(requiredActionFor("document_upload_intent", "update")).toBeUndefined();
+  });
 });

@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Put, Query, Req } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAudit, writeAuditDeferred } from "@medpass/audit";
 import { ERROR_CODES, MEDICATION_STATUS_TRANSITIONS, type MedicationStatus } from "@medpass/domain";
 import {
   changeMedicationStatusSchema,
@@ -18,6 +18,7 @@ import { emitMedicationChangeEvent } from "../../common/health-events";
 import { recordedViaFor } from "../../common/provenance";
 import { IdempotencyService } from "../../common/idempotency.service";
 import { MedicationsService } from "./medications.service";
+import { emitProductEvent, productEventContext } from "../product-events/product-events.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 
@@ -36,7 +37,8 @@ export class MedicationsController {
   async list(@Query("status") status: string | undefined, @Req() req: ApiRequest) {
     const { profileId, actorRole } = await this.access.require(req, "view_medications");
     if (actorRole === "caregiver") {
-      await writeAudit(this.prisma, {
+      // Read path: queued, one chain-lock per batch (ticket 0.18).
+      await writeAuditDeferred(this.prisma, {
         action: "medication.list_viewed",
         actorUserId: req.auth!.userId,
         actorType: "caregiver",
@@ -58,7 +60,7 @@ export class MedicationsController {
     const { profileId, actorRole } = await this.access.require(req, "add_medications");
     const input = parseWith(createMedicationSchema, body);
 
-    const { result } = await this.idempotency.run({
+    const { result, replayed } = await this.idempotency.run({
       key: idempotencyKey,
       userId: req.auth!.userId,
       profileId,
@@ -73,6 +75,8 @@ export class MedicationsController {
           recordedVia: recordedViaFor(req),
         }),
     });
+    // Product metrics (docs_v2/06 P1-7): a replayed key is the same medicine, not a second one.
+    if (!replayed) emitProductEvent({ ...productEventContext(req), name: "activation.medicine_added", profileId, properties: { via: input.source } });
     return result;
   }
 

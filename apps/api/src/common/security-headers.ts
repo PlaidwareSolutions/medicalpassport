@@ -7,6 +7,11 @@ import type { NextFunction, Request, Response } from "express";
  * weaker. The API only ever serves JSON (and streamed PDFs), so the CSP can
  * be maximally strict: nothing may load, and nothing may frame a response.
  * No dependency on helmet — a handful of static headers is the whole job.
+ *
+ * Bound to the Express app from `AppModule.configure` (ahead of every
+ * route, so a 404 outside the `/v1` prefix and a guard's 401 carry the
+ * headers too) rather than from main.ts, which the Nest testing harness
+ * never runs — `test/security-headers.e2e-spec.ts` regresses it.
  */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = Object.freeze({
   "strict-transport-security": "max-age=15552000; includeSubDomains",
@@ -23,3 +28,4 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
   next();
 }
+

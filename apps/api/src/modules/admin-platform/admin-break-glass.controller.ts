@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common";
-import { writeAudit } from "@medpass/audit";
+import { writeAuditDeferred } from "@medpass/audit";
 import { breakGlassListQuerySchema, breakGlassRequestSchema } from "@medpass/validation";
 import { Public } from "../../common/auth.guard";
 import { AdminAuthGuard } from "../../common/admin-auth.guard";
@@ -48,7 +48,7 @@ export class AdminBreakGlassController {
       ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
     });
     const page = rows.slice(0, input.limit);
-    await writeAudit(this.prisma, {
+    await writeAuditDeferred(this.prisma, {
       action: "admin.break_glass_listed",
       actorUserId: req.adminAuth!.adminUserId,
       actorType: "admin",

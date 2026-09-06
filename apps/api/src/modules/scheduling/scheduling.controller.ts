@@ -4,6 +4,7 @@ import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { TimelineService } from "./timeline.service";
+import { emitProductEvent, productEventContext } from "../product-events/product-events.service";
 
 @Controller()
 export class SchedulingController {
@@ -25,11 +26,14 @@ export class SchedulingController {
   async recordDoseEvent(@Param("scheduledDoseId") scheduledDoseId: string, @Body() body: unknown, @Req() req: ApiRequest) {
     const { profileId, actorRole } = await this.access.require(req, "record_doses");
     const input = parseWith(recordDoseEventSchema, body);
-    return this.timeline.recordDoseEvent(profileId, scheduledDoseId, input, {
+    const result = await this.timeline.recordDoseEvent(profileId, scheduledDoseId, input, {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,
     });
+    // Product metrics (docs_v2/06 P1-7): the action enum only — never which medicine.
+    emitProductEvent({ ...productEventContext(req), name: "engagement.dose_recorded", profileId, properties: { action: input.action, offline: false } });
+    return result;
   }
 
   @Post("profiles/current/doses/prn-events")
