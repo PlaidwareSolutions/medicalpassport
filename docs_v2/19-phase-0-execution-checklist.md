@@ -15,7 +15,7 @@ The concrete tickets. Each has an owner workstream, a size, an acceptance check,
 | 0.7 ✅ | ESLint baseline: config, `lint` scripts in every package, CI step; existing findings fixed or baselined with a burn-down file | WS15 | M | Done 2026-09-06: flat config at the root, `lint` in all 32 packages, CI step after typecheck, 0 errors; accepted warnings in [eslint-burndown.md](eslint-burndown.md) |
 | 0.8 | ABDM sandbox application submitted; IG versions pinned in `packages/fhir/IG-VERSIONS.md` (v6.5.0 published, v7.0.0 preview) with URLs and verification date | WS09 | S | application id recorded in [20](20-status-board.md); file exists |
 | 0.9 | Board charters signed; clinical lead decision requested (OD-6); DPO decision requested (OD-9) | WS01 | S | [18](18-team-and-governance.md) names members |
-| 0.10 | ✅ Windows dev loop: keep the three 2026-09-06 fixes; add weekly `windows-latest` api-suite job — *fixes kept; weekly windows job pending CI edit* | WS15 | S | job green |
+| 0.10 | ✅ Windows dev loop: keep the three 2026-09-06 fixes; add weekly `windows-latest` api-suite job — *fixes kept; `.github/workflows/windows-weekly.yml` added 2026-09-06 (Mondays + on demand); first run pending the next push* | WS15 | S | job green |
 
 ## Week 2 — provenance, contracts, tests
 
@@ -41,7 +41,7 @@ The concrete tickets. Each has an owner workstream, a size, an acceptance check,
 | 0.23 | Observability backend chosen (OD-13); OTLP wiring; seven SLI dashboards; alert routes; on-call rota of two | WS14 | M | an induced 5xx pages within 5 min on staging |
 | 0.24 | ✅ Backup key custody offline (public key on Railway, private key held offline); restore-test with the offline key — *runbook written (R-DR-3); execution needs production access + custodians* | WS14 | S | R-DR-3 recorded |
 | 0.25 | Rollback rehearsal: redeploy a named earlier deployment on staging; document the exact command | WS14 | S | runbook step verified |
-| 0.26 | DPIA v1, retention table proposal to counsel (OD-7), breach tabletop | WS13 | M | documents under `docs_v2/validation/privacy-security/` |
+| 0.26 | 🟡 DPIA v1, retention table proposal to counsel (OD-7), breach tabletop — *drafts written 2026-09-06 under `docs_v2/validation/privacy-security/` (DPIA, retention proposal, threat model, tabletop scenario pack); the tabletop itself and counsel/DPO sign-off are the remaining steps* | WS13 | M | documents under `docs_v2/validation/privacy-security/` |
 | 0.27 | ✅ PR template with the definition-of-done and privacy checklist — *done 2026-09-06 (.github/PULL_REQUEST_TEMPLATE.md)* | WS15 | S | template in `.github/` |
 
 ## Week 4 — model groundwork and gate

@@ -1,0 +1,83 @@
+name: Windows weekly (api suite)
+
+# docs_v2/19 ticket 0.10. The developer's machine is Windows and CI is Linux;
+# three portability fixes (Jest under --experimental-vm-modules, the pnpm.cmd
+# shim in test/helpers/worker.ts, Chrome flags in the worker's pdf-render)
+# were made on 2026-09-06 so the api suite runs on Windows at all. This job
+# keeps them honest: once a week, and on demand, the whole api suite runs on
+# windows-latest so a POSIX assumption cannot creep back in unnoticed.
+#
+# It is deliberately not part of the push gate — it is slower than the Linux
+# job and Windows runner minutes cost twice as much. A red run here is a
+# "fix before the next Windows dev session" signal, not a deploy blocker.
+on:
+  schedule:
+    - cron: "0 3 * * 1" # Mondays 03:00 UTC (08:30 IST)
+  workflow_dispatch:
+
+jobs:
+  api-suite-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      DATABASE_URL: postgresql://medpass:medpass@localhost:5432/medpass
+      OTP_HASH_PEPPER: ci-otp-pepper-not-secret
+      SESSION_TOKEN_PEPPER: ci-session-pepper-not-secret
+      ADMIN_PASSWORD_PEPPER: ci-admin-pepper-not-secret
+      FIELD_ENCRYPTION_KEY: ci-field-key-not-secret-32bytes!
+      OTP_TRANSPORT: log
+      OTP_DEV_FIXED_CODE: "000000"
+      RATE_LIMIT_DEV_MULTIPLIER: "20"
+    steps:
+      - uses: actions/checkout@v4
+
+      # Windows runners cannot host Docker service containers; the image ships
+      # PostgreSQL pre-installed with its service stopped (PGBIN/PGDATA exposed
+      # as environment variables, superuser "postgres" / "root").
+      - name: Start PostgreSQL
+        run: |
+          $svc = Get-Service -Name "postgresql*" | Select-Object -First 1
+          if (-not $svc) { throw "No PostgreSQL service on this runner image" }
+          Set-Service -Name $svc.Name -StartupType Manual
+          Start-Service -Name $svc.Name
+          $env:PGPASSWORD = "root"
+          & "$env:PGBIN\psql" -U postgres -c "CREATE USER medpass WITH PASSWORD 'medpass' SUPERUSER;"
+          & "$env:PGBIN\psql" -U postgres -c "CREATE DATABASE medpass OWNER medpass;"
+          & "$env:PGBIN\psql" -U postgres -c "SELECT version();"
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate + migrate
+        run: |
+          pnpm --filter @medpass/database generate
+          pnpm --filter @medpass/database exec prisma migrate deploy
+
+      # The api suite imports workspace packages by their built entry points
+      # and spawns apps/worker from its dist, so everything below the api has
+      # to be built. `pnpm build` would also build the Next apps, which this
+      # job does not exercise.
+      - name: Build api, worker and their dependencies
+        run: pnpm --filter @medpass/api... --filter @medpass/worker... build
+
+      - name: Seed (sample catalog)
+        run: pnpm --filter @medpass/database seed
+
+      - name: Install Puppeteer browser (worker PDF rendering)
+        run: pnpm --filter @medpass/worker exec puppeteer browsers install chrome
+
+      - name: API suite
+        run: pnpm --filter @medpass/api test
+
+      - name: Worker unit tests
+        run: pnpm --filter @medpass/worker test
