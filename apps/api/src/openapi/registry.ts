@@ -81,6 +81,7 @@ import {
   recordDoseEventSchema,
   recordFindingActionSchema,
   recordPrnDoseEventSchema,
+  putRefillPlanSchema,
   recordRefillSchema,
   refreshSchema,
   rejectCandidateSchema,
@@ -610,6 +611,8 @@ export const ROUTES: RouteDoc[] = [
   { method: "POST", path: "/v1/medications/:id/confirm-dose-unit", summary: "Confirm an ambiguous dose unit", tags: [T.medications], auth: "patient", headers: [PROFILE], scope: "edit_medications", request: confirmDoseUnitSchema, ...hw(S.versionedEntity) },
   { method: "POST", path: "/v1/medications/:id/status", summary: "Change medication status (pause/stop/resume)", tags: [T.medications], auth: "patient", headers: [PROFILE], scope: "edit_medications", request: changeMedicationStatusSchema, ...hw(S.versionedEntity) },
   { method: "POST", path: "/v1/medications/:id/refill", summary: "Record a refill", tags: [T.medications], auth: "patient", headers: [PROFILE], scope: "edit_medications", request: recordRefillSchema, ...hw(S.versionedEntity) },
+  { method: "GET", path: "/v1/medications/:id/refill-plan", summary: "Refill plan: what the patient holds, and when it runs out at the confirmed schedule's rate", tags: [T.medications], auth: "patient", headers: [PROFILE], scope: "view_medications", ...hw(S.anyObject) },
+  { method: "PUT", path: "/v1/medications/:id/refill-plan", summary: "Set pack size and quantity on hand", tags: [T.medications], auth: "patient", headers: [PROFILE], scope: "edit_medications", request: putRefillPlanSchema, ...hw(S.anyObject) },
   { method: "GET", path: "/v1/medications/:id/history", summary: "Medication change history", tags: [T.medications], auth: "patient", headers: [PROFILE], scope: "view_medications", ...hw(S.itemsOf(S.anyObject)) },
   { method: "DELETE", path: "/v1/medications/:id", summary: "Soft-delete a medication", tags: [T.medications], auth: "patient", headers: [PROFILE], scope: "edit_medications" },
 

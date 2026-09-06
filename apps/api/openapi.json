@@ -8175,6 +8175,163 @@
         "x-step-up": false
       }
     },
+    "/v1/medications/{id}/refill-plan": {
+      "get": {
+        "operationId": "MedicationsController_refillPlan",
+        "summary": "Refill plan: what the patient holds, and when it runs out at the confirmed schedule's rate",
+        "description": "Patient session (cookie or bearer). Profile access: `view_medications` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Medications"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_medications",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "put": {
+        "operationId": "MedicationsController_putRefillPlan",
+        "summary": "Set pack size and quantity on hand",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_medications` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutRefillPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Medications"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_medications",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/medications/{id}/status": {
       "post": {
         "operationId": "MedicationsController_changeStatus",
@@ -17692,6 +17849,39 @@
               "pattern": {
                 "type": "string",
                 "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+              },
+              "routeText": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "stopPlannedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "strengthLabel": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false
@@ -17937,11 +18127,208 @@
       "CreatePrescription": {
         "type": "object",
         "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "enteredName"
+              ],
+              "properties": {
+                "doseQuantity": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "doseUnit": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "tablet",
+                        "capsule",
+                        "ml",
+                        "drop",
+                        "puff",
+                        "sachet",
+                        "unit",
+                        "application"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "durationDays": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 365
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "enteredName": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "minLength": 1
+                },
+                "foodInstruction": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "before",
+                        "with",
+                        "after",
+                        "any",
+                        "bedtime"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "formText": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "frequencyCode": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "OD",
+                        "OD_AFTERNOON",
+                        "BD",
+                        "TDS",
+                        "QID",
+                        "SOS",
+                        "HS",
+                        "PATTERN",
+                        "ALTERNATE_DAY",
+                        "WEEKLY",
+                        "FORTNIGHTLY",
+                        "MONTHLY",
+                        "CUSTOM"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "instructionsText": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pattern": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "productId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "routeText": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "sequence": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 200
+                },
+                "strengthLabel": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "maxItems": 30
+          },
+          "diagnosisText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "encounterId": {
             "anyOf": [
               {
                 "type": "string",
                 "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "followUpOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
               },
               {
                 "type": "null"
@@ -17959,6 +18346,17 @@
           "prescribedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "validUntil": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false
@@ -18501,7 +18899,14 @@
                 "review_concerns",
                 "share_records",
                 "manage_profile",
-                "full_management"
+                "full_management",
+                "view_tests",
+                "upload_tests",
+                "view_measurements",
+                "add_measurements",
+                "view_documents",
+                "upload_documents",
+                "manage_caregivers"
               ]
             },
             "minItems": 1
@@ -19219,6 +19624,36 @@
         },
         "additionalProperties": false
       },
+      "PutRefillPlan": {
+        "type": "object",
+        "properties": {
+          "packSize": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 100000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantityOnHand": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000,
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "RecordDoseEvent": {
         "type": "object",
         "required": [
@@ -19536,7 +19971,14 @@
                 "review_concerns",
                 "share_records",
                 "manage_profile",
-                "full_management"
+                "full_management",
+                "view_tests",
+                "upload_tests",
+                "view_measurements",
+                "add_measurements",
+                "view_documents",
+                "upload_documents",
+                "manage_caregivers"
               ]
             },
             "minItems": 1
@@ -20031,6 +20473,39 @@
               "pattern": {
                 "type": "string",
                 "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+              },
+              "routeText": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "stopPlannedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "strengthLabel": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "additionalProperties": false
@@ -20042,6 +20517,17 @@
           "prescriberName": {
             "type": "string",
             "maxLength": 120
+          },
+          "prescribingPractitionerId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "prescriptionId": {
             "anyOf": [
@@ -20066,6 +20552,28 @@
               }
             ]
           },
+          "reasonConditionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routeText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "rowVersion": {
             "type": "integer",
             "minimum": 0
@@ -20073,6 +20581,28 @@
           "startDate": {
             "type": "string",
             "format": "date-time"
+          },
+          "stopPlannedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strengthLabel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false
