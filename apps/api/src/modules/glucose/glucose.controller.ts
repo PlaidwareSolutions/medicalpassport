@@ -34,10 +34,9 @@ export class GlucoseController {
   @Get("profiles/current/glucose-readings")
   async listGlucoseReadings(@Req() req: ApiRequest) {
     const { profileId } = await this.access.require(req, "view_profile");
-    const items = await this.prisma.glucoseReading.findMany({
-      where: { patientProfileId: profileId, deletedAt: null },
-      orderBy: { measuredAt: "desc" },
-    });
+    // Served from Observation (docs_v2/05 §7), so readings entered on the
+    // V2 measurements screens appear here too. V1 rows keep their ids.
+    const items = await this.observations.listAsLegacy(profileId, "glucose");
     return { items };
   }
 
@@ -91,7 +90,12 @@ export class GlucoseController {
     const reading = await this.prisma.glucoseReading.findFirst({
       where: { id, patientProfileId: profileId, deletedAt: null },
     });
-    if (!reading) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Reading not found", 404);
+    if (!reading) {
+      // Not a V1 row: the list also serves V2-born observations under their
+      // own ids, so deleting one from a V1 screen deletes the observation.
+      await this.observations.softDelete(profileId, id, { userId: req.auth!.userId, actorRole, correlationId: req.correlationId, recordedVia: recordedViaFor(req) });
+      return;
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.glucoseReading.update({ where: { id }, data: { deletedAt: new Date() } });

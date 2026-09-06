@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES, GLUCOSE_CONTEXT_TO_OBSERVATION_CONTEXT, TREND_WINDOW_DAYS, type GlucoseReadingContext } from "@medpass/domain";
+import { toLegacyBloodPressure, toLegacyGlucose, toLegacyWeight } from "./legacy-views";
 import { emitHealthEvent, localIso, projectObservation, supersedeHealthEvents } from "@medpass/health-events";
 import {
   LOINC_SYSTEM,
@@ -491,6 +492,27 @@ export class ObservationsService {
         correlationId: actor.correlationId,
       });
     });
+  }
+
+  // ───────────────────────── V1 lists served from here ─────────────────────────
+
+  /**
+   * The V1 `*-readings` lists, read from Observation so a reading entered on
+   * the V2 measurements screens shows up on the V1 screens too (docs_v2/05
+   * §7). Mirrored V1 rows and V2-born rows come back together, newest first,
+   * in the V1 shapes — see legacy-views.ts for the id rule.
+   */
+  async listAsLegacy(profileId: string, kind: "glucose" | "blood_pressure" | "weight") {
+    const concept = kind === "glucose" ? "blood_glucose" : kind === "blood_pressure" ? "blood_pressure" : "body_weight";
+    const rows = await this.prisma.observation.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, concept: { in: kind === "blood_pressure" ? [concept, "heart_rate"] : [concept] } },
+      orderBy: { measuredAt: "desc" },
+      take: 2000,
+    });
+    if (kind === "glucose") return rows.map(toLegacyGlucose);
+    if (kind === "weight") return rows.map(toLegacyWeight);
+    const pulses = rows.filter((r) => r.concept === "heart_rate");
+    return rows.filter((r) => r.concept === "blood_pressure").map((r) => toLegacyBloodPressure(r, pulses));
   }
 
   // ───────────────────────── V1 dual-write mirror ─────────────────────────

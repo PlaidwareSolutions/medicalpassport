@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import request from "supertest";
+import { randomUUID } from "node:crypto";
 import { stepUp } from "./helpers/step-up";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/common/prisma.service";
@@ -589,6 +590,57 @@ describe("Observations e2e", () => {
       }
       const listed = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/observations?concept=body_weight")).expect(200);
       expect(listed.body.items.map((o: { legacyId: string | null }) => o.legacyId)).not.toContain(v1WeightId);
+    });
+
+    // ── the other direction: V2-born readings on the V1 lists ──
+
+    it("a glucose reading entered through V2 appears on the V1 glucose list in the V1 shape", async () => {
+      const created = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/observations"))
+        .set("idempotency-key", randomUUID())
+        .send({ concept: "blood_glucose", valueNumeric: 142, context: "after_lunch", notes: "big meal", measuredAt: "2026-08-21T08:30:00.000Z" })
+        .expect(201);
+      const list = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/glucose-readings")).expect(200);
+      const row = list.body.items.find((i: { id: string }) => i.id === created.body.id);
+      expect(row).toMatchObject({ context: "after_lunch", valueMgDl: 142, note: "big meal", measuredAt: "2026-08-21T08:30:00.000Z", deletedAt: null });
+      expect(row).not.toHaveProperty("concept");
+      // A reading that came in through V1 sits on the same list under its V1
+      // id (the one deleted earlier in this block is, correctly, gone).
+      const viaV1 = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/glucose-readings"))
+        .set("idempotency-key", randomUUID())
+        .send({ measuredAt: "2026-08-21T12:30:00.000Z", context: "before_dinner", valueMgDl: 104 })
+        .expect(201);
+      const again = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/glucose-readings")).expect(200);
+      expect(again.body.items.find((i: { id: string }) => i.id === viaV1.body.id)).toMatchObject({ context: "before_dinner", valueMgDl: 104 });
+      expect(again.body.items.some((i: { id: string }) => i.id === created.body.id)).toBe(true);
+    });
+
+    it("a V2 blood pressure with a pulse appears on the V1 list with pulseBpm, and a V2 weight on the weight list", async () => {
+      const bp = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/observations"))
+        .set("idempotency-key", randomUUID())
+        .send({ concept: "blood_pressure", valueNumeric: 128, valueNumeric2: 79, pulseBpm: 66, measuredAt: "2026-08-22T07:00:00.000Z" })
+        .expect(201);
+      const bpList = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/blood-pressure-readings")).expect(200);
+      expect(bpList.body.items.find((i: { id: string }) => i.id === bp.body.id)).toMatchObject({ systolic: 128, diastolic: 79, pulseBpm: 66 });
+
+      const w = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/observations"))
+        .set("idempotency-key", randomUUID())
+        .send({ concept: "body_weight", valueNumeric: 71.5, measuredAt: "2026-08-22T07:05:00.000Z" })
+        .expect(201);
+      const wList = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/weight-readings")).expect(200);
+      expect(wList.body.items.find((i: { id: string }) => i.id === w.body.id)).toMatchObject({ weightKg: "71.5" });
+    });
+
+    it("deleting a V2-born reading through the V1 endpoint soft-deletes the observation", async () => {
+      const created = await auth(tokenA, profileA)(request(app.getHttpServer()).post("/v1/profiles/current/observations"))
+        .set("idempotency-key", randomUUID())
+        .send({ concept: "blood_glucose", valueNumeric: 99, measuredAt: "2026-08-23T08:30:00.000Z" })
+        .expect(201);
+      await auth(tokenA, profileA)(request(app.getHttpServer()).delete(`/v1/glucose-readings/${created.body.id}`)).expect(204);
+      await auth(tokenA, profileA)(request(app.getHttpServer()).get(`/v1/observations/${created.body.id}`)).expect(404);
+      const list = await auth(tokenA, profileA)(request(app.getHttpServer()).get("/v1/profiles/current/glucose-readings")).expect(200);
+      expect(list.body.items.some((i: { id: string }) => i.id === created.body.id)).toBe(false);
+      // An id that is neither still 404s.
+      await auth(tokenA, profileA)(request(app.getHttpServer()).delete(`/v1/glucose-readings/${randomUUID()}`)).expect(404);
     });
   });
 });
