@@ -309,6 +309,203 @@ export const downloadUrl: JsonSchema = {
   properties: { url: { type: "string", format: "uri" }, expiresAt: dateTime },
 };
 
+// ─────────────────── Documents V2 (docs_v2/05 §5, docs_v2/04 §7) ───────────────────
+
+export const documentV2Page: JsonSchema = {
+  type: "object",
+  required: ["pageNumber", "status"],
+  properties: {
+    pageNumber: { type: "integer" },
+    status: { type: "string", description: "The page object's own status: pending, verified, quarantined, deleted." },
+    contentType: { type: ["string", "null"] },
+    sizeBytes: { type: ["integer", "null"] },
+    sha256: { type: ["string", "null"] },
+    downloadUrl: { type: ["string", "null"], format: "uri", description: "Short-lived, minted per request; never stored." },
+    downloadUrlExpiresAt: { type: ["string", "null"], format: "date-time" },
+  },
+};
+
+export const documentV2Classification: JsonSchema = {
+  type: "object",
+  description:
+    "What the classifier read the document as, and who decided the effective `kind`. `classifiedBy: \"user\"` means the patient chose it and no classification run may move it (docs_v2/09 §4).",
+  properties: {
+    kind: { type: ["string", "null"] },
+    confidence: { type: ["number", "null"] },
+    classifiedBy: { type: ["string", "null"], enum: ["user", "deterministic", "model", null] },
+  },
+};
+
+export const documentV2: JsonSchema = {
+  type: "object",
+  required: ["id", "kind", "status", "pageCount", "pages", "classification", "createdAt"],
+  properties: {
+    id: uuid,
+    kind: { type: "string" },
+    title: { type: ["string", "null"] },
+    documentDate: { type: ["string", "null"], format: "date" },
+    status: { type: "string" },
+    sourceChannel: { type: "string" },
+    pageCount: { type: "integer", description: "Pages whose bytes are verified — not pages authorized." },
+    prescriptionId: { type: ["string", "null"], format: "uuid" },
+    diagnosticReportId: { type: ["string", "null"], format: "uuid" },
+    encounterId: { type: ["string", "null"], format: "uuid" },
+    immunizationId: { type: ["string", "null"], format: "uuid" },
+    classification: documentV2Classification,
+    extraction: { type: ["object", "null"] },
+    pages: { type: "array", items: documentV2Page },
+    createdAt: dateTime,
+  },
+};
+
+export const documentV2Created: JsonSchema = {
+  ...documentV2,
+  description: "The new document, plus one presigned upload authorization per requested page, in page order.",
+  properties: {
+    ...(documentV2.properties as Record<string, JsonSchema>),
+    pages: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["pageNumber", "uploadUrl", "expiresAt"],
+        properties: { pageNumber: { type: "integer" }, uploadUrl: { type: "string", format: "uri" }, expiresAt: dateTime },
+      },
+    },
+    approachingStorageQuota: { type: "boolean" },
+  },
+};
+
+export const documentV2Page_upload: JsonSchema = {
+  type: "object",
+  required: ["documentId", "pages"],
+  properties: {
+    documentId: uuid,
+    pages: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["pageNumber", "uploadUrl", "expiresAt"],
+        properties: { pageNumber: { type: "integer" }, uploadUrl: { type: "string", format: "uri" }, expiresAt: dateTime },
+      },
+    },
+    approachingStorageQuota: { type: "boolean" },
+  },
+};
+
+export const documentV2PageCompleted: JsonSchema = {
+  type: "object",
+  required: ["id", "status", "pageCount"],
+  properties: {
+    id: uuid,
+    status: { type: "string" },
+    pageCount: { type: "integer" },
+    pagesAuthorized: { type: "integer" },
+  },
+};
+
+export const documentV2List: JsonSchema = {
+  type: "object",
+  required: ["items", "nextCursor"],
+  properties: {
+    items: { type: "array", items: documentV2 },
+    nextCursor: { type: ["string", "null"], description: "Opaque keyset cursor; absent when this is the last page." },
+  },
+};
+
+export const documentCandidate: JsonSchema = {
+  type: "object",
+  description:
+    "A proposal, never a fact. Carries the exact source line, its page and box, and a confidence — nothing here is clinical data until a person confirms it (docs_v2/09 §1 rule 3).",
+  required: ["id", "targetEntity", "targetField", "detectedText", "confidence", "confidenceBucket", "status"],
+  properties: {
+    id: uuid,
+    targetEntity: { type: "string" },
+    targetField: { type: "string" },
+    groupKey: { type: ["string", "null"], description: "Fields read off the same source line share a group." },
+    pageNumber: { type: ["integer", "null"] },
+    boundingBox: { type: ["object", "null"], description: "Normalized 0–1 page coordinates, when word boxes were available." },
+    detectedText: { type: "string" },
+    proposedValue: {},
+    confidence: { type: "number" },
+    confidenceBucket: {
+      type: "string",
+      enum: ["high", "medium", "low"],
+      description: "docs_v2/09 §6: high pre-selects, medium asks the patient to check, low is only ever \"other things we saw\". No auto-confirm at any threshold.",
+    },
+    status: { type: "string", enum: ["proposed", "confirmed", "corrected", "rejected"] },
+    correctedValue: {},
+    resultingEntityType: { type: ["string", "null"] },
+    resultingEntityId: { type: ["string", "null"], format: "uuid" },
+  },
+};
+
+export const documentExtraction: JsonSchema = {
+  type: "object",
+  required: ["documentId", "status", "extraction"],
+  properties: {
+    documentId: uuid,
+    status: { type: "string", description: "The document's own status." },
+    extraction: {
+      type: ["object", "null"],
+      properties: {
+        id: uuid,
+        status: { type: "string" },
+        engine: { type: "string" },
+        engineVersion: { type: "string" },
+        modelProvider: { type: ["string", "null"] },
+        modelName: { type: ["string", "null"] },
+        modelVersion: { type: ["string", "null"] },
+        promptVersion: { type: ["string", "null"] },
+        startedAt: { type: ["string", "null"], format: "date-time" },
+        finishedAt: { type: ["string", "null"], format: "date-time" },
+        candidateCount: { type: "integer" },
+        groups: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              targetEntity: { type: "string" },
+              groupKey: { type: ["string", "null"] },
+              candidates: { type: "array", items: documentCandidate },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+export const candidateDecision: JsonSchema = {
+  type: "object",
+  required: ["id", "status"],
+  properties: {
+    id: uuid,
+    status: { type: "string", enum: ["confirmed", "corrected", "rejected"] },
+    resultingEntityType: { type: ["string", "null"] },
+    resultingEntityId: { type: ["string", "null"], format: "uuid" },
+  },
+};
+
+export const materializedRows: JsonSchema = {
+  type: "object",
+  required: ["extractionId", "created"],
+  properties: {
+    extractionId: uuid,
+    created: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["entityType", "entityId"],
+        properties: {
+          entityType: { type: "string" },
+          entityId: uuid,
+          candidateIds: { type: "array", items: uuid },
+        },
+      },
+    },
+  },
+};
+
 export const shareCreated: JsonSchema = {
   type: "object",
   required: ["id", "token", "expiresAt"],

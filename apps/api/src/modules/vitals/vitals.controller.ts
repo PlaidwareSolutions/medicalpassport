@@ -4,13 +4,14 @@ import { ERROR_CODES } from "@medpass/domain";
 import { emitHealthEvent, projectReading, supersedeHealthEvents } from "@medpass/health-events";
 import { bloodPressureReadingSchema, weightReadingSchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
-import { eventCtx } from "../../common/health-events";
+import { eventCtx, profileTimezone } from "../../common/health-events";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { recordedViaFor } from "../../common/provenance";
 import { stampProvenanceFor } from "../../common/provenance-actor";
+import { ObservationsService } from "../observations/observations.service";
 
 /**
  * Blood-pressure and body-weight diaries (screens 46/47) — the two vitals
@@ -25,6 +26,7 @@ export class VitalsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProfileAccessService,
+    private readonly observations: ObservationsService,
   ) {}
 
   @Get("profiles/current/blood-pressure-readings")
@@ -56,6 +58,28 @@ export class VitalsController {
         patientProfileId: profileId,
         correlationId: req.correlationId,
       });
+      // Dual-write (ADR-V2-011, task 3). The cuff reported two different
+      // things, so the V2 model keeps two observations: the pressure and,
+      // separately, the pulse — a pulse is not part of a blood pressure.
+      // Neither mirror emits an event; the projection below is the one and
+      // only timeline entry for this reading.
+      const timezone = await profileTimezone(tx, profileId);
+      await this.observations.mirrorLegacyReading(
+        tx,
+        profileId,
+        { entityType: "blood_pressure_reading", ...created },
+        { concept: "blood_pressure", valueNumeric: String(created.systolic), valueNumeric2: String(created.diastolic) },
+        timezone,
+      );
+      if (created.pulseBpm != null) {
+        await this.observations.mirrorLegacyReading(
+          tx,
+          profileId,
+          { entityType: "blood_pressure_reading_pulse", ...created, note: null },
+          { concept: "heart_rate", valueNumeric: String(created.pulseBpm) },
+          timezone,
+        );
+      }
       await emitHealthEvent(
         tx,
         projectReading(await eventCtx(tx, profileId, actor), "blood_pressure", {
@@ -79,6 +103,9 @@ export class VitalsController {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.bloodPressureReading.update({ where: { id }, data: { deletedAt: new Date() } });
+      // Both V2 mirrors follow the V1 row's lifecycle exactly (task 3).
+      await this.observations.softDeleteMirroredReading(tx, "blood_pressure_reading", id);
+      await this.observations.softDeleteMirroredReading(tx, "blood_pressure_reading_pulse", id);
       await supersedeHealthEvents(tx, "blood_pressure_reading", id);
       await writeAudit(tx, {
         action: "blood_pressure_reading.deleted",
@@ -121,6 +148,14 @@ export class VitalsController {
         patientProfileId: profileId,
         correlationId: req.correlationId,
       });
+      // Dual-write (task 3); no second event, same as the other V1 diaries.
+      await this.observations.mirrorLegacyReading(
+        tx,
+        profileId,
+        { entityType: "weight_reading", ...created },
+        { concept: "body_weight", valueNumeric: created.weightKg.toString() },
+        await profileTimezone(tx, profileId),
+      );
       await emitHealthEvent(
         tx,
         projectReading(await eventCtx(tx, profileId, actor), "body_weight", {
@@ -144,6 +179,7 @@ export class VitalsController {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.weightReading.update({ where: { id }, data: { deletedAt: new Date() } });
+      await this.observations.softDeleteMirroredReading(tx, "weight_reading", id);
       await supersedeHealthEvents(tx, "weight_reading", id);
       await writeAudit(tx, {
         action: "weight_reading.deleted",

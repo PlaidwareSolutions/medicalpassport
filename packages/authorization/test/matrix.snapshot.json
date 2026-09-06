@@ -10,7 +10,14 @@
     "review_concerns",
     "share_records",
     "manage_profile",
-    "full_management"
+    "full_management",
+    "view_tests",
+    "upload_tests",
+    "view_measurements",
+    "add_measurements",
+    "view_documents",
+    "upload_documents",
+    "manage_caregivers"
   ],
   "actions": [
     "view_profile",
@@ -25,7 +32,13 @@
     "share_records",
     "manage_caregivers",
     "manage_consents",
-    "manage_claim"
+    "manage_claim",
+    "view_tests",
+    "upload_tests",
+    "view_measurements",
+    "add_measurements",
+    "view_documents",
+    "upload_documents"
   ],
   "apiActionsByFile": {
     "modules/caregivers/caregivers.controller.ts": [
@@ -40,6 +53,18 @@
     ],
     "modules/consents/consents.controller.ts": [
       "manage_consents"
+    ],
+    "modules/diagnostics/diagnostics.controller.ts": [
+      "upload_tests",
+      "view_tests"
+    ],
+    "modules/documents-v2/document-extractions.controller.ts": [
+      "add_medications",
+      "view_documents"
+    ],
+    "modules/documents-v2/documents-v2.controller.ts": [
+      "upload_documents",
+      "view_documents"
     ],
     "modules/documents/documents.controller.ts": [
       "add_medications",
@@ -69,6 +94,10 @@
       "manage_reminders",
       "view_medications"
     ],
+    "modules/observations/observations.controller.ts": [
+      "add_measurements",
+      "view_measurements"
+    ],
     "modules/organizations/organizations.controller.ts": [
       "edit_profile",
       "view_profile"
@@ -78,6 +107,7 @@
       "view_profile"
     ],
     "modules/prescriptions/prescriptions.controller.ts": [
+      "add_medications",
       "edit_profile",
       "view_profile"
     ],
@@ -156,9 +186,47 @@
       "share_records",
       "full_management"
     ],
-    "manage_caregivers": [],
     "manage_consents": [],
-    "manage_claim": []
+    "manage_claim": [],
+    "manage_caregivers": [
+      "manage_caregivers"
+    ],
+    "view_tests": [
+      "view_tests",
+      "view_medications",
+      "view_schedule",
+      "manage_profile",
+      "full_management"
+    ],
+    "view_measurements": [
+      "view_measurements",
+      "view_medications",
+      "view_schedule",
+      "manage_profile",
+      "full_management"
+    ],
+    "view_documents": [
+      "view_documents",
+      "view_medications",
+      "view_schedule",
+      "manage_profile",
+      "full_management"
+    ],
+    "upload_tests": [
+      "upload_tests",
+      "manage_profile",
+      "full_management"
+    ],
+    "add_measurements": [
+      "add_measurements",
+      "manage_profile",
+      "full_management"
+    ],
+    "upload_documents": [
+      "upload_documents",
+      "manage_profile",
+      "full_management"
+    ]
   },
   "matrix": {
     "self": {
@@ -212,6 +280,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -268,6 +360,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "view_schedule": {
@@ -320,6 +436,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -376,6 +516,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "record_doses": {
@@ -428,6 +592,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -484,6 +672,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "edit_medications": {
@@ -536,6 +748,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -592,6 +828,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "share_records": {
@@ -644,6 +904,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -700,6 +984,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "full_management": {
@@ -752,6 +1060,576 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_tests": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "upload_tests": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_measurements": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "add_measurements": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_documents": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "upload_documents": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "manage_caregivers": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -810,6 +1688,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "view_medications": {
@@ -862,6 +1764,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -918,6 +1844,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "manage_reminders": {
@@ -970,6 +1920,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1026,6 +2000,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "add_medications": {
@@ -1078,6 +2076,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1134,6 +2156,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "review_concerns": {
@@ -1186,6 +2232,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1242,6 +2312,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "manage_profile": {
@@ -1296,6 +2390,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "full_management": {
@@ -1348,6 +2466,576 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_tests": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "upload_tests": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_measurements": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "add_measurements": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_documents": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "upload_documents": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "manage_caregivers": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1406,6 +3094,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "view_medications": {
@@ -1458,6 +3170,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1514,6 +3250,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "manage_reminders": {
@@ -1566,6 +3326,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1622,6 +3406,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "add_medications": {
@@ -1674,6 +3482,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1730,6 +3562,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "review_concerns": {
@@ -1782,6 +3638,30 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -1838,6 +3718,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "manage_profile": {
@@ -1892,6 +3796,30 @@
         "manage_claim": {
           "allowed": true,
           "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
         }
       },
       "full_management": {
@@ -1944,6 +3872,576 @@
           "actorRole": "patient"
         },
         "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_tests": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "upload_tests": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_measurements": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "add_measurements": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "view_documents": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "upload_documents": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        }
+      },
+      "manage_caregivers": {
+        "view_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_profile": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "edit_medications": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "record_doses": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_schedule": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_reminders": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "review_concerns": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "share_records": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_consents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "manage_claim": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "patient"
+        },
+        "upload_documents": {
           "allowed": true,
           "actorRole": "patient"
         }
@@ -2002,6 +4500,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "view_medications": {
@@ -2054,6 +4576,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2110,6 +4656,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "manage_reminders": {
@@ -2162,6 +4732,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2218,6 +4812,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "add_medications": {
@@ -2270,6 +4888,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2326,6 +4968,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "review_concerns": {
@@ -2378,6 +5044,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2434,6 +5124,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "manage_profile": {
@@ -2488,6 +5202,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
         }
       },
       "full_management": {
@@ -2540,6 +5278,576 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        }
+      },
+      "view_tests": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "upload_tests": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "view_measurements": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "add_measurements": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "view_documents": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "upload_documents": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        }
+      },
+      "manage_caregivers": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2598,6 +5906,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "view_medications": {
@@ -2650,6 +5982,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2706,6 +6062,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "manage_reminders": {
@@ -2758,6 +6138,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2814,6 +6218,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "add_medications": {
@@ -2866,6 +6294,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -2922,6 +6374,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "review_concerns": {
@@ -2974,6 +6450,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -3030,6 +6530,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "manage_profile": {
@@ -3084,6 +6608,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
         }
       },
       "full_management": {
@@ -3136,6 +6684,576 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        }
+      },
+      "view_tests": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "upload_tests": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "view_measurements": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "add_measurements": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "view_documents": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "upload_documents": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        }
+      },
+      "manage_caregivers": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -3194,6 +7312,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "view_medications": {
@@ -3246,6 +7388,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -3302,6 +7468,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "manage_reminders": {
@@ -3354,6 +7544,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -3410,6 +7624,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "add_medications": {
@@ -3462,6 +7700,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -3518,6 +7780,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "review_concerns": {
@@ -3570,6 +7856,30 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }
@@ -3626,6 +7936,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
         }
       },
       "manage_profile": {
@@ -3680,6 +8014,30 @@
         "manage_claim": {
           "allowed": false,
           "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
         }
       },
       "full_management": {
@@ -3732,6 +8090,576 @@
           "actorRole": "none"
         },
         "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        }
+      },
+      "view_tests": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "upload_tests": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "view_measurements": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "add_measurements": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "view_documents": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "upload_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        }
+      },
+      "upload_documents": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        }
+      },
+      "manage_caregivers": {
+        "view_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_profile": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "edit_medications": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "record_doses": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_schedule": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_reminders": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "review_concerns": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "share_records": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_caregivers": {
+          "allowed": true,
+          "actorRole": "caregiver"
+        },
+        "manage_consents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "manage_claim": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_tests": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "add_measurements": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "view_documents": {
+          "allowed": false,
+          "actorRole": "none"
+        },
+        "upload_documents": {
           "allowed": false,
           "actorRole": "none"
         }

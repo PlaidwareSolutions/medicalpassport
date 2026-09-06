@@ -236,3 +236,148 @@ export type AllergyCriticality = (typeof ALLERGY_CRITICALITIES)[number];
 
 export const CONDITION_CLINICAL_STATUSES = ["active", "remission", "resolved", "inactive", "unknown"] as const;
 export type ConditionClinicalStatus = (typeof CONDITION_CLINICAL_STATUSES)[number];
+
+/**
+ * V2 Phase 4 diagnostics enums (docs_v2/04 §6.2/§6.3); mirror the Prisma
+ * enums `DiagnosticReportKind`, `DiagnosticReportStatus`, `ImagingModality`
+ * and `ObservationInterpretation`. The analyte *vocabulary* itself stays in
+ * report-analytes.ts and is extended by @medpass/terminology — only the
+ * closed shape enums live here.
+ */
+export const DIAGNOSTIC_REPORT_KINDS = [
+  "laboratory",
+  "imaging",
+  "ecg",
+  "echo",
+  "pathology",
+  "microbiology",
+  "genetics",
+  "other",
+] as const;
+export type DiagnosticReportKind = (typeof DIAGNOSTIC_REPORT_KINDS)[number];
+
+export const DIAGNOSTIC_REPORT_STATUSES = ["registered", "partial", "final", "amended", "cancelled"] as const;
+export type DiagnosticReportStatus = (typeof DIAGNOSTIC_REPORT_STATUSES)[number];
+
+export const IMAGING_MODALITIES = ["xray", "ct", "mri", "ultrasound", "mammography", "pet", "nuclear", "other"] as const;
+export type ImagingModality = (typeof IMAGING_MODALITIES)[number];
+
+/**
+ * A clinical judgement, never computed by this app (hazard H-25). Only a
+ * provider-sourced write may carry one — see
+ * `ERROR_CODES.INTERPRETATION_NOT_CLIENT_SETTABLE`.
+ */
+export const OBSERVATION_INTERPRETATIONS = ["normal", "high", "low", "critical_high", "critical_low", "abnormal"] as const;
+export type ObservationInterpretation = (typeof OBSERVATION_INTERPRETATIONS)[number];
+
+/** Censoring comparators as printed by labs ("<5", ">1000"); display-only, never compared. */
+export const RESULT_COMPARATORS = ["<", ">", "<=", ">="] as const;
+export type ResultComparator = (typeof RESULT_COMPARATORS)[number];
+
+/**
+ * V2 Phase 5 observation enums (docs_v2/04 §5.2, ADR-V2-011); mirror the
+ * Prisma enums `ObservationConcept`, `ObservationContext`,
+ * `MeasurementDeviceKind` and `MeasurementDevicePlatform`. The per-concept
+ * unit table and plausibility ranges live in @medpass/terminology, not here.
+ */
+export const OBSERVATION_CONCEPTS = [
+  "blood_pressure",
+  "heart_rate",
+  "blood_glucose",
+  "body_weight",
+  "body_height",
+  "bmi",
+  "spo2",
+  "body_temperature",
+  "respiratory_rate",
+  "inr",
+  "peak_flow",
+  "pain_score",
+  "insulin_dose",
+  "fluid_intake",
+  "fluid_output",
+  "waist_circumference",
+  "steps",
+  "sleep_hours",
+  "other",
+] as const;
+export type ObservationConcept = (typeof OBSERVATION_CONCEPTS)[number];
+
+export const OBSERVATION_CONTEXTS = [
+  "before_breakfast",
+  "after_breakfast",
+  "before_lunch",
+  "after_lunch",
+  "before_dinner",
+  "after_dinner",
+  "during_night",
+  "random",
+  "fasting",
+  "resting",
+  "post_exercise",
+  "sitting",
+  "standing",
+  "lying",
+  "morning",
+  "evening",
+] as const;
+export type ObservationContext = (typeof OBSERVATION_CONTEXTS)[number];
+
+export const MEASUREMENT_DEVICE_KINDS = [
+  "bp_monitor",
+  "glucometer",
+  "cgm",
+  "smart_scale",
+  "pulse_oximeter",
+  "thermometer",
+  "wearable",
+  "phone_health_platform",
+  "other",
+] as const;
+export type MeasurementDeviceKind = (typeof MEASUREMENT_DEVICE_KINDS)[number];
+
+export const MEASUREMENT_DEVICE_PLATFORMS = ["bluetooth", "apple_health", "health_connect", "vendor_api", "manual"] as const;
+export type MeasurementDevicePlatform = (typeof MEASUREMENT_DEVICE_PLATFORMS)[number];
+
+/** Trend windows and buckets (docs_v2/05 §7). */
+export const TREND_WINDOWS = ["7d", "30d", "90d"] as const;
+export type TrendWindow = (typeof TREND_WINDOWS)[number];
+
+export const TREND_BUCKETS = ["day", "week", "month"] as const;
+export type TrendBucket = (typeof TREND_BUCKETS)[number];
+
+/** Days each trend window covers. */
+export const TREND_WINDOW_DAYS: Readonly<Record<TrendWindow, number>> = { "7d": 7, "30d": 30, "90d": 90 };
+
+/**
+ * Every V1 glucose context is also an `ObservationContext`, so the
+ * dual-write mirror carries it across verbatim rather than inventing one
+ * (ADR-V2-011). Written as an explicit map so adding a V1 context without
+ * an observation twin fails to compile.
+ */
+export const GLUCOSE_CONTEXT_TO_OBSERVATION_CONTEXT: Readonly<Record<GlucoseReadingContext, ObservationContext>> = {
+  before_breakfast: "before_breakfast",
+  after_breakfast: "after_breakfast",
+  before_lunch: "before_lunch",
+  after_lunch: "after_lunch",
+  before_dinner: "before_dinner",
+  after_dinner: "after_dinner",
+  during_night: "during_night",
+  random: "random",
+};
+
+/**
+ * V1 `MedicalReport.kind` → V2 `DiagnosticReportKind` for the dual-write
+ * mirror (docs_v2/04 §6.2). `blood_test`/`urine_test` are both laboratory —
+ * the specimen lives on the result's `specimenType`, not on the report kind;
+ * `discharge_summary` is not a diagnostic at all and lands on `other`.
+ */
+export const MEDICAL_REPORT_KIND_TO_DIAGNOSTIC_KIND: Readonly<Record<MedicalReportKind, DiagnosticReportKind>> = {
+  blood_test: "laboratory",
+  urine_test: "laboratory",
+  imaging: "imaging",
+  ecg: "ecg",
+  pathology: "pathology",
+  discharge_summary: "other",
+  other: "other",
+};

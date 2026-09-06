@@ -18,7 +18,8 @@
     "@medpass/notifications": "workspace:*",
     "@medpass/object-storage": "workspace:*",
     "@medpass/observability": "workspace:*",
-    "@medpass/provenance": "workspace:*"
+    "@medpass/provenance": "workspace:*",
+    "@medpass/terminology": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

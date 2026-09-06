@@ -33,6 +33,21 @@ export const ERROR_CODES = {
   GUARDIAN_ATTESTATION_REQUIRED: "guardian_attestation_required",
   /** ADR-V2-002: clients never set provenance (source, verification, recordedVia, …); services stamp it. */
   PROVENANCE_NOT_CLIENT_SETTABLE: "provenance_not_client_settable",
+  /**
+   * docs_v2/04 §5.2 and §6.3, hazard H-25: `interpretation` (normal / high /
+   * low / critical) is a clinical judgement. It is accepted only on a
+   * provider path (`lab_imported`, `clinic_entered`), where it carries the
+   * lab's own printed flag. A patient or caregiver sending it is refused,
+   * and the server never derives one from a threshold.
+   */
+  INTERPRETATION_NOT_CLIENT_SETTABLE: "interpretation_not_client_settable",
+  /**
+   * The value is outside its observation concept's plausibility range
+   * (docs_v2/04 §5.2) — "could a human plausibly have produced this number",
+   * never a clinical threshold. SpO2 of 140 is a typo; SpO2 of 80 is a real
+   * reading this app stores without comment.
+   */
+  OBSERVATION_OUT_OF_RANGE: "observation_out_of_range",
   INTERNAL: "internal_error",
 } as const;
 

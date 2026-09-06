@@ -37,6 +37,16 @@ export const PROFILE_ACTIONS = [
   "manage_caregivers",
   "manage_consents",
   "manage_claim",
+  // V2 Phase 6 (docs_v2/04 §2.2, roadmap §15 permission model). Tests,
+  // measurements and documents used to sit under view_profile/edit_profile,
+  // which meant a caregiver trusted with the patient's name and blood group
+  // was also trusted with every lab result. These split that apart.
+  "view_tests",
+  "upload_tests",
+  "view_measurements",
+  "add_measurements",
+  "view_documents",
+  "upload_documents",
 ] as const;
 
 export type ProfileAction = (typeof PROFILE_ACTIONS)[number];
@@ -58,11 +68,33 @@ export const PROFILE_SCOPE_GRANTS: Readonly<Record<ProfileAction, readonly Careg
   manage_reminders: ["manage_reminders", "full_management"],
   review_concerns: ["review_concerns", "full_management"],
   share_records: ["share_records", "full_management"],
-  // Only the patient themself may manage caregivers, consents, and
-  // invite/cancel a claim on the profile — no scope ever grants these.
-  manage_caregivers: [],
+  // Consents and claiming stay patient-only: no scope ever grants them.
   manage_consents: [],
   manage_claim: [],
+  // V2 Phase 6 (docs_v2/04 §2.2, roadmap §15 "manage other caregivers").
+  // Grantable now, but ONLY by its own named scope — deliberately not by
+  // `full_management`, which is the one documented exception to the
+  // "full_management is a superset" rule.
+  //
+  // The reason is migration, not tidiness. Caregivers already hold
+  // full_management in production. Adding this to it would silently widen
+  // who can bring more people into a patient's record, without the patient
+  // ever being asked. A power that changes who else can read the record has
+  // to be granted deliberately, by name.
+  manage_caregivers: ["manage_caregivers"],
+
+  // V2 Phase 6. Tests, measurements and documents used to live under
+  // view_profile/edit_profile, so every scope that granted those must keep
+  // granting these — otherwise existing caregivers silently lose access to
+  // reports the moment this ships, which is a regression dressed up as a
+  // security improvement. The narrow scopes are additive: what is new is
+  // being able to grant lab results WITHOUT handing over the whole profile.
+  view_tests: ["view_tests", "view_medications", "view_schedule", "manage_profile", "full_management"],
+  view_measurements: ["view_measurements", "view_medications", "view_schedule", "manage_profile", "full_management"],
+  view_documents: ["view_documents", "view_medications", "view_schedule", "manage_profile", "full_management"],
+  upload_tests: ["upload_tests", "manage_profile", "full_management"],
+  add_measurements: ["add_measurements", "manage_profile", "full_management"],
+  upload_documents: ["upload_documents", "manage_profile", "full_management"],
 };
 
 export interface AccessDecision {

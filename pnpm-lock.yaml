@@ -78,6 +78,9 @@ importers:
       '@medpass/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@medpass/document-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/document-intelligence
       '@medpass/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -105,6 +108,9 @@ importers:
       '@medpass/provenance':
         specifier: workspace:*
         version: link:../../packages/provenance
+      '@medpass/terminology':
+        specifier: workspace:*
+        version: link:../../packages/terminology
       '@medpass/validation':
         specifier: workspace:*
         version: link:../../packages/validation
@@ -214,6 +220,9 @@ importers:
       '@medpass/provenance':
         specifier: workspace:*
         version: link:../../packages/provenance
+      '@medpass/terminology':
+        specifier: workspace:*
+        version: link:../../packages/terminology
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -352,6 +361,9 @@ importers:
       '@medpass/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@medpass/document-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/document-intelligence
       '@medpass/domain':
         specifier: workspace:*
         version: link:../../packages/domain

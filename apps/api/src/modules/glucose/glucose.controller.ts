@@ -4,13 +4,14 @@ import { ERROR_CODES } from "@medpass/domain";
 import { emitHealthEvent, projectCheckup, projectReading, supersedeHealthEvents } from "@medpass/health-events";
 import { checkupRecordSchema, glucoseReadingSchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
-import { eventCtx } from "../../common/health-events";
+import { eventCtx, profileTimezone } from "../../common/health-events";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
 import { recordedViaFor } from "../../common/provenance";
 import { stampProvenanceFor } from "../../common/provenance-actor";
+import { ObservationsService } from "../observations/observations.service";
 
 /**
  * Blood Sugar Monitoring Diary (docs/07 screen 42) — a dedicated controller
@@ -27,6 +28,7 @@ export class GlucoseController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProfileAccessService,
+    private readonly observations: ObservationsService,
   ) {}
 
   @Get("profiles/current/glucose-readings")
@@ -59,6 +61,17 @@ export class GlucoseController {
         correlationId: req.correlationId,
         context: { measuredContext: input.context },
       });
+      // Dual-write (ADR-V2-011, task 3): the same reading also lands in the
+      // generic `Observation` model so both stay consistent until the V1
+      // sunset. The mirror emits no event of its own — the projection below
+      // is the one and only timeline entry for this reading.
+      await this.observations.mirrorLegacyReading(
+        tx,
+        profileId,
+        { entityType: "glucose_reading", ...created },
+        { concept: "blood_glucose", valueNumeric: String(created.valueMgDl) },
+        await profileTimezone(tx, profileId),
+      );
       await emitHealthEvent(
         tx,
         projectReading(await eventCtx(tx, profileId, actor), "blood_glucose", {
@@ -82,6 +95,8 @@ export class GlucoseController {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.glucoseReading.update({ where: { id }, data: { deletedAt: new Date() } });
+      // The V2 mirror follows the V1 row's lifecycle exactly (task 3).
+      await this.observations.softDeleteMirroredReading(tx, "glucose_reading", id);
       await supersedeHealthEvents(tx, "glucose_reading", id);
       await writeAudit(tx, {
         action: "glucose_reading.deleted",

@@ -115,6 +115,13 @@ describe.skipIf(!process.env.DATABASE_URL)("Phase 1 backfills", () => {
     await prisma.glucoseReading.deleteMany({ where: { patientProfileId: profileId } });
     await prisma.reportValue.deleteMany({ where: { patientProfileId: profileId } });
     await prisma.medicalReport.deleteMany({ where: { patientProfileId: profileId } });
+    // The Phase 4/5 backfills sweep every V1 row in the database, so a
+    // concurrently-running spec can have mirrored this fixture into the V2
+    // model. Clear the mirrors too, or the profile delete below trips their
+    // foreign key.
+    await prisma.diagnosticResult.deleteMany({ where: { patientProfileId: profileId } });
+    await prisma.diagnosticReport.deleteMany({ where: { patientProfileId: profileId } });
+    await prisma.observation.deleteMany({ where: { patientProfileId: profileId } });
     await prisma.prescription.deleteMany({ where: { patientProfileId: profileId } });
     await prisma.medicationChange.deleteMany({ where: { patientMedication: { patientProfileId: profileId } } });
     await prisma.medicationInstruction.deleteMany({ where: { patientMedication: { patientProfileId: profileId } } });

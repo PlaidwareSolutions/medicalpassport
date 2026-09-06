@@ -7,6 +7,7 @@ import { ApiProblem } from "../../common/errors";
 import { eventCtx } from "../../common/health-events";
 import { PrismaService } from "../../common/prisma.service";
 import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
+import { DiagnosticsService } from "../diagnostics/diagnostics.service";
 import { EncountersService } from "../encounters/encounters.service";
 import { PractitionersService } from "../practitioners/practitioners.service";
 
@@ -66,6 +67,7 @@ export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly practitioners: PractitionersService,
+    private readonly diagnostics: DiagnosticsService,
   ) {}
 
   async create(profileId: string, input: CreateReportInput, actor: Actor) {
@@ -95,6 +97,11 @@ export class ReportsService {
         correlationId: actor.correlationId,
         context: { kind: input.kind },
       });
+      // Dual-write (ADR-V2-007, task 3): the same test also lands in the V2
+      // model so both stay consistent until the V1 sunset. The mirror emits
+      // no event of its own — the timeline entry below is the one and only
+      // one for this report.
+      await this.diagnostics.mirrorLegacyReport(tx, profileId, created);
       await this.emitReportEvent(tx, profileId, actor, created.id, 0);
       return created;
     });
@@ -168,7 +175,6 @@ export class ReportsService {
   async addValue(profileId: string, reportId: string, input: AddReportValueInput, actor: Actor) {
     const report = await this.prisma.medicalReport.findFirst({
       where: { id: reportId, patientProfileId: profileId, deletedAt: null },
-      select: { id: true },
     });
     if (!report) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Report not found", 404);
 
@@ -202,6 +208,11 @@ export class ReportsService {
         // The analyte id is not PHI; the value itself never goes in context.
         context: { analyte: input.analyte },
       });
+      // Dual-write (task 3). `mirrorLegacyReport` is an upsert, so a value
+      // added to a report filed before dual-write existed still finds — or
+      // creates — its V2 parent rather than being dropped on the floor.
+      const mirror = await this.diagnostics.mirrorLegacyReport(tx, profileId, report);
+      await this.diagnostics.mirrorLegacyResult(tx, profileId, mirror.id, created);
       // The report event carries its value count — same key, refreshed in place.
       await this.emitReportEvent(tx, profileId, actor, reportId, count + 1);
       return created;
@@ -226,6 +237,7 @@ export class ReportsService {
         correlationId: actor.correlationId,
         context: { analyte: value.analyte },
       });
+      await this.diagnostics.softDeleteMirroredResult(tx, id);
       const remaining = await tx.reportValue.count({ where: { reportId: value.reportId, deletedAt: null } });
       await this.emitReportEvent(tx, profileId, actor, value.reportId, remaining);
     });
@@ -280,6 +292,8 @@ export class ReportsService {
     if (!report) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Report not found", 404);
     await this.prisma.$transaction(async (tx) => {
       await tx.medicalReport.update({ where: { id }, data: { deletedAt: new Date() } });
+      // The V2 mirror follows the V1 row's lifecycle exactly (task 3).
+      await this.diagnostics.softDeleteMirroredReport(tx, id);
       await supersedeHealthEvents(tx, "medical_report", id);
       await writeAudit(tx, {
         action: "report.deleted",

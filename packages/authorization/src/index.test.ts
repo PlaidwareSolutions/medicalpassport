@@ -28,11 +28,17 @@ describe("decideProfileAccess", () => {
     expect(decideProfileAccess(ctx, "edit_medications").allowed).toBe(false);
   });
 
-  it("full_management grants everything except caregiver/consent management", () => {
+  it("full_management grants everything except caregiver management, consent and claiming", () => {
     const ctx = { userId: caregiver, profileOwnerUserId: owner, caregiverScopes: ["full_management"] as const };
     expect(decideProfileAccess(ctx, "edit_medications").allowed).toBe(true);
+    // V2 Phase 6: managing other caregivers became grantable, but only by its
+    // own named scope — full_management deliberately does not carry it.
     expect(decideProfileAccess(ctx, "manage_caregivers").allowed).toBe(false);
+    expect(decideProfileAccess({ ...ctx, caregiverScopes: ["manage_caregivers"] }, "manage_caregivers").allowed).toBe(true);
+    // Consent is the legal basis for processing and claiming decides who
+    // owns the profile, so neither is ever delegable.
     expect(decideProfileAccess(ctx, "manage_consents").allowed).toBe(false);
+    expect(decideProfileAccess(ctx, "manage_claim").allowed).toBe(false);
   });
 
   it("no relationship means no access", () => {

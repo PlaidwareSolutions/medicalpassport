@@ -4,9 +4,10 @@
  * specced as a BullMQ+Redis mirror, but there's no Redis in this sandbox,
  * so Postgres is the primary queue here; a real deployment with Redis
  * could swap the queue implementation with no change to the processors
- * below). Two queues: OCR/PDF-text prescription extraction (Stage 3/8) and
- * doctor-visit-summary PDF rendering (Stage 7) — both previously ran
- * synchronously inside the API request.
+ * below). Queues: V1 OCR/PDF-text prescription extraction (Stage 3/8),
+ * doctor-visit-summary PDF rendering (Stage 7), clinical-content enrichment,
+ * and the two halves of the V2 document pipeline — `document_classify` and
+ * `document_extract` (docs_v2/09 §2).
  */
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
@@ -20,6 +21,8 @@ import { terminateOcrWorker } from "./processors/ocr";
 import { closeBrowser, renderPdf } from "./processors/pdf-render";
 import type { VisitSummaryDto } from "./processors/visit-summary-html";
 import { processContentEnrichment, type ContentEnrichmentPayload } from "./processors/content-enrichment";
+import { processDocumentClassify, type DocumentClassifyPayload } from "./processors/document-classify";
+import { processDocumentExtract, type DocumentExtractPayload } from "./processors/document-extract";
 
 const logger = createLogger("worker");
 const env = loadEnv(workerEnvShape);
@@ -48,7 +51,11 @@ const objectStorage = createObjectStorage({
 });
 
 const POLL_INTERVAL_MS = 500;
-const QUEUES = ["ocr_extraction", "pdf_render", "content_enrichment"] as const;
+// document_classify / document_extract are the two halves of the V2 document
+// pipeline (docs_v2/09 §2): classify enqueues extract, so they are separate
+// queues rather than one long job — a slow OCR pass never blocks a retry of
+// the cheap extraction step, and each has its own attempt budget.
+const QUEUES = ["ocr_extraction", "pdf_render", "content_enrichment", "document_classify", "document_extract"] as const;
 
 let shuttingDown = false;
 /** The job currently being processed, so shutdown can let it finish (docs_v2/16 §3 item 3). */
@@ -79,6 +86,12 @@ async function runJob(queue: (typeof QUEUES)[number], job: NonNullable<Awaited<R
     } else if (queue === "pdf_render") {
       const pdf = await renderPdf((job.payload as { summary: VisitSummaryDto }).summary);
       result = { pdfBase64: pdf.toString("base64") };
+    } else if (queue === "document_classify") {
+      await processDocumentClassify(prisma, objectStorage, job.payload as DocumentClassifyPayload);
+      result = { ok: true };
+    } else if (queue === "document_extract") {
+      await processDocumentExtract(prisma, objectStorage, job.payload as DocumentExtractPayload);
+      result = { ok: true };
     } else {
       await processContentEnrichment(prisma, job.payload as ContentEnrichmentPayload, env.OPENFDA_API_KEY);
       result = { ok: true };

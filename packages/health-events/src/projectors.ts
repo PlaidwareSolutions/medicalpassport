@@ -226,3 +226,89 @@ export function projectDocument(
     dateSource: row.documentDate ? "document" : "uploaded",
   });
 }
+
+/**
+ * V2 diagnostics (docs_v2/04 §6.2, ADR-V2-011's sibling for labs). The
+ * event key is `("diagnostic_report", id)`, never `("medical_report", id)`:
+ * during the dual-write window a V1 report and its V2 mirror are two rows
+ * describing one test, and only the V1 write emits — otherwise the timeline
+ * would show the same blood test twice.
+ */
+export function projectDiagnosticReport(
+  ctx: Ctx,
+  row: ProvenanceBits & {
+    id: string;
+    kind: string;
+    title?: string | null;
+    facilityNameText?: string | null;
+    testedAt?: Date | null;
+    reportedAt?: Date | null;
+    createdAt: Date;
+    encounterId?: string | null;
+    modality?: string | null;
+    resultCount?: number;
+  },
+): HealthEventInput {
+  const occurredAt = row.testedAt
+    ? dateOnlyToInstant(row.testedAt, ctx.timezone)
+    : (row.reportedAt ?? row.createdAt);
+  const kind: HealthEventKind = row.kind === "imaging" ? "imaging_report" : "test_result";
+  return base(
+    ctx,
+    row,
+    kind,
+    "diagnostic_report",
+    row.id,
+    occurredAt,
+    {
+      reportKind: row.kind,
+      title: row.title ?? null,
+      facilityName: row.facilityNameText ?? null,
+      modality: row.modality ?? null,
+      resultCount: row.resultCount ?? null,
+      dateSource: row.testedAt ? "tested" : row.reportedAt ? "reported" : "filed",
+    },
+    row.encounterId,
+  );
+}
+
+/**
+ * One `Observation` row → one `measurement` event (docs_v2/04 §5.2). The
+ * summary carries the canonical value and unit the same reader already sees
+ * on the row itself — never an interpretation, which this app does not
+ * compute (hazard H-25).
+ */
+export function projectObservation(
+  ctx: Ctx,
+  row: ProvenanceBits & {
+    id: string;
+    concept: string;
+    valueNumeric?: { toString(): string } | null;
+    valueNumeric2?: { toString(): string } | null;
+    valueText?: string | null;
+    unit: string;
+    context?: string | null;
+    measuredAt: Date;
+    encounterId?: string | null;
+    deviceId?: string | null;
+  },
+): HealthEventInput {
+  return base(
+    ctx,
+    row,
+    "measurement",
+    "observation",
+    row.id,
+    row.measuredAt,
+    {
+      concept: row.concept,
+      value: row.valueNumeric == null ? null : row.valueNumeric.toString(),
+      value2: row.valueNumeric2 == null ? null : row.valueNumeric2.toString(),
+      valueText: row.valueText ?? null,
+      unit: row.unit,
+      context: row.context ?? null,
+      fromDevice: row.deviceId != null,
+    },
+    row.encounterId,
+  );
+}

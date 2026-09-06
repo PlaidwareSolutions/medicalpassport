@@ -13,6 +13,7 @@
     "@medpass/clinical-content": "workspace:*",
     "@medpass/config": "workspace:*",
     "@medpass/database": "workspace:*",
+    "@medpass/document-intelligence": "workspace:*",
     "@medpass/domain": "workspace:*",
     "@medpass/medication-terminology": "workspace:*",
     "@medpass/object-storage": "workspace:^",

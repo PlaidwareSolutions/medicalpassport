@@ -47,7 +47,16 @@ const NO_SCOPE = "(none)";
 const SCOPE_COLUMNS: (CaregiverScope | typeof NO_SCOPE)[] = [NO_SCOPE, ...CAREGIVER_SCOPES];
 
 /** Actions that only read. Everything else changes state or delegation. */
-const READ_ACTIONS: readonly ProfileAction[] = ["view_profile", "view_medications", "view_schedule"];
+const READ_ACTIONS: readonly ProfileAction[] = [
+  "view_profile",
+  "view_medications",
+  "view_schedule",
+  // V2 Phase 6 reads. A view-only caregiver reaching these is correct: they
+  // could already read the same records through view_profile in V1.
+  "view_tests",
+  "view_measurements",
+  "view_documents",
+];
 const MUTATING_ACTIONS = PROFILE_ACTIONS.filter((a) => !READ_ACTIONS.includes(a));
 const VIEW_ONLY_SCOPES: readonly CaregiverScope[] = ["view_medications", "view_schedule"];
 
@@ -183,8 +192,16 @@ describe("relationship rules", () => {
 });
 
 describe("scope invariants", () => {
-  it("full_management allows everything any other scope can ever grant", () => {
+  it("full_management allows everything any other scope can ever grant, except managing caregivers", () => {
+    // The exception is deliberate and documented in PROFILE_SCOPE_GRANTS:
+    // caregivers already hold full_management in production, and quietly
+    // letting them bring more people into a patient's record is not a change
+    // the patient ever agreed to. It must be granted by its own scope.
     for (const action of PROFILE_ACTIONS) {
+      if (action === "manage_caregivers") {
+        expect(decide("caregiver", ["full_management"], action).allowed).toBe(false);
+        continue;
+      }
       const grantableByAnyScope = CAREGIVER_SCOPES.some((s) => decide("caregiver", [s], action).allowed);
       if (grantableByAnyScope) {
         expect(decide("caregiver", ["full_management"], action).allowed, action).toBe(true);
@@ -194,7 +211,11 @@ describe("scope invariants", () => {
 
   it("full_management is not a superset of the patient: patient-only actions stay denied", () => {
     const patientOnly = PROFILE_ACTIONS.filter((a) => PROFILE_SCOPE_GRANTS[a].length === 0);
-    expect(patientOnly).toEqual(["manage_caregivers", "manage_consents", "manage_claim"]);
+    // `manage_caregivers` left this list in V2 Phase 6 — see the policy note
+    // in PROFILE_SCOPE_GRANTS. Consent and claiming stay the patient's alone:
+    // consent is the legal basis for processing at all, and claiming decides
+    // who owns the profile, so neither can be delegated.
+    expect(patientOnly).toEqual(["manage_consents", "manage_claim"]);
     for (const action of patientOnly) {
       for (const scope of CAREGIVER_SCOPES) expect(decide("caregiver", [scope], action).allowed, `${scope}/${action}`).toBe(false);
       expect(decide("caregiver", [...CAREGIVER_SCOPES], action).allowed, action).toBe(false);

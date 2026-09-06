@@ -19,14 +19,19 @@ export interface RateLimitCheck {
 export class RateLimitService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async checkAndIncrement(key: string, limit: number, windowSeconds: number): Promise<RateLimitCheck> {
+  /**
+   * `by` charges one call for several units at once (a multi-page document
+   * upload counts every page against the daily quota, not the request). It
+   * defaults to 1, so every existing caller is unchanged.
+   */
+  async checkAndIncrement(key: string, limit: number, windowSeconds: number, by = 1): Promise<RateLimitCheck> {
     const windowMs = windowSeconds * 1000;
     const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
 
     const bucket = await this.prisma.rateLimitBucket.upsert({
       where: { key_windowStart: { key, windowStart } },
-      create: { key, windowStart, count: 1 },
-      update: { count: { increment: 1 } },
+      create: { key, windowStart, count: by },
+      update: { count: { increment: by } },
     });
 
     const allowed = bucket.count <= limit;

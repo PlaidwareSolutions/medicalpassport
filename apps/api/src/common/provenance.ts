@@ -103,3 +103,33 @@ export function rejectClientProvenance(body: unknown): void {
     keys.map((path) => ({ path, message: "Not client-settable" })),
   );
 }
+
+/**
+ * Sources whose rows may carry an `interpretation` (docs_v2/04 §5.2, §6.3).
+ * A lab's printed "H"/"L" flag and a clinician's own reading are clinical
+ * judgements made by someone qualified to make them; everything else —
+ * including this server — must leave the field null. Hazard H-25: the app
+ * never interprets a value, and never derives a flag from a threshold.
+ */
+const INTERPRETATION_SOURCES: readonly RecordSource[] = ["lab_imported", "clinic_entered"];
+
+export function mayCarryInterpretation(source: RecordSource): boolean {
+  return INTERPRETATION_SOURCES.includes(source);
+}
+
+/**
+ * 400 `interpretation_not_client_settable` when a non-provider write tries
+ * to set one. The value is *refused*, never silently dropped: quietly
+ * discarding a lab's "critical high" would be the more dangerous failure,
+ * because the caller would believe it had been stored.
+ */
+export function rejectClientInterpretation(interpretation: unknown, source: RecordSource): void {
+  if (interpretation === undefined || interpretation === null) return;
+  if (mayCarryInterpretation(source)) return;
+  throw new ApiProblem(
+    ERROR_CODES.INTERPRETATION_NOT_CLIENT_SETTABLE,
+    "Normal/high/low flags come from the lab or the clinic — this app never decides them",
+    400,
+    [{ path: "interpretation", message: "Only a lab or clinic record may carry this flag" }],
+  );
+}

@@ -12,7 +12,7 @@ See the `cronJob(...)` rows in `.railway/railway.ts` for the live schedule.
 
 ## Manual one-shot backfills (V2 Phase 1)
 
-Two jobs are deliberately **not** scheduled: Railway cron has no "never fires"
+Some jobs are deliberately **not** scheduled: Railway cron has no "never fires"
 schedule, and a backfill must run once, by hand, after its migration has been
 applied and verified — never on a timer.
 
@@ -20,6 +20,7 @@ applied and verified — never on a timer.
 |---|---|---|
 | `backfill-provenance` | `v2_provenance_columns` (docs_v2/04 §14 row 5) | Fills `provenanceSource` / `verification` / `recordedVia` on every V1 row of the nine clinical tables plus `patient_allergies` / `patient_conditions` that still has `provenanceSource = null`. `ocr_extracted` for medicines confirmed off an extraction, the V1 `source` column mapped via `LEGACY_RECORD_SOURCE_MAP` where one exists, else `user_entered`; `verification = patient_confirmed`, `recordedVia = pwa`. |
 | `backfill-health-events` | `v2_health_events` (docs_v2/04 §9.2, §14 row 4) | Projects `MedicationChange`, `Prescription`, `MedicalReport`, the three readings tables, `CheckupRecord`, `ShareLink`, `PatientAllergy`, `PatientCondition` onto `health_events` through the same projectors the API uses. |
+| `backfill-documents` | `v2_documents` (docs_v2/04 §7.3, §14) | Remaps every V1 `PrescriptionDocument` onto one `PatientDocument` plus one `DocumentPage` (V1's single object becomes page 1), copying the prescription link and resolving a V1 `reportId` through the diagnostics backfill's `legacyMedicalReportId`. The V1 rows and endpoints are left untouched. Run it **after** the diagnostics backfill, or report links are left null (never guessed). |
 
 Both are idempotent (re-running touches nothing new), resumable (batches of
 500, each committed on its own), and log counts only — never row content.
@@ -48,6 +49,7 @@ Locally (against `DATABASE_URL`), after `pnpm --filter @medpass/cron build`:
 ```sh
 node apps/cron/dist/jobs/backfill-provenance.js
 node apps/cron/dist/jobs/backfill-health-events.js
+node apps/cron/dist/jobs/backfill-documents.js
 ```
 
 Each run ends with a `job completed` log line carrying per-table counts; a

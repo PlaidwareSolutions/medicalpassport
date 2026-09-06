@@ -63,7 +63,14 @@
       "name": "Consents"
     },
     {
+      "name": "Diagnostics",
+      "description": "Labs and imaging (docs_v2/05 §6) — the V2 successor to Reports, with units, structured reference ranges and corrections that supersede instead of overwrite. The V1 `reports` endpoints stay live and now dual-write here."
+    },
+    {
       "name": "Documents"
+    },
+    {
+      "name": "Documents V2"
     },
     {
       "name": "Encounters"
@@ -96,6 +103,10 @@
       "name": "Notifications"
     },
     {
+      "name": "Observations",
+      "description": "Home measurements and vitals (docs_v2/05 §7, ADR-V2-011) — one model for every concept, plus device sync and measurement devices. The V1 glucose / blood-pressure / weight diaries stay live and now dual-write here."
+    },
+    {
       "name": "Organizations",
       "description": "Patient-scoped facilities (docs_v2/05 §2)."
     },
@@ -125,6 +136,10 @@
     {
       "name": "Sync",
       "description": "Offline mutation replay (docs/15)."
+    },
+    {
+      "name": "Terminology",
+      "description": "Static, PHI-free code tables (LOINC codes, canonical units, plausibility ranges). Public: identical for every caller, and needed before there is a session."
     },
     {
       "name": "Vitals"
@@ -5952,6 +5967,1002 @@
         "x-step-up": false
       }
     },
+    "/v1/diagnostic-reports/{id}": {
+      "delete": {
+        "operationId": "DiagnosticsController_softDelete",
+        "summary": "Delete a diagnostic report",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-step-up": false
+      },
+      "get": {
+        "operationId": "DiagnosticsController_byId",
+        "summary": "Diagnostic report with its results",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "patch": {
+        "operationId": "DiagnosticsController_update",
+        "summary": "Correct a diagnostic report",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDiagnosticReport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/diagnostic-reports/{id}/results": {
+      "get": {
+        "operationId": "DiagnosticsController_listResults",
+        "summary": "Results on one report",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "post": {
+        "operationId": "DiagnosticsController_addResult",
+        "summary": "Add a result to a report",
+        "description": "`interpretation` is refused with `interpretation_not_client_settable` unless the write is on a provider path (docs_v2/04 §6.3).\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDiagnosticResult"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/diagnostic-results/{id}": {
+      "delete": {
+        "operationId": "DiagnosticsController_deleteResult",
+        "summary": "Delete a result",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-step-up": false
+      },
+      "patch": {
+        "operationId": "DiagnosticsController_correctResult",
+        "summary": "Correct a result",
+        "description": "Writes a superseding row and points the original at it; the original is immutable (docs_v2/04 §6.3).\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectDiagnosticResult"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/document-candidates/{id}/confirm": {
+      "post": {
+        "operationId": "DocumentExtractionsController_confirm",
+        "summary": "Confirm (optionally correct) one candidate",
+        "description": "The one path that turns a proposal into a clinical row (docs_v2/09 §1 rule 3). A medicine additionally needs a typed dose — dose is never read from a photo (H-02).\n\nPatient session (cookie or bearer). Profile access: `add_medications` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmDocumentCandidate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultingEntityId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "resultingEntityType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "confirmed",
+                        "corrected",
+                        "rejected"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "add_medications",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/document-candidates/{id}/reject": {
+      "post": {
+        "operationId": "DocumentExtractionsController_reject",
+        "summary": "Dismiss a candidate",
+        "description": "Patient session (cookie or bearer). Profile access: `add_medications` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectDocumentCandidate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultingEntityId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "resultingEntityType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "confirmed",
+                        "corrected",
+                        "rejected"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "add_medications",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/document-extractions/{id}/materialize": {
+      "post": {
+        "operationId": "DocumentExtractionsController_materialize",
+        "summary": "Batch-confirm candidates into clinical rows",
+        "description": "Structural rows (prescription, report, doctor, clinic) land in one transaction; medicines follow, so they attach to the record the same batch created.\n\nPatient session (cookie or bearer). Profile access: `add_medications` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterializeExtraction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "extractionId",
+                    "created"
+                  ],
+                  "properties": {
+                    "created": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "entityType",
+                          "entityId"
+                        ],
+                        "properties": {
+                          "candidateIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          },
+                          "entityId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "entityType": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "extractionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "add_medications",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/documents/{id}/complete": {
       "post": {
         "operationId": "DocumentsController_complete",
@@ -7610,6 +8621,178 @@
         "x-step-up": false
       }
     },
+    "/v1/measurement-devices/{id}": {
+      "delete": {
+        "operationId": "ObservationsController_deleteDevice",
+        "summary": "Retire a measurement device",
+        "description": "Soft-delete; the readings it produced stay — they are the patient's measurements, not the meter's.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-step-up": false
+      },
+      "patch": {
+        "operationId": "ObservationsController_updateDevice",
+        "summary": "Update a measurement device",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeasurementDevice"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/medications/{id}": {
       "delete": {
         "operationId": "MedicationsController_softDelete",
@@ -8751,6 +9934,154 @@
         "x-step-up": false
       }
     },
+    "/v1/observations/{id}": {
+      "delete": {
+        "operationId": "ObservationsController_softDelete",
+        "summary": "Delete a measurement",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-step-up": false
+      },
+      "get": {
+        "operationId": "ObservationsController_byId",
+        "summary": "One measurement",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/organizations/{id}": {
       "delete": {
         "operationId": "OrganizationsController_softDelete",
@@ -9025,6 +10356,1284 @@
         ],
         "tags": [
           "Organizations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/patient-documents/{id}": {
+      "delete": {
+        "operationId": "DocumentsV2Controller_softDelete",
+        "summary": "Soft-delete a document (the stored originals are kept)",
+        "description": "docs_v2/09 §1 rule 1: the original pages are retained and removed only by the retention policy.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-step-up": false
+      },
+      "get": {
+        "operationId": "DocumentsV2Controller_byId",
+        "summary": "One document: pages with short-lived download URLs, classification, latest extraction",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "pageCount",
+                    "pages",
+                    "classification",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "classification": {
+                      "description": "What the classifier read the document as, and who decided the effective `kind`. `classifiedBy: \"user\"` means the patient chose it and no classification run may move it (docs_v2/09 §4).",
+                      "type": "object",
+                      "properties": {
+                        "classifiedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "user",
+                            "deterministic",
+                            "model",
+                            null
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "kind": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "diagnosticReportId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "documentDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "encounterId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "extraction": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "immunizationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "pageCount": {
+                      "description": "Pages whose bytes are verified — not pages authorized.",
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "pageNumber",
+                          "status"
+                        ],
+                        "properties": {
+                          "contentType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "downloadUrl": {
+                            "description": "Short-lived, minted per request; never stored.",
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uri"
+                          },
+                          "downloadUrlExpiresAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "pageNumber": {
+                            "type": "integer"
+                          },
+                          "sha256": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "sizeBytes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "description": "The page object's own status: pending, verified, quarantined, deleted.",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "prescriptionId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "sourceChannel": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "patch": {
+        "operationId": "DocumentsV2Controller_update",
+        "summary": "Override the kind, title, date or links",
+        "description": "A `kind` set here becomes `classifiedBy: \"user\"` and no later classification run may move it (docs_v2/09 §4, H-34).\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentV2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "pageCount",
+                    "pages",
+                    "classification",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "classification": {
+                      "description": "What the classifier read the document as, and who decided the effective `kind`. `classifiedBy: \"user\"` means the patient chose it and no classification run may move it (docs_v2/09 §4).",
+                      "type": "object",
+                      "properties": {
+                        "classifiedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "user",
+                            "deterministic",
+                            "model",
+                            null
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "kind": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "diagnosticReportId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "documentDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "encounterId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "extraction": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "immunizationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "pageCount": {
+                      "description": "Pages whose bytes are verified — not pages authorized.",
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "pageNumber",
+                          "status"
+                        ],
+                        "properties": {
+                          "contentType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "downloadUrl": {
+                            "description": "Short-lived, minted per request; never stored.",
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uri"
+                          },
+                          "downloadUrlExpiresAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "pageNumber": {
+                            "type": "integer"
+                          },
+                          "sha256": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "sizeBytes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "description": "The page object's own status: pending, verified, quarantined, deleted.",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "prescriptionId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "sourceChannel": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/patient-documents/{id}/extraction": {
+      "get": {
+        "operationId": "DocumentExtractionsController_get",
+        "summary": "Extraction candidates, grouped by target entity and source line",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "documentId",
+                    "status",
+                    "extraction"
+                  ],
+                  "properties": {
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "extraction": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "candidateCount": {
+                          "type": "integer"
+                        },
+                        "engine": {
+                          "type": "string"
+                        },
+                        "engineVersion": {
+                          "type": "string"
+                        },
+                        "finishedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "groups": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "candidates": {
+                                "type": "array",
+                                "items": {
+                                  "description": "A proposal, never a fact. Carries the exact source line, its page and box, and a confidence — nothing here is clinical data until a person confirms it (docs_v2/09 §1 rule 3).",
+                                  "type": "object",
+                                  "required": [
+                                    "id",
+                                    "targetEntity",
+                                    "targetField",
+                                    "detectedText",
+                                    "confidence",
+                                    "confidenceBucket",
+                                    "status"
+                                  ],
+                                  "properties": {
+                                    "boundingBox": {
+                                      "description": "Normalized 0–1 page coordinates, when word boxes were available.",
+                                      "type": [
+                                        "object",
+                                        "null"
+                                      ]
+                                    },
+                                    "confidence": {
+                                      "type": "number"
+                                    },
+                                    "confidenceBucket": {
+                                      "description": "docs_v2/09 §6: high pre-selects, medium asks the patient to check, low is only ever \"other things we saw\". No auto-confirm at any threshold.",
+                                      "type": "string",
+                                      "enum": [
+                                        "high",
+                                        "medium",
+                                        "low"
+                                      ]
+                                    },
+                                    "correctedValue": {},
+                                    "detectedText": {
+                                      "type": "string"
+                                    },
+                                    "groupKey": {
+                                      "description": "Fields read off the same source line share a group.",
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "pageNumber": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ]
+                                    },
+                                    "proposedValue": {},
+                                    "resultingEntityId": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "format": "uuid"
+                                    },
+                                    "resultingEntityType": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "proposed",
+                                        "confirmed",
+                                        "corrected",
+                                        "rejected"
+                                      ]
+                                    },
+                                    "targetEntity": {
+                                      "type": "string"
+                                    },
+                                    "targetField": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "groupKey": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "targetEntity": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "modelName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "modelProvider": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "modelVersion": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "promptVersion": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "startedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "status": {
+                      "description": "The document's own status.",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/patient-documents/{id}/pages/authorize-upload": {
+      "post": {
+        "operationId": "DocumentsV2Controller_authorizePages",
+        "summary": "Add more pages to an existing document",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`. Rate limit bucket: `document_upload` (per IP).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeDocumentPages"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "documentId",
+                    "pages"
+                  ],
+                  "properties": {
+                    "approachingStorageQuota": {
+                      "type": "boolean"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "pages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "pageNumber",
+                          "uploadUrl",
+                          "expiresAt"
+                        ],
+                        "properties": {
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "pageNumber": {
+                            "type": "integer"
+                          },
+                          "uploadUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-rate-limit": "document_upload",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/patient-documents/{id}/pages/{pageNumber}/complete": {
+      "post": {
+        "operationId": "DocumentsV2Controller_completePage",
+        "summary": "Verify one uploaded page (magic bytes + sha256)",
+        "description": "Bumps `pageCount`; when the last authorized page lands the document becomes `uploaded` and one `document_classify` job is enqueued for the whole document.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "name": "pageNumber",
+            "in": "path",
+            "schema": {
+              "type": "number"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "status",
+                    "pageCount"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "pageCount": {
+                      "type": "integer"
+                    },
+                    "pagesAuthorized": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/patient-documents/{id}/process": {
+      "post": {
+        "operationId": "DocumentsV2Controller_process",
+        "summary": "Re-run classification and extraction",
+        "description": "Idempotent by page content hash plus engine version.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "pageCount",
+                    "pages",
+                    "classification",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "classification": {
+                      "description": "What the classifier read the document as, and who decided the effective `kind`. `classifiedBy: \"user\"` means the patient chose it and no classification run may move it (docs_v2/09 §4).",
+                      "type": "object",
+                      "properties": {
+                        "classifiedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "user",
+                            "deterministic",
+                            "model",
+                            null
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "kind": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "diagnosticReportId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "documentDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "encounterId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "extraction": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "immunizationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "pageCount": {
+                      "description": "Pages whose bytes are verified — not pages authorized.",
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "pageNumber",
+                          "status"
+                        ],
+                        "properties": {
+                          "contentType": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "downloadUrl": {
+                            "description": "Short-lived, minted per request; never stored.",
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uri"
+                          },
+                          "downloadUrlExpiresAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "pageNumber": {
+                            "type": "integer"
+                          },
+                          "sha256": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "sizeBytes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "description": "The page object's own status: pending, verified, quarantined, deleted.",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "prescriptionId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "sourceChannel": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
         ],
         "x-auth": "patient",
         "x-profile-scope": "edit_profile",
@@ -11911,6 +14520,325 @@
         "x-step-up": false
       }
     },
+    "/v1/profiles/current/diagnostic-reports": {
+      "get": {
+        "operationId": "DiagnosticsController_list",
+        "summary": "List diagnostic reports",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "laboratory",
+                "imaging",
+                "ecg",
+                "echo",
+                "pathology",
+                "microbiology",
+                "genetics",
+                "other"
+              ]
+            },
+            "required": false
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "post": {
+        "operationId": "DiagnosticsController_create",
+        "summary": "File a diagnostic report",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDiagnosticReport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/profiles/current/diagnostic-results": {
+      "get": {
+        "operationId": "DiagnosticsController_searchResults",
+        "summary": "Results across every report",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "analyteKey",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "required": false
+          },
+          {
+            "name": "loinc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 20,
+              "minLength": 1
+            },
+            "required": false
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/profiles/current/documents": {
       "get": {
         "operationId": "DocumentsController_list",
@@ -13384,6 +16312,178 @@
         "x-step-up": false
       }
     },
+    "/v1/profiles/current/measurement-devices": {
+      "get": {
+        "operationId": "ObservationsController_listDevices",
+        "summary": "List measurement devices",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "post": {
+        "operationId": "ObservationsController_createDevice",
+        "summary": "Register a measurement device",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeasurementDevice"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/profiles/current/medications": {
       "get": {
         "operationId": "MedicationsController_list",
@@ -13720,6 +16820,317 @@
         "x-step-up": false
       }
     },
+    "/v1/profiles/current/observations": {
+      "get": {
+        "operationId": "ObservationsController_list",
+        "summary": "List measurements",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "concept",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "blood_pressure",
+                "heart_rate",
+                "blood_glucose",
+                "body_weight",
+                "body_height",
+                "bmi",
+                "spo2",
+                "body_temperature",
+                "respiratory_rate",
+                "inr",
+                "peak_flow",
+                "pain_score",
+                "insulin_dose",
+                "fluid_intake",
+                "fluid_output",
+                "waist_circumference",
+                "steps",
+                "sleep_hours",
+                "other"
+              ]
+            },
+            "required": false
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "name": "deviceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "post": {
+        "operationId": "ObservationsController_create",
+        "summary": "Record a measurement",
+        "description": "Blood pressure uses `valueNumeric`/`valueNumeric2`; a `pulseBpm` sent with it becomes its own `heart_rate` observation.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Observation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/profiles/current/observations/batch": {
+      "post": {
+        "operationId": "ObservationsController_createBatch",
+        "summary": "Device sync: many measurements at once",
+        "description": "Deduped on `(concept, measuredAt, deviceId)` against stored rows and within the batch.\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObservationBatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/profiles/current/organizations": {
       "get": {
         "operationId": "OrganizationsController_list",
@@ -13902,6 +17313,516 @@
         ],
         "x-auth": "patient",
         "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/profiles/current/patient-documents": {
+      "get": {
+        "operationId": "DocumentsV2Controller_list",
+        "summary": "List documents (cursor)",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "required": false
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 25,
+              "exclusiveMinimum": 0,
+              "maximum": 100
+            },
+            "required": false
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "prescription",
+                "strip",
+                "box",
+                "bottle",
+                "discharge_summary",
+                "lab_report",
+                "scan_report",
+                "other",
+                "laboratory_report",
+                "imaging_report",
+                "consultation_note",
+                "vaccination_record",
+                "referral",
+                "insurance",
+                "invoice",
+                "imaging_film"
+              ]
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "status",
+                          "pageCount",
+                          "pages",
+                          "classification",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "classification": {
+                            "description": "What the classifier read the document as, and who decided the effective `kind`. `classifiedBy: \"user\"` means the patient chose it and no classification run may move it (docs_v2/09 §4).",
+                            "type": "object",
+                            "properties": {
+                              "classifiedBy": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "user",
+                                  "deterministic",
+                                  "model",
+                                  null
+                                ]
+                              },
+                              "confidence": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "kind": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "diagnosticReportId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "documentDate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "encounterId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "extraction": {
+                            "type": [
+                              "object",
+                              "null"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "immunizationId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "pageCount": {
+                            "description": "Pages whose bytes are verified — not pages authorized.",
+                            "type": "integer"
+                          },
+                          "pages": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "pageNumber",
+                                "status"
+                              ],
+                              "properties": {
+                                "contentType": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "downloadUrl": {
+                                  "description": "Short-lived, minted per request; never stored.",
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "uri"
+                                },
+                                "downloadUrlExpiresAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "pageNumber": {
+                                  "type": "integer"
+                                },
+                                "sha256": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "sizeBytes": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "status": {
+                                  "description": "The page object's own status: pending, verified, quarantined, deleted.",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "prescriptionId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "uuid"
+                          },
+                          "sourceChannel": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "description": "Opaque keyset cursor; absent when this is the last page.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "post": {
+        "operationId": "DocumentsV2Controller_create",
+        "summary": "Create a multi-page document and authorize its page uploads",
+        "description": "Returns one presigned upload per requested page, in page order. A `kind` sent here is the patient's own choice and outranks the classifier permanently (docs_v2/09 §4).\n\nPatient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`. Rate limit bucket: `document_upload` (per IP).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "name": "x-client",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentV2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "The new document, plus one presigned upload authorization per requested page, in page order.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "status",
+                    "pageCount",
+                    "pages",
+                    "classification",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "approachingStorageQuota": {
+                      "type": "boolean"
+                    },
+                    "classification": {
+                      "description": "What the classifier read the document as, and who decided the effective `kind`. `classifiedBy: \"user\"` means the patient chose it and no classification run may move it (docs_v2/09 §4).",
+                      "type": "object",
+                      "properties": {
+                        "classifiedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "user",
+                            "deterministic",
+                            "model",
+                            null
+                          ]
+                        },
+                        "confidence": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "kind": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "diagnosticReportId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "documentDate": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "encounterId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "extraction": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "immunizationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "pageCount": {
+                      "description": "Pages whose bytes are verified — not pages authorized.",
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "pageNumber",
+                          "uploadUrl",
+                          "expiresAt"
+                        ],
+                        "properties": {
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "pageNumber": {
+                            "type": "integer"
+                          },
+                          "uploadUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          }
+                        }
+                      }
+                    },
+                    "prescriptionId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    },
+                    "sourceChannel": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Documents V2"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-rate-limit": "document_upload",
         "x-response-schema-source": "hand-written",
         "x-step-up": false
       }
@@ -15176,6 +19097,198 @@
         ],
         "x-auth": "patient",
         "x-profile-scope": "view_schedule",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/profiles/current/trends/observations/{concept}": {
+      "get": {
+        "operationId": "ObservationsController_trend",
+        "summary": "Descriptive trend for one concept",
+        "description": "Rolling average, min/max and a morning/evening split cut on the patient's own clock. Never an interpretation (hazard H-25).\n\nPatient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "concept",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "name": "window",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "90d"
+              ],
+              "default": "30d"
+            },
+            "required": false
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ],
+              "default": "day"
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Observations"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/profiles/current/trends/results/{analyteKey}": {
+      "get": {
+        "operationId": "DiagnosticsController_resultTrend",
+        "summary": "One analyte's series in its canonical unit",
+        "description": "Points that cannot be converted are returned in `unconvertible[]` rather than mixed into `points` (hazard H-35/H-39).\n\nPatient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "analyteKey",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Diagnostics"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
         "x-response-schema-source": "hand-written",
         "x-step-up": false
       }
@@ -16673,6 +20786,90 @@
         "x-step-up": false
       }
     },
+    "/v1/terminology/analytes": {
+      "get": {
+        "operationId": "TerminologyController_analytes",
+        "summary": "Analyte vocabulary with LOINC codes and units",
+        "description": "Static code table, identical for every caller and free of PHI — public so unit pickers and OCR mapping work before sign-in.\n\nNo credential required.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Terminology"
+        ],
+        "x-auth": "public",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/terminology/observation-concepts": {
+      "get": {
+        "operationId": "ObservationTerminologyController_concepts",
+        "summary": "Observation concepts with LOINC codes, units and plausibility ranges",
+        "description": "No credential required.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Terminology"
+        ],
+        "x-auth": "public",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/webhooks/telnyx/sms": {
       "post": {
         "operationId": "TelnyxWebhookController_smsDeliveryStatus",
@@ -17066,6 +21263,74 @@
           "invitationId": {
             "type": "string",
             "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddDiagnosticResult": {
+        "type": "object",
+        "required": [
+          "analyteKey",
+          "enteredValueText"
+        ],
+        "properties": {
+          "analyteKey": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1
+          },
+          "analyteLabelText": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1
+          },
+          "comparator": {
+            "type": "string",
+            "enum": [
+              "<",
+              ">",
+              "<=",
+              ">="
+            ]
+          },
+          "enteredUnit": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "enteredValueText": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1
+          },
+          "interpretation": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "high",
+              "low",
+              "critical_high",
+              "critical_low",
+              "abnormal"
+            ]
+          },
+          "referenceHigh": {
+            "type": "number"
+          },
+          "referenceLow": {
+            "type": "number"
+          },
+          "referenceText": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "sequence": {
+            "type": "integer",
+            "maximum": 500,
+            "minimum": 1
+          },
+          "specimenType": {
+            "type": "string",
+            "maxLength": 60
           }
         },
         "additionalProperties": false
@@ -17474,6 +21739,45 @@
         },
         "additionalProperties": false
       },
+      "AuthorizeDocumentPages": {
+        "type": "object",
+        "required": [
+          "pages"
+        ],
+        "properties": {
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "contentType",
+                "sizeBytes"
+              ],
+              "properties": {
+                "contentType": {
+                  "type": "string",
+                  "enum": [
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp",
+                    "image/heic",
+                    "application/pdf"
+                  ]
+                },
+                "sizeBytes": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20971520
+                }
+              },
+              "additionalProperties": false
+            },
+            "maxItems": 30,
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      },
       "AuthorizeUpload": {
         "type": "object",
         "required": [
@@ -17817,6 +22121,85 @@
         },
         "additionalProperties": false
       },
+      "ConfirmDocumentCandidate": {
+        "type": "object",
+        "properties": {
+          "correctedValue": {},
+          "medication": {
+            "type": "object",
+            "required": [
+              "doseQuantity",
+              "doseUnit"
+            ],
+            "properties": {
+              "doseQuantity": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 100
+              },
+              "doseUnit": {
+                "type": "string",
+                "enum": [
+                  "tablet",
+                  "capsule",
+                  "ml",
+                  "drop",
+                  "puff",
+                  "sachet",
+                  "unit",
+                  "application"
+                ]
+              },
+              "foodInstruction": {
+                "type": "string",
+                "enum": [
+                  "before",
+                  "with",
+                  "after",
+                  "any",
+                  "bedtime"
+                ]
+              },
+              "frequencyCode": {
+                "type": "string",
+                "enum": [
+                  "OD",
+                  "OD_AFTERNOON",
+                  "BD",
+                  "TDS",
+                  "QID",
+                  "SOS",
+                  "HS",
+                  "PATTERN",
+                  "ALTERNATE_DAY",
+                  "WEEKLY",
+                  "FORTNIGHTLY",
+                  "MONTHLY",
+                  "CUSTOM"
+                ]
+              },
+              "isPrn": {
+                "type": "boolean",
+                "default": false
+              },
+              "patientReason": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "pattern": {
+                "type": "string",
+                "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
       "ConfirmDoseUnit": {
         "type": "object",
         "required": [
@@ -17835,6 +22218,67 @@
               "unit",
               "application"
             ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "CorrectDiagnosticResult": {
+        "type": "object",
+        "required": [
+          "enteredValueText"
+        ],
+        "properties": {
+          "analyteLabelText": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1
+          },
+          "comparator": {
+            "type": "string",
+            "enum": [
+              "<",
+              ">",
+              "<=",
+              ">="
+            ]
+          },
+          "correctionReason": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "enteredUnit": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "enteredValueText": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1
+          },
+          "interpretation": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "high",
+              "low",
+              "critical_high",
+              "critical_low",
+              "abnormal"
+            ]
+          },
+          "referenceHigh": {
+            "type": "number"
+          },
+          "referenceLow": {
+            "type": "number"
+          },
+          "referenceText": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "specimenType": {
+            "type": "string",
+            "maxLength": 60
           }
         },
         "additionalProperties": false
@@ -17890,6 +22334,250 @@
             "type": "integer",
             "maximum": 2026,
             "minimum": 1906
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateDiagnosticReport": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "bodySite": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "conclusionText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "encounterId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "facilityNameText": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "findingsText": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "impressionText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "laboratory",
+              "imaging",
+              "ecg",
+              "echo",
+              "pathology",
+              "microbiology",
+              "genetics",
+              "other"
+            ],
+            "default": "laboratory"
+          },
+          "modality": {
+            "type": "string",
+            "enum": [
+              "xray",
+              "ct",
+              "mri",
+              "ultrasound",
+              "mammography",
+              "pet",
+              "nuclear",
+              "other"
+            ]
+          },
+          "orderingPractitionerName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "organizationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reportingPractitionerName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "specimenCollectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "registered",
+              "partial",
+              "final",
+              "amended",
+              "cancelled"
+            ],
+            "default": "final"
+          },
+          "testedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateDocumentV2": {
+        "type": "object",
+        "required": [
+          "pages"
+        ],
+        "properties": {
+          "diagnosticReportId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "documentDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "encounterId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "immunizationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "prescription",
+              "strip",
+              "box",
+              "bottle",
+              "discharge_summary",
+              "lab_report",
+              "scan_report",
+              "other",
+              "laboratory_report",
+              "imaging_report",
+              "consultation_note",
+              "vaccination_record",
+              "referral",
+              "insurance",
+              "invoice",
+              "imaging_film"
+            ]
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "contentType",
+                "sizeBytes"
+              ],
+              "properties": {
+                "contentType": {
+                  "type": "string",
+                  "enum": [
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp",
+                    "image/heic",
+                    "application/pdf"
+                  ]
+                },
+                "sizeBytes": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 20971520
+                }
+              },
+              "additionalProperties": false
+            },
+            "maxItems": 30,
+            "minItems": 1
+          },
+          "prescriptionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceChannel": {
+            "type": "string",
+            "enum": [
+              "camera",
+              "gallery",
+              "file",
+              "share_target",
+              "provider_import",
+              "abdm",
+              "email_intake"
+            ],
+            "default": "file"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1
           }
         },
         "additionalProperties": false
@@ -19362,6 +24050,146 @@
         },
         "additionalProperties": false
       },
+      "MaterializeExtraction": {
+        "type": "object",
+        "required": [
+          "candidateIds"
+        ],
+        "properties": {
+          "candidateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 200,
+            "minItems": 1
+          },
+          "medication": {
+            "type": "object",
+            "required": [
+              "doseQuantity",
+              "doseUnit"
+            ],
+            "properties": {
+              "doseQuantity": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 100
+              },
+              "doseUnit": {
+                "type": "string",
+                "enum": [
+                  "tablet",
+                  "capsule",
+                  "ml",
+                  "drop",
+                  "puff",
+                  "sachet",
+                  "unit",
+                  "application"
+                ]
+              },
+              "foodInstruction": {
+                "type": "string",
+                "enum": [
+                  "before",
+                  "with",
+                  "after",
+                  "any",
+                  "bedtime"
+                ]
+              },
+              "frequencyCode": {
+                "type": "string",
+                "enum": [
+                  "OD",
+                  "OD_AFTERNOON",
+                  "BD",
+                  "TDS",
+                  "QID",
+                  "SOS",
+                  "HS",
+                  "PATTERN",
+                  "ALTERNATE_DAY",
+                  "WEEKLY",
+                  "FORTNIGHTLY",
+                  "MONTHLY",
+                  "CUSTOM"
+                ]
+              },
+              "isPrn": {
+                "type": "boolean",
+                "default": false
+              },
+              "patientReason": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "pattern": {
+                "type": "string",
+                "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "MeasurementDevice": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "bp_monitor",
+              "glucometer",
+              "cgm",
+              "smart_scale",
+              "pulse_oximeter",
+              "thermometer",
+              "wearable",
+              "phone_health_platform",
+              "other"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "manufacturer": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "bluetooth",
+              "apple_health",
+              "health_connect",
+              "vendor_api",
+              "manual"
+            ],
+            "default": "manual"
+          },
+          "serialDigest": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "additionalProperties": false
+      },
       "MergeOrganization": {
         "type": "object",
         "required": [
@@ -19426,6 +24254,272 @@
           "vibrationEnabled": {
             "type": "boolean",
             "default": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Observation": {
+        "type": "object",
+        "required": [
+          "concept",
+          "measuredAt"
+        ],
+        "properties": {
+          "bodySite": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "clientMutationId": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1
+          },
+          "concept": {
+            "type": "string",
+            "enum": [
+              "blood_pressure",
+              "heart_rate",
+              "blood_glucose",
+              "body_weight",
+              "body_height",
+              "bmi",
+              "spo2",
+              "body_temperature",
+              "respiratory_rate",
+              "inr",
+              "peak_flow",
+              "pain_score",
+              "insulin_dose",
+              "fluid_intake",
+              "fluid_output",
+              "waist_circumference",
+              "steps",
+              "sleep_hours",
+              "other"
+            ]
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "before_breakfast",
+              "after_breakfast",
+              "before_lunch",
+              "after_lunch",
+              "before_dinner",
+              "after_dinner",
+              "during_night",
+              "random",
+              "fasting",
+              "resting",
+              "post_exercise",
+              "sitting",
+              "standing",
+              "lying",
+              "morning",
+              "evening"
+            ]
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "encounterId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enteredUnit": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "enteredValueText": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "interpretation": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "high",
+              "low",
+              "critical_high",
+              "critical_low",
+              "abnormal"
+            ]
+          },
+          "measuredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "method": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "pulseBpm": {
+            "type": "number"
+          },
+          "valueNumeric": {
+            "type": "number"
+          },
+          "valueNumeric2": {
+            "type": "number"
+          },
+          "valueText": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "ObservationBatch": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "concept",
+                "measuredAt"
+              ],
+              "properties": {
+                "bodySite": {
+                  "type": "string",
+                  "maxLength": 60
+                },
+                "clientMutationId": {
+                  "type": "string",
+                  "maxLength": 80,
+                  "minLength": 1
+                },
+                "concept": {
+                  "type": "string",
+                  "enum": [
+                    "blood_pressure",
+                    "heart_rate",
+                    "blood_glucose",
+                    "body_weight",
+                    "body_height",
+                    "bmi",
+                    "spo2",
+                    "body_temperature",
+                    "respiratory_rate",
+                    "inr",
+                    "peak_flow",
+                    "pain_score",
+                    "insulin_dose",
+                    "fluid_intake",
+                    "fluid_output",
+                    "waist_circumference",
+                    "steps",
+                    "sleep_hours",
+                    "other"
+                  ]
+                },
+                "context": {
+                  "type": "string",
+                  "enum": [
+                    "before_breakfast",
+                    "after_breakfast",
+                    "before_lunch",
+                    "after_lunch",
+                    "before_dinner",
+                    "after_dinner",
+                    "during_night",
+                    "random",
+                    "fasting",
+                    "resting",
+                    "post_exercise",
+                    "sitting",
+                    "standing",
+                    "lying",
+                    "morning",
+                    "evening"
+                  ]
+                },
+                "deviceId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "encounterId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "enteredUnit": {
+                  "type": "string",
+                  "maxLength": 30
+                },
+                "enteredValueText": {
+                  "type": "string",
+                  "maxLength": 60
+                },
+                "interpretation": {
+                  "type": "string",
+                  "enum": [
+                    "normal",
+                    "high",
+                    "low",
+                    "critical_high",
+                    "critical_low",
+                    "abnormal"
+                  ]
+                },
+                "measuredAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "method": {
+                  "type": "string",
+                  "maxLength": 60
+                },
+                "notes": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "pulseBpm": {
+                  "type": "number"
+                },
+                "valueNumeric": {
+                  "type": "number"
+                },
+                "valueNumeric2": {
+                  "type": "number"
+                },
+                "valueText": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            "maxItems": 500,
+            "minItems": 1
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -20385,6 +25479,11 @@
         "properties": {},
         "additionalProperties": false
       },
+      "RejectDocumentCandidate": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
       "StartMedicationFromItem": {
         "type": "object",
         "properties": {
@@ -20783,6 +25882,215 @@
         },
         "additionalProperties": false
       },
+      "UpdateDiagnosticReport": {
+        "type": "object",
+        "properties": {
+          "bodySite": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "conclusionText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "encounterId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "facilityNameText": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "findingsText": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "impressionText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "laboratory",
+              "imaging",
+              "ecg",
+              "echo",
+              "pathology",
+              "microbiology",
+              "genetics",
+              "other"
+            ],
+            "default": "laboratory"
+          },
+          "modality": {
+            "type": "string",
+            "enum": [
+              "xray",
+              "ct",
+              "mri",
+              "ultrasound",
+              "mammography",
+              "pet",
+              "nuclear",
+              "other"
+            ]
+          },
+          "orderingPractitionerName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "organizationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reportingPractitionerName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "specimenCollectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "registered",
+              "partial",
+              "final",
+              "amended",
+              "cancelled"
+            ],
+            "default": "final"
+          },
+          "testedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateDocumentV2": {
+        "type": "object",
+        "properties": {
+          "diagnosticReportId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "documentDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "encounterId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "immunizationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "prescription",
+              "strip",
+              "box",
+              "bottle",
+              "discharge_summary",
+              "lab_report",
+              "scan_report",
+              "other",
+              "laboratory_report",
+              "imaging_report",
+              "consultation_note",
+              "vaccination_record",
+              "referral",
+              "insurance",
+              "invoice",
+              "imaging_film"
+            ]
+          },
+          "prescriptionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 160,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateEmergencyContact": {
         "type": "object",
         "properties": {
@@ -21057,6 +26365,60 @@
             "type": "string",
             "maxLength": 200,
             "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateMeasurementDevice": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "bp_monitor",
+              "glucometer",
+              "cgm",
+              "smart_scale",
+              "pulse_oximeter",
+              "thermometer",
+              "wearable",
+              "phone_health_platform",
+              "other"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "manufacturer": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "bluetooth",
+              "apple_health",
+              "health_connect",
+              "vendor_api",
+              "manual"
+            ],
+            "default": "manual"
+          },
+          "serialDigest": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "retired"
+            ]
           }
         },
         "additionalProperties": false

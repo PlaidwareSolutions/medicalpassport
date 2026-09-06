@@ -80,6 +80,11 @@ export class AccountErasure {
       weightReadings: await p.weightReading.count({ where: { patientProfileId: inOwned } }),
       checkups: await p.checkupRecord.count({ where: { patientProfileId: inOwned } }),
       reports: await p.medicalReport.count({ where: { patientProfileId: inOwned } }),
+      // Counted separately from their V1 twins so the dry run shows the
+      // dual-write duplication honestly rather than half the picture.
+      diagnosticReports: await p.diagnosticReport.count({ where: { patientProfileId: inOwned } }),
+      observations: await p.observation.count({ where: { patientProfileId: inOwned } }),
+      measurementDevices: await p.measurementDevice.count({ where: { patientProfileId: inOwned } }),
       documents: await p.prescriptionDocument.count({ where: { patientProfileId: inOwned } }),
       storedObjects: storedObjects.length,
       sharePackages: await p.sharePackage.count({ where: { patientProfileId: inOwned } }),
@@ -133,6 +138,14 @@ export class AccountErasure {
         if (storedObjectIds.length) await tx.storedObject.deleteMany({ where: { id: { in: storedObjectIds } } });
         await tx.reportValue.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.medicalReport.deleteMany({ where: { patientProfileId: inOwned } });
+        // V2 clinical model (Phase 4/5). These carry the same tests and the
+        // same readings as the V1 tables above — during the dual-write
+        // window every row exists twice — so erasure must take both, or the
+        // account's data would survive its own deletion.
+        await tx.diagnosticResult.deleteMany({ where: { patientProfileId: inOwned } });
+        await tx.diagnosticReport.deleteMany({ where: { patientProfileId: inOwned } });
+        await tx.observation.deleteMany({ where: { patientProfileId: inOwned } });
+        await tx.measurementDevice.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.prescription.deleteMany({ where: { patientProfileId: inOwned } });
         await tx.practitioner.deleteMany({ where: { createdByProfileId: inOwned } });
         await tx.patientAllergy.deleteMany({ where: { patientProfileId: inOwned } });

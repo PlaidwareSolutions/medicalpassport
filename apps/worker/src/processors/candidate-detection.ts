@@ -8,11 +8,50 @@ export interface DetectedCandidate {
   confidence: number;
 }
 
-interface CatalogProduct {
+export interface CatalogProduct {
   id: string;
   brandName: string | null;
   brandAliases: string[];
   genericName: string;
+}
+
+/** A brand (or alias) found inside one line of OCR text, with the exact substring that matched. */
+export interface BrandMatch {
+  productId: string;
+  /** Human label for the proposal — the brand name as the catalog spells it. */
+  label: string;
+  /** The catalog name that matched, used to locate the words on the page. */
+  matchedText: string;
+  quality: number;
+}
+
+/** Confidence a catalog brand-name substring hit is worth — the V1 value, kept identical. */
+export const BRAND_MATCH_QUALITY = 0.9;
+
+/**
+ * The V1 brand-matching rule, extracted verbatim so the V2 pipeline
+ * (apps/worker/src/processors/document-extract.ts) proposes exactly the same
+ * medicines from the same text. Only brand names and their aliases match;
+ * a generic name alone is not a brand hit. Names shorter than 3 characters
+ * are skipped — "GG" inside "EGG" is not a medicine.
+ */
+export function matchBrandInLine(line: string, catalog: CatalogProduct[]): BrandMatch | null {
+  const lower = line.toLowerCase();
+  for (const product of catalog) {
+    const names = [product.brandName, ...product.brandAliases].filter((n): n is string => Boolean(n));
+    for (const name of names) {
+      if (name.length < 3) continue;
+      if (lower.includes(name.toLowerCase())) {
+        return {
+          productId: product.id,
+          label: product.brandName ?? name,
+          matchedText: name,
+          quality: BRAND_MATCH_QUALITY,
+        };
+      }
+    }
+  }
+  return null;
 }
 
 const FREQUENCY_ABBREVIATIONS: Record<string, FrequencyCode> = {
@@ -68,16 +107,9 @@ export function detectCandidates(rawText: string, catalog: CatalogProduct[]): De
 }
 
 function detectBrand(line: string, catalog: CatalogProduct[], keep: (c: DetectedCandidate) => void) {
-  const lower = line.toLowerCase();
-  for (const product of catalog) {
-    const names = [product.brandName, ...product.brandAliases].filter((n): n is string => Boolean(n));
-    for (const name of names) {
-      if (name.length < 3) continue;
-      if (lower.includes(name.toLowerCase())) {
-        keep({ field: "brand_name", detectedText: line, proposedValue: product.id, confidence: 0.9 });
-        return;
-      }
-    }
+  const match = matchBrandInLine(line, catalog);
+  if (match) {
+    keep({ field: "brand_name", detectedText: line, proposedValue: match.productId, confidence: match.quality });
   }
 }
 

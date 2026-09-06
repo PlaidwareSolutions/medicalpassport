@@ -45,6 +45,10 @@ import { PractitionersController } from "./modules/practitioners/practitioners.c
 import { PractitionersService } from "./modules/practitioners/practitioners.service";
 import { PrescriptionsController } from "./modules/prescriptions/prescriptions.controller";
 import { PrescriptionsService } from "./modules/prescriptions/prescriptions.service";
+import { DiagnosticsController, TerminologyController } from "./modules/diagnostics/diagnostics.controller";
+import { DiagnosticsService } from "./modules/diagnostics/diagnostics.service";
+import { ObservationsController, ObservationTerminologyController } from "./modules/observations/observations.controller";
+import { ObservationsService } from "./modules/observations/observations.service";
 import { ReportsController } from "./modules/reports/reports.controller";
 import { ReportsService } from "./modules/reports/reports.service";
 import { SchedulingController } from "./modules/scheduling/scheduling.controller";
@@ -63,6 +67,10 @@ import { DocumentsService } from "./modules/documents/documents.service";
 import { DevStorageController } from "./modules/documents/dev-storage.controller";
 import { ExtractionController } from "./modules/extraction/extraction.controller";
 import { ExtractionService } from "./modules/extraction/extraction.service";
+import { DocumentsV2Controller } from "./modules/documents-v2/documents-v2.controller";
+import { DocumentsV2Service } from "./modules/documents-v2/documents-v2.service";
+import { DocumentExtractionsController } from "./modules/documents-v2/document-extractions.controller";
+import { DocumentExtractionsService } from "./modules/documents-v2/document-extractions.service";
 import { NotificationsController } from "./modules/notifications/notifications.controller";
 import { NotificationsService } from "./modules/notifications/notifications.service";
 import { TelnyxWebhookController } from "./modules/notifications/telnyx-webhook.controller";
@@ -109,6 +117,10 @@ const OTP_SENDER = "OTP_SENDER";
     PractitionersController,
     PrescriptionsController,
     ReportsController,
+    DiagnosticsController,
+    TerminologyController,
+    ObservationsController,
+    ObservationTerminologyController,
     SchedulingController,
     SafetyController,
     SharingController,
@@ -116,6 +128,8 @@ const OTP_SENDER = "OTP_SENDER";
     DocumentsController,
     DevStorageController,
     ExtractionController,
+    DocumentsV2Controller,
+    DocumentExtractionsController,
     NotificationsController,
     TelnyxWebhookController,
     TelnyxVoiceWebhookController,
@@ -141,6 +155,8 @@ const OTP_SENDER = "OTP_SENDER";
     PractitionersService,
     PrescriptionsService,
     ReportsService,
+    DiagnosticsService,
+    ObservationsService,
     SchedulingService,
     TimelineService,
     SafetyEvaluationService,
@@ -150,6 +166,8 @@ const OTP_SENDER = "OTP_SENDER";
     VisitSummaryPdfService,
     DocumentsService,
     ExtractionService,
+    DocumentsV2Service,
+    DocumentExtractionsService,
     NotificationsService,
     SyncService,
     ClinicalProfileService,
