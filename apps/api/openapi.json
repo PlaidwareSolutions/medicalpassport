@@ -9291,6 +9291,273 @@
         "x-step-up": false
       }
     },
+    "/v1/prescription-items/{itemId}": {
+      "delete": {
+        "operationId": "PrescriptionsController_deleteItem",
+        "summary": "Remove a line item",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Prescriptions"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-step-up": false
+      },
+      "patch": {
+        "operationId": "PrescriptionsController_updateItem",
+        "summary": "Correct a line item",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePrescriptionItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Prescriptions"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/prescription-items/{itemId}/start-medication": {
+      "post": {
+        "operationId": "PrescriptionsController_startMedication",
+        "summary": "Start a prescribed line as one of the patient's medicines",
+        "description": "Patient session (cookie or bearer). Profile access: `add_medications` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartMedicationFromItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "rowVersion": {
+                      "type": "integer"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Prescriptions"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "add_medications",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
     "/v1/prescriptions/{id}": {
       "delete": {
         "operationId": "PrescriptionsController_softDelete",
@@ -9435,6 +9702,174 @@
         ],
         "x-auth": "patient",
         "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      }
+    },
+    "/v1/prescriptions/{id}/items": {
+      "get": {
+        "operationId": "PrescriptionsController_listItems",
+        "summary": "Line items as written on the prescription",
+        "description": "Patient session (cookie or bearer). Profile access: `view_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Prescriptions"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "view_profile",
+        "x-response-schema-source": "hand-written",
+        "x-step-up": false
+      },
+      "post": {
+        "operationId": "PrescriptionsController_addItem",
+        "summary": "Add a line item",
+        "description": "Patient session (cookie or bearer). Profile access: `edit_profile` on `x-profile-id`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "$ref": "#/components/parameters/XClient"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestedWith"
+          },
+          {
+            "$ref": "#/components/parameters/XProfileId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrescriptionItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "x-correlation-id": {
+                "$ref": "#/components/headers/CorrelationId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "bearerSession": []
+          }
+        ],
+        "tags": [
+          "Prescriptions"
+        ],
+        "x-auth": "patient",
+        "x-profile-scope": "edit_profile",
         "x-response-schema-source": "hand-written",
         "x-step-up": false
       }
@@ -19091,6 +19526,177 @@
         },
         "additionalProperties": false
       },
+      "PrescriptionItem": {
+        "type": "object",
+        "required": [
+          "enteredName"
+        ],
+        "properties": {
+          "doseQuantity": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "doseUnit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "tablet",
+                  "capsule",
+                  "ml",
+                  "drop",
+                  "puff",
+                  "sachet",
+                  "unit",
+                  "application"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "durationDays": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 365
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enteredName": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          },
+          "foodInstruction": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "before",
+                  "with",
+                  "after",
+                  "any",
+                  "bedtime"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "formText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "frequencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "OD",
+                  "OD_AFTERNOON",
+                  "BD",
+                  "TDS",
+                  "QID",
+                  "SOS",
+                  "HS",
+                  "PATTERN",
+                  "ALTERNATE_DAY",
+                  "WEEKLY",
+                  "FORTNIGHTLY",
+                  "MONTHLY",
+                  "CUSTOM"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructionsText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "productId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routeText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sequence": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 200
+          },
+          "strengthLabel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "Problem": {
         "description": "RFC 7807 problem details (`application/problem+json`). Never carries PHI or stack traces. `code` is the stable machine-readable error; `correlationId` echoes the `x-correlation-id` response header.",
         "type": "object",
@@ -19777,6 +20383,75 @@
       "RejectCandidate": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false
+      },
+      "StartMedicationFromItem": {
+        "type": "object",
+        "properties": {
+          "doseQuantity": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 100
+          },
+          "doseUnit": {
+            "type": "string",
+            "enum": [
+              "tablet",
+              "capsule",
+              "ml",
+              "drop",
+              "puff",
+              "sachet",
+              "unit",
+              "application"
+            ]
+          },
+          "foodInstruction": {
+            "type": "string",
+            "enum": [
+              "before",
+              "with",
+              "after",
+              "any",
+              "bedtime"
+            ]
+          },
+          "frequencyCode": {
+            "type": "string",
+            "enum": [
+              "OD",
+              "OD_AFTERNOON",
+              "BD",
+              "TDS",
+              "QID",
+              "SOS",
+              "HS",
+              "PATTERN",
+              "ALTERNATE_DAY",
+              "WEEKLY",
+              "FORTNIGHTLY",
+              "MONTHLY",
+              "CUSTOM"
+            ]
+          },
+          "patientReason": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "pattern": {
+            "type": "string",
+            "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+          },
+          "quantityOnHand": {
+            "type": "number",
+            "maximum": 100000,
+            "minimum": 0
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
         "additionalProperties": false
       },
       "StepUpVerify": {
@@ -20740,6 +21415,174 @@
           "speciality": {
             "type": "string",
             "maxLength": 120
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdatePrescriptionItem": {
+        "type": "object",
+        "properties": {
+          "doseQuantity": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "doseUnit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "tablet",
+                  "capsule",
+                  "ml",
+                  "drop",
+                  "puff",
+                  "sachet",
+                  "unit",
+                  "application"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "durationDays": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 365
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enteredName": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1
+          },
+          "foodInstruction": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "before",
+                  "with",
+                  "after",
+                  "any",
+                  "bedtime"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "formText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "frequencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "OD",
+                  "OD_AFTERNOON",
+                  "BD",
+                  "TDS",
+                  "QID",
+                  "SOS",
+                  "HS",
+                  "PATTERN",
+                  "ALTERNATE_DAY",
+                  "WEEKLY",
+                  "FORTNIGHTLY",
+                  "MONTHLY",
+                  "CUSTOM"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instructionsText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d(\\.\\d)?-\\d(\\.\\d)?-\\d(\\.\\d)?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "productId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routeText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sequence": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 200
+          },
+          "strengthLabel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false

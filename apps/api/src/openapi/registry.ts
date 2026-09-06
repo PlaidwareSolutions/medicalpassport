@@ -70,6 +70,9 @@ import {
   healthTimelineQuerySchema,
   inviteCaregiverSchema,
   linkMedicationSchema,
+  prescriptionItemSchema,
+  startMedicationFromItemSchema,
+  updatePrescriptionItemSchema,
   mergeOrganizationSchema,
   mergePractitionerSchema,
   notificationPreferencesSchema,
@@ -661,6 +664,11 @@ export const ROUTES: RouteDoc[] = [
   { method: "POST", path: "/v1/profiles/current/prescriptions", summary: "Create a prescription record", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "edit_profile", request: createPrescriptionSchema, ...hw(S.entity) },
   { method: "GET", path: "/v1/prescriptions/:id", summary: "Prescription detail", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "view_profile", ...hw(S.entity) },
   { method: "POST", path: "/v1/prescriptions/:id/medications", summary: "Link a medication to a prescription", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "edit_profile", request: linkMedicationSchema, ...hw(S.entity) },
+  { method: "GET", path: "/v1/prescriptions/:id/items", summary: "Line items as written on the prescription", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "view_profile", ...hw(S.itemsOf(S.anyObject)) },
+  { method: "POST", path: "/v1/prescriptions/:id/items", summary: "Add a line item", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "edit_profile", request: prescriptionItemSchema, ...hw(S.anyObject) },
+  { method: "PATCH", path: "/v1/prescription-items/:itemId", summary: "Correct a line item", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "edit_profile", request: updatePrescriptionItemSchema, ...hw(S.anyObject) },
+  { method: "DELETE", path: "/v1/prescription-items/:itemId", summary: "Remove a line item", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "edit_profile" },
+  { method: "POST", path: "/v1/prescription-items/:itemId/start-medication", summary: "Start a prescribed line as one of the patient's medicines", tags: [T.prescriptions], auth: "patient", headers: [PROFILE, IDEMPOTENCY], scope: "add_medications", request: startMedicationFromItemSchema, ...hw(S.versionedEntity) },
   { method: "DELETE", path: "/v1/prescriptions/:id", summary: "Delete a prescription record", tags: [T.prescriptions], auth: "patient", headers: [PROFILE], scope: "edit_profile" },
 
   // ───────────────────────── Reports (V1 façade, see docs_v2/05 §15) ─────────────────────────
