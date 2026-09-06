@@ -114,6 +114,21 @@ pnpm --filter @medpass/admin-web start                            # :3001
 | Provider | Seed an organisation first (no self-serve creation exists): `pnpm --filter @medpass/provider-web seed:dev-org -- --kind clinic --name "Sunrise Clinic" --phone +919000000001` with the same `DATABASE_URL`, `OTP_HASH_PEPPER`, `FIELD_ENCRYPTION_KEY` as the API. Repeat with `--kind pharmacy`, `laboratory`, `hospital` and different phones. Then log in at :3003 with that phone and `000000`. |
 | Admin | `ADMIN_BOOTSTRAP_PASSWORD=… ADMIN_PASSWORD_PEPPER=… pnpm db:seed-admin` (refuses if any admin exists). First login at :3001 walks you through TOTP enrolment with a QR code; use any authenticator app. |
 
+### Or let a script fill the account for you
+
+```
+node apps/patient-web/scripts/ui-walkthrough.mjs
+```
+
+With the API, worker and patient app running and a clinic seeded, this
+creates a new patient through the real API with everything §3 needs (a
+condition, medicines, a prescription with lines, two HbA1c results, three
+weeks of readings, a scanned prescription, a share link, a caregiver with
+narrow scopes, a clinic proposal left for the patient to decide, an ABHA
+link), then signs in as that patient in a browser and screenshots every V2
+screen into `.dev-data/ui-walkthrough/`. It prints the phone numbers to sign
+in with at the end. Run it as often as you like; each run makes a new patient.
+
 ### Test data you will want
 
 A patient with: two medicines (one with a schedule), one prescription with
