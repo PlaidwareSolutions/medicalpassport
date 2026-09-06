@@ -27,6 +27,8 @@ model User {
   phoneDigest     String @unique @map("phone_digest")
   /// AES-256-GCM ciphertext of the E.164 phone (application-level encryption).
   phoneCiphertext String @map("phone_ciphertext")
+  /// V2 (docs_v2/04 §13): provider-portal users are ordinary users with a kind.
+  userKind        UserKind @default(patient) @map("user_kind")
 
   phoneVerifiedAt   DateTime?  @map("phone_verified_at") @db.Timestamptz(6)
   email             String?
@@ -47,6 +49,7 @@ model User {
   caregiverRelationships CaregiverRelationship[] @relation("CaregiverUser")
   notificationChannels   NotificationChannel[]
 
+  organizationMembers OrganizationMember[]
   @@map("users")
 }
 
@@ -212,6 +215,14 @@ model PatientProfile {
   procedures             Procedure[]
   familyHistory          FamilyHistory[]
   emergencyContacts      EmergencyContact[]
+  // V2 wave 2
+  documents              PatientDocument[]
+  diagnosticReports      DiagnosticReport[]
+  observations           Observation[]
+  measurementDevices     MeasurementDevice[]
+  abhaLinks              AbhaLink[]
+  providerLinks          ProviderPatientLink[]
+  testDueSchedules       TestDueSchedule[]
   reportValues           ReportValue[]
 
   @@index([ownerUserId])
@@ -267,6 +278,13 @@ enum CaregiverScope {
   share_records
   manage_profile
   full_management
+  view_tests
+  upload_tests
+  view_measurements
+  add_measurements
+  view_documents
+  upload_documents
+  manage_caregivers
 }
 
 model CaregiverPermission {
@@ -314,6 +332,10 @@ model Consent {
   events ConsentEvent[]
 
   @@index([patientProfileId, type, status])
+  /// V2 Phase 6 (docs_v2/04 §2.2): which notice text the patient actually saw.
+  purposeVersion Int?    @map("purpose_version")
+  noticeVersion  String? @map("notice_version")
+  collectedVia   String? @map("collected_via")
   @@map("consents")
 }
 
@@ -402,6 +424,7 @@ model Prescription {
 
   documents   PrescriptionDocument[]
   medications PatientMedication[]
+  items       PrescriptionItem[]
 
   @@index([patientProfileId, prescribedAt])
   @@map("prescriptions")
@@ -976,6 +999,9 @@ model PatientMedication {
   /// is a normal, fully-valid entry, never flagged as incomplete.
   prescriptionId String?       @map("prescription_id") @db.Uuid
   prescription   Prescription? @relation(fields: [prescriptionId], references: [id])
+  /// V2 Phase 2 (docs_v2/04 §4.1): "why am I taking it" as a link, and who prescribed it directly.
+  reasonConditionId        String? @map("reason_condition_id") @db.Uuid
+  prescribingPractitionerId String? @map("prescribing_practitioner_id") @db.Uuid
 
   source             MedicationSource
   status             MedicationStatus @default(current)
@@ -1022,6 +1048,8 @@ model PatientMedication {
 
   @@index([patientProfileId, status])
   @@index([prescriptionId])
+  refillPlan MedicationRefillPlan?
+  dispenses  MedicationDispense[]
   @@map("patient_medications")
 }
 
@@ -1083,6 +1111,10 @@ model MedicationInstruction {
   doseUnitConfirmedAt DateTime? @map("dose_unit_confirmed_at") @db.Timestamptz(6)
   /// Latest instruction wins; superseded rows keep history.
   supersededAt        DateTime? @map("superseded_at") @db.Timestamptz(6)
+  /// V2 Phase 2 (docs_v2/04 §4.1)
+  routeText           String?   @map("route_text")
+  strengthLabel       String?   @map("strength_label")
+  stopPlannedAt       DateTime? @map("stop_planned_at") @db.Date
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -1306,6 +1338,13 @@ enum NotificationKind {
   /// false-alarm follow-up, not a new escalation.
   dose_correction
   system
+  measurement_reminder
+  test_due
+  follow_up
+  unusual_measurement
+  new_prescription
+  new_test_result
+  refill_low
 }
 
 /// Never expose the medicine name by default (docs/16) — patients opt in
@@ -1406,6 +1445,8 @@ model NotificationPreference {
   createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  /// V2 Phase 17 (docs_v2/04 §12): per-kind {channels[], frequency} controls.
+  channelFrequencyJson Json? @map("channel_frequency_json")
   @@map("notification_preferences")
 }
 
@@ -1561,6 +1602,9 @@ model ShareLink {
 
   tokenHash       String        @unique @map("token_hash")
   kind            ShareLinkKind @default(link)
+  /// V2 Phase 7 (docs_v2/04 §11)
+  audience        String?
+  recipientOrganizationId String? @map("recipient_organization_id") @db.Uuid
   expiresAt       DateTime      @map("expires_at") @db.Timestamptz(6)
   revokedAt       DateTime?     @map("revoked_at") @db.Timestamptz(6)
   revokedByUserId String?       @map("revoked_by_user_id") @db.Uuid
@@ -1637,6 +1681,7 @@ model StoredObject {
   document     PrescriptionDocument?
   accessEvents ObjectAccessEvent[]
 
+  documentPages DocumentPage[]
   @@map("stored_objects")
 }
 
@@ -1669,6 +1714,14 @@ enum DocumentKind {
   lab_report
   scan_report
   other
+  laboratory_report
+  imaging_report
+  consultation_note
+  vaccination_record
+  referral
+  insurance
+  invoice
+  imaging_film
 }
 
 enum DocumentStatus {
@@ -1795,6 +1848,13 @@ enum BackgroundJobQueue {
   ocr_extraction
   pdf_render
   content_enrichment
+  document_classify
+  document_extract
+  fhir_validate
+  abdm_outbound
+  abdm_inbound_import
+  trend_recompute
+  notification_dispatch
 }
 
 enum BackgroundJobStatus {
@@ -1818,6 +1878,8 @@ model BackgroundJob {
   result        Json?
   errorDigest   String?             @map("error_digest")
   lockedAt      DateTime?           @map("locked_at") @db.Timestamptz(6)
+  /// Retry backoff: a queued job is not claimable before this instant.
+  retryAfter    DateTime?           @map("retry_after") @db.Timestamptz(6)
   lockedBy      String?             @map("locked_by")
   startedAt     DateTime?           @map("started_at") @db.Timestamptz(6)
   completedAt   DateTime?           @map("completed_at") @db.Timestamptz(6)
@@ -1990,6 +2052,10 @@ enum AdminDuty {
   /// merges. Patient-scoped rows are visible as opaque ids + counts only.
   provider_admin
   super_admin
+  abdm_operations
+  fhir_view
+  support_cases
+  privileged_record_access
 }
 
 model AdminUser {
@@ -2321,6 +2387,8 @@ model Organization {
 
   practitioners Practitioner[]
   encounters    Encounter[]
+  members       OrganizationMember[]
+  providerLinks ProviderPatientLink[]
 
   @@index([patientProfileId, deletedAt])
   @@index([displayName])
@@ -2604,4 +2672,952 @@ model EmergencyContact {
 
   @@index([patientProfileId, priority])
   @@map("emergency_contacts")
+}
+
+// =====================================================================
+// V2 wave 2 — Phases 2–8, 11, 17 and admin platform (docs_v2/04 §4–§13)
+// Additive only (ADR-V2-007). Applied 2026-09-06.
+// =====================================================================
+
+// ---------- Phase 2: medication platform ----------
+
+/// A line as written on the prescription, distinct from the patient's current
+/// medicine (docs_v2/04 §4.1): a line can be "prescribed but never started".
+model PrescriptionItem {
+  id               String       @id @default(uuid()) @db.Uuid
+  prescriptionId   String       @map("prescription_id") @db.Uuid
+  prescription     Prescription @relation(fields: [prescriptionId], references: [id])
+  patientProfileId String       @map("patient_profile_id") @db.Uuid
+  sequence         Int          @default(1) @db.SmallInt
+  enteredName      String       @map("entered_name")
+  productId        String?      @map("product_id") @db.Uuid
+  strengthLabel    String?      @map("strength_label")
+  formText         String?      @map("form_text")
+  routeText        String?      @map("route_text")
+  doseQuantity     Decimal?     @map("dose_quantity") @db.Decimal(8, 3)
+  doseUnit         String?      @map("dose_unit")
+  frequencyCode    String?      @map("frequency_code")
+  pattern          String?
+  foodInstruction  String?      @map("food_instruction")
+  durationDays     Int?         @map("duration_days")
+  instructionsText String?      @map("instructions_text")
+  /// The PatientMedication started from this line, if any.
+  startedMedicationId String?   @map("started_medication_id") @db.Uuid
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([prescriptionId, sequence])
+  @@index([patientProfileId])
+  @@map("prescription_items")
+}
+
+/// Replaces the bare `PatientMedication.quantityOnHand` counter (kept in sync until sunset).
+model MedicationRefillPlan {
+  id                  String            @id @default(uuid()) @db.Uuid
+  patientMedicationId String            @unique @map("patient_medication_id") @db.Uuid
+  patientMedication   PatientMedication @relation(fields: [patientMedicationId], references: [id])
+  patientProfileId    String            @map("patient_profile_id") @db.Uuid
+  packSize            Decimal?          @map("pack_size") @db.Decimal(8, 2)
+  quantityOnHand      Decimal?          @map("quantity_on_hand") @db.Decimal(8, 2)
+  /// Derived from the active schedule; recomputed on schedule or dose changes.
+  dailyConsumption    Decimal?          @map("daily_consumption") @db.Decimal(8, 3)
+  projectedRunOutOn   DateTime?         @map("projected_run_out_on") @db.Date
+  lastDispenseId      String?           @map("last_dispense_id") @db.Uuid
+  recordedByUserId    String?           @map("recorded_by_user_id") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, projectedRunOutOn])
+  @@map("medication_refill_plans")
+}
+
+/// Pharmacy product (Phase 12): a dispense record, accepted by the patient.
+model MedicationDispense {
+  id                  String            @id @default(uuid()) @db.Uuid
+  patientProfileId    String            @map("patient_profile_id") @db.Uuid
+  patientMedicationId String?           @map("patient_medication_id") @db.Uuid
+  patientMedication   PatientMedication? @relation(fields: [patientMedicationId], references: [id])
+  organizationId      String?           @map("organization_id") @db.Uuid
+  dispensedAt         DateTime          @map("dispensed_at") @db.Timestamptz(6)
+  quantity            Decimal           @db.Decimal(8, 2)
+  unit                String
+  daysSupply          Int?              @map("days_supply")
+  lotNumber           String?           @map("lot_number")
+  expiryDate          DateTime?         @map("expiry_date") @db.Date
+  invoiceDocumentId   String?           @map("invoice_document_id") @db.Uuid
+  notes               String?
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, dispensedAt])
+  @@map("medication_dispenses")
+}
+
+enum ReconciliationStatus {
+  draft
+  proposed
+  patient_accepted
+  patient_rejected
+  applied
+  withdrawn
+}
+
+enum ReconciliationDecision {
+  continue
+  stop
+  change
+  add
+}
+
+/// Providers propose, patients accept (ADR-V2-009). Applying writes
+/// MedicationChange rows with `reconciled_*` kinds.
+model MedicationReconciliation {
+  id                String               @id @default(uuid()) @db.Uuid
+  patientProfileId  String               @map("patient_profile_id") @db.Uuid
+  encounterId       String?              @map("encounter_id") @db.Uuid
+  organizationId    String?              @map("organization_id") @db.Uuid
+  performedByUserId String               @map("performed_by_user_id") @db.Uuid
+  performedAt       DateTime             @default(now()) @map("performed_at") @db.Timestamptz(6)
+  status            ReconciliationStatus @default(draft)
+  decidedByUserId   String?              @map("decided_by_user_id") @db.Uuid
+  decidedAt         DateTime?            @map("decided_at") @db.Timestamptz(6)
+  appliedAt         DateTime?            @map("applied_at") @db.Timestamptz(6)
+  notes             String?
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lines MedicationReconciliationLine[]
+
+  @@index([patientProfileId, status])
+  @@map("medication_reconciliations")
+}
+
+model MedicationReconciliationLine {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  reconciliationId     String                   @map("reconciliation_id") @db.Uuid
+  reconciliation       MedicationReconciliation @relation(fields: [reconciliationId], references: [id])
+  patientMedicationId  String?                  @map("patient_medication_id") @db.Uuid
+  prescriptionItemId   String?                  @map("prescription_item_id") @db.Uuid
+  decision             ReconciliationDecision
+  proposedInstruction  Json?                    @map("proposed_instruction")
+  proposedName         String?                  @map("proposed_name")
+  reasonText           String?                  @map("reason_text")
+  /// Per-line acceptance (H-43: a STOP line is confirmed individually).
+  accepted             Boolean?
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([reconciliationId])
+  @@map("medication_reconciliation_lines")
+}
+
+// ---------- Phase 3: documents ----------
+
+enum DocumentSourceChannel {
+  camera
+  gallery
+  file
+  share_target
+  provider_import
+  abdm
+  email_intake
+}
+
+enum ClassifiedBy {
+  user
+  deterministic
+  model
+}
+
+/// V2 document (docs_v2/04 §7.2): multi-page, polymorphic attachment, classified.
+model PatientDocument {
+  id                   String                @id @default(uuid()) @db.Uuid
+  patientProfileId     String                @map("patient_profile_id") @db.Uuid
+  patientProfile       PatientProfile        @relation(fields: [patientProfileId], references: [id])
+  kind                 DocumentKind          @default(other)
+  title                String?
+  documentDate         DateTime?             @map("document_date") @db.Date
+  prescriptionId       String?               @map("prescription_id") @db.Uuid
+  diagnosticReportId   String?               @map("diagnostic_report_id") @db.Uuid
+  encounterId          String?               @map("encounter_id") @db.Uuid
+  immunizationId       String?               @map("immunization_id") @db.Uuid
+  /// V1 evidence row this document was backfilled from, if any.
+  legacyPrescriptionDocumentId String?       @unique @map("legacy_prescription_document_id") @db.Uuid
+  status               DocumentStatus        @default(pending_upload)
+  classification       DocumentKind?
+  classificationConfidence Decimal?          @map("classification_confidence") @db.Decimal(4, 3)
+  classifiedBy         ClassifiedBy?         @map("classified_by")
+  sourceChannel        DocumentSourceChannel @default(file) @map("source_channel")
+  pageCount            Int                   @default(0) @map("page_count")
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  pages       DocumentPage[]
+  extractions DocumentExtraction[]
+
+  @@index([patientProfileId, deletedAt, createdAt])
+  @@index([prescriptionId])
+  @@index([diagnosticReportId])
+  @@index([encounterId])
+  @@map("patient_documents")
+}
+
+model DocumentPage {
+  id               String          @id @default(uuid()) @db.Uuid
+  documentId       String          @map("document_id") @db.Uuid
+  document         PatientDocument @relation(fields: [documentId], references: [id])
+  pageNumber       Int             @map("page_number")
+  storedObjectId   String          @map("stored_object_id") @db.Uuid
+  storedObject     StoredObject    @relation(fields: [storedObjectId], references: [id])
+  thumbnailObjectId String?        @map("thumbnail_object_id") @db.Uuid
+  ocrTextObjectId  String?         @map("ocr_text_object_id") @db.Uuid
+  width            Int?
+  height           Int?
+  rotation         Int?            @db.SmallInt
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([documentId, pageNumber])
+  @@map("document_pages")
+}
+
+/// Replaces PrescriptionExtraction for V2 documents; full AI traceability (docs_v2/09 §1).
+model DocumentExtraction {
+  id             String           @id @default(uuid()) @db.Uuid
+  documentId     String           @map("document_id") @db.Uuid
+  document       PatientDocument  @relation(fields: [documentId], references: [id])
+  engine         String
+  engineVersion  String           @map("engine_version")
+  modelProvider  String?          @map("model_provider")
+  modelName      String?          @map("model_name")
+  modelVersion   String?          @map("model_version")
+  promptVersion  String?          @map("prompt_version")
+  status         ExtractionStatus @default(queued)
+  startedAt      DateTime?        @map("started_at") @db.Timestamptz(6)
+  finishedAt     DateTime?        @map("finished_at") @db.Timestamptz(6)
+  costMicros     Int?             @map("cost_micros")
+  rawTextObjectId String?         @map("raw_text_object_id") @db.Uuid
+  errorDigest    String?          @map("error_digest")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidates DocumentCandidate[]
+
+  @@index([documentId, createdAt])
+  @@map("document_extractions")
+}
+
+/// V2 candidate (docs_v2/04 §7.5): typed target, page + bounding box, correction trail.
+model DocumentCandidate {
+  id                  String             @id @default(uuid()) @db.Uuid
+  extractionId        String             @map("extraction_id") @db.Uuid
+  extraction          DocumentExtraction @relation(fields: [extractionId], references: [id])
+  patientProfileId    String             @map("patient_profile_id") @db.Uuid
+  targetEntity        String             @map("target_entity")
+  targetField         String             @map("target_field")
+  groupKey            String?            @map("group_key")
+  pageNumber          Int?               @map("page_number")
+  boundingBox         Json?              @map("bounding_box")
+  detectedText        String             @map("detected_text")
+  proposedValue       Json?              @map("proposed_value")
+  confidence          Decimal            @db.Decimal(4, 3)
+  status              CandidateStatus    @default(proposed)
+  correctedValue      Json?              @map("corrected_value")
+  confirmedByUserId   String?            @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt         DateTime?          @map("confirmed_at") @db.Timestamptz(6)
+  resultingEntityType String?            @map("resulting_entity_type")
+  resultingEntityId   String?            @map("resulting_entity_id") @db.Uuid
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([extractionId])
+  @@index([patientProfileId, status])
+  @@map("document_candidates")
+}
+
+// ---------- Phase 4: diagnostics ----------
+
+enum DiagnosticReportKind {
+  laboratory
+  imaging
+  ecg
+  echo
+  pathology
+  microbiology
+  genetics
+  other
+}
+
+enum ImagingModality {
+  xray
+  ct
+  mri
+  ultrasound
+  mammography
+  pet
+  nuclear
+  other
+}
+
+enum DiagnosticReportStatus {
+  registered
+  partial
+  final
+  amended
+  cancelled
+}
+
+enum ObservationInterpretation {
+  normal
+  high
+  low
+  critical_high
+  critical_low
+  abnormal
+}
+
+model DiagnosticReport {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  patientProfileId       String                 @map("patient_profile_id") @db.Uuid
+  patientProfile         PatientProfile         @relation(fields: [patientProfileId], references: [id])
+  encounterId            String?                @map("encounter_id") @db.Uuid
+  kind                   DiagnosticReportKind   @default(laboratory)
+  category               String?
+  title                  String
+  specimenCollectedAt    DateTime?              @map("specimen_collected_at") @db.Timestamptz(6)
+  reportedAt             DateTime?              @map("reported_at") @db.Timestamptz(6)
+  testedAt               DateTime?              @map("tested_at") @db.Date
+  organizationId         String?                @map("organization_id") @db.Uuid
+  facilityNameText       String?                @map("facility_name_text")
+  orderingPractitionerId String?                @map("ordering_practitioner_id") @db.Uuid
+  reportingPractitionerId String?               @map("reporting_practitioner_id") @db.Uuid
+  modality               ImagingModality?
+  bodySite               String?                @map("body_site")
+  impressionText         String?                @map("impression_text")
+  findingsText           String?                @map("findings_text")
+  conclusionText         String?                @map("conclusion_text")
+  status                 DiagnosticReportStatus @default(final)
+  /// V1 MedicalReport this row was backfilled from, if any.
+  legacyMedicalReportId  String?                @unique @map("legacy_medical_report_id") @db.Uuid
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  rowVersion Int       @default(0) @map("row_version")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  results DiagnosticResult[]
+
+  @@index([patientProfileId, testedAt])
+  @@index([patientProfileId, kind])
+  @@map("diagnostic_reports")
+}
+
+model DiagnosticResult {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  diagnosticReportId String                     @map("diagnostic_report_id") @db.Uuid
+  diagnosticReport   DiagnosticReport           @relation(fields: [diagnosticReportId], references: [id])
+  patientProfileId   String                     @map("patient_profile_id") @db.Uuid
+  analyteKey         String                     @map("analyte_key")
+  analyteLabelText   String?                    @map("analyte_label_text")
+  loincCode          String?                    @map("loinc_code")
+  enteredValueText   String                     @map("entered_value_text")
+  valueNumeric       Decimal?                   @map("value_numeric") @db.Decimal(14, 4)
+  valueText          String?                    @map("value_text")
+  comparator         String?
+  unit               String?
+  enteredUnit        String?                    @map("entered_unit")
+  referenceLow       Decimal?                   @map("reference_low") @db.Decimal(14, 4)
+  referenceHigh      Decimal?                   @map("reference_high") @db.Decimal(14, 4)
+  referenceText      String?                    @map("reference_text")
+  /// Only from the lab's own flag or a provider — never computed client-side.
+  interpretation     ObservationInterpretation?
+  specimenType       String?                    @map("specimen_type")
+  sequence           Int                        @default(1)
+  supersededById     String?                    @map("superseded_by_id") @db.Uuid
+  /// V1 ReportValue this row was backfilled from, if any.
+  legacyReportValueId String?                   @unique @map("legacy_report_value_id") @db.Uuid
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([diagnosticReportId, sequence])
+  @@index([patientProfileId, analyteKey, createdAt])
+  @@map("diagnostic_results")
+}
+
+// ---------- Phase 5: observations ----------
+
+enum ObservationConcept {
+  blood_pressure
+  heart_rate
+  blood_glucose
+  body_weight
+  body_height
+  bmi
+  spo2
+  body_temperature
+  respiratory_rate
+  inr
+  peak_flow
+  pain_score
+  insulin_dose
+  fluid_intake
+  fluid_output
+  waist_circumference
+  steps
+  sleep_hours
+  other
+}
+
+enum ObservationContext {
+  before_breakfast
+  after_breakfast
+  before_lunch
+  after_lunch
+  before_dinner
+  after_dinner
+  during_night
+  random
+  fasting
+  resting
+  post_exercise
+  sitting
+  standing
+  lying
+  morning
+  evening
+}
+
+enum MeasurementDeviceKind {
+  bp_monitor
+  glucometer
+  cgm
+  smart_scale
+  pulse_oximeter
+  thermometer
+  wearable
+  phone_health_platform
+  other
+}
+
+enum MeasurementDevicePlatform {
+  bluetooth
+  apple_health
+  health_connect
+  vendor_api
+  manual
+}
+
+model MeasurementDevice {
+  id               String                    @id @default(uuid()) @db.Uuid
+  patientProfileId String                    @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile            @relation(fields: [patientProfileId], references: [id])
+  kind             MeasurementDeviceKind
+  platform         MeasurementDevicePlatform @default(manual)
+  manufacturer     String?
+  model            String?
+  serialDigest     String?                   @map("serial_digest")
+  label            String?
+  lastSyncAt       DateTime?                 @map("last_sync_at") @db.Timestamptz(6)
+  status           String                    @default("active")
+  recordedByUserId String?                   @map("recorded_by_user_id") @db.Uuid
+  deletedAt        DateTime?                 @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  observations Observation[]
+
+  @@index([patientProfileId])
+  @@map("measurement_devices")
+}
+
+/// Generic vitals/measurements (ADR-V2-011). V1 readings tables are backfilled here.
+model Observation {
+  id               String                     @id @default(uuid()) @db.Uuid
+  patientProfileId String                     @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile             @relation(fields: [patientProfileId], references: [id])
+  encounterId      String?                    @map("encounter_id") @db.Uuid
+  concept          ObservationConcept
+  conceptCode      String?                    @map("concept_code")
+  conceptSystem    String?                    @map("concept_system")
+  valueNumeric     Decimal?                   @map("value_numeric") @db.Decimal(12, 3)
+  valueNumeric2    Decimal?                   @map("value_numeric2") @db.Decimal(12, 3)
+  valueText        String?                    @map("value_text")
+  unit             String
+  enteredUnit      String?                    @map("entered_unit")
+  enteredValueText String?                    @map("entered_value_text")
+  context          ObservationContext?
+  bodySite         String?                    @map("body_site")
+  method           String?
+  measuredAt       DateTime                   @map("measured_at") @db.Timestamptz(6)
+  measuredAtLocal  String?                    @map("measured_at_local")
+  interpretation   ObservationInterpretation?
+  notes            String?
+  deviceId         String?                    @map("device_id") @db.Uuid
+  device           MeasurementDevice?         @relation(fields: [deviceId], references: [id])
+  clientMutationId String?                    @unique @map("client_mutation_id")
+  /// V1 reading id this row was backfilled from (glucose/bp/weight/checkup), if any.
+  legacyEntityType String?                    @map("legacy_entity_type")
+  legacyId         String?                    @map("legacy_id") @db.Uuid
+
+  provenanceSource     RecordSource?      @map("provenance_source")
+  verification         VerificationState?
+  recordedVia          String?            @map("recorded_via")
+  recordedByUserId     String?            @map("recorded_by_user_id") @db.Uuid
+  sourceDocumentId     String?            @map("source_document_id") @db.Uuid
+  sourceExtractionId   String?            @map("source_extraction_id") @db.Uuid
+  sourceDeviceId       String?            @map("source_device_id") @db.Uuid
+  sourceAbdmTxnId      String?            @map("source_abdm_txn_id") @db.Uuid
+  sourceOrganizationId String?            @map("source_organization_id") @db.Uuid
+  sourcePractitionerId String?            @map("source_practitioner_id") @db.Uuid
+  verifiedByUserId     String?            @map("verified_by_user_id") @db.Uuid
+  verifiedAt           DateTime?          @map("verified_at") @db.Timestamptz(6)
+
+  rowVersion Int       @default(0) @map("row_version")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([legacyEntityType, legacyId])
+  @@index([patientProfileId, concept, measuredAt(sort: Desc)])
+  @@index([patientProfileId, measuredAt(sort: Desc)])
+  @@map("observations")
+}
+
+// ---------- Phase 6: consent notices ----------
+
+model ConsentNotice {
+  id          String   @id @default(uuid()) @db.Uuid
+  version     Int
+  locale      String
+  purpose     String
+  bodyHash    String   @map("body_hash")
+  bodyObjectId String? @map("body_object_id") @db.Uuid
+  publishedAt DateTime @map("published_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([purpose, version, locale])
+  @@map("consent_notices")
+}
+
+// ---------- Phase 8: ABDM ----------
+
+enum AbhaLinkStatus {
+  active
+  unlinked
+  suspended
+}
+
+model AbhaLink {
+  id                 String         @id @default(uuid()) @db.Uuid
+  patientProfileId   String         @map("patient_profile_id") @db.Uuid
+  patientProfile     PatientProfile @relation(fields: [patientProfileId], references: [id])
+  abhaNumberCiphertext String       @map("abha_number_ciphertext")
+  abhaNumberDigest   String         @map("abha_number_digest")
+  abhaAddress        String?        @map("abha_address")
+  status             AbhaLinkStatus @default(active)
+  linkedAt           DateTime       @default(now()) @map("linked_at") @db.Timestamptz(6)
+  unlinkedAt         DateTime?      @map("unlinked_at") @db.Timestamptz(6)
+  profileSnapshot    Json?          @map("profile_snapshot")
+  lastVerifiedAt     DateTime?      @map("last_verified_at") @db.Timestamptz(6)
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  careContexts     AbdmCareContext[]
+  consentArtefacts AbdmConsentArtefact[]
+
+  @@index([patientProfileId, status])
+  @@index([abhaNumberDigest])
+  @@map("abha_links")
+}
+
+model AbdmCareContext {
+  id                     String   @id @default(uuid()) @db.Uuid
+  abhaLinkId             String   @map("abha_link_id") @db.Uuid
+  abhaLink               AbhaLink @relation(fields: [abhaLinkId], references: [id])
+  hipId                  String   @map("hip_id")
+  hipName                String?  @map("hip_name")
+  patientReferenceNumber String   @map("patient_reference_number")
+  careContextReference   String   @map("care_context_reference")
+  display                String?
+  status                 String   @default("linked")
+  linkedAt               DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([abhaLinkId, hipId, careContextReference])
+  @@map("abdm_care_contexts")
+}
+
+enum AbdmConsentStatus {
+  requested
+  granted
+  denied
+  revoked
+  expired
+}
+
+/// Separate from `Consent` and `ShareLink` by design (ADR-V2-004).
+model AbdmConsentArtefact {
+  id               String            @id @default(uuid()) @db.Uuid
+  abhaLinkId       String            @map("abha_link_id") @db.Uuid
+  abhaLink         AbhaLink          @relation(fields: [abhaLinkId], references: [id])
+  consentRequestId String?           @map("consent_request_id")
+  artefactId       String?           @unique @map("artefact_id")
+  purposeCode      String            @map("purpose_code")
+  hiTypes          String[]          @map("hi_types")
+  dateRangeFrom    DateTime?         @map("date_range_from") @db.Timestamptz(6)
+  dateRangeTo      DateTime?         @map("date_range_to") @db.Timestamptz(6)
+  dataEraseAt      DateTime?         @map("data_erase_at") @db.Timestamptz(6)
+  frequency        Json?
+  hiuId            String?           @map("hiu_id")
+  status           AbdmConsentStatus @default(requested)
+  artefactJson     Json?             @map("artefact_json")
+  grantedAt        DateTime?         @map("granted_at") @db.Timestamptz(6)
+  revokedAt        DateTime?         @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  bundles AbdmDataBundle[]
+
+  @@index([abhaLinkId, status])
+  @@map("abdm_consent_artefacts")
+}
+
+enum AbdmGatewayEnv {
+  mock
+  sandbox
+  production
+}
+
+model AbdmTransaction {
+  id             String         @id @default(uuid()) @db.Uuid
+  patientProfileId String?      @map("patient_profile_id") @db.Uuid
+  kind           String
+  requestId      String?        @map("request_id")
+  transactionId  String?        @map("transaction_id")
+  correlationId  String?        @map("correlation_id")
+  direction      String
+  status         String
+  requestDigest  String?        @map("request_digest")
+  responseDigest String?        @map("response_digest")
+  errorCode      String?        @map("error_code")
+  errorText      String?        @map("error_text")
+  gatewayEnv     AbdmGatewayEnv @default(mock) @map("gateway_env")
+  startedAt      DateTime       @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt    DateTime?      @map("completed_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, startedAt])
+  @@index([requestId])
+  @@index([transactionId])
+  @@index([kind, status, startedAt])
+  @@map("abdm_transactions")
+}
+
+enum AbdmImportStatus {
+  received
+  validated
+  candidates_created
+  rejected
+  erased
+}
+
+model AbdmDataBundle {
+  id                       String              @id @default(uuid()) @db.Uuid
+  patientProfileId         String              @map("patient_profile_id") @db.Uuid
+  consentArtefactId        String              @map("consent_artefact_id") @db.Uuid
+  consentArtefact          AbdmConsentArtefact @relation(fields: [consentArtefactId], references: [id])
+  transactionId            String?             @map("transaction_id")
+  hiType                   String              @map("hi_type")
+  encryptedPayloadObjectId String?             @map("encrypted_payload_object_id") @db.Uuid
+  decryptedAt              DateTime?           @map("decrypted_at") @db.Timestamptz(6)
+  fhirVersion              String?             @map("fhir_version")
+  igVersion                String?             @map("ig_version")
+  entryCount               Int?                @map("entry_count")
+  importStatus             AbdmImportStatus    @default(received) @map("import_status")
+  erasedAt                 DateTime?           @map("erased_at") @db.Timestamptz(6)
+  createdAt                DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, importStatus])
+  @@map("abdm_data_bundles")
+}
+
+model FhirValidationFailure {
+  id           String   @id @default(uuid()) @db.Uuid
+  bundleId     String?  @map("bundle_id") @db.Uuid
+  direction    String
+  igVersion    String   @map("ig_version")
+  profileUrl   String?  @map("profile_url")
+  resourceType String   @map("resource_type")
+  path         String
+  severity     String
+  message      String
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([direction, createdAt])
+  @@map("fhir_validation_failures")
+}
+
+model ExternalIdentifier {
+  id                     String   @id @default(uuid()) @db.Uuid
+  entityType             String   @map("entity_type")
+  entityId               String   @map("entity_id") @db.Uuid
+  system                 String
+  value                  String
+  assignerOrganizationId String?  @map("assigner_organization_id") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([entityType, entityId, system])
+  @@index([system, value])
+  @@map("external_identifiers")
+}
+
+// ---------- Phase 11: providers ----------
+
+enum UserKind {
+  patient
+  provider
+  both
+}
+
+enum OrganizationMemberRole {
+  owner
+  doctor
+  staff
+  pharmacist
+  lab_tech
+}
+
+model OrganizationMember {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @map("organization_id") @db.Uuid
+  organization    Organization           @relation(fields: [organizationId], references: [id])
+  userId          String                 @map("user_id") @db.Uuid
+  user            User                   @relation(fields: [userId], references: [id])
+  role            OrganizationMemberRole @default(staff)
+  status          String                 @default("active")
+  invitedByUserId String?                @map("invited_by_user_id") @db.Uuid
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+enum ProviderLinkVia {
+  qr_onboarding
+  share
+  abdm
+}
+
+/// Relationship-based provider access (docs_v2/03 §11): time-boxed, section-scoped, audited.
+model ProviderPatientLink {
+  id               String          @id @default(uuid()) @db.Uuid
+  organizationId   String          @map("organization_id") @db.Uuid
+  organization     Organization    @relation(fields: [organizationId], references: [id])
+  patientProfileId String          @map("patient_profile_id") @db.Uuid
+  patientProfile   PatientProfile  @relation(fields: [patientProfileId], references: [id])
+  linkedVia        ProviderLinkVia @map("linked_via")
+  sections         Json
+  status           String          @default("active")
+  expiresAt        DateTime        @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime?       @map("revoked_at") @db.Timestamptz(6)
+  createdByUserId  String?         @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  proposals ProviderProposal[]
+
+  @@index([patientProfileId, status])
+  @@index([organizationId, status])
+  @@map("provider_patient_links")
+}
+
+enum ProposalKind {
+  prescription
+  encounter
+  reconciliation
+  dispense
+  diagnostic_report
+  discharge_transition
+}
+
+enum ProposalStatus {
+  proposed
+  accepted
+  rejected
+  withdrawn
+  expired
+}
+
+/// Providers propose, patients accept (ADR-V2-009): one inbox for everything awaiting acceptance.
+model ProviderProposal {
+  id                  String              @id @default(uuid()) @db.Uuid
+  linkId              String              @map("link_id") @db.Uuid
+  link                ProviderPatientLink @relation(fields: [linkId], references: [id])
+  organizationId      String              @map("organization_id") @db.Uuid
+  patientProfileId    String              @map("patient_profile_id") @db.Uuid
+  kind                ProposalKind
+  payload             Json
+  status              ProposalStatus      @default(proposed)
+  proposedByUserId    String              @map("proposed_by_user_id") @db.Uuid
+  decidedByUserId     String?             @map("decided_by_user_id") @db.Uuid
+  decidedAt           DateTime?           @map("decided_at") @db.Timestamptz(6)
+  resultingEntityType String?             @map("resulting_entity_type")
+  resultingEntityId   String?             @map("resulting_entity_id") @db.Uuid
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, status, createdAt])
+  @@index([organizationId, status])
+  @@map("provider_proposals")
+}
+
+// ---------- Phase 17: test-due schedules ----------
+
+model TestDueSchedule {
+  id                   String         @id @default(uuid()) @db.Uuid
+  patientProfileId     String         @map("patient_profile_id") @db.Uuid
+  patientProfile       PatientProfile @relation(fields: [patientProfileId], references: [id])
+  analyteKey           String?        @map("analyte_key")
+  diagnosticKind       String?        @map("diagnostic_kind")
+  label                String
+  dueOn                DateTime       @map("due_on") @db.Date
+  recurrenceDays       Int?           @map("recurrence_days")
+  sourcePrescriptionId String?        @map("source_prescription_id") @db.Uuid
+  status               String         @default("pending")
+  recordedByUserId     String?        @map("recorded_by_user_id") @db.Uuid
+  deletedAt            DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, dueOn])
+  @@map("test_due_schedules")
+}
+
+// ---------- Admin platform ----------
+
+model FeatureFlag {
+  key             String   @id
+  description     String?
+  defaultOn       Boolean  @default(false) @map("default_on")
+  rolloutPercent  Int      @default(0) @map("rollout_percent") @db.SmallInt
+  allowProfileIds String[] @map("allow_profile_ids") @db.Uuid
+  environment     String?
+  updatedByAdminId String? @map("updated_by_admin_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("feature_flags")
+}
+
+model SupportCase {
+  id               String   @id @default(uuid()) @db.Uuid
+  subject          String
+  status           String   @default("open")
+  channel          String   @default("in_app")
+  patientProfileId String?  @map("patient_profile_id") @db.Uuid
+  openedByUserId   String?  @map("opened_by_user_id") @db.Uuid
+  assignedAdminId  String?  @map("assigned_admin_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  notes SupportCaseNote[]
+
+  @@index([status, createdAt])
+  @@map("support_cases")
+}
+
+model SupportCaseNote {
+  id            String      @id @default(uuid()) @db.Uuid
+  caseId        String      @map("case_id") @db.Uuid
+  supportCase   SupportCase @relation(fields: [caseId], references: [id])
+  authorAdminId String?     @map("author_admin_id") @db.Uuid
+  body          String
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([caseId, createdAt])
+  @@map("support_case_notes")
+}
+
+/// Time-boxed, reasoned admin access to one patient's clinical data (H-49).
+model BreakGlassGrant {
+  id               String    @id @default(uuid()) @db.Uuid
+  adminUserId      String    @map("admin_user_id") @db.Uuid
+  patientProfileId String    @map("patient_profile_id") @db.Uuid
+  reason           String
+  supportCaseId    String?   @map("support_case_id") @db.Uuid
+  grantedAt        DateTime  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  patientNotifiedAt DateTime? @map("patient_notified_at") @db.Timestamptz(6)
+  reviewedAt       DateTime? @map("reviewed_at") @db.Timestamptz(6)
+
+  @@index([patientProfileId, expiresAt])
+  @@index([adminUserId, grantedAt])
+  @@map("break_glass_grants")
 }

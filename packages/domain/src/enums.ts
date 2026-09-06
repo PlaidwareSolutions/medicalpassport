@@ -139,6 +139,14 @@ export const CAREGIVER_SCOPES = [
   "share_records",
   "manage_profile",
   "full_management",
+  // V2 Phase 6 (docs_v2/04 §2.2) — mirrors the Prisma enum extension
+  "view_tests",
+  "upload_tests",
+  "view_measurements",
+  "add_measurements",
+  "view_documents",
+  "upload_documents",
+  "manage_caregivers",
 ] as const;
 export type CaregiverScope = (typeof CAREGIVER_SCOPES)[number];
 
