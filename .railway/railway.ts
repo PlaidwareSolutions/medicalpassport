@@ -34,7 +34,18 @@ import { defineRailway, github, postgres, preserve, project, service } from "rai
  */
 export default defineRailway(() => {
   // All real work lives on "foundation" — main is still the original scaffold commit.
-  const repo = github("PlaidwareSolutions/medicalpassport", { branch: "foundation", checkSuites: false });
+  //
+  // `checkSuites: true` (docs_v2/19 ticket 0.2) makes Railway wait for the
+  // GitHub Actions run on the pushed commit before deploying. Until this was
+  // turned on, a red build shipped anyway: CI gated nothing at all. The CI
+  // workflow triggers on pushes to `foundation`, so a check suite always
+  // exists for Railway to wait on.
+  //
+  // The trade-off, worth knowing before an incident: while CI is failing,
+  // pushes stop deploying. To ship a genuine emergency fix, either redeploy
+  // an earlier deployment from the Railway dashboard, or flip this to false,
+  // apply, deploy, and put it back.
+  const repo = github("PlaidwareSolutions/medicalpassport", { branch: "foundation", checkSuites: true });
   const region = "asia-southeast1-eqsg3a"; // Singapore (docs/25 §Region, OD-5 assumption)
 
   const db = postgres("postgres", { region });

@@ -48,7 +48,12 @@ import { defineRailway, github, postgres, preserve, project, service } from "rai
  *   environment, never shared with medpass-dev.
  */
 export default defineRailway(() => {
-  const repo = github("PlaidwareSolutions/medicalpassport", { branch: "foundation", checkSuites: false });
+  // `checkSuites: true` (docs_v2/19 ticket 0.2): production waits for the
+  // GitHub Actions run on the pushed commit. This matters most here — until
+  // it was turned on, a red build deployed straight to the environment the
+  // pilot patients use. See the note in railway.ts for the emergency path
+  // when CI itself is broken.
+  const repo = github("PlaidwareSolutions/medicalpassport", { branch: "foundation", checkSuites: true });
   const region = "asia-southeast1-eqsg3a"; // Singapore (docs/25 §Region, OD-5 assumption) — same as medpass-dev
 
   // The actual deployed instance lives in "sfo" — a pre-existing drift from
