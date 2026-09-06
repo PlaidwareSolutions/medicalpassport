@@ -1,7 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { CLINICAL_CONTENT_KINDS, ERROR_CODES, type ClinicalContentKind, type Locale } from "@medpass/domain";
-import type { CreateMedicationInput, RecordRefillInput, UpdateMedicationInput } from "@medpass/validation";
+import type {
+  CreateMedicationInput,
+  PutRefillPlanInput,
+  RecordRefillInput,
+  StartMedicationFromItemInput,
+  UpdateMedicationInput,
+} from "@medpass/validation";
+import type { Prescription, PrescriptionItem } from "@medpass/database";
 import { ApiProblem } from "../../common/errors";
 import { emitMedicationChangeEvent } from "../../common/health-events";
 import { PrismaService } from "../../common/prisma.service";
@@ -10,6 +17,7 @@ import { PractitionersService } from "../practitioners/practitioners.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 import { ClinicalContentLookupService, CLINICAL_CONTENT_DTO_KEYS, type ClinicalContentEntry } from "../clinical-content/clinical-content-lookup.service";
+import { readRefillPlan, syncRefillPlan } from "./refill-plan";
 
 interface Actor extends ProvenanceActor {
   correlationId?: string;
@@ -26,7 +34,14 @@ const MEDICATION_INCLUDE = {
   practitioner: true,
   prescription: { include: { practitioner: true } },
   instructions: { where: { supersededAt: null }, orderBy: { createdAt: "desc" as const }, take: 1 },
+  refillPlan: { select: { packSize: true, dailyConsumption: true, projectedRunOutOn: true } },
 } as const;
+
+/** Labels for the Phase 2 links (`reasonConditionId`, `prescribingPractitionerId`), batched per list()/byId() call. */
+interface LinkLabels {
+  conditions: Map<string, string>;
+  practitioners: Map<string, string>;
+}
 
 /** Prisma transaction client — the subset these helpers actually use. */
 type Tx = Parameters<Parameters<PrismaService["$transaction"]>[0]>[0];
@@ -53,8 +68,8 @@ export class MedicationsService {
       include: MEDICATION_INCLUDE,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     });
-    const content = await this.loadClinicalContent(profileId, medications);
-    return medications.map((m) => this.toDto(m, content));
+    const [content, links] = await Promise.all([this.loadClinicalContent(profileId, medications), this.loadLinkLabels(profileId, medications)]);
+    return medications.map((m) => this.toDto(m, content, links));
   }
 
   async byId(profileId: string, id: string) {
@@ -63,8 +78,51 @@ export class MedicationsService {
       include: MEDICATION_INCLUDE,
     });
     if (!medication) return null;
-    const content = await this.loadClinicalContent(profileId, [medication]);
-    return this.toDto(medication, content);
+    const [content, links] = await Promise.all([this.loadClinicalContent(profileId, [medication]), this.loadLinkLabels(profileId, [medication])]);
+    return this.toDto(medication, content, links);
+  }
+
+  /** Two queries at most per list()/byId() — never one per medicine — and scoped to this profile's own rows. */
+  private async loadLinkLabels(
+    profileId: string,
+    medications: Array<{ reasonConditionId: string | null; prescribingPractitionerId: string | null }>,
+  ): Promise<LinkLabels> {
+    const conditionIds = [...new Set(medications.map((m) => m.reasonConditionId).filter((v): v is string => !!v))];
+    const practitionerIds = [...new Set(medications.map((m) => m.prescribingPractitionerId).filter((v): v is string => !!v))];
+    const [conditions, practitioners] = await Promise.all([
+      conditionIds.length
+        ? this.prisma.patientCondition.findMany({ where: { id: { in: conditionIds }, patientProfileId: profileId }, select: { id: true, label: true } })
+        : [],
+      practitionerIds.length
+        ? this.prisma.practitioner.findMany({ where: { id: { in: practitionerIds }, createdByProfileId: profileId }, select: { id: true, displayName: true } })
+        : [],
+    ]);
+    return {
+      conditions: new Map(conditions.map((c) => [c.id, c.label])),
+      practitioners: new Map(practitioners.map((p) => [p.id, p.displayName])),
+    };
+  }
+
+  /** `reasonConditionId` must be one of this profile's (non-deleted) conditions — a foreign id is a 400, never a silent link. */
+  private async requireCondition(tx: Tx, profileId: string, conditionId: string) {
+    const condition = await tx.patientCondition.findFirst({ where: { id: conditionId, patientProfileId: profileId, deletedAt: null } });
+    if (!condition) {
+      throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown condition", 400, [
+        { path: "reasonConditionId", message: "Not one of this profile's conditions" },
+      ]);
+    }
+    return condition;
+  }
+
+  /** `prescribingPractitionerId` must be one of this profile's own doctors. */
+  private async requirePractitioner(tx: Tx, profileId: string, practitionerId: string) {
+    const practitioner = await tx.practitioner.findFirst({ where: { id: practitionerId, createdByProfileId: profileId, deletedAt: null } });
+    if (!practitioner) {
+      throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "Unknown doctor", 400, [
+        { path: "prescribingPractitionerId", message: "Not one of this profile's doctors" },
+      ]);
+    }
+    return practitioner;
   }
 
   /**
@@ -490,6 +548,9 @@ export class MedicationsService {
       rowVersion: number;
       normalizationStatus: string;
       createdAt: Date;
+      /** Phase 2 links (docs_v2/04 §4.1) — labels resolved through `links`, never a per-row query. */
+      reasonConditionId: string | null;
+      prescribingPractitionerId: string | null;
       practitioner: { displayName: string } | null;
       prescription: { id: string; prescribedAt: Date | null; deletedAt: Date | null; practitioner: { displayName: string } | null } | null;
       product:
@@ -517,6 +578,7 @@ export class MedicationsService {
       byIngredientId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>;
       byProductId: Map<string, Partial<Record<ClinicalContentKind, ClinicalContentEntry>>>;
     } = { byIngredientId: new Map(), byProductId: new Map() },
+    links: LinkLabels = { conditions: new Map(), practitioners: new Map() },
   ) {
     const instruction = m.instructions[0];
     const byKind = m.product
@@ -551,6 +613,19 @@ export class MedicationsService {
         : null,
       clinicalContent,
       patientReason: m.patientReason,
+      // Phase 2 (docs_v2/04 §4.1): "why am I taking it" as a link to the
+      // patient's own condition, and who prescribed it, alongside — never
+      // instead of — the free-text reason the patient wrote themselves.
+      // A label missing from `links` means the row was deleted or belongs to
+      // another profile; the id is then dropped rather than shown bare.
+      reasonCondition:
+        m.reasonConditionId && links.conditions.has(m.reasonConditionId)
+          ? { id: m.reasonConditionId, label: links.conditions.get(m.reasonConditionId)! }
+          : null,
+      prescribingPractitioner:
+        m.prescribingPractitionerId && links.practitioners.has(m.prescribingPractitionerId)
+          ? { id: m.prescribingPractitionerId, displayName: links.practitioners.get(m.prescribingPractitionerId)! }
+          : null,
       prescriberName: m.practitioner?.displayName ?? null,
       // A soft-deleted prescription stops being surfaced as live evidence,
       // but the medicine's own row and its FK are left untouched (this app

@@ -19,6 +19,10 @@ export const instructionSchema = z
     durationDays: z.coerce.number().int().positive().max(365).optional(),
     /** Original captured text (e.g. OCR or user-entered shorthand). Preserved verbatim. */
     originalText: z.string().max(500).optional(),
+    /** V2 Phase 2 (docs_v2/04 §4.1): route/strength as written, and a planned stop date the doctor gave. */
+    routeText: z.string().trim().max(60).nullable().optional(),
+    strengthLabel: z.string().trim().max(60).nullable().optional(),
+    stopPlannedAt: z.coerce.date().nullable().optional(),
   })
   .superRefine((v, ctx) => {
     if (v.frequencyCode === "PATTERN" && !v.pattern) {
@@ -97,8 +101,33 @@ export const updateMedicationSchema = z.object({
   quantityOnHand: quantityOnHandSchema.nullable().optional(),
   criticalEscalation: z.boolean().optional(),
   instruction: instructionSchema.optional(),
+  /**
+   * V2 Phase 2 (docs_v2/05 §4). Sent without `instruction`, each of these
+   * supersedes the current instruction with a copy carrying the new value
+   * (copy-on-write, same as the dose-unit correction); sent with one, they
+   * override the matching field on it.
+   */
+  routeText: z.string().trim().max(60).nullable().optional(),
+  strengthLabel: z.string().trim().max(60).nullable().optional(),
+  stopPlannedAt: z.coerce.date().nullable().optional(),
+  /** "Why am I taking it" as a link to one of this profile's conditions; null unlinks. */
+  reasonConditionId: z.string().uuid().nullable().optional(),
+  /** Who prescribed it, as a link to one of this profile's doctors; null unlinks. */
+  prescribingPractitionerId: z.string().uuid().nullable().optional(),
 });
 export type UpdateMedicationInput = z.infer<typeof updateMedicationSchema>;
+
+/**
+ * Refill plan (docs_v2/04 §4.1 `MedicationRefillPlan`): what the patient
+ * holds and buys — never what they should. `dailyConsumption` and the
+ * projected run-out date are computed server-side from the active
+ * schedule; clients cannot send them.
+ */
+export const putRefillPlanSchema = z.object({
+  packSize: z.coerce.number().positive().max(100_000).nullable().optional(),
+  quantityOnHand: quantityOnHandSchema.nullable().optional(),
+});
+export type PutRefillPlanInput = z.infer<typeof putRefillPlanSchema>;
 
 export const changeMedicationStatusSchema = z.object({
   rowVersion: z.number().int().nonnegative(),

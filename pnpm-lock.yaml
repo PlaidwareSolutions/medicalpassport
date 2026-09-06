@@ -285,6 +285,9 @@ importers:
       '@medpass/offline-sync':
         specifier: workspace:*
         version: link:../../packages/offline-sync
+      '@medpass/terminology':
+        specifier: workspace:*
+        version: link:../../packages/terminology
       '@medpass/ui-web':
         specifier: workspace:*
         version: link:../../packages/ui-web
