@@ -130,6 +130,10 @@ export const AUDIT_ACTIONS = [
   "notification.preferences_updated",
   "notification.dismissed",
   "notification.channel_revoked",
+  /** V2 Phase 6 (docs_v2/06 P6-4): a caregiver-facing kind was queued for dispatch. */
+  "notification.caregiver_queued",
+  /** V2 Phase 6 (docs_v2/05 §8): the family dashboard read a profile as a caregiver. */
+  "caregiver.family_viewed",
   "data.export_requested",
   "data.deletion_requested",
   "account.erased",
@@ -153,8 +157,56 @@ export const AUDIT_ACTIONS = [
   "admin.share_revoked",
   "admin.findings_viewed",
   "content.enrichment_drafted",
+  // V2 Phases 11–14 (ADR-V2-009): provider portals. Every provider read and
+  // write carries the organization id in `context`; writes are proposals
+  // only — the clinical tables change on the patient's accept.
+  "provider.login_failed",
+  "provider.session_created",
+  "provider.session_revoked",
+  "provider.organization_updated",
+  "provider.member_added",
+  "provider.member_updated",
+  "provider.member_removed",
+  "provider.onboarding_token_created",
+  "provider.link_created",
+  "provider.link_revoked",
+  "provider.patients_listed",
+  "provider.snapshot_viewed",
+  "provider.proposal_created",
+  "provider.proposal_viewed",
+  "provider.proposal_accepted",
+  "provider.proposal_rejected",
+  /** V2 Phase 8 / 15 (docs_v2/05 §10, docs_v2/08): FHIR export of the patient's own record and the Indian Patient Summary. */
+  "fhir.exported",
+  "fhir.patient_summary_exported",
+  /** V2 Phase 8 (docs_v2/08 §5 M8A/M8B/M8D): ABHA identity and PHR flows. */
+  "abha.link_initiated",
+  "abha.linked",
+  "abha.unlinked",
+  "abdm.discovery_requested",
+  "abdm.care_contexts_linked",
+  "abdm.consent_revoked",
+  "abdm.bundle_imported",
+  /** V2 Phase 17 (docs_v2/05 §12): test-due schedules and measurement reminders. */
+  "test_due.created",
+  "test_due.updated",
+  "test_due.deleted",
+  "notification.measurement_reminders_updated",
+  /** V2 admin platform (docs_v2/14 §3): flags, support cases, break-glass, consent audit. */
+  "admin.flag_updated",
+  "admin.support_case_created",
+  "admin.support_case_updated",
+  "admin.support_case_note_added",
+  "admin.break_glass_granted",
+  "admin.break_glass_listed",
+  "admin.consent_audit_viewed",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
-export type AuditActorType = "patient" | "caregiver" | "admin" | "system" | "share_visitor";
+/**
+ * `provider` (V2 Phase 11) is a clinician, pharmacist or lab technician
+ * acting inside an Organization — kept distinct from `system` so "every
+ * provider read is audited" is a query, not a scan of system rows.
+ */
+export type AuditActorType = "patient" | "caregiver" | "admin" | "system" | "share_visitor" | "provider";

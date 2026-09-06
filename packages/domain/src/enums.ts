@@ -202,6 +202,109 @@ export const RTL_LOCALES: readonly Locale[] = ["ur"];
 export const NOTIFICATION_PRIVACY_MODES = ["generic", "full_name"] as const;
 export type NotificationPrivacyMode = (typeof NOTIFICATION_PRIVACY_MODES)[number];
 
+/** Mirrors the Prisma `NotificationKind` enum (docs_v2/04 §12). */
+export const NOTIFICATION_KINDS = [
+  "dose_reminder",
+  "refill",
+  "completion",
+  "missed_dose",
+  "safety_finding",
+  "caregiver_escalation",
+  "dose_correction",
+  "system",
+  "measurement_reminder",
+  "test_due",
+  "follow_up",
+  "unusual_measurement",
+  "new_prescription",
+  "new_test_result",
+  "refill_low",
+] as const;
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+/**
+ * Kinds the per-kind channel/frequency control (docs_v2/04 §12, roadmap §26
+ * "avoid notification overload") can never turn down. Hazard H-48: a dose
+ * reminder or a missed-dose escalation muted by a preference is exactly the
+ * silent failure the control exists to prevent elsewhere.
+ */
+export const NOTIFICATION_KINDS_NEVER_MUTED = ["dose_reminder", "caregiver_escalation"] as const satisfies readonly NotificationKind[];
+
+/**
+ * Caregiver-facing kinds (docs_v2/06 P6-4): fan out only to caregivers whose
+ * scopes grant the underlying record, never to the patient and never to the
+ * user whose own action produced them. `unusual_measurement` is deliberately
+ * absent — hazard H-41: no alert until a Safety-Board-approved rule exists.
+ */
+export const CAREGIVER_NOTIFICATION_KINDS = ["new_prescription", "new_test_result", "refill_low"] as const satisfies readonly NotificationKind[];
+export type CaregiverNotificationKind = (typeof CAREGIVER_NOTIFICATION_KINDS)[number];
+
+/**
+ * Delivery channels a patient can pick per kind. WhatsApp waits for a BSP
+ * (docs_v2/05 §12, OD-10). `email` (P17) is carried end to end but only the
+ * `log` transport exists — no SMTP until a mail provider is chosen.
+ */
+export const NOTIFICATION_CHANNELS = ["web_push", "sms", "email"] as const;
+export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
+
+/**
+ * P17 notification-overload guardrail (hazard H-48): the most rows of one
+ * kind the dispatcher will send a profile in one calendar day. Rows past
+ * the cap are cancelled (or held, for kinds with their own in-app list) —
+ * never `dose_reminder` / `caregiver_escalation`, which are absent here by
+ * construction: the cap applies only to kinds listed. The constant table
+ * lives here so the API and the cron read one source.
+ */
+export const NOTIFICATION_DAILY_CAP_BY_KIND: Readonly<Partial<Record<NotificationKind, number>>> = {
+  refill: 3,
+  completion: 3,
+  refill_low: 3,
+  dose_correction: 5,
+  new_prescription: 10,
+  new_test_result: 10,
+  test_due: 3,
+  measurement_reminder: 12,
+  follow_up: 3,
+  unusual_measurement: 5,
+  system: 5,
+};
+
+/** `TestDueSchedule.status` (docs_v2/04 §12): `pending` → `notified` (one-off) or rolled forward (recurring); `done` when a matching result arrives; `dismissed` by the patient. */
+export const TEST_DUE_STATUSES = ["pending", "notified", "done", "dismissed"] as const;
+export type TestDueStatus = (typeof TEST_DUE_STATUSES)[number];
+
+/**
+ * Measurement reminders (P17) live in their own column,
+ * `NotificationPreference.measurementRemindersJson`. Before that column
+ * existed they were stored inside `channelFrequencyJson` under this reserved
+ * key, so every reader still accepts the wrapped shape. The key is not a
+ * NotificationKind: the preferences endpoint refuses it from clients and the
+ * tolerant readers of the per-kind map skip it.
+ */
+export const MEASUREMENT_REMINDERS_JSON_KEY = "_measurement_reminders" as const;
+/** ISO weekday numbers, Monday = 1 … Sunday = 7. */
+export const MEASUREMENT_REMINDER_DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+export const MEASUREMENT_REMINDER_MAX_TIMES_PER_CONCEPT = 6;
+
+/** `daily_digest` batches a kind into one morning send in the profile's own zone. */
+export const NOTIFICATION_FREQUENCIES = ["immediate", "daily_digest", "off"] as const;
+export type NotificationFrequency = (typeof NOTIFICATION_FREQUENCIES)[number];
+
+/** docs_v2/04 §11 — who a share link is meant for. Informational and logged; never an authorization. */
+export const SHARE_AUDIENCES = ["doctor", "clinic", "caregiver", "pharmacy", "unspecified"] as const;
+export type ShareAudience = (typeof SHARE_AUDIENCES)[number];
+
+/** docs_v2/04 §11 — expiry presets. Custom `expiresAt` stays capped at 30 days. */
+export const SHARE_EXPIRY_PRESETS = ["15m", "1h", "24h", "7d"] as const;
+export type ShareExpiryPreset = (typeof SHARE_EXPIRY_PRESETS)[number];
+export const SHARE_EXPIRY_PRESET_MINUTES: Readonly<Record<ShareExpiryPreset, number>> = {
+  "15m": 15,
+  "1h": 60,
+  "24h": 24 * 60,
+  "7d": 7 * 24 * 60,
+};
+export const SHARE_MAX_EXPIRY_MINUTES = 30 * 24 * 60;
+
 export const SAFETY_FINDING_CATEGORIES = [
   "exact_ingredient_duplication",
   "partial_ingredient_duplication",

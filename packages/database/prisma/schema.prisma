@@ -1381,6 +1381,11 @@ model Notification {
   privacyMode         NotificationPrivacyMode @default(generic) @map("privacy_mode")
   dedupeKey           String                  @unique @map("dedupe_key")
   status              NotificationStatus      @default(pending)
+  /// V2 Phase 6 (docs_v2/04 §12): the user whose own action produced a
+  /// caregiver-facing kind (`new_prescription`, `new_test_result`). Never a
+  /// recipient of that notification — a caregiver is not told about the
+  /// prescription they just filed themselves.
+  triggeredByUserId   String?                 @map("triggered_by_user_id") @db.Uuid
   createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
 
   attempts NotificationAttempt[]
@@ -1447,6 +1452,11 @@ model NotificationPreference {
 
   /// V2 Phase 17 (docs_v2/04 §12): per-kind {channels[], frequency} controls.
   channelFrequencyJson Json? @map("channel_frequency_json")
+  /// V2 Phase 17: per-concept measurement reminder plan
+  /// `{concepts: {<concept>: {times[], days[]}}}`. Its own column rather than
+  /// a reserved key inside channelFrequencyJson, so a saved plan can never
+  /// collide with a NotificationKind.
+  measurementRemindersJson Json? @map("measurement_reminders_json")
   @@map("notification_preferences")
 }
 
@@ -1630,6 +1640,13 @@ model ShareAccessEvent {
   shareLink   ShareLink         @relation(fields: [shareLinkId], references: [id])
   result      ShareAccessResult
   ipDigest    String?           @map("ip_digest")
+  /// V2 Phase 7 (docs_v2/05 §9): what was read — `summary` (the V1 payload
+  /// and PDF), `snapshot` (Doctor Snapshot), or `document_page` (one page
+  /// of a shared document, with `documentId`/`pageNumber` set). Null on
+  /// rows written before this column existed, which were all `summary`.
+  resource    String?
+  documentId  String?           @map("document_id") @db.Uuid
+  pageNumber  Int?              @map("page_number")
   accessedAt  DateTime          @default(now()) @map("accessed_at") @db.Timestamptz(6)
 
   @@index([shareLinkId, accessedAt])
@@ -1945,6 +1962,11 @@ enum AuditActorType {
   admin
   system
   share_visitor
+  /// V2 Phase 11 (docs_v2/05 §11): a clinician, pharmacist or lab technician
+  /// acting inside an Organization. Distinct from `system` so "every provider
+  /// read is audited with the organization id" is answerable by a query
+  /// rather than by inspecting the context of every system row.
+  provider
 }
 
 enum BackupExecutionStatus {

@@ -1,0 +1,14 @@
+{
+  "resourceType": "Patient",
+  "id": "7d8e9f0a-1b2c-4d3e-9f4a-5b6c7d8e9f0a",
+  "meta": {
+    "profile": [
+      "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Patient"
+    ]
+  },
+  "name": [
+    {
+      "text": "Ravi Demo"
+    }
+  ]
+}

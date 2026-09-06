@@ -59,6 +59,8 @@ import { SafetyEvaluationService } from "./modules/safety/safety-evaluation.serv
 import { SharingController } from "./modules/sharing/sharing.controller";
 import { SharingService } from "./modules/sharing/sharing.service";
 import { VisitSummaryService } from "./modules/sharing/visit-summary.service";
+import { DoctorSnapshotService } from "./modules/sharing/doctor-snapshot.service";
+import { FamilyService } from "./modules/caregivers/family.service";
 import { LeadsController } from "./modules/leads/leads.controller";
 import { LeadsService } from "./modules/leads/leads.service";
 import { VisitSummaryPdfService } from "./modules/sharing/visit-summary-pdf.service";
@@ -85,7 +87,38 @@ import { EncountersController } from "./modules/encounters/encounters.controller
 import { EncountersService } from "./modules/encounters/encounters.service";
 import { HealthTimelineController } from "./modules/timeline/health-timeline.controller";
 import { HealthTimelineService } from "./modules/timeline/health-timeline.service";
+import { ProviderGuard } from "./modules/providers/provider.guard";
+import { ProviderAuthController } from "./modules/providers/provider-auth.controller";
+import { ProviderAuthService } from "./modules/providers/provider-auth.service";
+import { ProviderOrganizationsController } from "./modules/providers/provider-organizations.controller";
+import { ProviderOrganizationsService } from "./modules/providers/provider-organizations.service";
+import { PatientLinksController } from "./modules/providers/patient-links.controller";
+import { PatientLinksService } from "./modules/providers/patient-links.service";
+import { ProviderPatientsController } from "./modules/providers/provider-patients.controller";
+import { ProposalsService } from "./modules/proposals/proposals.service";
+import { ProposalApplyService } from "./modules/proposals/proposal-apply.service";
+import { ProviderProposalsController } from "./modules/proposals/provider-proposals.controller";
+import { ProposalsController } from "./modules/proposals/proposals.controller";
 import { OpenApiController } from "./openapi/openapi.controller";
+import { FeatureFlagService } from "./modules/meta/feature-flag.service";
+import { TestDueController } from "./modules/test-due/test-due.controller";
+import { TestDueService } from "./modules/test-due/test-due.service";
+import { AdminFlagsController } from "./modules/admin-platform/admin-flags.controller";
+import { AdminSupportCasesController } from "./modules/admin-platform/admin-support-cases.controller";
+import { AdminBreakGlassController } from "./modules/admin-platform/admin-break-glass.controller";
+import { BreakGlassService } from "./modules/admin-platform/break-glass.service";
+import { AdminConsentAuditController } from "./modules/admin-platform/admin-consent-audit.controller";
+import { AdminDocumentsStatusController } from "./modules/admin-platform/admin-documents-status.controller";
+import { AdminAbdmTransactionsController } from "./modules/admin-platform/admin-abdm-transactions.controller";
+import { AdminFhirFailuresController } from "./modules/admin-platform/admin-fhir-failures.controller";
+import { AdminIntegrationsController } from "./modules/admin-platform/admin-integrations.controller";
+import { AdminNotificationFailuresController } from "./modules/admin-platform/admin-notification-failures.controller";
+import { FhirController } from "./modules/fhir/fhir.controller";
+import { FhirExportService } from "./modules/fhir/fhir-export.service";
+import { AbdmController } from "./modules/abdm/abdm.controller";
+import { AbdmService } from "./modules/abdm/abdm.service";
+import { AbdmImportService } from "./modules/abdm/abdm-import.service";
+import { ABDM_GATEWAY_CLIENT, HttpAbdmGatewayClient, MockAbdmGatewayClient, type AbdmGatewayClient } from "./modules/abdm/gateway-client";
 
 export const logger = createLogger("api");
 
@@ -139,6 +172,25 @@ const OTP_SENDER = "OTP_SENDER";
     OpenApiController,
     EncountersController,
     HealthTimelineController,
+    ProviderAuthController,
+    ProviderOrganizationsController,
+    PatientLinksController,
+    ProviderPatientsController,
+    ProviderProposalsController,
+    ProposalsController,
+    FhirController,
+    AbdmController,
+    // V2 Phase 17 + admin platform (docs_v2/05 §12–§14, docs_v2/14 §3).
+    TestDueController,
+    AdminFlagsController,
+    AdminSupportCasesController,
+    AdminBreakGlassController,
+    AdminConsentAuditController,
+    AdminDocumentsStatusController,
+    AdminAbdmTransactionsController,
+    AdminFhirFailuresController,
+    AdminIntegrationsController,
+    AdminNotificationFailuresController,
   ],
   providers: [
     PrismaService,
@@ -163,6 +215,8 @@ const OTP_SENDER = "OTP_SENDER";
     SharingService,
     LeadsService,
     VisitSummaryService,
+    DoctorSnapshotService,
+    FamilyService,
     VisitSummaryPdfService,
     DocumentsService,
     ExtractionService,
@@ -174,6 +228,29 @@ const OTP_SENDER = "OTP_SENDER";
     OrganizationsService,
     EncountersService,
     HealthTimelineService,
+    ProviderGuard,
+    ProviderAuthService,
+    ProviderOrganizationsService,
+    PatientLinksService,
+    ProposalsService,
+    ProposalApplyService,
+    FhirExportService,
+    AbdmService,
+    AbdmImportService,
+    FeatureFlagService,
+    TestDueService,
+    BreakGlassService,
+    {
+      // docs_v2/08 §4/§9: the API talks to apps/abdm-gateway's private API; with no
+      // ABDM_GATEWAY_URL an in-process mock replays sandbox fixtures (local, CI).
+      provide: ABDM_GATEWAY_CLIENT,
+      useFactory: (): AbdmGatewayClient => {
+        const e = env();
+        if (!e.ABDM_GATEWAY_URL) return new MockAbdmGatewayClient();
+        if (!e.ABDM_INTERNAL_TOKEN) throw new Error("ABDM_GATEWAY_URL requires ABDM_INTERNAL_TOKEN");
+        return new HttpAbdmGatewayClient(e.ABDM_GATEWAY_URL.replace(/\/$/, ""), e.ABDM_INTERNAL_TOKEN, e.ABDM_GATEWAY_ENV);
+      },
+    },
     {
       provide: OTP_SENDER,
       // OTP_TRANSPORT="sms" (docs/16, OD-10 — now unblocked via Telnyx) sends

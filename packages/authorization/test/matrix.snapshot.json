@@ -41,8 +41,15 @@
     "upload_documents"
   ],
   "apiActionsByFile": {
+    "modules/abdm/abdm.controller.ts": [
+      "manage_consents",
+      "upload_documents",
+      "view_documents",
+      "view_profile"
+    ],
     "modules/caregivers/caregivers.controller.ts": [
-      "manage_caregivers"
+      "manage_caregivers",
+      "view_profile"
     ],
     "modules/claims/claims.controller.ts": [
       "manage_claim"
@@ -80,6 +87,9 @@
       "add_medications",
       "view_medications"
     ],
+    "modules/fhir/fhir.controller.ts": [
+      "share_records"
+    ],
     "modules/glucose/glucose.controller.ts": [
       "edit_profile",
       "view_profile"
@@ -115,6 +125,15 @@
       "edit_profile",
       "view_profile"
     ],
+    "modules/proposals/proposals.controller.ts": [
+      "edit_medications",
+      "edit_profile",
+      "upload_tests",
+      "view_profile"
+    ],
+    "modules/providers/patient-links.controller.ts": [
+      "share_records"
+    ],
     "modules/reports/reports.controller.ts": [
       "edit_profile",
       "view_profile"
@@ -134,6 +153,10 @@
       "edit_medications",
       "record_doses",
       "view_medications"
+    ],
+    "modules/test-due/test-due.controller.ts": [
+      "upload_tests",
+      "view_tests"
     ],
     "modules/timeline/health-timeline.controller.ts": [
       "view_profile"

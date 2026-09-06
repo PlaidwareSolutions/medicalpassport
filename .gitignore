@@ -24,6 +24,9 @@ coverage/
 apps/patient-web/e2e/.auth/
 apps/patient-web/test-results/
 apps/patient-web/playwright-report/
+apps/provider-web/e2e/.auth/
+apps/provider-web/test-results/
+apps/provider-web/playwright-report/
 
 # local databases / scratch
 *.local

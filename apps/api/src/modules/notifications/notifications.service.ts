@@ -1,8 +1,19 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { dailySlotQuantity, type SlotDose } from "@medpass/medication-terminology";
-import { CAREGIVER_ALERT_MAX_ITEMS, CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES, type AuditActorType } from "@medpass/domain";
-import type { NotificationPreferencesInput, WebPushSubscribeInput } from "@medpass/validation";
+import {
+  CAREGIVER_ALERT_MAX_ITEMS,
+  CAREGIVER_ALERT_WINDOW_DAYS,
+  ERROR_CODES,
+  MEASUREMENT_REMINDERS_JSON_KEY,
+  NOTIFICATION_CHANNELS,
+  OBSERVATION_CONCEPTS,
+  type AuditActorType,
+  type NotificationChannel,
+} from "@medpass/domain";
+import type { ChannelFrequencyInput, MeasurementRemindersInput, NotificationPreferencesInput, WebPushSubscribeInput } from "@medpass/validation";
+// A value import, not type-only: clearing the reminder plan needs Prisma.DbNull.
+import { Prisma } from "@medpass/database";
 import { ApiProblem } from "../../common/errors";
 import { encryptField, sha256Hex } from "../../common/crypto";
 import { env } from "../../common/env";
@@ -12,6 +23,50 @@ interface Actor {
   userId: string;
   actorRole: "patient" | "caregiver";
   correlationId?: string;
+}
+
+/** Tolerant read of the stored JSON: anything malformed reads as "no control set", never as a 500 on the settings screen. */
+export function readChannelFrequency(raw: unknown): ChannelFrequencyInput {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: ChannelFrequencyInput = {};
+  for (const [kind, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object") continue;
+    const entry = value as { channels?: unknown; frequency?: unknown };
+    if (!Array.isArray(entry.channels) || typeof entry.frequency !== "string") continue;
+    out[kind] = {
+      channels: entry.channels.filter((c): c is NotificationChannel => (NOTIFICATION_CHANNELS as readonly unknown[]).includes(c)),
+      frequency: entry.frequency as ChannelFrequencyInput[string]["frequency"],
+    };
+  }
+  return out;
+}
+
+/**
+ * Tolerant read of the measurement-reminder plan (P17). The plan has its own
+ * column now; a plan written before that column existed sat under a reserved
+ * key inside `channelFrequencyJson`, so both shapes are accepted — pass
+ * either column's value. Mirrors apps/cron/src/lib/measurement-reminders.ts
+ * `readMeasurementReminders`.
+ */
+export function readMeasurementReminders(raw: unknown): MeasurementRemindersInput {
+  const out: MeasurementRemindersInput = { concepts: {} };
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  const asRecord = raw as Record<string, unknown>;
+  const reserved = MEASUREMENT_REMINDERS_JSON_KEY in asRecord ? asRecord[MEASUREMENT_REMINDERS_JSON_KEY] : asRecord;
+  if (!reserved || typeof reserved !== "object" || Array.isArray(reserved)) return out;
+  const concepts = (reserved as { concepts?: unknown }).concepts;
+  if (!concepts || typeof concepts !== "object" || Array.isArray(concepts)) return out;
+  for (const [concept, plan] of Object.entries(concepts as Record<string, unknown>)) {
+    if (!(OBSERVATION_CONCEPTS as readonly string[]).includes(concept)) continue;
+    if (!plan || typeof plan !== "object") continue;
+    const { times, days } = plan as { times?: unknown; days?: unknown };
+    if (!Array.isArray(times) || !Array.isArray(days)) continue;
+    out.concepts[concept as keyof MeasurementRemindersInput["concepts"]] = {
+      times: times.filter((t): t is string => typeof t === "string"),
+      days: days.filter((d): d is number => Number.isInteger(d)),
+    };
+  }
+  return out;
 }
 
 @Injectable()
@@ -58,15 +113,29 @@ export class NotificationsService {
       quietHoursEnd: pref?.quietHoursEnd ?? "07:00",
       soundEnabled: pref?.soundEnabled ?? true,
       vibrationEnabled: pref?.vibrationEnabled ?? true,
+      // Per-kind {channels[], frequency} (docs_v2/04 §12). An absent kind
+      // means "immediate on every channel the profile has" — the V1
+      // behaviour — so the default is an empty map, not a filled-in one.
+      channelFrequency: readChannelFrequency(pref?.channelFrequencyJson),
     };
   }
 
+  /**
+   * Full replace (POST and PUT share this). `channelFrequency` is only
+   * touched when the body carries it, so the V1 PWA's POST — which never
+   * sends the key — cannot wipe a control the patient set on the new
+   * screen. `dose_reminder`/`caregiver_escalation` entries are refused by
+   * the schema (hazard H-48), and the dispatch cron ignores them anyway.
+   */
   async updatePreferences(profileId: string, input: NotificationPreferencesInput, actor: Actor) {
+    const { channelFrequency, ...columns } = input;
     await this.prisma.$transaction(async (tx) => {
+      const channelFrequencyJson: Prisma.InputJsonObject | undefined =
+        channelFrequency === undefined ? undefined : (channelFrequency as Prisma.InputJsonObject);
       await tx.notificationPreference.upsert({
         where: { patientProfileId: profileId },
-        create: { patientProfileId: profileId, ...input },
-        update: { ...input },
+        create: { patientProfileId: profileId, ...columns, ...(channelFrequencyJson === undefined ? {} : { channelFrequencyJson }) },
+        update: { ...columns, ...(channelFrequencyJson === undefined ? {} : { channelFrequencyJson }) },
       });
       await writeAudit(tx, {
         action: "notification.preferences_updated",
@@ -82,10 +151,76 @@ export class NotificationsService {
           quietHoursEnabled: input.quietHoursEnabled,
           soundEnabled: input.soundEnabled,
           vibrationEnabled: input.vibrationEnabled,
+          // Kinds and frequencies only — no PHI in a preference anyway, but keep it coarse.
+          ...(channelFrequency
+            ? { channelFrequency: Object.fromEntries(Object.entries(channelFrequency).map(([k, v]) => [k, v.frequency])) }
+            : {}),
         },
       });
     });
-    return input;
+    return this.getPreferences(profileId);
+  }
+
+  // ───────────────────────── Measurement reminders (P17) ─────────────────────────
+
+  async getMeasurementReminders(profileId: string): Promise<MeasurementRemindersInput> {
+    const pref = await this.prisma.notificationPreference.findUnique({
+      where: { patientProfileId: profileId },
+      select: { measurementRemindersJson: true, channelFrequencyJson: true },
+    });
+    if (!pref) return { concepts: {} };
+    // The plan has its own column; rows written before that column existed
+    // kept it under a reserved key in channelFrequencyJson.
+    const fromColumn = readMeasurementReminders(pref.measurementRemindersJson);
+    if (Object.keys(fromColumn.concepts).length > 0) return fromColumn;
+    return readMeasurementReminders(pref.channelFrequencyJson);
+  }
+
+  /**
+   * Full replace of the reminder plan (`GET/PUT profiles/current/measurement-reminders`),
+   * in its own column so a saved plan can never collide with a
+   * NotificationKind. The `detect-measurement-reminders` cron reads it, and
+   * still falls back to the pre-column reserved key.
+   */
+  async updateMeasurementReminders(profileId: string, input: MeasurementRemindersInput, actor: Actor): Promise<MeasurementRemindersInput> {
+    await this.prisma.$transaction(async (tx) => {
+      const measurementRemindersJson: Prisma.InputJsonValue | typeof Prisma.DbNull =
+        Object.keys(input.concepts).length > 0 ? (input as unknown as Prisma.InputJsonValue) : Prisma.DbNull;
+      await tx.notificationPreference.upsert({
+        where: { patientProfileId: profileId },
+        create: { patientProfileId: profileId, measurementRemindersJson },
+        update: { measurementRemindersJson },
+      });
+      await writeAudit(tx, {
+        action: "notification.measurement_reminders_updated",
+        actorUserId: actor.userId,
+        actorType: actor.actorRole as AuditActorType,
+        entityType: "notification_preference",
+        entityId: profileId,
+        patientProfileId: profileId,
+        correlationId: actor.correlationId,
+        // Concept keys and slot counts only.
+        context: { concepts: Object.fromEntries(Object.entries(input.concepts).map(([k, v]) => [k, v.times.length * v.days.length])) },
+      });
+    });
+    return this.getMeasurementReminders(profileId);
+  }
+
+  /**
+   * Queues a patient-facing `system` notification (docs_v2/10 H-49: the
+   * patient is told when an administrator opens their record). Generic by
+   * construction — the dispatcher's copy never says why. Keyed on the
+   * grant so a retried request cannot notify twice. Runs in the caller's
+   * transaction so a failed grant leaves no orphan ping.
+   */
+  async queueSystemNotification(tx: Prisma.TransactionClient, profileId: string, dedupeKey: string): Promise<{ id: string; created: boolean }> {
+    const existing = await tx.notification.findUnique({ where: { dedupeKey }, select: { id: true } });
+    if (existing) return { id: existing.id, created: false };
+    const created = await tx.notification.create({
+      data: { patientProfileId: profileId, kind: "system", privacyMode: "generic", dedupeKey, status: "pending" },
+      select: { id: true },
+    });
+    return { id: created.id, created: true };
   }
 
   /**

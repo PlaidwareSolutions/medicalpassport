@@ -48,6 +48,8 @@ export const ERROR_CODES = {
    * reading this app stores without comment.
    */
   OBSERVATION_OUT_OF_RANGE: "observation_out_of_range",
+  /** docs_v2/05 §12: the channel is defined but no provider is contracted yet (WhatsApp until OD-10). HTTP 501. */
+  CHANNEL_NOT_AVAILABLE: "channel_not_available",
   INTERNAL: "internal_error",
 } as const;
 

@@ -1,0 +1,19 @@
+{
+  "resourceType": "Medication",
+  "id": "4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a",
+  "meta": {
+    "profile": [
+      "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Medication"
+    ]
+  },
+  "code": {
+    "text": "Atorvastatin 10 mg",
+    "coding": [
+      {
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+        "code": "83367",
+        "display": "atorvastatin"
+      }
+    ]
+  }
+}

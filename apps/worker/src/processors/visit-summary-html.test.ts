@@ -182,6 +182,29 @@ const fixture: Required<VisitSummaryDto> = {
     },
     { kind: "imaging", label: null, facilityName: null, practitionerName: null, testedAt: null, notes: null, documentCount: 0 },
   ],
+  measurements: [
+    {
+      concept: "blood_pressure",
+      label: "Blood pressure",
+      unit: "mmHg",
+      count: 6,
+      latest: { value: "128", value2: "82", measuredAt: "2026-09-05T02:00:00.000Z", context: "morning" },
+      minimum: "118",
+      maximum: "140",
+      average: "127.5",
+      average2: "81",
+    },
+    { concept: "body_weight", label: "Body weight", unit: "kg", count: 1, latest: { value: "72.4", value2: null, measuredAt: "2026-09-01T02:00:00.000Z", context: null }, minimum: "72.4", maximum: "72.4", average: "72.4", average2: null },
+    { concept: "other", label: "Other", unit: "", count: 1, latest: null, minimum: null, maximum: null, average: null, average2: null },
+  ],
+  documents: [
+    { id: "3f1c2b4e-9a7d-4c3e-8b21-0d5e6f7a8b9c", kind: "prescription", title: "Dr Sharma visit", documentDate: "2026-08-12", pageCount: 2, uploadedAt: "2026-08-12T10:00:00.000Z" },
+    { id: "5a6b7c8d-1e2f-4a3b-9c4d-5e6f7a8b9c0d", kind: "lab_report", title: null, documentDate: null, pageCount: 1, uploadedAt: "2026-08-20T10:00:00.000Z" },
+  ],
+  encounters: [
+    { kind: "outpatient", startedAt: "2026-08-12T09:00:00.000Z", endedAt: null, organizationName: "City Clinic", practitionerName: "Dr. Anand Rao", reasonText: "Quarterly review", diagnosisText: "Type 2 diabetes, controlled" },
+    { kind: "lab_visit", startedAt: "2026-08-10T04:00:00.000Z", endedAt: "2026-08-10T04:30:00.000Z", organizationName: null, practitionerName: null, reasonText: null, diagnosisText: null },
+  ],
 };
 
 const OPTIONAL_SECTIONS = workerMembers.filter((m) => m.includes("?")).map(memberName) as Array<keyof VisitSummaryDto>;
@@ -210,10 +233,33 @@ describe("renderVisitSummaryHtml — fixture coverage", () => {
       "Check-ups (last 90 days)",
       "Prescriptions (last 90 days)",
       "Test reports (last 90 days)",
+      "Home measurements (last 30 days)",
+      "Visits (last 90 days)",
+      "Documents on record",
       "Unresolved safety concerns",
     ]) {
       expect(html).toContain(`<h2>${heading}</h2>`);
     }
+  });
+
+  it("renders measurements: latest with both components, count, range, average; dashes when nothing numeric", () => {
+    expect(html).toContain("<td>Blood pressure</td><td><strong>128/82 mmHg</strong>");
+    expect(html).toContain(", morning)</span></td><td>6</td><td>118–140</td><td>127.5/81</td>");
+    expect(html).toContain("<td>Body weight</td><td><strong>72.4 kg</strong>");
+    expect(html).toContain("<td>Other</td><td>—</td><td>1</td><td>—</td><td>—</td>");
+  });
+
+  it("renders encounters with kind, date, where/who, reason and diagnosis; sparse ones plainly", () => {
+    expect(html).toContain("<strong>outpatient</strong>");
+    expect(html).toContain("— City Clinic · Dr. Anand Rao<br>Reason: Quarterly review<br>Diagnosis: Type 2 diabetes, controlled");
+    expect(html).toContain("<strong>lab visit</strong>");
+    expect(html).not.toContain("lab_visit");
+  });
+
+  it("renders documents as title/date/page count only — never the id", () => {
+    expect(html).toContain("<strong>Dr Sharma visit</strong> <span class=\"muted\">(12 Aug 2026)</span> — 2 page(s)");
+    expect(html).toContain("<strong>lab report</strong> <span class=\"muted\">(uploaded ");
+    expect(html).not.toContain("3f1c2b4e");
   });
 
   it("every optional section is actually read by the template (removing it changes the output)", () => {
@@ -346,6 +392,9 @@ describe("renderVisitSummaryHtml — nothing internal leaks", () => {
       checkups: [{ ...fixture.checkups[0]!, hba1cPercent: hostile, weightKg: hostile, waistCircumferenceCm: hostile, treatmentChanges: hostile }],
       prescriptions: [{ ...fixture.prescriptions[0]!, practitionerName: hostile, notes: hostile }],
       reports: [{ ...fixture.reports[0]!, kind: hostile, label: hostile, facilityName: hostile, practitionerName: hostile, notes: hostile, values: [{ label: hostile, enteredValue: hostile, unit: hostile, referenceText: hostile }] }],
+      measurements: [{ ...fixture.measurements[0]!, label: hostile, unit: hostile, latest: { value: hostile, value2: hostile, measuredAt: fixture.generatedAt, context: hostile }, minimum: hostile, maximum: hostile, average: hostile, average2: hostile }],
+      documents: [{ ...fixture.documents[0]!, kind: hostile, title: hostile }],
+      encounters: [{ ...fixture.encounters[0]!, kind: hostile, organizationName: hostile, practitionerName: hostile, reasonText: hostile, diagnosisText: hostile }],
     });
     expect(out).not.toContain("<script>");
     expect(out).not.toContain('alert("x")');
@@ -369,7 +418,13 @@ describe("renderVisitSummaryHtml — empty and omitted sections", () => {
       checkups: [],
       prescriptions: [],
       reports: [],
+      measurements: [],
+      documents: [],
+      encounters: [],
     });
+    expect(out).toContain("No measurements in this period.");
+    expect(out).toContain("No visits in this period.");
+    expect(out).toContain("No documents.");
     expect(out.match(/None recorded\./g)).toHaveLength(2);
     expect(out).toContain("No current medicines recorded.");
     expect(out).toContain("No changes in this period.");

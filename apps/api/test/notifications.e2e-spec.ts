@@ -91,6 +91,8 @@ describe("Notifications e2e", () => {
       quietHoursEnd: "07:00",
       soundEnabled: true,
       vibrationEnabled: true,
+      // V2 per-kind controls (docs_v2/04 §12): none set means an empty map, never a filled-in default.
+      channelFrequency: {},
     });
   });
 
@@ -131,6 +133,8 @@ describe("Notifications e2e", () => {
       quietHoursEnd: "07:00",
       soundEnabled: true,
       vibrationEnabled: true,
+      // V2 per-kind controls (docs_v2/04 §12): none set means an empty map, never a filled-in default.
+      channelFrequency: {},
     });
 
     const audit = await prisma.auditEvent.findFirst({

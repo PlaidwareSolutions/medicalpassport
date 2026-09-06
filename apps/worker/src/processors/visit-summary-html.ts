@@ -79,6 +79,36 @@ export interface VisitSummaryDto {
     /** Label/unit pre-resolved by the API — this renderer never maps analytes. */
     values?: Array<{ label: string; enteredValue: string; unit: string | null; referenceText: string | null }>;
   }>;
+  /** V2 Observation aggregates per concept, last 30 days — arithmetic only, never an interpretation. */
+  measurements?: Array<{
+    concept: string;
+    label: string;
+    unit: string;
+    count: number;
+    latest: { value: string; value2: string | null; measuredAt: string; context: string | null } | null;
+    minimum: string | null;
+    maximum: string | null;
+    average: string | null;
+    average2: string | null;
+  }>;
+  /** V2 documents. The id is for the public page route; this renderer never prints it. */
+  documents?: Array<{
+    id: string;
+    kind: string;
+    title: string | null;
+    documentDate: string | null;
+    pageCount: number;
+    uploadedAt: string;
+  }>;
+  encounters?: Array<{
+    kind: string;
+    startedAt: string;
+    endedAt: string | null;
+    organizationName: string | null;
+    practitionerName: string | null;
+    reasonText: string | null;
+    diagnosisText: string | null;
+  }>;
 }
 
 const CONTEXT_LABELS: Record<string, string> = {
@@ -326,6 +356,62 @@ export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
               })
               .join("")}</tbody></table>`
           : "<p class=\"muted\">No test reports in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.measurements) {
+    parts.push(
+      section(
+        "Home measurements (last 30 days)",
+        summary.measurements.length
+          ? // Numbers as recorded, in the canonical unit; no flags, no colours (docs/02).
+            `<table><thead><tr><th>Measurement</th><th>Latest</th><th>Readings</th><th>Range</th><th>Average</th></tr></thead><tbody>${summary.measurements
+              .map((m) => {
+                const latest = m.latest
+                  ? `<strong>${esc(m.latest.value)}${m.latest.value2 ? `/${esc(m.latest.value2)}` : ""} ${esc(m.unit)}</strong> <span class="muted">(${formatDate(m.latest.measuredAt)}${m.latest.context ? `, ${esc(contextLabel(m.latest.context))}` : ""})</span>`
+                  : "—";
+                const range = m.minimum != null && m.maximum != null ? `${esc(m.minimum)}–${esc(m.maximum)}` : "—";
+                const average = m.average != null ? `${esc(m.average)}${m.average2 != null ? `/${esc(m.average2)}` : ""}` : "—";
+                return `<tr><td>${esc(m.label)}</td><td>${latest}</td><td>${m.count}</td><td>${range}</td><td>${average}</td></tr>`;
+              })
+              .join("")}</tbody></table>`
+          : "<p class=\"muted\">No measurements in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.encounters) {
+    parts.push(
+      section(
+        "Visits (last 90 days)",
+        summary.encounters.length
+          ? `<ul>${summary.encounters
+              .map((e) => {
+                const where = [esc(e.organizationName), esc(e.practitionerName)].filter(Boolean).join(" · ");
+                const details = [e.reasonText ? `Reason: ${esc(e.reasonText)}` : "", e.diagnosisText ? `Diagnosis: ${esc(e.diagnosisText)}` : ""].filter(Boolean);
+                return `<li><strong>${esc(e.kind.replace(/_/g, " "))}</strong> <span class="muted">(${formatDate(e.startedAt)})</span>${where ? ` — ${where}` : ""}${details.length ? `<br>${details.join("<br>")}` : ""}</li>`;
+              })
+              .join("")}</ul>`
+          : "<p class=\"muted\">No visits in this period.</p>",
+      ),
+    );
+  }
+
+  if (summary.documents) {
+    parts.push(
+      section(
+        "Documents on record",
+        summary.documents.length
+          ? // Titles and dates only — never the document id or a page link;
+            // page access is the public share route's business, not the PDF's.
+            `<ul>${summary.documents
+              .map(
+                (d) =>
+                  `<li><strong>${esc(d.title) || esc(d.kind.replace(/_/g, " "))}</strong> <span class="muted">(${d.documentDate ? esc(formatDateOnly(d.documentDate)) : `uploaded ${formatDate(d.uploadedAt)}`})</span> — ${d.pageCount} page(s)</li>`,
+              )
+              .join("")}</ul>`
+          : "<p class=\"muted\">No documents.</p>",
       ),
     );
   }

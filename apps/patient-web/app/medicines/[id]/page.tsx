@@ -6,7 +6,9 @@ import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
 import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { ClinicalContentBlock } from "../../../components/ClinicalContentBlock";
+import { MedicationLinksCard } from "../../../components/MedicationLinksCard";
 import { PageHeader } from "../../../components/PageHeader";
+import { RefillPlanCard } from "../../../components/RefillPlanCard";
 import { api, getActiveProfileId } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { formatCalendarDate } from "../../../lib/patient-time";
@@ -143,6 +145,14 @@ export default function MedicineDetailPage() {
           </div>
         ) : null}
       </Card>
+
+      {/* Phase 2 (docs_v2/06 P2-5): why · who · since when · changes, then the refill plan. */}
+      <MedicationLinksCard medication={medication} onSaved={reload} />
+      <RefillPlanCard
+        medicationId={medication.id}
+        unitLabel={medication.instruction ? t(`unit.${medication.instruction.doseUnit}` as never) : t("refill.unit_generic")}
+        onSaved={reload}
+      />
 
       {/* The two "used for" blocks are always separate (docs/02 principle 3). */}
       <SectionTitle>{t("meds.your_reason")}</SectionTitle>

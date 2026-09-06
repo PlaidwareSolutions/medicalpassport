@@ -1,0 +1,33 @@
+{
+  "id": "9b0c1d2e-3f4a-4b5c-8d6e-7f8a9b0c1d2e",
+  "patient": {
+    "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+    "abhaAddress": "asha.demo@sbx",
+    "display": "Asha Demo"
+  },
+  "enteredName": "Paracetamol 650",
+  "medicationId": null,
+  "status": "paused",
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-20",
+  "patientReason": null,
+  "reasonConditionId": null,
+  "prescriptionId": null,
+  "isPrn": true,
+  "dosage": null,
+  "provenance": {
+    "source": "caregiver_entered",
+    "verification": "patient_confirmed",
+    "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+    "recordedVia": "native_android",
+    "recordedAt": "2026-08-14T09:30:00.000Z",
+    "sourceDocumentId": null,
+    "sourceExtractionId": null,
+    "sourceDeviceId": null,
+    "sourceAbdmTxnId": null,
+    "sourceOrganizationId": null,
+    "sourcePractitionerId": null,
+    "verifiedByUserId": null,
+    "verifiedAt": null
+  }
+}

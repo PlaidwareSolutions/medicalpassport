@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ApiError, type AuthorizeUploadResponseDto } from "@medpass/api-client";
@@ -7,6 +7,7 @@ import { Banner, Button, Card, ChoiceGrid, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { PageHeader } from "../../../components/PageHeader";
 import { api, getActiveProfileId, newIdempotencyKey } from "../../../lib/api";
+import { DOCUMENTS_V2 } from "../../../lib/flags";
 import { useI18n } from "../../../lib/i18n";
 
 type DocumentKind = "prescription" | "strip" | "box" | "bottle" | "discharge_summary" | "other";
@@ -14,11 +15,35 @@ type DocumentKind = "prescription" | "strip" | "box" | "bottle" | "discharge_sum
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 /**
+ * `/add/scan` entry point. With Documents V2 on (lib/flags.ts) this is a
+ * hand-off into the multi-page capture → classify → review flow with the
+ * kind pre-set to prescription (docs_v2/09 §10); with it off, the V1
+ * single-photo screen below runs exactly as before.
+ */
+export default function ScanDocumentPage() {
+  if (DOCUMENTS_V2) return <ScanHandoff />;
+  return <LegacyScanDocumentPage />;
+}
+
+function ScanHandoff() {
+  const { t } = useI18n();
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/documents/new?kind=prescription");
+  }, [router]);
+  return (
+    <AppShell>
+      <PillSpinner label={t("common.loading")} />
+    </AppShell>
+  );
+}
+
+/**
  * Screen (Stage 3/8): capture or choose a prescription photo, upload it via
  * a presigned URL, and kick off OCR. Nothing is treated as fact here — the
  * next screen is where the patient confirms every detail (docs/09 §6).
  */
-export default function ScanDocumentPage() {
+function LegacyScanDocumentPage() {
   const { t } = useI18n();
   const router = useRouter();
   const cameraInputRef = useRef<HTMLInputElement>(null);

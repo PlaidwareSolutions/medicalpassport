@@ -28,6 +28,7 @@ import { PrismaService } from "../../common/prisma.service";
 import { rejectClientInterpretation } from "../../common/provenance";
 import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
 import { EncountersService } from "../encounters/encounters.service";
+import { queueCaregiverNotification } from "../notifications/caregiver-notifications";
 import { PractitionersService } from "../practitioners/practitioners.service";
 
 interface Actor extends ProvenanceActor {
@@ -223,6 +224,18 @@ export class DiagnosticsService {
         context: { kind: input.kind },
       });
       await this.emitReportEvent(tx, profileId, actor, report.id, 0);
+      // Caregivers entitled to read tests are told a report arrived
+      // (docs_v2/06 P6-4) — never the person who filed it. Values added to
+      // the report afterwards ride on this same notification (one report,
+      // one alert), which is why it keys on the report id.
+      await queueCaregiverNotification(tx, {
+        patientProfileId: profileId,
+        kind: "new_test_result",
+        entityId: report.id,
+        triggeredByUserId: actor.userId,
+        triggeredByRole: actor.actorRole,
+        correlationId: actor.correlationId,
+      });
       return report;
     });
     return (await this.byId(profileId, created.id))!;

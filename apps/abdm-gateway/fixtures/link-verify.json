@@ -1,0 +1,7 @@
+{
+  "_recorded": "ABDM sandbox v0.5 — abha/login/verify (synthetic identity; the ABHA number is derived per seed at replay time)",
+  "otp": "000000",
+  "abhaNumber": "91-1234-5678-9012",
+  "abhaAddress": "sandbox.patient@sbx",
+  "profile": { "name": "ABDM Sandbox Patient", "gender": null, "yearOfBirth": null }
+}

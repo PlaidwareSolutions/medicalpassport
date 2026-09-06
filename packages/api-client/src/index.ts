@@ -227,6 +227,12 @@ export interface MedicationInstructionDto {
    * is prompted rather than illustrated (docs/07 screen 9).
    */
   doseUnitConfirmed: boolean;
+  /** V2 Phase 2: route as written ("oral", "topical"), null when unknown. */
+  routeText: string | null;
+  /** V2 Phase 2: strength as written on the prescription, e.g. "500 mg". */
+  strengthLabel: string | null;
+  /** V2 Phase 2: planned stop date (YYYY-MM-DD) when the doctor gave one. */
+  stopPlannedAt: string | null;
 }
 
 /**

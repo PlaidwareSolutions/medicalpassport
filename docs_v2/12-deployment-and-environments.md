@@ -37,6 +37,8 @@ Redis: still not needed. Revisit trigger in ADR-V2-006.
 | `staging-*.medicinepassport.app` | medpass-stg | medicinepassport.app, Cloudflare Access in front |
 | `medidocs.app`, `*.medidocs.app` | 301 → medicinepassport.app (phase 3) | medidocs.app |
 
+**provider-web service (P11-2, `clinic.medicinepassport.app`).** One Railway service per environment next to admin-web: `builder: DOCKERFILE`, `apps/provider-web/Dockerfile`, `PORT=3002`, healthcheck `/login`, one replica. Build args / env: `NEXT_PUBLIC_API_URL` (build-time; on `*.medicinepassport.app` the app talks to `api.medicinepassport.app` regardless, same-site cookie rule) and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` for its **own** Turnstile widget (provision a separate Cloudflare Turnstile site whose hostname allowlist is `clinic.medicinepassport.app` + `staging-clinic.medicinepassport.app`; the widget renders nothing while the key is unset). The api service's `CORS_ORIGINS` gains `https://clinic.medicinepassport.app`; the provider session cookie (`medpass_provider_session`, httpOnly, SameSite=Lax) is a different name and token type from the patient one. Declare it in `.railway/railway.ts` and `.railway/railway.prod.ts` alongside `admin-web` when the P11 environments are provisioned; CSP is emitted per request by the app's middleware (docs_v2/11 §9), so the edge adds only HSTS and the no-cache rule below.
+
 Cloudflare rules to replicate on the `medicinepassport.app` zone (P0): OTP rate limit, api/admin/clinic no-cache, `_next/static` cache, WAF managed rules, HSTS; plan upgrade to Pro is a cost decision recorded in [16](16-dependencies-and-risks.md) (Free plan = one rate-limit rule).
 
 ## 4. Release gates (roadmap §35)
@@ -82,6 +84,7 @@ Application deploys are GitHub-triggered per environment; the CI `deploy-staging
 |---|---|---|---|
 | `DATABASE_URL` (+ new `MIGRATOR_DATABASE_URL`, `READONLY_DATABASE_URL`) | per project | 90 d | R8 |
 | `OTP_HASH_PEPPER`, `SESSION_TOKEN_PEPPER`, `ADMIN_PASSWORD_PEPPER` | per project | 180 d with dual-accept window | R8 |
+| `SHARE_TOKEN_PEPPER` (optional; V2 Phase 7 peppered share-link hashes — unpeppered legacy links still verify until they expire) | per project | 180 d; rotation invalidates live links, so rotate with a 30 d dual-accept window | R8 |
 | `FIELD_ENCRYPTION_KEYS` (keyring) | per project | annual + on incident; re-encrypt job | R-KEY-1 (new) |
 | `BACKUP_ENCRYPTION_KEY` (public key only on Railway; private held offline) | per project | annual | R-DR-3 (new) |
 | R2 keys | per project (split dev/stg/prod) | 90 d | R8 |

@@ -39,6 +39,7 @@ export const ERROR_CODE_VALUES = [
   "self_account_minor",
   "guardian_attestation_required",
   "provenance_not_client_settable",
+  "channel_not_available",
   "internal_error",
 ] as const;
 
@@ -105,6 +106,51 @@ export const versionedEntity: JsonSchema = {
 
 /** Any JSON object whose fields are not yet pinned. */
 export const anyObject: JsonSchema = { type: "object" };
+
+/** One row of the family dashboard (docs_v2/05 §8). Nullable summary fields mean "not granted to this caller". */
+export const familyProfile: JsonSchema = {
+  type: "object",
+  required: ["id", "displayName", "relationship", "scopes", "summary"],
+  properties: {
+    id: uuid,
+    displayName: { type: "string" },
+    relationship: { type: "string", enum: ["self", "dependent", "caregiver"] },
+    scopes: { type: "array", items: { type: "string" } },
+    summary: {
+      type: "object",
+      properties: {
+        dueDosesToday: { type: ["integer", "null"] },
+        openAlerts: { type: ["integer", "null"] },
+        lastMeasurement: {
+          type: ["object", "null"],
+          properties: { concept: { type: "string" }, label: { type: "string" }, value: { type: "string" }, value2: { type: ["string", "null"] }, unit: { type: "string" }, measuredAt: dateTime },
+        },
+        nextTestDue: { type: "null" },
+      },
+    },
+  },
+};
+
+/** One "who changed what" entry (docs_v2/05 §8). */
+export const activityItem: JsonSchema = {
+  type: "object",
+  required: ["id", "source", "occurredAt", "actor"],
+  properties: {
+    id: uuid,
+    source: { type: "string", enum: ["health_event", "audit"] },
+    occurredAt: dateTime,
+    kind: { type: ["string", "null"] },
+    action: { type: ["string", "null"] },
+    entityType: { type: ["string", "null"] },
+    entityId: { type: ["string", "null"] },
+    summary: {},
+    actor: {
+      type: "object",
+      required: ["actorType"],
+      properties: { actorType: { type: "string" }, relationship: { type: ["string", "null"] }, label: { type: ["string", "null"] }, relationshipId: { type: ["string", "null"] } },
+    },
+  },
+};
 
 export const okResponse: JsonSchema = {
   type: "object",
@@ -265,7 +311,8 @@ export const version: JsonSchema = {
 
 export const flags: JsonSchema = {
   type: "object",
-  description: "Feature flags (`featureFlagsFromEnv`).",
+  description:
+    "Feature flags (docs_v2/05 §14): the four env-seeded defaults are always present; any further key is a `FeatureFlag` row an admin created, evaluated for the `x-profile-id` header when one is sent.",
   required: ["prescriptionUpload", "safetyFindings", "sharing", "aiExplanations"],
   properties: {
     prescriptionUpload: { type: "boolean" },
@@ -273,6 +320,7 @@ export const flags: JsonSchema = {
     sharing: { type: "boolean" },
     aiExplanations: { type: "boolean" },
   },
+  additionalProperties: { type: "boolean" },
 };
 
 export const vapidPublicKey: JsonSchema = {

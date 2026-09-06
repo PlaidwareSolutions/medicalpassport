@@ -119,12 +119,21 @@ jobs:
       - name: Accessibility suite (reflow + axe)
         run: pnpm --filter @medpass/patient-web test:e2e
 
+      # Provider portal clinic workflow (docs_v2/06 P11-4 exit gate): the
+      # suite boots its own API on :4102 and its own Next build on :3102
+      # (apps/provider-web/playwright.config.ts webServer), reusing this
+      # job's DB and peppers; the browser is the one installed above.
+      - name: Provider-web e2e (clinic workflow)
+        run: pnpm --filter @medpass/provider-web test:e2e
+
       - name: Upload Playwright failure traces
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-failures
-          path: apps/patient-web/test-results/
+          path: |
+            apps/patient-web/test-results/
+            apps/provider-web/test-results/
           if-no-files-found: ignore
           retention-days: 7
 

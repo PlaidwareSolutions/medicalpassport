@@ -15,6 +15,7 @@ import { PrismaService } from "../../common/prisma.service";
 import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
 import { EncountersService } from "../encounters/encounters.service";
 import { MedicationsService } from "../medications/medications.service";
+import { queueCaregiverNotification } from "../notifications/caregiver-notifications";
 import { PractitionersService } from "../practitioners/practitioners.service";
 
 interface Actor extends ProvenanceActor {
@@ -129,6 +130,16 @@ export class PrescriptionsService {
           medicineCount: 0,
         }),
       );
+      // Caregivers who can see the medicines list are told a prescription
+      // arrived (docs_v2/06 P6-4) — never the person who filed it.
+      await queueCaregiverNotification(tx, {
+        patientProfileId: profileId,
+        kind: "new_prescription",
+        entityId: created.id,
+        triggeredByUserId: actor.userId,
+        triggeredByRole: actor.actorRole,
+        correlationId: actor.correlationId,
+      });
       return created;
     });
     return (await this.byId(profileId, prescription.id))!;

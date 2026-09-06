@@ -1,0 +1,34 @@
+{
+  "name": "@medpass/provider-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3002",
+    "start": "next start -p 3002",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "seed:dev-org": "tsx scripts/seed-dev-org.ts"
+  },
+  "dependencies": {
+    "@medpass/api-client": "workspace:*",
+    "@medpass/design-tokens": "workspace:*",
+    "@medpass/domain": "workspace:*",
+    "@medpass/ui-web": "workspace:*",
+    "next": "15.5.21",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@medpass/database": "workspace:*",
+    "@medpass/field-crypto": "workspace:*",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

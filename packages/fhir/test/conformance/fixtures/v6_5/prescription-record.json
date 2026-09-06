@@ -1,0 +1,1230 @@
+{
+  "resourceType": "Bundle",
+  "id": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+  "meta": {
+    "lastUpdated": "2026-08-14T09:30:00.000Z"
+  },
+  "identifier": {
+    "system": "urn:medicinepassport:bundle",
+    "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+  },
+  "type": "document",
+  "timestamp": "2026-08-14T09:30:00.000Z",
+  "entry": [
+    {
+      "fullUrl": "Composition/9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "resource": {
+        "resourceType": "Composition",
+        "id": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/PrescriptionRecord"
+          ]
+        },
+        "identifier": {
+          "system": "urn:medicinepassport:prescription",
+          "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+        },
+        "status": "final",
+        "type": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "440545006",
+              "display": "Prescription record"
+            }
+          ],
+          "text": "Prescription record"
+        },
+        "subject": {
+          "reference": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6"
+        },
+        "date": "2026-08-14T09:30:00.000Z",
+        "author": [
+          {
+            "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+          }
+        ],
+        "title": "Prescription 2026-08-14",
+        "section": [
+          {
+            "title": "Prescription record",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://snomed.info/sct",
+                  "code": "440545006",
+                  "display": "Prescription record"
+                }
+              ]
+            },
+            "entry": [
+              {
+                "reference": "MedicationRequest/6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b"
+              },
+              {
+                "reference": "MedicationRequest/7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c"
+              },
+              {
+                "reference": "DocumentReference/aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+              }
+            ]
+          },
+          {
+            "title": "Diagnosis",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "29548-5",
+                  "display": "Diagnosis"
+                }
+              ]
+            },
+            "text": {
+              "status": "generated",
+              "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Type 2 diabetes mellitus; GERD</div>"
+            }
+          }
+        ],
+        "custodian": {
+          "reference": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d"
+        }
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "clinic_entered"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "provider_verified"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "clinic_portal"
+          }
+        ],
+        "target": [
+          {
+            "reference": "Composition/9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+          }
+        ],
+        "recorded": "2026-08-14T09:30:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "author",
+                  "display": "Author"
+                }
+              ]
+            },
+            "who": {
+              "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+            },
+            "onBehalfOf": {
+              "reference": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d"
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "verifier",
+                  "display": "Verifier"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ],
+        "occurredDateTime": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "fullUrl": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Patient"
+          ]
+        },
+        "name": [
+          {
+            "text": "Asha Demo"
+          }
+        ],
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MR",
+                  "display": "Medical record number"
+                }
+              ]
+            },
+            "system": "https://healthid.ndhm.gov.in",
+            "value": "91-1234-5678-9012"
+          },
+          {
+            "system": "https://healthid.ndhm.gov.in",
+            "value": "asha.demo@sbx"
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1975"
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "user_entered"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "patient_confirmed"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "pwa"
+          }
+        ],
+        "target": [
+          {
+            "reference": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6"
+          }
+        ],
+        "recorded": "2026-01-05T04:00:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Practitioner"
+          ]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MD",
+                  "display": "Medical License number"
+                }
+              ]
+            },
+            "system": "https://hpr.abdm.gov.in",
+            "value": "71-1234-5678-9012"
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MD",
+                  "display": "Medical License number"
+                }
+              ]
+            },
+            "value": "TNMC/12345",
+            "assigner": {
+              "display": "Tamil Nadu Medical Council"
+            }
+          }
+        ],
+        "name": [
+          {
+            "text": "Dr. Meera Iyer"
+          }
+        ],
+        "qualification": [
+          {
+            "code": {
+              "text": "General Physician"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "clinic_entered"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "provider_verified"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "clinic_portal"
+          }
+        ],
+        "target": [
+          {
+            "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+          }
+        ],
+        "recorded": "2026-03-01T04:00:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "author",
+                  "display": "Author"
+                }
+              ]
+            },
+            "who": {
+              "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+            },
+            "onBehalfOf": {
+              "reference": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d"
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "verifier",
+                  "display": "Verifier"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ],
+        "occurredDateTime": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "fullUrl": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Organization"
+          ]
+        },
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "PRN",
+                  "display": "Provider number"
+                }
+              ]
+            },
+            "system": "https://facility.ndhm.gov.in",
+            "value": "IN2910000123"
+          }
+        ],
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/organization-type",
+                "code": "prov",
+                "display": "Healthcare Provider"
+              }
+            ],
+            "text": "Clinic"
+          }
+        ],
+        "name": "Apollo Clinic, Jubilee Hills",
+        "address": [
+          {
+            "text": "Road No. 36, Jubilee Hills",
+            "city": "Hyderabad",
+            "state": "Telangana",
+            "postalCode": "500033",
+            "country": "IN"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "clinic_entered"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "provider_verified"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "clinic_portal"
+          }
+        ],
+        "target": [
+          {
+            "reference": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d"
+          }
+        ],
+        "recorded": "2026-03-01T04:00:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "author",
+                  "display": "Author"
+                }
+              ]
+            },
+            "who": {
+              "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+            },
+            "onBehalfOf": {
+              "reference": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d"
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "verifier",
+                  "display": "Verifier"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ],
+        "occurredDateTime": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "fullUrl": "Medication/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+      "resource": {
+        "resourceType": "Medication",
+        "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Medication"
+          ]
+        },
+        "code": {
+          "text": "Metformin 500 mg",
+          "coding": [
+            {
+              "system": "https://medicinepassport.app/CodeSystem/medication",
+              "code": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+              "display": "Metformin"
+            }
+          ]
+        },
+        "form": {
+          "text": "Tablet"
+        },
+        "ingredient": [
+          {
+            "itemCodeableConcept": {
+              "text": "Metformin hydrochloride"
+            },
+            "strength": {
+              "numerator": {
+                "value": 500,
+                "unit": "mg"
+              },
+              "denominator": {
+                "value": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "clinic_entered"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "provider_verified"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "clinic_portal"
+          }
+        ],
+        "target": [
+          {
+            "reference": "Medication/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+          }
+        ],
+        "recorded": "2026-08-14T09:30:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "author",
+                  "display": "Author"
+                }
+              ]
+            },
+            "who": {
+              "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+            },
+            "onBehalfOf": {
+              "reference": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d"
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "verifier",
+                  "display": "Verifier"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ],
+        "occurredDateTime": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "fullUrl": "MedicationRequest/6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"
+          ]
+        },
+        "identifier": [
+          {
+            "system": "urn:medicinepassport:prescription",
+            "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d#1"
+          }
+        ],
+        "status": "active",
+        "intent": "order",
+        "subject": {
+          "reference": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+          "identifier": {
+            "system": "https://healthid.ndhm.gov.in",
+            "value": "asha.demo@sbx"
+          },
+          "display": "Asha Demo"
+        },
+        "groupIdentifier": {
+          "system": "urn:medicinepassport:prescription",
+          "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+        },
+        "medicationReference": {
+          "reference": "Medication/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+          "display": "Metformin"
+        },
+        "authoredOn": "2026-08-14",
+        "requester": {
+          "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+        },
+        "dosageInstruction": [
+          {
+            "text": "1 tab BD after food x 30 days",
+            "additionalInstruction": [
+              {
+                "text": "After food"
+              }
+            ],
+            "timing": {
+              "repeat": {
+                "boundsDuration": {
+                  "value": 30,
+                  "unit": "d",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "d"
+                },
+                "frequency": 2,
+                "period": 1,
+                "periodUnit": "d",
+                "when": [
+                  "MORN",
+                  "NIGHT"
+                ]
+              },
+              "code": {
+                "coding": [
+                  {
+                    "system": "https://medicinepassport.app/CodeSystem/frequency-code",
+                    "code": "BD"
+                  }
+                ],
+                "text": "BD"
+              }
+            },
+            "route": {
+              "text": "oral"
+            },
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 1,
+                  "unit": "tablet"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "clinic_entered"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "provider_verified"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "clinic_portal"
+          }
+        ],
+        "target": [
+          {
+            "reference": "MedicationRequest/6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b"
+          }
+        ],
+        "recorded": "2026-08-14T09:30:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "author",
+                  "display": "Author"
+                }
+              ]
+            },
+            "who": {
+              "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+            },
+            "onBehalfOf": {
+              "reference": "Organization/0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d"
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "verifier",
+                  "display": "Verifier"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ],
+        "occurredDateTime": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "fullUrl": "MedicationRequest/7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"
+          ]
+        },
+        "identifier": [
+          {
+            "system": "urn:medicinepassport:prescription",
+            "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d#2"
+          }
+        ],
+        "status": "completed",
+        "intent": "order",
+        "subject": {
+          "reference": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+          "identifier": {
+            "system": "https://healthid.ndhm.gov.in",
+            "value": "asha.demo@sbx"
+          },
+          "display": "Asha Demo"
+        },
+        "groupIdentifier": {
+          "system": "urn:medicinepassport:prescription",
+          "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+        },
+        "medicationCodeableConcept": {
+          "text": "Pantoprazole 40 mg Tablet"
+        },
+        "authoredOn": "2026-08-14",
+        "requester": {
+          "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+        },
+        "dosageInstruction": [
+          {
+            "text": "1-0-1 before meals",
+            "additionalInstruction": [
+              {
+                "text": "Before food"
+              }
+            ],
+            "timing": {
+              "repeat": {
+                "frequency": 2,
+                "period": 1,
+                "periodUnit": "d",
+                "when": [
+                  "MORN",
+                  "NIGHT"
+                ]
+              },
+              "code": {
+                "coding": [
+                  {
+                    "system": "https://medicinepassport.app/CodeSystem/frequency-code",
+                    "code": "PATTERN"
+                  }
+                ],
+                "text": "PATTERN 1-0-1"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "ocr_extracted"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "patient_confirmed"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "pwa"
+          }
+        ],
+        "target": [
+          {
+            "reference": "MedicationRequest/7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c"
+          }
+        ],
+        "recorded": "2026-08-14T09:30:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ],
+        "entity": [
+          {
+            "role": "source",
+            "what": {
+              "reference": "DocumentReference/aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "DocumentReference/aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "resource": {
+        "resourceType": "DocumentReference",
+        "id": "aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "meta": {
+          "profile": [
+            "https://nrces.in/ndhm/fhir/r4/StructureDefinition/DocumentReference"
+          ]
+        },
+        "identifier": [
+          {
+            "system": "urn:medicinepassport:document",
+            "value": "aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+          }
+        ],
+        "status": "current",
+        "type": {
+          "text": "Prescription",
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "57833-6",
+              "display": "Prescription for medication"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+          "identifier": {
+            "system": "https://healthid.ndhm.gov.in",
+            "value": "asha.demo@sbx"
+          },
+          "display": "Asha Demo"
+        },
+        "date": "2026-08-14T09:20:00.000Z",
+        "content": [
+          {
+            "attachment": {
+              "contentType": "application/pdf",
+              "url": "urn:medicinepassport:stored-object:ab7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",
+              "title": "Page 1",
+              "size": 40211
+            }
+          }
+        ],
+        "context": {
+          "period": {
+            "start": "2026-08-14"
+          },
+          "related": [
+            {
+              "identifier": {
+                "system": "urn:medicinepassport:prescription",
+                "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fullUrl": "Provenance/prov-aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "resource": {
+        "resourceType": "Provenance",
+        "id": "prov-aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "meta": {
+          "profile": [
+            "http://hl7.org/fhir/StructureDefinition/Provenance"
+          ]
+        },
+        "extension": [
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/record-source",
+            "valueCode": "user_entered"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/verification-state",
+            "valueCode": "patient_confirmed"
+          },
+          {
+            "url": "https://medicinepassport.app/fhir/StructureDefinition/recorded-via",
+            "valueCode": "native_android"
+          }
+        ],
+        "target": [
+          {
+            "reference": "DocumentReference/aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+          }
+        ],
+        "recorded": "2026-08-14T09:20:00.000Z",
+        "agent": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "enterer",
+                  "display": "Enterer"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:user",
+                "value": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5"
+              }
+            }
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type",
+                  "code": "assembler",
+                  "display": "Assembler"
+                }
+              ]
+            },
+            "who": {
+              "identifier": {
+                "system": "urn:medicinepassport:software",
+                "value": "api@test;ig=6.5"
+              },
+              "display": "MedicinePassport"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "dd0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+  "patient": {
+    "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+    "abhaAddress": "asha.demo@sbx",
+    "display": "Asha Demo"
+  },
+  "label": "Frozen shoulder",
+  "clinicalStatus": "resolved",
+  "onsetDate": "2024-02-10",
+  "abatementDate": "2024-11-01",
+  "codeSystem": null,
+  "code": null,
+  "severity": "mild",
+  "note": null,
+  "diagnosedByPractitionerId": null,
+  "encounterId": null,
+  "provenance": {
+    "source": "user_entered",
+    "verification": "patient_confirmed",
+    "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+    "recordedVia": "pwa",
+    "recordedAt": "2026-03-01T05:00:00.000Z",
+    "sourceDocumentId": null,
+    "sourceExtractionId": null,
+    "sourceDeviceId": null,
+    "sourceAbdmTxnId": null,
+    "sourceOrganizationId": null,
+    "sourcePractitionerId": null,
+    "verifiedByUserId": null,
+    "verifiedAt": null
+  }
+}

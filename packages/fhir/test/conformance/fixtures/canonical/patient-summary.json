@@ -1,0 +1,389 @@
+{
+  "patient": {
+    "id": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+    "displayName": "Asha Demo",
+    "yearOfBirth": 1975,
+    "sex": "female",
+    "abhaAddress": "asha.demo@sbx",
+    "abhaNumber": "91-1234-5678-9012",
+    "provenance": {
+      "source": "user_entered",
+      "verification": "patient_confirmed",
+      "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "recordedVia": "pwa",
+      "recordedAt": "2026-01-05T04:00:00.000Z",
+      "sourceDocumentId": null,
+      "sourceExtractionId": null,
+      "sourceDeviceId": null,
+      "sourceAbdmTxnId": null,
+      "sourceOrganizationId": null,
+      "sourcePractitionerId": null,
+      "verifiedByUserId": null,
+      "verifiedAt": null
+    }
+  },
+  "author": {
+    "practitioner": null,
+    "organization": null
+  },
+  "medications": [
+    {
+      "id": "8a9b0c1d-2e3f-4a4b-9c5d-6e7f8a9b0c1d",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "enteredName": "Metformin",
+      "medicationId": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+      "status": "current",
+      "startDate": "2026-08-14",
+      "endDate": null,
+      "patientReason": "Sugar",
+      "reasonConditionId": "cc0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "prescriptionId": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "isPrn": false,
+      "dosage": {
+        "doseQuantity": "1",
+        "doseUnit": "tablet",
+        "frequencyCode": "BD",
+        "pattern": null,
+        "foodInstruction": "after",
+        "durationDays": null,
+        "routeText": null,
+        "text": null
+      },
+      "provenance": {
+        "source": "user_entered",
+        "verification": "patient_confirmed",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "pwa",
+        "recordedAt": "2026-08-14T09:30:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": null,
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    },
+    {
+      "id": "9b0c1d2e-3f4a-4b5c-8d6e-7f8a9b0c1d2e",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "enteredName": "Paracetamol 650",
+      "medicationId": null,
+      "status": "paused",
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-20",
+      "patientReason": null,
+      "reasonConditionId": null,
+      "prescriptionId": null,
+      "isPrn": true,
+      "dosage": null,
+      "provenance": {
+        "source": "caregiver_entered",
+        "verification": "patient_confirmed",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "native_android",
+        "recordedAt": "2026-08-14T09:30:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": null,
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    }
+  ],
+  "catalog": [
+    {
+      "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+      "displayText": "Metformin",
+      "codeSystem": null,
+      "code": null,
+      "formText": "Tablet",
+      "strengthLabel": "500 mg",
+      "ingredients": [
+        {
+          "text": "Metformin hydrochloride",
+          "strengthValue": "500",
+          "strengthUnit": "mg"
+        }
+      ],
+      "provenance": {
+        "source": "clinic_entered",
+        "verification": "provider_verified",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "clinic_portal",
+        "recordedAt": "2026-08-14T09:30:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "verifiedAt": "2026-08-14T09:31:12.000Z"
+      }
+    }
+  ],
+  "allergies": [
+    {
+      "id": "6c1a6c1e-3d1a-4d3f-9a9e-8f2b0c7d1a01",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "substanceText": "Penicillin",
+      "category": "medication",
+      "clinicalStatus": "active",
+      "criticality": "high",
+      "severity": "severe",
+      "reactionText": "Anaphylaxis within minutes of the first dose",
+      "onsetDate": "2019-03",
+      "codeSystem": "http://snomed.info/sct",
+      "code": "373270004",
+      "codeDisplay": "Penicillin-class antibacterial",
+      "notes": "Carries an adrenaline auto-injector.",
+      "provenance": {
+        "source": "clinic_entered",
+        "verification": "provider_verified",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "clinic_portal",
+        "recordedAt": "2026-08-14T09:30:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "verifiedAt": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "id": "8e3c8e30-5f3c-4f51-9c10-ab4d2e9f3c03",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6"
+      },
+      "substanceText": "Dust mites",
+      "category": "environment",
+      "clinicalStatus": "inactive",
+      "criticality": "low",
+      "severity": null,
+      "reactionText": "Sneezing and itchy eyes",
+      "onsetDate": "2021-11-05",
+      "codeSystem": null,
+      "code": null,
+      "notes": null,
+      "provenance": {
+        "source": "ocr_extracted",
+        "verification": "unverified",
+        "recordedByUserId": null,
+        "recordedVia": "worker",
+        "recordedAt": "2026-09-03T02:15:00Z",
+        "sourceDocumentId": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+        "sourceExtractionId": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e"
+      }
+    }
+  ],
+  "conditions": [
+    {
+      "id": "cc0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "label": "Type 2 diabetes mellitus",
+      "clinicalStatus": "active",
+      "onsetDate": "2021",
+      "abatementDate": null,
+      "codeSystem": "http://snomed.info/sct",
+      "code": "44054006",
+      "codeDisplay": "Diabetes mellitus type 2",
+      "severity": null,
+      "note": "Diet controlled initially.",
+      "diagnosedByPractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "encounterId": null,
+      "provenance": {
+        "source": "clinic_entered",
+        "verification": "provider_verified",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "clinic_portal",
+        "recordedAt": "2026-03-01T05:00:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "verifiedAt": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "id": "dd0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "label": "Frozen shoulder",
+      "clinicalStatus": "resolved",
+      "onsetDate": "2024-02-10",
+      "abatementDate": "2024-11-01",
+      "codeSystem": null,
+      "code": null,
+      "severity": "mild",
+      "note": null,
+      "diagnosedByPractitionerId": null,
+      "encounterId": null,
+      "provenance": {
+        "source": "user_entered",
+        "verification": "patient_confirmed",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "pwa",
+        "recordedAt": "2026-03-01T05:00:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": null,
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    }
+  ],
+  "results": [
+    {
+      "id": "bc2d3e4f-5a6b-4c7d-8e8f-9a0b1c2d3e4f",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "diagnosticReportId": "ab1c2d3e-4f5a-4b6c-9d7e-8f9a0b1c2d3e",
+      "analyteKey": "hba1c",
+      "analyteLabelText": null,
+      "loincCode": null,
+      "enteredValueText": "6.8",
+      "valueNumeric": "6.8",
+      "valueText": null,
+      "comparator": null,
+      "unit": "%",
+      "enteredUnit": null,
+      "referenceLow": "4",
+      "referenceHigh": "5.6",
+      "referenceText": "4.0 - 5.6 %",
+      "interpretation": "high",
+      "specimenType": "Whole blood",
+      "effectiveAt": "2026-08-10T03:30:00.000Z",
+      "provenance": {
+        "source": "lab_imported",
+        "verification": "source_authenticated",
+        "recordedByUserId": null,
+        "recordedVia": "lab_api",
+        "recordedAt": "2026-08-10T10:05:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    }
+  ],
+  "vitals": [
+    {
+      "id": "0a1b2c3d-4e5f-4a6b-8c7d-8e9f0a1b2c3d",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "concept": "blood_pressure",
+      "conceptText": null,
+      "valueNumeric": "128",
+      "valueNumeric2": "82",
+      "valueText": null,
+      "unit": "mm[Hg]",
+      "enteredUnit": null,
+      "enteredValueText": "128/82",
+      "measuredAt": "2026-09-01T02:15:00.000Z",
+      "context": "morning",
+      "bodySite": "Left arm",
+      "method": null,
+      "interpretation": null,
+      "notes": null,
+      "deviceId": "de5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7b",
+      "encounterId": null,
+      "provenance": {
+        "source": "device_recorded",
+        "verification": "unverified",
+        "recordedByUserId": null,
+        "recordedVia": "native_android",
+        "recordedAt": "2026-09-01T02:15:05.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": "de5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7b",
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": null,
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    },
+    {
+      "id": "1b2c3d4e-5f6a-4b7c-9d8e-9f0a1b2c3d4e",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "concept": "body_weight",
+      "conceptText": null,
+      "valueNumeric": "68.4",
+      "valueNumeric2": null,
+      "valueText": null,
+      "unit": "kg",
+      "enteredUnit": null,
+      "enteredValueText": "68.4",
+      "measuredAt": "2026-09-01T02:20:00.000Z",
+      "context": null,
+      "bodySite": null,
+      "method": null,
+      "interpretation": null,
+      "notes": "After breakfast",
+      "deviceId": null,
+      "encounterId": null,
+      "provenance": {
+        "source": "user_entered",
+        "verification": "patient_confirmed",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "pwa",
+        "recordedAt": "2026-09-01T02:21:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": null,
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    }
+  ]
+}

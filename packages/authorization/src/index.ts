@@ -148,6 +148,15 @@ export type AdminDuty =
   // Organization/Practitioner entries, HFR/HPR verification, merges.
   // Patient-scoped rows are visible as opaque ids + counts only.
   | "provider_admin"
+  // docs_v2/14 §3 rows added by the V2 admin platform. `support_cases`:
+  // the support queue and its notes (opaque profile ids only). `abdm_operations`:
+  // the AbdmTransaction explorer. `fhir_view`: FhirValidationFailure rows.
+  // Break-glass deliberately has no duty of its own: it is granted to
+  // audit_search holders (docs_v2/14 "Security audit … break-glass log")
+  // and every grant is time-boxed, audited and notified to the patient.
+  | "support_cases"
+  | "abdm_operations"
+  | "fhir_view"
   | "super_admin";
 
 export type AdminAction =
@@ -165,7 +174,14 @@ export type AdminAction =
   | "view_operations"
   | "view_rules"
   | "view_users"
-  | "manage_providers";
+  | "manage_providers"
+  // V2 admin platform (docs_v2/14 §3).
+  | "manage_flags"
+  | "manage_support_cases"
+  | "grant_break_glass"
+  | "view_break_glass"
+  | "view_abdm_operations"
+  | "view_fhir";
 
 const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   read_catalog: [], // any authenticated admin — non-PHI reference data
@@ -183,6 +199,15 @@ const ADMIN_DUTY_GRANTS: Record<AdminAction, AdminDuty[]> = {
   view_rules: ["rules_view"],
   view_users: ["users_view"],
   manage_providers: ["provider_admin"],
+  // Feature flags change what every patient sees: super_admin only. Listing
+  // `super_admin` here is what makes the grant exclusive — the early return
+  // below already admits super_admin; no other duty appears in the list.
+  manage_flags: ["super_admin"],
+  manage_support_cases: ["support_cases"],
+  grant_break_glass: ["audit_search"],
+  view_break_glass: ["audit_search"],
+  view_abdm_operations: ["abdm_operations"],
+  view_fhir: ["fhir_view"],
 };
 
 export function decideAdminAccess(duties: readonly AdminDuty[], action: AdminAction): boolean {

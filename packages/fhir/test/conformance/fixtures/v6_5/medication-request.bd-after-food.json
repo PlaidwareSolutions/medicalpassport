@@ -1,0 +1,84 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b",
+  "meta": {
+    "profile": [
+      "https://nrces.in/ndhm/fhir/r4/StructureDefinition/MedicationRequest"
+    ]
+  },
+  "identifier": [
+    {
+      "system": "urn:medicinepassport:prescription",
+      "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d#1"
+    }
+  ],
+  "status": "active",
+  "intent": "order",
+  "subject": {
+    "reference": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+    "identifier": {
+      "system": "https://healthid.ndhm.gov.in",
+      "value": "asha.demo@sbx"
+    },
+    "display": "Asha Demo"
+  },
+  "groupIdentifier": {
+    "system": "urn:medicinepassport:prescription",
+    "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+  },
+  "medicationReference": {
+    "reference": "Medication/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+    "display": "Metformin"
+  },
+  "authoredOn": "2026-08-14",
+  "requester": {
+    "reference": "Practitioner/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+  },
+  "dosageInstruction": [
+    {
+      "text": "1 tab BD after food x 30 days",
+      "additionalInstruction": [
+        {
+          "text": "After food"
+        }
+      ],
+      "timing": {
+        "repeat": {
+          "boundsDuration": {
+            "value": 30,
+            "unit": "d",
+            "system": "http://unitsofmeasure.org",
+            "code": "d"
+          },
+          "frequency": 2,
+          "period": 1,
+          "periodUnit": "d",
+          "when": [
+            "MORN",
+            "NIGHT"
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "https://medicinepassport.app/CodeSystem/frequency-code",
+              "code": "BD"
+            }
+          ],
+          "text": "BD"
+        }
+      },
+      "route": {
+        "text": "oral"
+      },
+      "doseAndRate": [
+        {
+          "doseQuantity": {
+            "value": 1,
+            "unit": "tablet"
+          }
+        }
+      ]
+    }
+  ]
+}

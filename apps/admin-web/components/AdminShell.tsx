@@ -17,6 +17,15 @@ const NAV_ITEMS: Array<{ href: string; label: string; duty?: string }> = [
   { href: "/rules", label: "Rules" },
   { href: "/organizations", label: "Organizations", duty: "provider_admin" },
   { href: "/practitioners", label: "Practitioners", duty: "provider_admin" },
+  // V2 admin platform (docs_v2/14 §3) — one entry per row, gated by that row's duty.
+  { href: "/documents", label: "Documents", duty: "operations_view" },
+  { href: "/support", label: "Support", duty: "support_cases" },
+  { href: "/consent-audit", label: "Consent audit", duty: "audit_search" },
+  { href: "/abdm", label: "ABDM", duty: "abdm_operations" },
+  { href: "/fhir", label: "FHIR", duty: "fhir_view" },
+  { href: "/integrations", label: "Integrations", duty: "operations_view" },
+  { href: "/notification-failures", label: "Notifications", duty: "operations_view" },
+  { href: "/configuration", label: "Configuration", duty: "super_admin" },
 ];
 
 /** Authenticated admin frame: top nav + sign-out, redirects to /login when signed out. */

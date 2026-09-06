@@ -1,7 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
-import { acceptInviteSchema, inviteCaregiverSchema, updateCaregiverScopesSchema } from "@medpass/validation";
+import { acceptInviteSchema, activityQuerySchema, inviteCaregiverSchema, updateCaregiverScopesSchema } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { RequiresStepUp } from "../../common/auth.guard";
 import { phoneDigest } from "../../common/crypto";
@@ -9,13 +9,40 @@ import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
 import { PrismaService } from "../../common/prisma.service";
 import { ProfileAccessService } from "../../common/profile-access.service";
+import { FamilyService } from "./family.service";
 
 @Controller()
 export class CaregiversController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProfileAccessService,
+    private readonly family: FamilyService,
   ) {}
+
+  /**
+   * The family dashboard (docs_v2/05 §8, docs_v2/06 P6-3): every profile
+   * the signed-in user can act on, with a per-profile summary. Not scoped
+   * to `x-profile-id` — it is the one screen that spans profiles — so the
+   * per-profile read gates are enforced inside FamilyService against each
+   * relationship's own scopes.
+   */
+  @Get("profiles/current/family")
+  async familyDashboard(@Req() req: ApiRequest) {
+    return { items: await this.family.dashboard(req.auth!.userId, req.correlationId) };
+  }
+
+  /**
+   * "Who changed what" (docs_v2/05 §8): timeline events and audit rows a
+   * caregiver produced on this profile, newest first. `view_profile` — the
+   * same gate as the timeline these events already appear on; the extra
+   * information here is only *who*, and that is the patient's to see.
+   */
+  @Get("profiles/current/activity")
+  async activity(@Query() query: unknown, @Req() req: ApiRequest) {
+    const { profileId } = await this.access.require(req, "view_profile");
+    const parsed = parseWith(activityQuerySchema, query);
+    return this.family.activity(profileId, parsed);
+  }
 
   /** Patients see and manage who has access to them (screen 6). */
   @Get("profiles/current/caregivers")

@@ -1,0 +1,38 @@
+{
+  "resourceType": "Medication",
+  "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+  "meta": {
+    "profile": [
+      "https://nrces.in/ndhm/fhir/r4/StructureDefinition/Medication"
+    ]
+  },
+  "code": {
+    "text": "Metformin 500 mg",
+    "coding": [
+      {
+        "system": "https://medicinepassport.app/CodeSystem/medication",
+        "code": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+        "display": "Metformin"
+      }
+    ]
+  },
+  "form": {
+    "text": "Tablet"
+  },
+  "ingredient": [
+    {
+      "itemCodeableConcept": {
+        "text": "Metformin hydrochloride"
+      },
+      "strength": {
+        "numerator": {
+          "value": 500,
+          "unit": "mg"
+        },
+        "denominator": {
+          "value": 1
+        }
+      }
+    }
+  ]
+}

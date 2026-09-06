@@ -31,6 +31,19 @@ export const apiEnvShape = {
   SESSION_TOKEN_PEPPER: z.string().min(16),
   /** Pepper mixed into admin password hashes (docs/18 admin auth) — its own dedicated pepper, matching the one-pepper-per-hashed-secret-type convention OTP/session tokens already use. */
   ADMIN_PASSWORD_PEPPER: z.string().min(16),
+  /**
+   * Pepper mixed into share-link token hashes (docs_v2/04 §11, V2 Phase 7).
+   * V1 stored bare `sha256(token)`; with this set, new links store
+   * `sha256(pepper + token)` and a database read alone no longer yields a
+   * usable link. Optional so an environment without it keeps the V1
+   * behaviour unchanged. Lookup always tries the peppered hash first and
+   * the bare hash second, so links minted before the pepper was set keep
+   * working until they expire (≤ 30 days) — after one full expiry window
+   * in production the legacy branch can be removed. Rotating the pepper
+   * invalidates every live peppered link at once; do it with the same
+   * dual-accept window as the session pepper (docs_v2/12 §6).
+   */
+  SHARE_TOKEN_PEPPER: z.string().min(16).optional(),
   /** AES-256 key (base64, 32 bytes) for application-level field encryption — keyring version 1. */
   FIELD_ENCRYPTION_KEY: z.string().min(32),
   /**
@@ -110,6 +123,8 @@ export const apiEnvShape = {
    */
   TELNYX_PUBLIC_KEY: z.string().optional(),
   TELNYX_WEBHOOK_URL: z.string().url().optional(),
+  /** Email channel (P17): `log` is the only transport; see cronEnvShape. Read here only so `admin/integrations` can report it. */
+  EMAIL_TRANSPORT: z.enum(["log"]).default("log"),
   /**
    * Cloudflare Turnstile (docs/26 §12.4, OD-15) — bot-detection on OTP
    * request (covers both "login" and "recovery" purposes; account recovery
@@ -136,9 +151,54 @@ export const apiEnvShape = {
   /** Where new professional leads are emailed. Unset = leads persist only
    *  (retrieved via the operational query in docs) until OD-LP-7 is finalized. */
   LEAD_NOTIFY_EMAIL: z.string().optional(),
+  /**
+   * ABDM (docs_v2/08 §4, §9). `ABDM_GATEWAY_URL` is the private base URL of
+   * `apps/abdm-gateway` (`/internal/*` API); when unset the API uses an
+   * in-process mock gateway client with deterministic fixtures, so local dev
+   * and CI never touch the sandbox. `ABDM_INTERNAL_TOKEN` is the shared
+   * secret the gateway's `/internal/*` routes require; required whenever the
+   * URL is set. `ABDM_GATEWAY_ENV` is stamped on every `AbdmTransaction`.
+   */
+  ABDM_GATEWAY_URL: z.string().url().optional(),
+  ABDM_INTERNAL_TOKEN: z.string().min(16).optional(),
+  ABDM_GATEWAY_ENV: z.enum(["mock", "sandbox", "production"]).default("mock"),
 } as const;
 
 export type ApiEnv = z.infer<z.ZodObject<typeof apiEnvShape>>;
+
+/**
+ * `apps/abdm-gateway` (docs_v2/08 §4, ADR-V2-005): the only service that holds
+ * ABDM credentials. `MOCK=true` replays recorded fixtures instead of calling
+ * the gateway (docs_v2/08 §9 "local"); the callback JWT is verified with
+ * `ABDM_GATEWAY_JWT_HS256_SECRET` (mock / early sandbox) or the RS256 public
+ * key in `ABDM_GATEWAY_JWT_RS256_PUBLIC_KEY` (PEM) when that is set.
+ */
+export const abdmGatewayEnvShape = {
+  NODE_ENV: NodeEnv.default("development"),
+  PORT: z.coerce.number().int().positive().default(4100),
+  DATABASE_URL: z.string().url(),
+  /** Replay fixtures under apps/abdm-gateway/fixtures instead of calling ABDM. Refused in production. */
+  MOCK: z
+    .string()
+    .optional()
+    .transform((v) => v === "true" || v === "1"),
+  /** Shared secret for `/internal/*` (the API sends it as `x-abdm-internal-token`). */
+  ABDM_INTERNAL_TOKEN: z.string().min(16),
+  ABDM_GATEWAY_ENV: z.enum(["mock", "sandbox", "production"]).default("mock"),
+  /** Expected `aud`/`iss` on callback JWTs; unset = not checked (mock). */
+  ABDM_GATEWAY_JWT_ISSUER: z.string().optional(),
+  ABDM_GATEWAY_JWT_AUDIENCE: z.string().optional(),
+  ABDM_GATEWAY_JWT_HS256_SECRET: z.string().min(16).optional(),
+  ABDM_GATEWAY_JWT_RS256_PUBLIC_KEY: z.string().optional(),
+  /** Outbound ABDM gateway (sandbox/production) — unused when MOCK=true. */
+  ABDM_BASE_URL: z.string().url().optional(),
+  ABDM_CLIENT_ID: z.string().optional(),
+  ABDM_CLIENT_SECRET: z.string().optional(),
+  ABDM_HIU_ID: z.string().optional(),
+  ABDM_HIP_ID: z.string().optional(),
+} as const;
+
+export type AbdmGatewayEnv = z.infer<z.ZodObject<typeof abdmGatewayEnvShape>>;
 
 export const workerEnvShape = {
   NODE_ENV: NodeEnv.default("development"),
@@ -188,6 +248,13 @@ export const cronEnvShape = {
   TELNYX_FROM_NUMBER: z.string().optional(),
   /** Passed to Telnyx on send so delivery-status webhooks reach the API (must match its TELNYX_WEBHOOK_URL). */
   TELNYX_WEBHOOK_URL: z.string().url().optional(),
+  /**
+   * Email channel (docs_v2/06 P17). Only the `log` transport exists: the
+   * dispatcher records the attempt and logs a PHI-free line, sending
+   * nothing. A real provider (SMTP / API) is a separate decision; until
+   * then no other value is accepted, so a typo cannot silently enable mail.
+   */
+  EMAIL_TRANSPORT: z.enum(["log"]).default("log"),
   /**
    * Backups (docs/27) — AES-256 key (base64, 32 bytes) backup-export uses to
    * encrypt the pg_dump client-side before it ever leaves Postgres, and

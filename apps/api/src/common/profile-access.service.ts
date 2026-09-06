@@ -92,4 +92,20 @@ export class ProfileAccessService {
 
     return { actorRole: decision.actorRole, caregiverScopes };
   }
+
+  /**
+   * The pure decision for a caller whose relationship to the profile is
+   * already in hand — no header, no throw, no audit. The family dashboard
+   * (docs_v2/05 §8) spans every profile the caller can reach in one call,
+   * and asks this per profile and per summary field so a scope that does
+   * not grant a number yields `null` rather than a 403 for the whole
+   * screen. Kept here so `decideProfileAccess` has exactly one caller in
+   * apps/api (packages/authorization/test/matrix.test.ts enforces that).
+   */
+  decide(
+    ctx: { userId: string; profileOwnerUserId: string; profileClaimedByUserId: string | null; caregiverScopes: readonly CaregiverScope[] },
+    action: ProfileAction,
+  ): boolean {
+    return decideProfileAccess(ctx, action).allowed;
+  }
 }

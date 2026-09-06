@@ -293,3 +293,87 @@ export async function updateMedication(
     return { queuedOffline: true };
   }
 }
+
+// --- Phase 2 (docs_v2/06 P2-5): why · who · since when · changes ---------
+
+/**
+ * The Phase 2 links on a medicine (docs_v2/04 §4.1): "why am I taking it"
+ * as a link to one of the patient's own conditions, and who prescribed it,
+ * alongside — never instead of — the free-text reason. The shared
+ * `PatientMedicationDto` predates these fields, so they are read through
+ * this view rather than assumed on every consumer.
+ */
+export interface MedicationLinksDto {
+  reasonCondition: { id: string; label: string } | null;
+  prescribingPractitioner: { id: string; displayName: string } | null;
+  stopPlannedAt: string | null;
+}
+
+export function medicationLinks(m: PatientMedicationDto): MedicationLinksDto {
+  const raw = m as unknown as Partial<MedicationLinksDto> & { instruction?: { stopPlannedAt?: string | null } | null };
+  return {
+    reasonCondition: raw.reasonCondition ?? null,
+    prescribingPractitioner: raw.prescribingPractitioner ?? null,
+    stopPlannedAt: raw.stopPlannedAt ?? raw.instruction?.stopPlannedAt ?? null,
+  };
+}
+
+export interface MedicationLinksPatch {
+  reasonConditionId?: string | null;
+  prescribingPractitionerId?: string | null;
+  stopPlannedAt?: string | null;
+}
+
+/** Online-only (no offline queue): these links are not hazard-critical and a stale cached copy is worse than a retry. */
+export async function updateMedicationLinks(medication: PatientMedicationDto, patch: MedicationLinksPatch) {
+  const res = await api.patch<PatientMedicationDto>(
+    `/medications/${medication.id}`,
+    { rowVersion: medication.rowVersion, ...patch },
+    { idempotencyKey: newIdempotencyKey(), profileId: getActiveProfileId() },
+  );
+  invalidateMedicationData();
+  return res;
+}
+
+// --- refill plan (docs_v2/04 §4.1 MedicationRefillPlan) -------------------
+
+/**
+ * Pack size + what's on hand → the day the supply runs out at the rate the
+ * confirmed instruction implies. `dailyConsumption` and `projectedRunOutOn`
+ * are the server's arithmetic on the patient's own numbers; screens show
+ * them as a plain projection and never as advice to buy (docs/02
+ * principle 3). `exists: false` means no plan has been set up yet — the
+ * numbers are then the medicine's bare counter only.
+ */
+export interface RefillPlanDto {
+  medicationId: string;
+  exists: boolean;
+  packSize: string | null;
+  quantityOnHand: string | null;
+  dailyConsumption: string | null;
+  /** Calendar date "YYYY-MM-DD" in the profile's zone, or null when it can't be projected. */
+  projectedRunOutOn: string | null;
+  updatedAt: string | null;
+}
+
+function refillPlanPath(medicationId: string): string {
+  return `/medications/${medicationId}/refill-plan`;
+}
+
+export function useRefillPlan(medicationId: string) {
+  const path = refillPlanPath(medicationId);
+  const { data, error, reload } = useSharedResource<RefillPlanDto>({
+    path,
+    fetcher: () => api.get<RefillPlanDto>(path, { profileId: getActiveProfileId() }),
+  });
+  return { plan: data, error, reload };
+}
+
+export async function putRefillPlan(medicationId: string, input: { packSize?: number | null; quantityOnHand?: number | null }) {
+  const res = await api.request<RefillPlanDto>("PUT", refillPlanPath(medicationId), input, { profileId: getActiveProfileId() });
+  // The plan writes the quantity back onto the medicine row, so its cached
+  // detail/list copies (and the refill reminders built from them) are stale.
+  invalidateMedicationData();
+  invalidate("profile", "/profiles/current/refill-reminders");
+  return res;
+}

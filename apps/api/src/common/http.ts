@@ -28,4 +28,13 @@ export interface ApiRequest extends Request {
     sessionId: string;
     duties: AdminDuty[];
   };
+  /** Set by ProviderGuard (V2 Phases 11–14): the provider-portal session plus its organization context. */
+  providerAuth?: {
+    userId: string;
+    sessionId: string;
+    organizationId: string;
+    organizationKind: string;
+    memberId: string;
+    role: "owner" | "doctor" | "staff" | "pharmacist" | "lab_tech";
+  };
 }

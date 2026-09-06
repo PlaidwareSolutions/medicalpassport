@@ -36,6 +36,18 @@ export class UnsupportedIgVersionError extends FhirError {
   }
 }
 
+/** Thrown when an artifact exists only in a newer IG folder (e.g. the Indian Patient Summary before v7.0). */
+export class ArtifactNotSupportedError extends FhirError {
+  override readonly name = "ArtifactNotSupportedError";
+  readonly code = "fhir_artifact_unsupported" as const;
+  constructor(
+    readonly artifact: string,
+    readonly igVersion: string,
+  ) {
+    super(`Artifact "${artifact}" is not defined by ABDM FHIR IG version "${igVersion}"`);
+  }
+}
+
 /** Thrown by parsers when a resource is missing something the canonical model requires. */
 export class FhirParseError extends FhirError {
   override readonly name = "FhirParseError";

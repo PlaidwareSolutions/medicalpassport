@@ -9,6 +9,7 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { CacheFirst, ExpirationPlugin, NetworkOnly, Serwist } from "serwist";
+import { putSharedFiles } from "../lib/share-target-inbox";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -51,6 +52,33 @@ const serwist = new Serwist({
       },
     ],
   },
+});
+
+/**
+ * Web Share Target (docs_v2/09 §3, docs_v2/10 H-38). The manifest's
+ * `share_target` POSTs the shared files here as multipart form data. They
+ * are parked in IndexedDB (never a SW cache — PHI, docs/15) and the browser
+ * is redirected to the `/share-target` screen, which asks which profile
+ * they belong to before anything is uploaded. Registered BEFORE Serwist's
+ * own listeners so this POST is answered here and never reaches any
+ * caching strategy: nothing about a share is ever cached, and a failure
+ * still lands on the screen with an honest error rather than a blank tab.
+ */
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== "POST" || url.origin !== self.location.origin || url.pathname !== "/share-target") return;
+  event.respondWith(
+    (async () => {
+      try {
+        const formData = await event.request.formData();
+        const files = formData.getAll("files").filter((entry): entry is File => entry instanceof File && entry.size > 0);
+        await putSharedFiles(files);
+        return Response.redirect("/share-target?received=1", 303);
+      } catch {
+        return Response.redirect("/share-target?error=1", 303);
+      }
+    })(),
+  );
 });
 
 serwist.addEventListeners();

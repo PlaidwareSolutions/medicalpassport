@@ -19,6 +19,7 @@
     "@medpass/database": "workspace:*",
     "@medpass/document-intelligence": "workspace:*",
     "@medpass/domain": "workspace:*",
+    "@medpass/fhir": "workspace:*",
     "@medpass/field-crypto": "workspace:*",
     "@medpass/health-events": "workspace:*",
     "@medpass/medication-terminology": "workspace:*",

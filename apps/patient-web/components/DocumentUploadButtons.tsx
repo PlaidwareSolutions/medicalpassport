@@ -19,14 +19,15 @@ export function DocumentUploadButtons({
   photoLabel: string;
   fileLabel: string;
   disabled?: boolean;
-  onPick: (files: File[]) => void;
+  /** `channel` says which input produced the files — camera or gallery/file picker — for callers that record a source (docs_v2/09 §3). */
+  onPick: (files: File[], channel: "camera" | "gallery") => void;
 }) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handle(list: FileList | null) {
+  function handle(list: FileList | null, channel: "camera" | "gallery") {
     const files = Array.from(list ?? []);
-    if (files.length > 0) onPick(files);
+    if (files.length > 0) onPick(files, channel);
   }
 
   return (
@@ -38,7 +39,7 @@ export function DocumentUploadButtons({
         capture="environment"
         hidden
         onChange={(e) => {
-          handle(e.target.files);
+          handle(e.target.files, "camera");
           e.target.value = "";
         }}
       />
@@ -49,7 +50,7 @@ export function DocumentUploadButtons({
         multiple
         hidden
         onChange={(e) => {
-          handle(e.target.files);
+          handle(e.target.files, "gallery");
           e.target.value = "";
         }}
       />

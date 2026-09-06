@@ -1,0 +1,265 @@
+{
+  "prescription": {
+    "id": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+    "patient": {
+      "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+      "abhaAddress": "asha.demo@sbx",
+      "display": "Asha Demo"
+    },
+    "prescribedAt": "2026-08-14",
+    "notes": "Review in 4 weeks.",
+    "diagnosisText": "Type 2 diabetes mellitus; GERD",
+    "validUntil": "2026-09-13",
+    "followUpOn": "2026-09-11",
+    "practitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "encounterId": null,
+    "provenance": {
+      "source": "clinic_entered",
+      "verification": "provider_verified",
+      "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "recordedVia": "clinic_portal",
+      "recordedAt": "2026-08-14T09:30:00.000Z",
+      "sourceDocumentId": null,
+      "sourceExtractionId": null,
+      "sourceDeviceId": null,
+      "sourceAbdmTxnId": null,
+      "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+      "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "verifiedAt": "2026-08-14T09:31:12.000Z"
+    }
+  },
+  "patient": {
+    "id": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+    "displayName": "Asha Demo",
+    "yearOfBirth": 1975,
+    "sex": "female",
+    "abhaAddress": "asha.demo@sbx",
+    "abhaNumber": "91-1234-5678-9012",
+    "provenance": {
+      "source": "user_entered",
+      "verification": "patient_confirmed",
+      "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "recordedVia": "pwa",
+      "recordedAt": "2026-01-05T04:00:00.000Z",
+      "sourceDocumentId": null,
+      "sourceExtractionId": null,
+      "sourceDeviceId": null,
+      "sourceAbdmTxnId": null,
+      "sourceOrganizationId": null,
+      "sourcePractitionerId": null,
+      "verifiedByUserId": null,
+      "verifiedAt": null
+    }
+  },
+  "practitioner": {
+    "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "displayName": "Dr. Meera Iyer",
+    "speciality": "General Physician",
+    "registrationNumber": "TNMC/12345",
+    "registrationCouncil": "Tamil Nadu Medical Council",
+    "hprId": "71-1234-5678-9012",
+    "organizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+    "provenance": {
+      "source": "clinic_entered",
+      "verification": "provider_verified",
+      "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "recordedVia": "clinic_portal",
+      "recordedAt": "2026-03-01T04:00:00.000Z",
+      "sourceDocumentId": null,
+      "sourceExtractionId": null,
+      "sourceDeviceId": null,
+      "sourceAbdmTxnId": null,
+      "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+      "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "verifiedAt": "2026-08-14T09:31:12.000Z"
+    }
+  },
+  "organization": {
+    "id": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+    "displayName": "Apollo Clinic, Jubilee Hills",
+    "kind": "clinic",
+    "hfrId": "IN2910000123",
+    "addressText": "Road No. 36, Jubilee Hills",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "pincode": "500033",
+    "provenance": {
+      "source": "clinic_entered",
+      "verification": "provider_verified",
+      "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "recordedVia": "clinic_portal",
+      "recordedAt": "2026-03-01T04:00:00.000Z",
+      "sourceDocumentId": null,
+      "sourceExtractionId": null,
+      "sourceDeviceId": null,
+      "sourceAbdmTxnId": null,
+      "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+      "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+      "verifiedAt": "2026-08-14T09:31:12.000Z"
+    }
+  },
+  "items": [
+    {
+      "id": "6e7f8a9b-0c1d-4e2f-9a3b-4c5d6e7f8a9b",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "prescriptionId": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "sequence": 1,
+      "enteredName": "Metformin",
+      "medicationId": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+      "strengthLabel": "500 mg",
+      "formText": "Tablet",
+      "authoredOn": "2026-08-14",
+      "practitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "encounterId": null,
+      "completed": false,
+      "dosage": {
+        "doseQuantity": "1",
+        "doseUnit": "tablet",
+        "frequencyCode": "BD",
+        "pattern": null,
+        "foodInstruction": "after",
+        "durationDays": 30,
+        "routeText": "oral",
+        "text": "1 tab BD after food x 30 days"
+      },
+      "provenance": {
+        "source": "clinic_entered",
+        "verification": "provider_verified",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "clinic_portal",
+        "recordedAt": "2026-08-14T09:30:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "verifiedAt": "2026-08-14T09:31:12.000Z"
+      }
+    },
+    {
+      "id": "7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "prescriptionId": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "sequence": 2,
+      "enteredName": "Pantoprazole",
+      "medicationId": null,
+      "strengthLabel": "40 mg",
+      "formText": "Tablet",
+      "authoredOn": "2026-08-14",
+      "practitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "encounterId": null,
+      "completed": true,
+      "dosage": {
+        "doseQuantity": null,
+        "doseUnit": null,
+        "frequencyCode": "PATTERN",
+        "pattern": "1-0-1",
+        "foodInstruction": "before",
+        "durationDays": null,
+        "routeText": null,
+        "text": "1-0-1 before meals"
+      },
+      "provenance": {
+        "source": "ocr_extracted",
+        "verification": "patient_confirmed",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "pwa",
+        "recordedAt": "2026-08-14T09:30:00.000Z",
+        "sourceDocumentId": "aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "sourceExtractionId": "bb0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": null,
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    }
+  ],
+  "medications": [
+    {
+      "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+      "displayText": "Metformin",
+      "codeSystem": null,
+      "code": null,
+      "formText": "Tablet",
+      "strengthLabel": "500 mg",
+      "ingredients": [
+        {
+          "text": "Metformin hydrochloride",
+          "strengthValue": "500",
+          "strengthUnit": "mg"
+        }
+      ],
+      "provenance": {
+        "source": "clinic_entered",
+        "verification": "provider_verified",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "clinic_portal",
+        "recordedAt": "2026-08-14T09:30:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": "0b1c2d3e-4f50-4a6b-9c7d-8e9f0a1b2c3d",
+        "sourcePractitionerId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "verifiedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "verifiedAt": "2026-08-14T09:31:12.000Z"
+      }
+    }
+  ],
+  "documents": [
+    {
+      "id": "aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "patient": {
+        "patientProfileId": "2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+        "abhaAddress": "asha.demo@sbx",
+        "display": "Asha Demo"
+      },
+      "kind": "prescription",
+      "title": null,
+      "documentDate": "2026-08-14",
+      "status": "processed",
+      "pages": [
+        {
+          "pageNumber": 1,
+          "contentType": "application/pdf",
+          "storedObjectId": "ab7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",
+          "sizeBytes": 40211,
+          "sha256Hex": null
+        }
+      ],
+      "prescriptionId": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+      "diagnosticReportId": null,
+      "encounterId": null,
+      "provenance": {
+        "source": "user_entered",
+        "verification": "patient_confirmed",
+        "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+        "recordedVia": "native_android",
+        "recordedAt": "2026-08-14T09:20:00.000Z",
+        "sourceDocumentId": null,
+        "sourceExtractionId": null,
+        "sourceDeviceId": null,
+        "sourceAbdmTxnId": null,
+        "sourceOrganizationId": null,
+        "sourcePractitionerId": null,
+        "verifiedByUserId": null,
+        "verifiedAt": null
+      }
+    }
+  ]
+}

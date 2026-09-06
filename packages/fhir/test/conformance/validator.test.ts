@@ -70,10 +70,10 @@ describe.each(SUPPORTED_IG_VERSIONS)("validateResource — IG %s", (version) => 
 
   it("never throws on garbage input", () => {
     expect(failuresOf(null, version)[0]).toMatchObject({ path: "Resource.resourceType", severity: "fatal" });
-    expect(failuresOf({ resourceType: "Observation" }, version)[0]).toMatchObject({
-      path: "Observation.resourceType",
+    expect(failuresOf({ resourceType: "Immunization" }, version)[0]).toMatchObject({
+      path: "Immunization.resourceType",
       severity: "fatal",
-      profileUrl: "http://hl7.org/fhir/StructureDefinition/Observation",
+      profileUrl: "http://hl7.org/fhir/StructureDefinition/Immunization",
     });
   });
 });

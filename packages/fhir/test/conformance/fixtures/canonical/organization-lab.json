@@ -1,0 +1,25 @@
+{
+  "id": "8a9b0c1d-2e3f-4a5b-9c6d-7e8f9a0b1c2d",
+  "displayName": "City Diagnostics",
+  "kind": "laboratory",
+  "hfrId": null,
+  "addressText": null,
+  "city": "Chennai",
+  "state": null,
+  "pincode": null,
+  "provenance": {
+    "source": "user_entered",
+    "verification": "patient_confirmed",
+    "recordedByUserId": "9c0d1e2f-3a4b-4c5d-8e6f-70a1b2c3d4e5",
+    "recordedVia": "pwa",
+    "recordedAt": "2026-03-03T04:00:00.000Z",
+    "sourceDocumentId": null,
+    "sourceExtractionId": null,
+    "sourceDeviceId": null,
+    "sourceAbdmTxnId": null,
+    "sourceOrganizationId": null,
+    "sourcePractitionerId": null,
+    "verifiedByUserId": null,
+    "verifiedAt": null
+  }
+}

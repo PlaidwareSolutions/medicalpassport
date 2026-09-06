@@ -26,6 +26,15 @@ function expectedAudio(route: string): GuidanceAudioId | null {
   if (route === "/blood-pressure") return "screen.blood_pressure";
   if (route === "/blood-sugar") return "screen.blood_sugar";
   if (route === "/body-weight") return "screen.body_weight";
+  // Phase 5 (docs_v2/06 P5-3): the three V1 diary routes above redirect to
+  // these hub diaries, which keep speaking the same pre-generated audio.
+  if (route === "/measurements/blood_pressure") return "screen.blood_pressure";
+  if (route === "/measurements/blood_glucose") return "screen.blood_sugar";
+  if (route === "/measurements/body_weight") return "screen.body_weight";
+  // The check-ups screen (moved off /blood-sugar's second tab) has no header
+  // audio; on the empty fixture profile its teaching empty state speaks the
+  // pre-generated empty.bloodsugar_checkups, and that is the button seen.
+  if (route === "/measurements/checkups") return "empty.bloodsugar_checkups";
   if (route === "/caregivers") return "screen.caregivers";
   if (route === "/caregivers/invitations") return "screen.caregiver_invitations";
   if (route === "/help") return "screen.help";

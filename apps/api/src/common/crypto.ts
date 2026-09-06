@@ -90,3 +90,24 @@ export function hashSessionToken(token: string): string {
 export function sha256Hex(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
+
+/**
+ * Share-link token hash (docs_v2/04 §11, V2 Phase 7). Peppered with
+ * SHARE_TOKEN_PEPPER when it is configured, so a database read alone never
+ * yields a usable link; identical to the V1 bare sha256 when it is not, so
+ * an environment without the pepper behaves exactly as before.
+ */
+export function hashShareToken(token: string): string {
+  const pepper = env().SHARE_TOKEN_PEPPER;
+  return pepper ? sha256Hex(pepper + token) : sha256Hex(token);
+}
+
+/**
+ * The V1 (unpeppered) hash of a share token, or null when it would be the
+ * same value as `hashShareToken` (no pepper configured). Read paths try the
+ * peppered hash first and this second, so a link minted before the pepper
+ * was set keeps working until it expires; nothing is ever written with it.
+ */
+export function legacyShareTokenHash(token: string): string | null {
+  return env().SHARE_TOKEN_PEPPER ? sha256Hex(token) : null;
+}

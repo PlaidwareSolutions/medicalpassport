@@ -1,22 +1,10 @@
 import type { ZodIssue } from "zod";
+import type { FhirIssueSeverity, FhirValidationFailure } from "../common/failure.js";
 import type { IgModule, ProfiledResourceType } from "../common/ig-module.js";
 import { getIg, type IgVersion } from "../version-mapper.js";
 import { RESOURCE_SCHEMAS, type ValidatableResourceType } from "./schemas.js";
 
-/** FHIR OperationOutcome issue severities. */
-export type FhirIssueSeverity = "fatal" | "error" | "warning" | "information";
-
-/** One row of `FhirValidationFailure` (docs_v2/04 section 8) minus the persistence columns. */
-export interface FhirValidationFailure {
-  /** FHIRPath-like location, e.g. `AllergyIntolerance.reaction[0].manifestation`. */
-  path: string;
-  severity: FhirIssueSeverity;
-  message: string;
-  /** The IG profile the resource was checked against (base R4 canonical when the IG has none). */
-  profileUrl: string;
-  resourceType: string;
-  igVersion: IgVersion;
-}
+export type { FhirIssueSeverity, FhirValidationFailure } from "../common/failure.js";
 
 export type ValidationResult = { ok: true } | { ok: false; failures: FhirValidationFailure[] };
 
@@ -28,8 +16,9 @@ const R4_BASE = "http://hl7.org/fhir/StructureDefinition";
 
 /**
  * Structural + profile validation of a resource produced (or received) at the ABDM boundary.
- * Bundles are validated recursively: each entry resource is checked with its own path prefix.
- * Never throws on bad input; unknown resource types are reported, not crashed on.
+ * Bundles are validated recursively: each entry resource is checked with its own path prefix,
+ * and a document bundle must open with a Composition (R4 bdl-11). Never throws on bad input;
+ * unknown resource types are reported, not crashed on.
  */
 export function validateResource(resource: unknown, options: ValidateOptions): ValidationResult {
   const failures = collectFailures(resource, getIg(options.ig), options.ig, "");
@@ -65,15 +54,26 @@ function collectFailures(resource: unknown, ig: IgModule, igVersion: IgVersion, 
       });
 
   if (isProfiled(ig, resourceType)) {
+    const accepted = acceptedProfiles(ig, resourceType);
     const profiles = (resource as { meta?: { profile?: unknown } }).meta?.profile;
     const declared = Array.isArray(profiles) ? (profiles as unknown[]) : [];
-    if (!declared.includes(ig.profiles[resourceType])) {
-      failures.push(fail("meta.profile", `must declare profile ${ig.profiles[resourceType]} for IG ${ig.version}`));
+    if (!declared.some((p) => accepted.includes(p as string))) {
+      failures.push(fail("meta.profile", `must declare ${accepted.length === 1 ? "profile" : "one of"} ${accepted.join(" | ")} for IG ${ig.version}`));
     }
   }
 
   if (resourceType === "Bundle" && parsed.success) {
-    const entries = (resource as { entry?: Array<{ resource?: unknown }> }).entry ?? [];
+    const bundle = resource as { type?: string; entry?: Array<{ resource?: unknown }> };
+    const entries = bundle.entry ?? [];
+    if (bundle.type === "document") {
+      const first = entries[0]?.resource;
+      if (readResourceType(first) !== "Composition") {
+        failures.push(fail("entry[0].resource", "bdl-11: a document bundle must start with a Composition"));
+      }
+      if (!(resource as { timestamp?: unknown }).timestamp) {
+        failures.push(fail("timestamp", "bdl-10: a document bundle must carry a timestamp"));
+      }
+    }
     entries.forEach((entry, index) => {
       if (entry.resource === undefined) return;
       failures.push(...collectFailures(entry.resource, ig, igVersion, joinPath(prefix, "Bundle", `entry[${index}].resource`)));
@@ -91,6 +91,11 @@ function readResourceType(resource: unknown): string | null {
 
 function isProfiled(ig: IgModule, resourceType: string): resourceType is ProfiledResourceType {
   return Object.prototype.hasOwnProperty.call(ig.profiles, resourceType);
+}
+
+/** Primary profile plus the folder's alternates for the type. */
+export function acceptedProfiles(ig: IgModule, resourceType: ProfiledResourceType): readonly string[] {
+  return [ig.profiles[resourceType], ...(ig.alternateProfiles[resourceType] ?? [])];
 }
 
 function profileFor(ig: IgModule, resourceType: string | null): string {

@@ -22,6 +22,7 @@
 import type { ZodTypeAny } from "zod";
 import {
   acceptInviteSchema,
+  activityQuerySchema,
   addDiagnosticResultSchema,
   addReportValueSchema,
   adminAuditSearchSchema,
@@ -128,6 +129,48 @@ import {
   webPushSubscribeSchema,
   webPushUnsubscribeSchema,
   weightReadingSchema,
+  providerLoginSchema,
+  providerTotpSchema,
+  updateProviderOrganizationSchema,
+  addOrganizationMemberSchema,
+  updateOrganizationMemberSchema,
+  createOnboardingTokenSchema,
+  onboardPatientSchema,
+  proposeReconciliationSchema,
+  proposePrescriptionSchema,
+  proposeEncounterSchema,
+  proposeDispenseSchema,
+  proposeDiagnosticReportSchema,
+  proposeDischargeSchema,
+  proposalsQuerySchema,
+  acceptProposalSchema,
+  rejectProposalSchema,
+} from "@medpass/validation";
+import {
+  abdmCareContextLinkSchema,
+  abdmConsentRevokeSchema,
+  abdmDiscoverSchema,
+  abhaLinkInitSchema,
+  abhaLinkVerifySchema,
+  fhirExportQuerySchema,
+  fhirPatientSummaryQuerySchema,
+} from "@medpass/validation";
+import {
+  abdmTransactionsQuerySchema,
+  breakGlassListQuerySchema,
+  breakGlassRequestSchema,
+  consentAuditQuerySchema,
+  createSupportCaseSchema,
+  createTestDueSchema,
+  documentsStatusQuerySchema,
+  fhirValidationFailuresQuerySchema,
+  measurementRemindersSchema,
+  notificationFailuresQuerySchema,
+  putFeatureFlagSchema,
+  supportCaseNoteSchema,
+  supportCasesQuerySchema,
+  updateSupportCaseSchema,
+  updateTestDueSchema,
 } from "@medpass/validation";
 import * as S from "./schemas";
 import type { JsonSchema } from "./schemas";
@@ -140,8 +183,9 @@ export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE" | "PUT";
  * - `admin`: admin-portal session via `AdminAuthGuard` (class-level `@Public()` only skips the patient guard).
  * - `share-token`: unauthenticated, the capability token in the path is the authorization.
  * - `webhook`: unauthenticated, verified by a provider signature header.
+ * - `provider`: provider-portal session via `ProviderGuard` (class-level `@Public()` only skips the patient guard).
  */
-export type AuthKind = "public" | "patient" | "admin" | "share-token" | "webhook";
+export type AuthKind = "public" | "patient" | "admin" | "share-token" | "webhook" | "provider";
 
 export interface QueryParam {
   name: string;
@@ -217,6 +261,10 @@ const T = {
   adminRules: "Admin: Rules",
   adminUsers: "Admin: Users",
   adminProviders: "Admin: Providers",
+  adminPlatform: "Admin: Platform",
+  adminSupport: "Admin: Support",
+  adminAbdm: "Admin: ABDM",
+  adminFhir: "Admin: FHIR",
   profiles: "Profiles",
   caregivers: "Caregivers",
   claims: "Claims",
@@ -245,6 +293,13 @@ const T = {
   healthTimeline: "Health timeline",
   sharing: "Sharing",
   sync: "Sync",
+  providerAuth: "Provider: Auth",
+  providerOrganizations: "Provider: Organizations",
+  providerPatients: "Provider: Patients",
+  providerProposals: "Provider: Proposals",
+  proposals: "Proposals",
+  fhir: "FHIR",
+  abdm: "ABDM",
 } as const;
 
 export const TAG_DESCRIPTIONS: Record<string, string> = {
@@ -258,9 +313,20 @@ export const TAG_DESCRIPTIONS: Record<string, string> = {
   [T.caregivers]: "Caregiver invitations, scopes and access logs.",
   [T.sharing]: "Visit summaries and time-boxed public share links.",
   [T.sync]: "Offline mutation replay (docs/15).",
+  [T.providerAuth]: "Provider-portal sessions (docs_v2/05 §11): phone OTP sign-in for organization staff; a distinct token type from patient and admin sessions.",
+  [T.providerOrganizations]: "The signed-in staff member's organization and its members (owner-only writes). The organization kind decides which proposal kinds it may send.",
+  [T.providerPatients]: "QR onboarding and the section-scoped, time-boxed ProviderPatientLink; every provider read is audited with the organization id.",
+  [T.providerProposals]: "Providers propose, patients accept (ADR-V2-009): reconciliations, prescriptions, encounters, dispenses, diagnostic reports and discharge transitions are stored as proposals and write nothing clinical until accepted.",
+  [T.proposals]: "The patient's Proposals inbox: everything awaiting acceptance across organizations, and the accept / reject decisions.",
+  [T.fhir]: "FHIR R4 export of the patient's own record through the versioned ABDM IG layer (docs_v2/08 §2, §8; ADR-V2-001/003). Step-up guarded and audited; mapping gaps are recorded as FhirValidationFailure rows, never blocking.",
+  [T.abdm]: "ABHA identity and ABDM PHR flows (docs_v2/05 §10, docs_v2/08 §5). ABHA is never required to use the product. Received bundles only ever become confirmation-queue candidates (docs_v2/08 §7).",
   [T.healthTimeline]: "Unified health timeline (docs_v2/05 §3) — distinct from the per-day dose timeline under Scheduling.",
   [T.webhooks]: "Provider callbacks verified by signature; never carry patient credentials.",
   [T.adminProviders]: "Provider / facility directory (provider_admin duty): global Organization and Practitioner entries, HFR/HPR verification, merges. Patient-entered rows are returned as opaque ids with counts only.",
+  [T.adminPlatform]: "V2 admin platform (docs_v2/14 §3): feature flags (super_admin), break-glass grants and log (audit_search), consent audit (audit_search), document-processing funnel, integrations health and notification failures (operations_view). Ids are opaque; no clinical value is ever returned.",
+  [T.adminSupport]: "Support cases (support_cases duty, docs_v2/14 §5): operational records that point at a profile by opaque id only; notes are PHI-free by policy. Break-glass is a separate, audited grant.",
+  [T.adminAbdm]: "AbdmTransaction explorer (abdm_operations duty): kinds, statuses, gateway ids, error codes and timings — never request or response bodies.",
+  [T.adminFhir]: "FhirValidationFailure rows (fhir_view duty): structural validator findings by direction, IG version and resource path.",
   [T.diagnostics]: "Labs and imaging (docs_v2/05 §6) — the V2 successor to Reports, with units, structured reference ranges and corrections that supersede instead of overwrite. The V1 `reports` endpoints stay live and now dual-write here.",
   [T.observations]: "Home measurements and vitals (docs_v2/05 §7, ADR-V2-011) — one model for every concept, plus device sync and measurement devices. The V1 glucose / blood-pressure / weight diaries stay live and now dual-write here.",
   [T.terminology]: "Static, PHI-free code tables (LOINC codes, canonical units, plausibility ranges). Public: identical for every caller, and needed before there is a session.",
@@ -546,6 +612,16 @@ export const ROUTES: RouteDoc[] = [
   { method: "DELETE", path: "/v1/caregivers/:relationshipId", summary: "Revoke a caregiver", tags: [T.caregivers], auth: "patient", stepUp: true, headers: [PROFILE], scope: "manage_caregivers" },
   { method: "GET", path: "/v1/caregivers/invitations", summary: "Invitations addressed to the caller's phone", tags: [T.caregivers], auth: "patient", ...hw(S.itemsOf(S.entity)) },
   { method: "GET", path: "/v1/caregivers/:relationshipId/accesses", summary: "Access log for one caregiver relationship", tags: [T.caregivers], auth: "patient", headers: [PROFILE], scope: "manage_caregivers", ...hw(S.itemsOf(S.anyObject)) },
+  {
+    method: "GET",
+    path: "/v1/profiles/current/family",
+    summary: "Family dashboard: every profile the caller can act on, with a per-profile summary",
+    description: "Not scoped by `x-profile-id`. Each item carries the caller's relationship and scopes; summary fields the caller's scopes do not grant are null. `nextTestDue` is a placeholder (null) until TestDueSchedule ships.",
+    tags: [T.caregivers],
+    auth: "patient",
+    ...hw(S.itemsOf(S.familyProfile)),
+  },
+  { method: "GET", path: "/v1/profiles/current/activity", summary: "Who changed what: caregiver-authored timeline events and audit rows, newest first", tags: [T.caregivers], auth: "patient", headers: [PROFILE], scope: "view_profile", query: activityQuerySchema, ...hw(S.pageOf(S.activityItem)) },
 
   // ───────────────────────── Claims ─────────────────────────
   { method: "POST", path: "/v1/profiles/current/claim-invite", summary: "Invite the dependent to claim their profile", tags: [T.claims], auth: "patient", headers: [PROFILE], scope: "manage_claim", request: claimInviteSchema, ...hw({ type: "object", required: ["id", "status"], properties: { id: { type: "string", format: "uuid" }, status: { type: "string", enum: ["invited"] } } }) },
@@ -796,6 +872,7 @@ export const ROUTES: RouteDoc[] = [
   { method: "POST", path: "/v1/notification-channels/web-push/unsubscribe", summary: "Unsubscribe from Web Push", tags: [T.notifications], auth: "patient", request: webPushUnsubscribeSchema, ...hw(S.anyObject) },
   { method: "GET", path: "/v1/profiles/current/notification-preferences", summary: "Notification preferences", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "manage_reminders", ...hw(S.anyObject) },
   { method: "POST", path: "/v1/profiles/current/notification-preferences", summary: "Update notification preferences", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "manage_reminders", request: notificationPreferencesSchema, ...hw(S.anyObject) },
+  { method: "PUT", path: "/v1/profiles/current/notification-preferences", summary: "Replace notification preferences, including per-kind channel/frequency controls", description: "`channelFrequency` maps a NotificationKind to `{channels[], frequency}`. `dose_reminder` and `caregiver_escalation` are refused (they can never be turned down). Omitting `channelFrequency` leaves it unchanged.", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "manage_reminders", request: notificationPreferencesSchema, ...hw(S.anyObject) },
   { method: "GET", path: "/v1/profiles/current/refill-reminders", summary: "Open refill reminders", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "view_medications", ...hw(S.itemsOf(S.entity)) },
   { method: "POST", path: "/v1/refill-reminders/:notificationId/dismiss", summary: "Dismiss a refill reminder", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "edit_medications", ...hw(S.anyObject) },
   { method: "GET", path: "/v1/profiles/current/caregiver-alerts", summary: "Recent caregiver alerts (missed doses)", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "manage_reminders", ...hw(S.itemsOf(S.anyObject)) },
@@ -867,16 +944,16 @@ export const ROUTES: RouteDoc[] = [
   { method: "GET", path: "/v1/terminology/observation-concepts", summary: "Observation concepts with LOINC codes, units and plausibility ranges", tags: [T.terminology], auth: "public", ...hw(S.anyObject) },
 
   // ───────────────────────── Observations (docs_v2/05 §7) ─────────────────────────
-  { method: "GET", path: "/v1/profiles/current/observations", summary: "List measurements", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_profile", query: observationsQuerySchema, ...hw(S.itemsOf(S.entity)) },
-  { method: "POST", path: "/v1/profiles/current/observations", summary: "Record a measurement", description: "Blood pressure uses `valueNumeric`/`valueNumeric2`; a `pulseBpm` sent with it becomes its own `heart_rate` observation.", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "edit_profile", request: observationSchema, ...hw(S.entity) },
-  { method: "POST", path: "/v1/profiles/current/observations/batch", summary: "Device sync: many measurements at once", description: "Deduped on `(concept, measuredAt, deviceId)` against stored rows and within the batch.", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "edit_profile", request: observationBatchSchema, ...hw(S.anyObject) },
-  { method: "GET", path: "/v1/profiles/current/trends/observations/:concept", summary: "Descriptive trend for one concept", description: "Rolling average, min/max and a morning/evening split cut on the patient's own clock. Never an interpretation (hazard H-25).", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_profile", query: observationTrendQuerySchema, ...hw(S.anyObject) },
-  { method: "GET", path: "/v1/observations/:id", summary: "One measurement", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_profile", ...hw(S.entity) },
-  { method: "DELETE", path: "/v1/observations/:id", summary: "Delete a measurement", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "edit_profile" },
-  { method: "GET", path: "/v1/profiles/current/measurement-devices", summary: "List measurement devices", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_profile", ...hw(S.itemsOf(S.entity)) },
-  { method: "POST", path: "/v1/profiles/current/measurement-devices", summary: "Register a measurement device", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "edit_profile", request: measurementDeviceSchema, ...hw(S.entity) },
-  { method: "PATCH", path: "/v1/measurement-devices/:id", summary: "Update a measurement device", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "edit_profile", request: updateMeasurementDeviceSchema, ...hw(S.entity) },
-  { method: "DELETE", path: "/v1/measurement-devices/:id", summary: "Retire a measurement device", description: "Soft-delete; the readings it produced stay — they are the patient's measurements, not the meter's.", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "edit_profile" },
+  { method: "GET", path: "/v1/profiles/current/observations", summary: "List measurements", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_measurements", query: observationsQuerySchema, ...hw(S.itemsOf(S.entity)) },
+  { method: "POST", path: "/v1/profiles/current/observations", summary: "Record a measurement", description: "Blood pressure uses `valueNumeric`/`valueNumeric2`; a `pulseBpm` sent with it becomes its own `heart_rate` observation.", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "add_measurements", request: observationSchema, ...hw(S.entity) },
+  { method: "POST", path: "/v1/profiles/current/observations/batch", summary: "Device sync: many measurements at once", description: "Deduped on `(concept, measuredAt, deviceId)` against stored rows and within the batch.", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "add_measurements", request: observationBatchSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/profiles/current/trends/observations/:concept", summary: "Descriptive trend for one concept", description: "Rolling average, min/max and a morning/evening split cut on the patient's own clock. Never an interpretation (hazard H-25).", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_measurements", query: observationTrendQuerySchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/observations/:id", summary: "One measurement", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_measurements", ...hw(S.entity) },
+  { method: "DELETE", path: "/v1/observations/:id", summary: "Delete a measurement", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "add_measurements" },
+  { method: "GET", path: "/v1/profiles/current/measurement-devices", summary: "List measurement devices", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "view_measurements", ...hw(S.itemsOf(S.entity)) },
+  { method: "POST", path: "/v1/profiles/current/measurement-devices", summary: "Register a measurement device", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "add_measurements", request: measurementDeviceSchema, ...hw(S.entity) },
+  { method: "PATCH", path: "/v1/measurement-devices/:id", summary: "Update a measurement device", tags: [T.observations], auth: "patient", headers: [PROFILE, CLIENT], scope: "add_measurements", request: updateMeasurementDeviceSchema, ...hw(S.entity) },
+  { method: "DELETE", path: "/v1/measurement-devices/:id", summary: "Retire a measurement device", description: "Soft-delete; the readings it produced stay — they are the patient's measurements, not the meter's.", tags: [T.observations], auth: "patient", headers: [PROFILE], scope: "add_measurements" },
 
   // ───────────────────────── Safety ─────────────────────────
   { method: "POST", path: "/v1/profiles/current/safety/evaluate", summary: "Run the safety rules now", tags: [T.safety], auth: "patient", headers: [PROFILE], scope: "review_concerns", ...hw(S.anyObject) },
@@ -932,6 +1009,7 @@ export const ROUTES: RouteDoc[] = [
   { method: "GET", path: "/v1/profiles/current/visit-summary", summary: "Visit summary (JSON)", tags: [T.sharing], auth: "patient", headers: [PROFILE], scope: "share_records", ...hw(S.anyObject) },
   { method: "GET", path: "/v1/profiles/current/visit-summary/pdf", summary: "Visit summary as PDF", tags: [T.sharing], auth: "patient", headers: [PROFILE], scope: "share_records", ...hw(pdf("Rendered visit summary.")) },
   { method: "GET", path: "/v1/profiles/current/visit-summary/text", summary: "Visit summary as plain text (for WhatsApp etc.)", tags: [T.sharing], auth: "patient", headers: [PROFILE], scope: "share_records", query: visitSummaryTextQuerySchema, ...hw({ type: "object", required: ["text"], properties: { text: { type: "string" } } }) },
+  { method: "GET", path: "/v1/profiles/current/doctor-snapshot", summary: "Doctor Snapshot: the concise clinician view (own profile)", tags: [T.sharing], auth: "patient", headers: [PROFILE], scope: "share_records", ...hw(S.anyObject) },
   { method: "POST", path: "/v1/profiles/current/shares", summary: "Create a time-boxed share link", tags: [T.sharing], auth: "patient", stepUp: true, headers: [PROFILE], scope: "share_records", request: createShareSchema, ...hw(S.shareCreated) },
   { method: "GET", path: "/v1/profiles/current/shares", summary: "List share links", tags: [T.sharing], auth: "patient", headers: [PROFILE], scope: "share_records", ...hw(S.itemsOf(S.entity)) },
   { method: "GET", path: "/v1/shares/:id/accesses", summary: "Access log of one share link", tags: [T.sharing], auth: "patient", headers: [PROFILE], scope: "share_records", ...hw(S.itemsOf(S.anyObject)) },
@@ -947,6 +1025,17 @@ export const ROUTES: RouteDoc[] = [
     ...hw(S.anyObject),
   },
   { method: "GET", path: "/v1/public/shares/:token/pdf", summary: "Shared visit summary as PDF", tags: [T.sharing], auth: "share-token", rateLimit: "share_access", ...hw(pdf("Rendered shared summary.")) },
+  { method: "GET", path: "/v1/public/shares/:token/snapshot", summary: "Shared Doctor Snapshot (recipient view)", description: "Same frozen sections as the summary; every access is logged with `resource: snapshot`; response is `no-store`.", tags: [T.sharing], auth: "share-token", rateLimit: "share_access", ...hw(S.anyObject) },
+  {
+    method: "GET",
+    path: "/v1/public/shares/:token/documents/:documentId/pages/:pageNumber",
+    summary: "One page of a shared document: 302 to a short-lived signed URL",
+    description: "Only when the share chose the `documents` section and the document belongs to the shared profile; otherwise an indistinguishable 404. Every attempt is recorded in the patient-visible access log.",
+    tags: [T.sharing],
+    auth: "share-token",
+    rateLimit: "share_access",
+    ...hw([{ status: 302, description: "Redirect to a signed page URL (minutes-lived, never stored)." }]),
+  },
 
   // ───────────────────────── Sync ─────────────────────────
   {
@@ -959,6 +1048,108 @@ export const ROUTES: RouteDoc[] = [
     request: syncBatchSchema,
     ...hw(S.syncResult),
   },
+
+  // ───────────────────────── Provider portal (V2 Phases 11–14) ─────────────────────────
+  { method: "POST", path: "/v1/provider/auth/login", summary: "Provider sign-in step 1: request a phone OTP", description: "Enumeration-safe: the reply never says whether the number belongs to a provider. Email + TOTP is not offered yet (no TOTP secret storage on `User`).", tags: [T.providerAuth], auth: "public", rateLimit: "provider_login", request: providerLoginSchema, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/auth/totp", summary: "Provider sign-in step 2: verify the code, issue a provider session", description: "A correct code for a number that is not an active organization member is a `403 forbidden`. The token is a provider-type session (`mpp_…`), never accepted by patient or admin routes.", tags: [T.providerAuth], auth: "public", rateLimit: "provider_totp", request: providerTotpSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/provider/auth/session", summary: "Current provider session and organization memberships", tags: [T.providerAuth], auth: "provider", ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/auth/logout", summary: "Revoke the provider session", tags: [T.providerAuth], auth: "provider" },
+
+  { method: "GET", path: "/v1/provider/organizations/current", summary: "The organization this session acts for", tags: [T.providerOrganizations], auth: "provider", ...hw(S.anyObject) },
+  { method: "PATCH", path: "/v1/provider/organizations/current", summary: "Update organization details (owner only)", tags: [T.providerOrganizations], auth: "provider", request: updateProviderOrganizationSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/provider/organizations/current/members", summary: "List members (owner only)", tags: [T.providerOrganizations], auth: "provider", ...hw(S.itemsOf(S.anyObject)) },
+  { method: "POST", path: "/v1/provider/organizations/current/members", summary: "Add a member by phone (owner only)", description: "Creates the user as a provider account if the number is new; an existing patient account becomes `both`.", tags: [T.providerOrganizations], auth: "provider", request: addOrganizationMemberSchema, ...hw(S.anyObject) },
+  { method: "PATCH", path: "/v1/provider/organizations/current/members/:memberId", summary: "Change a member's role or status (owner only)", description: "The last owner cannot be demoted or suspended.", tags: [T.providerOrganizations], auth: "provider", request: updateOrganizationMemberSchema, ...hw(S.anyObject) },
+  { method: "DELETE", path: "/v1/provider/organizations/current/members/:memberId", summary: "Remove a member (owner only)", tags: [T.providerOrganizations], auth: "provider" },
+
+  { method: "POST", path: "/v1/profiles/current/onboarding-tokens", summary: "Mint a QR onboarding token for a clinic to scan", description: "Short-lived (15m / 1h / 24h), single-use, hashed at rest like share tokens; names the sections the resulting provider link may read and how many days it stays open.", tags: [T.providerPatients], auth: "patient", stepUp: true, headers: [PROFILE], scope: "share_records", request: createOnboardingTokenSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/profiles/current/provider-links", summary: "Organizations holding a link to this profile", tags: [T.providerPatients], auth: "patient", headers: [PROFILE], scope: "share_records", ...hw(S.itemsOf(S.anyObject)) },
+  { method: "POST", path: "/v1/provider-links/:id/revoke", summary: "Revoke a provider link", description: "Immediate: the organization's next read is a 404. Proposals it already sent stay decidable.", tags: [T.providerPatients], auth: "patient", stepUp: true, headers: [PROFILE], scope: "share_records", ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/patients/onboard", summary: "Redeem a scanned QR token into a ProviderPatientLink", description: "Unknown, spent and expired tokens are an indistinguishable 404.", tags: [T.providerPatients], auth: "provider", request: onboardPatientSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/provider/patients", summary: "Linked patients (labels only, no clinical data)", tags: [T.providerPatients], auth: "provider", ...hw(S.itemsOf(S.anyObject)) },
+  { method: "GET", path: "/v1/provider/patients/:linkId/snapshot", summary: "Doctor Snapshot within the link's granted sections", description: "Audited with the organization id on every read.", tags: [T.providerPatients], auth: "provider", ...hw(S.anyObject) },
+
+  { method: "POST", path: "/v1/provider/patients/:linkId/reconciliations", summary: "Propose a medication reconciliation (clinic, hospital)", description: "Lines are START / CONTINUE / CHANGE / STOP. Stored as a proposal; nothing changes until the patient accepts.", tags: [T.providerProposals], auth: "provider", request: proposeReconciliationSchema, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/patients/:linkId/prescriptions", summary: "Propose a captured prescription (clinic, hospital)", description: "On acceptance the items become prescription line items with `source = clinic_entered` in the patient's confirmation queue.", tags: [T.providerProposals], auth: "provider", request: proposePrescriptionSchema, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/patients/:linkId/encounters", summary: "Propose an encounter record (clinic, hospital)", tags: [T.providerProposals], auth: "provider", request: proposeEncounterSchema, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/patients/:linkId/dispenses", summary: "Propose a dispense record (pharmacy only)", description: "On acceptance the medicine's supply and refill plan are updated from the dispensed quantity.", tags: [T.providerProposals], auth: "provider", request: proposeDispenseSchema, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/patients/:linkId/diagnostic-reports", summary: "Propose a diagnostic report with results (laboratory only)", description: "Lands `lab_imported` / `source_authenticated` on acceptance — the patient still chooses to include it.", tags: [T.providerProposals], auth: "provider", request: proposeDiagnosticReportSchema, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/provider/patients/:linkId/discharge", summary: "Propose a discharge transition record (hospital only)", description: "Admission → inpatient encounter; lines → reconciliation. Hazard H-34: a STOP line can never become a current medicine; current requires an explicit CONTINUE / START / CHANGE.", tags: [T.providerProposals], auth: "provider", request: proposeDischargeSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/provider/patients/:linkId/proposals", summary: "Proposals this organization sent for the patient, with status", tags: [T.providerProposals], auth: "provider", ...hw(S.itemsOf(S.anyObject)) },
+  { method: "GET", path: "/v1/provider/proposals/:id", summary: "One proposal and its status", tags: [T.providerProposals], auth: "provider", ...hw(S.anyObject) },
+
+  { method: "GET", path: "/v1/profiles/current/proposals", summary: "Proposals inbox (all kinds, cursor-paged)", tags: [T.proposals], auth: "patient", headers: [PROFILE], scope: "view_profile", query: proposalsQuerySchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/proposals/:id", summary: "One proposal", tags: [T.proposals], auth: "patient", headers: [PROFILE], scope: "view_profile", ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/proposals/:id/accept", summary: "Accept a proposal — the only path that writes clinical tables", description: "Applies through the existing services with the organization's provenance (`clinic_entered` / `pharmacy_entered` / `lab_imported`). Scope by kind: `edit_medications` (reconciliation, discharge, dispense), `edit_profile` (prescription, encounter), `upload_tests` (diagnostic report). Individual lines can be declined.", tags: [T.proposals], auth: "patient", stepUp: true, headers: [PROFILE, CLIENT], scope: "view_profile", request: acceptProposalSchema, requestOptional: true, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/proposals/:id/reject", summary: "Reject a proposal", tags: [T.proposals], auth: "patient", headers: [PROFILE], scope: "view_profile", request: rejectProposalSchema, requestOptional: true, ...hw(S.anyObject) },
+
+  // ───────────────────────── FHIR (Phase 8 / 15) ─────────────────────────
+  {
+    method: "GET",
+    path: "/v1/profiles/current/fhir/export",
+    summary: "Export the patient's own record as a FHIR R4 Bundle (collection)",
+    description: "Every canonical row (allergies, conditions, medicines, prescriptions, reports, results, measurements, documents, practitioners, organizations) serialized through `@medpass/fhir` for the chosen NRCeS IG (`?ig=6.5|7.0`, default 6.5), each with its Provenance. Rows without a provenance block are refused by the serializer and recorded as `FhirValidationFailure`; unmapped codes export with a local CodeSystem and are recorded too. Attachments are opaque references, never URLs. Body is `application/fhir+json`.",
+    tags: [T.fhir],
+    auth: "patient",
+    stepUp: true,
+    headers: [PROFILE],
+    scope: "share_records",
+    query: fhirExportQuerySchema,
+    ...hw([{ status: 200, schema: S.anyObject, contentType: "application/fhir+json", description: "FHIR R4 `Bundle` of type `collection`." }]),
+  },
+  {
+    method: "GET",
+    path: "/v1/profiles/current/fhir/ips",
+    summary: "Indian Patient Summary document (IG v7.0 only)",
+    description: "Phase 15 (docs_v2/08 §8): a `Bundle` of type `document` opening with the IPS Composition. Sections carry only rows the patient has confirmed; every entry has a Provenance. `?ig` accepts only `7.0`.",
+    tags: [T.fhir],
+    auth: "patient",
+    stepUp: true,
+    headers: [PROFILE],
+    scope: "share_records",
+    query: fhirPatientSummaryQuerySchema,
+    ...hw([{ status: 200, schema: S.anyObject, contentType: "application/fhir+json", description: "FHIR R4 `Bundle` of type `document`." }]),
+  },
+
+  // ───────────────────────── ABDM (Phase 8) ─────────────────────────
+  { method: "GET", path: "/v1/profiles/current/abha", summary: "ABHA link status", description: "`linked: false` until the patient connects an ABHA; then the ABHA address, a masked number and the linked care-context count. The full ABHA number is never returned by a list/status route.", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "view_profile", ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/profiles/current/abha/link/init", summary: "Start linking an ABHA", description: "`method` is `abha_number` | `mobile` | `aadhaar_otp`; returns the gateway `transactionId` the OTP must be verified against. Recorded as an `AbdmTransaction`. Patient-only (`manage_consents`).", tags: [T.abdm], auth: "patient", stepUp: true, headers: [PROFILE], scope: "manage_consents", request: abhaLinkInitSchema, ...hw([{ status: 202, schema: S.anyObject, description: "`{ transactionId, otpSentTo, expiresInSeconds }`." }]) },
+  { method: "POST", path: "/v1/profiles/current/abha/link/verify", summary: "Complete an ABHA link with the OTP", description: "Creates (or refreshes) the profile's `AbhaLink`: the ABHA number is stored encrypted with a digest index; a different ABHA supersedes the previous link. Imported rows are never touched.", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "manage_consents", request: abhaLinkVerifySchema, ...hw(S.anyObject) },
+  { method: "DELETE", path: "/v1/profiles/current/abha", summary: "Unlink the ABHA", description: "Ends the identity link only — rows imported under it keep their `abdm_imported` provenance and `sourceAbdmTxnId` (docs_v2/05 §10).", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "manage_consents" },
+  { method: "POST", path: "/v1/profiles/current/abha/discover", summary: "Start care-context discovery at an HIP", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "manage_consents", request: abdmDiscoverSchema, requestOptional: true, ...hw([{ status: 202, schema: S.anyObject, description: "`{ transactionId }`; poll `GET …/discover/:txnId`." }]) },
+  { method: "GET", path: "/v1/profiles/current/abha/discover/:txnId", summary: "Discovery result (poll)", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "manage_consents", ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/profiles/current/abha/care-contexts/link", summary: "Link discovered care contexts", description: "Links the chosen care contexts at the HIP (HIP OTP in `otp` when required) and records them as `AbdmCareContext` rows.", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "manage_consents", request: abdmCareContextLinkSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/profiles/current/abdm/consents", summary: "ABDM consent artefacts", description: "A separate list from MedicinePassport shares and `Consent` rows (ADR-V2-004).", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "manage_consents", ...hw(S.itemsOf(S.entity)) },
+  { method: "POST", path: "/v1/profiles/current/abdm/consents/:id/revoke", summary: "Revoke an ABDM consent artefact", tags: [T.abdm], auth: "patient", stepUp: true, headers: [PROFILE], scope: "manage_consents", request: abdmConsentRevokeSchema, requestOptional: true, ...hw(S.entity) },
+  { method: "GET", path: "/v1/profiles/current/abdm/bundles", summary: "Received health-information bundles and their import status", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "view_documents", ...hw(S.itemsOf(S.entity)) },
+  { method: "POST", path: "/v1/abdm/bundles/:id/import", summary: "Import a received bundle as confirmation-queue candidates", description: "docs_v2/08 §7: the bundle is filed as a `PatientDocument` (source channel `abdm`, provenance `abdm_imported` / `source_authenticated`) with `DocumentCandidate` rows parsed from its resources. Nothing reaches a clinical table until the patient confirms a candidate through the documents-v2 queue. Validation findings are recorded as `FhirValidationFailure` rows (direction `inbound`).", tags: [T.abdm], auth: "patient", headers: [PROFILE], scope: "upload_documents", ...hw(S.anyObject) },
+  // ───────────────────────── V2 Phase 17: test-due, measurement reminders, WhatsApp (docs_v2/05 §12) ─────────────────────────
+  { method: "GET", path: "/v1/profiles/current/test-due", summary: "Test-due schedules", description: "Each item carries `lastDoneOn`: the date of the latest matching DiagnosticReport (same analyte, or same report kind), the fact the `test_due` reminder cron acts on.", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "view_tests", ...hw(S.itemsOf(S.entity)) },
+  { method: "GET", path: "/v1/profiles/current/test-due/:id", summary: "One test-due schedule", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "view_tests", ...hw(S.entity) },
+  { method: "POST", path: "/v1/profiles/current/test-due", summary: "Plan a test", description: "Name an analyte or a report kind, and a next due date and/or an interval in days. With only an interval the next date is anchored on the latest matching result (or today). Drives `test_due` reminders (detect-test-due cron), subject to the per-kind channel/frequency control and the daily cap.", tags: [T.notifications], auth: "patient", headers: [PROFILE, IDEMPOTENCY], scope: "upload_tests", request: createTestDueSchema, ...hw(S.entity) },
+  { method: "PATCH", path: "/v1/profiles/current/test-due/:id", summary: "Update a test-due schedule", description: "`status: dismissed` silences it; a new `nextDueOn` on a notified/done/dismissed schedule re-arms it.", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "upload_tests", request: updateTestDueSchema, ...hw(S.entity) },
+  { method: "DELETE", path: "/v1/profiles/current/test-due/:id", summary: "Delete a test-due schedule (soft)", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "upload_tests" },
+  { method: "GET", path: "/v1/profiles/current/measurement-reminders", summary: "Measurement reminder plan", description: "Per ObservationConcept: local times of day and ISO weekdays (Mon = 1). Stored with the notification preferences; the detect-measurement-reminders cron emits one `measurement_reminder` per slot.", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "manage_reminders", ...hw(S.anyObject) },
+  { method: "PUT", path: "/v1/profiles/current/measurement-reminders", summary: "Replace the measurement reminder plan", description: "Full replace; `{ concepts: {} }` clears every reminder. The per-kind channel/frequency controls are untouched.", tags: [T.notifications], auth: "patient", headers: [PROFILE], scope: "manage_reminders", request: measurementRemindersSchema, ...hw(S.anyObject) },
+  { method: "POST", path: "/v1/notification-channels/whatsapp", summary: "WhatsApp opt-in — not available yet", description: "docs_v2/05 §12: the channel is in the contract but no Business Solution Provider is contracted (OD-10). Always `501 channel_not_available`; the body is not read and nothing is stored.", tags: [T.notifications], auth: "patient", ...hw([{ status: 501, description: "`channel_not_available` problem — WhatsApp waits for a BSP." }]) },
+
+  // ───────────────────────── Admin platform (docs_v2/05 §13, docs_v2/14 §3) ─────────────────────────
+  { method: "GET", path: "/v1/admin/flags", summary: "Feature flags: rows plus the static defaults they override", tags: [T.adminPlatform], auth: "admin", duty: "manage_flags", ...hw(S.itemsOf(S.anyObject)) },
+  { method: "GET", path: "/v1/admin/flags/:key", summary: "One feature flag", tags: [T.adminPlatform], auth: "admin", duty: "manage_flags", ...hw(S.anyObject) },
+  { method: "PUT", path: "/v1/admin/flags/:key", summary: "Create or replace a feature flag (audited with the note)", description: "super_admin only. `allowProfileIds` are opaque; `rolloutPercent` buckets profiles by a stable hash of the profile id.", tags: [T.adminPlatform], auth: "admin", duty: "manage_flags", request: putFeatureFlagSchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/admin/support-cases", summary: "Support case queue", tags: [T.adminSupport], auth: "admin", duty: "manage_support_cases", query: supportCasesQuerySchema, ...hw(S.pageOf(S.entity)) },
+  { method: "GET", path: "/v1/admin/support-cases/:id", summary: "Support case detail with notes and break-glass grants", tags: [T.adminSupport], auth: "admin", duty: "manage_support_cases", ...hw(S.entity) },
+  { method: "POST", path: "/v1/admin/support-cases", summary: "Open a support case", tags: [T.adminSupport], auth: "admin", duty: "manage_support_cases", request: createSupportCaseSchema, ...hw(S.entity) },
+  { method: "PATCH", path: "/v1/admin/support-cases/:id", summary: "Update status, subject or assignee", tags: [T.adminSupport], auth: "admin", duty: "manage_support_cases", request: updateSupportCaseSchema, ...hw(S.entity) },
+  { method: "POST", path: "/v1/admin/support-cases/:id/notes", summary: "Add a note", tags: [T.adminSupport], auth: "admin", duty: "manage_support_cases", request: supportCaseNoteSchema, ...hw(S.entity) },
+  { method: "POST", path: "/v1/admin/break-glass", summary: "Grant time-boxed break-glass access to one record", description: "docs_v2/10 H-49, docs_v2/11 §7: reason required, at most 60 minutes, the admin's current TOTP code re-verified (`403 mfa_invalid` otherwise), written to the audit chain against the profile, and a `system` notification is queued for the patient. Only the grant exists in this release — no admin clinical read endpoint; `BreakGlassService.assertActive` is the single check any future one must pass.", tags: [T.adminPlatform], auth: "admin", duty: "grant_break_glass", request: breakGlassRequestSchema, ...hw(S.entity) },
+  { method: "GET", path: "/v1/admin/break-glass", summary: "Break-glass log (reading it is audited)", tags: [T.adminPlatform], auth: "admin", duty: "view_break_glass", query: breakGlassListQuerySchema, ...hw(S.pageOf(S.entity)) },
+  { method: "GET", path: "/v1/admin/consent-audit", summary: "Consent + ABDM consent timeline for one opaque profile id", description: "Types, purposes, statuses and instants only — never `Consent.scope`, event context or artefact JSON. Audited against the profile.", tags: [T.adminPlatform], auth: "admin", duty: "search_audit", query: consentAuditQuerySchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/admin/documents/status", summary: "Document processing funnel", description: "uploaded → classified → extracted → confirmed over a trailing window, failures by engine. Counts only.", tags: [T.adminPlatform], auth: "admin", duty: "view_operations", query: documentsStatusQuerySchema, ...hw(S.anyObject) },
+  { method: "GET", path: "/v1/admin/abdm/transactions", summary: "ABDM transaction explorer", tags: [T.adminAbdm], auth: "admin", duty: "view_abdm_operations", query: abdmTransactionsQuerySchema, ...hw(S.pageOf(S.entity)) },
+  { method: "GET", path: "/v1/admin/fhir/validation-failures", summary: "FHIR validation failures", tags: [T.adminFhir], auth: "admin", duty: "view_fhir", query: fhirValidationFailuresQuerySchema, ...hw(S.pageOf(S.entity)) },
+  { method: "GET", path: "/v1/admin/integrations", summary: "Adapter health", description: "One row per external dependency (OCR / classifier / extractor engines with versions, catalog version, push, SMS, email, WhatsApp BSP, ABDM gateway, FHIR validator, interaction provider, lab APIs) with a last-success timestamp derived from BackgroundJob rows where a queue exists.", tags: [T.adminPlatform], auth: "admin", duty: "view_operations", ...hw(S.itemsOf(S.anyObject)) },
+  { method: "GET", path: "/v1/admin/notifications/failures", summary: "Notification failures by channel and kind", tags: [T.adminPlatform], auth: "admin", duty: "view_operations", query: notificationFailuresQuerySchema, ...hw(S.anyObject) },
 ];
 
 /** `/v1/medications/:id` → `/v1/medications/{id}` (the OpenAPI path template form). */

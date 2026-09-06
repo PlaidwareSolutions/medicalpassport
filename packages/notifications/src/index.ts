@@ -13,7 +13,20 @@ export interface OtpSender {
 }
 
 /** Pre-approved, PHI-free-unless-opted-in message keys (docs/16) — never freeform text. */
-export type SmsTemplateKey = "dose_reminder" | "refill" | "completion" | "caregiver_escalation" | "dose_correction";
+export type SmsTemplateKey =
+  | "dose_reminder"
+  | "refill"
+  | "completion"
+  | "caregiver_escalation"
+  | "dose_correction"
+  | "new_prescription"
+  | "new_test_result"
+  | "refill_low"
+  | "daily_digest"
+  // V2 Phase 17 (docs_v2/05 §12, docs_v2/14 §3).
+  | "test_due"
+  | "measurement_reminder"
+  | "system";
 
 export interface SmsMessageSender {
   sendTemplate(phoneE164: string, templateKey: string, params: Record<string, string>): Promise<{ providerMessageId: string }>;
@@ -21,6 +34,35 @@ export interface SmsMessageSender {
 
 interface LogFn {
   (obj: Record<string, unknown>, msg: string): void;
+}
+
+/**
+ * Email channel (docs_v2/06 P17). Same template-key contract as SMS — never
+ * freeform text, and the same privacy rule (a medicine name only when the
+ * profile opted into `full_name`).
+ */
+export interface EmailMessageSender {
+  sendTemplate(emailAddress: string, templateKey: string, params: Record<string, string>): Promise<{ providerMessageId: string }>;
+}
+
+/**
+ * The only email transport that exists (`EMAIL_TRANSPORT=log`): a no-op
+ * sender that logs a PHI-free line (domain only, never the address or the
+ * message) and returns a synthetic provider id so the dispatcher can record
+ * the attempt like any other channel. SMTP is deliberately absent until a
+ * mail provider is chosen.
+ */
+export class LogEmailSender implements EmailMessageSender {
+  constructor(private readonly log: LogFn) {}
+
+  async sendTemplate(emailAddress: string, templateKey: string, _params: Record<string, string>): Promise<{ providerMessageId: string }> {
+    const at = emailAddress.lastIndexOf("@");
+    this.log(
+      { domain: at >= 0 ? emailAddress.slice(at + 1) : "unknown", templateKey, transport: "log" },
+      "email send simulated (log transport; no mail provider configured)",
+    );
+    return { providerMessageId: `log-${Date.now().toString(36)}` };
+  }
 }
 
 /**
@@ -118,6 +160,22 @@ const SMS_TEMPLATES: Record<SmsTemplateKey, (name: string | undefined) => string
     name
       ? `Update: ${name} was actually taken — the earlier missed-dose alert was a false alarm.`
       : "Update: a medicine reported as missed was actually taken. The earlier alert was a false alarm.",
+  // V2 Phase 6 caregiver kinds (docs_v2/06 P6-4). Generic by construction:
+  // the patient's privacy mode governs the medicine name in refill_low; the
+  // other two never carry a name at all.
+  new_prescription: () => "Medicine Passport: a new prescription was added to a record you help manage.",
+  new_test_result: () => "Medicine Passport: a new test result was added to a record you help manage.",
+  refill_low: (name) =>
+    name ? `${name}: supply is projected to run out within a few days.` : "Medicine Passport: a medicine you help manage is running low.",
+  /** One send per kind per day (docs_v2/04 §12 daily_digest). `name` carries the count. */
+  daily_digest: (count) => `Medicine Passport: ${count || "some"} update(s) today. Open the app to review them.`,
+  // V2 Phase 17. `name` carries the schedule label / concept label — set by
+  // the patient themselves ("HbA1c", "Blood pressure"), never a value.
+  test_due: (label) => (label ? `Medicine Passport: ${label} is due. Open the app to plan it.` : "Medicine Passport: a test you track is due. Open the app to plan it."),
+  measurement_reminder: (label) =>
+    label ? `Medicine Passport: time to record your ${label}.` : "Medicine Passport: time to record a measurement.",
+  /** Break-glass notice (docs_v2/10 H-49): the patient is told, always, without detail that could itself leak. */
+  system: () => "Medicine Passport: an administrator viewed your record for support. Open the app to see the notice.",
 };
 
 interface TelnyxMessageResponse {

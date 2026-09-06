@@ -161,9 +161,12 @@ describe("Refill plan and medication links e2e", () => {
     const before = await prisma.medicationInstruction.count({ where: { patientMedicationId: medicationId } });
     const medication = await prisma.patientMedication.findUniqueOrThrow({ where: { id: medicationId } });
 
-    await auth(tokenA, profileA)(request(app.getHttpServer()).patch(`/v1/medications/${medicationId}`))
-      .send({ rowVersion: medication.rowVersion, routeText: "by mouth", strengthLabel: "500 mg" })
+    const patched = await auth(tokenA, profileA)(request(app.getHttpServer()).patch(`/v1/medications/${medicationId}`))
+      .send({ rowVersion: medication.rowVersion, routeText: "by mouth", strengthLabel: "500 mg", stopPlannedAt: "2026-12-31" })
       .expect(200);
+    // The response echoes what was saved, so the screen never has to keep a
+    // local copy of a field it just sent.
+    expect(patched.body.instruction).toMatchObject({ routeText: "by mouth", strengthLabel: "500 mg", stopPlannedAt: "2026-12-31" });
 
     const after = await prisma.medicationInstruction.findMany({
       where: { patientMedicationId: medicationId },

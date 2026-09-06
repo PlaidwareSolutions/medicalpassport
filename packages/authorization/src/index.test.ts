@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideAdminAccess, decideProfileAccess } from "./index.js";
+import { decideAdminAccess, decideProfileAccess, type AdminDuty } from "./index.js";
 
 const owner = "owner-1";
 const caregiver = "cg-1";
@@ -66,9 +66,56 @@ describe("decideAdminAccess", () => {
       "view_rules",
       "view_users",
       "manage_providers",
+      "manage_flags",
+      "manage_support_cases",
+      "grant_break_glass",
+      "view_break_glass",
+      "view_abdm_operations",
+      "view_fhir",
     ] as const) {
       expect(decideAdminAccess(["super_admin"], action)).toBe(true);
     }
+  });
+
+  it("feature flags are super_admin only — no other duty, alone or combined, grants manage_flags", () => {
+    const everyOtherDuty: AdminDuty[] = [
+      "catalog_write",
+      "catalog_approve",
+      "content_write",
+      "content_approve",
+      "content_translate",
+      "audit_search",
+      "incident_response",
+      "operations_view",
+      "rules_view",
+      "users_view",
+      "provider_admin",
+      "support_cases",
+      "abdm_operations",
+      "fhir_view",
+    ];
+    expect(decideAdminAccess(everyOtherDuty, "manage_flags")).toBe(false);
+    expect(decideAdminAccess(["super_admin"], "manage_flags")).toBe(true);
+  });
+
+  it("support_cases, abdm_operations and fhir_view each grant exactly their own page", () => {
+    expect(decideAdminAccess(["support_cases"], "manage_support_cases")).toBe(true);
+    expect(decideAdminAccess(["support_cases"], "grant_break_glass")).toBe(false);
+    expect(decideAdminAccess(["support_cases"], "view_abdm_operations")).toBe(false);
+    expect(decideAdminAccess(["abdm_operations"], "view_abdm_operations")).toBe(true);
+    expect(decideAdminAccess(["abdm_operations"], "view_fhir")).toBe(false);
+    expect(decideAdminAccess(["fhir_view"], "view_fhir")).toBe(true);
+    expect(decideAdminAccess(["fhir_view"], "manage_support_cases")).toBe(false);
+    expect(decideAdminAccess(["operations_view"], "view_abdm_operations")).toBe(false);
+    expect(decideAdminAccess(["operations_view"], "view_fhir")).toBe(false);
+  });
+
+  it("break-glass is granted to audit_search holders (docs_v2/14 §3 security audit row), not to support_cases", () => {
+    expect(decideAdminAccess(["audit_search"], "grant_break_glass")).toBe(true);
+    expect(decideAdminAccess(["audit_search"], "view_break_glass")).toBe(true);
+    expect(decideAdminAccess(["support_cases"], "grant_break_glass")).toBe(false);
+    expect(decideAdminAccess(["incident_response"], "grant_break_glass")).toBe(false);
+    expect(decideAdminAccess([], "view_break_glass")).toBe(false);
   });
 
   it("read_catalog and read_content require no specific duty — any authenticated admin", () => {

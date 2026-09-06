@@ -1,7 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { REPORT_ANALYTE_IDS, reportAnalyteById } from "@medpass/domain";
+import { getObservationConcept } from "@medpass/terminology";
 import { PrismaService } from "../../common/prisma.service";
 
+/**
+ * Sections a summary/share can carry (docs_v2/04 §11). `full_passport` is
+ * not a section of its own: at share creation it expands to every other key
+ * being true (documents included) and is stored alongside them so the list
+ * screen can still say "full passport" — the builder never reads it.
+ */
 export interface VisitSummarySections {
   medications: boolean;
   allergies: boolean;
@@ -14,8 +21,15 @@ export interface VisitSummarySections {
   checkups: boolean;
   prescriptions: boolean;
   reports: boolean;
+  /** V2: Observation aggregates per concept (30 days). */
+  measurements: boolean;
+  /** V2: document metadata, and page access through the public document route. */
+  documents: boolean;
+  /** V2: recent encounters. */
+  encounters: boolean;
 }
 
+/** Everything — the patient's own authenticated view, and a `full_passport` share. */
 export const ALL_SECTIONS: VisitSummarySections = {
   medications: true,
   allergies: true,
@@ -28,7 +42,30 @@ export const ALL_SECTIONS: VisitSummarySections = {
   checkups: true,
   prescriptions: true,
   reports: true,
+  measurements: true,
+  documents: true,
+  encounters: true,
 };
+
+/**
+ * What a share gets when the patient sends `sections: {}`. Every V1 section
+ * plus measurements and encounters — but NOT documents. Sharing the actual
+ * uploaded pages is a new surface (docs_v2/06 P7-4): a recipient holding
+ * the link can open every page of every document, so that has to be chosen
+ * by name (or via `full_passport`), never inherited from "share everything
+ * I used to share".
+ */
+export const DEFAULT_SHARE_SECTIONS: VisitSummarySections = { ...ALL_SECTIONS, documents: false };
+
+/**
+ * Turns the client's partial section map into the frozen booleans a share
+ * stores. `full_passport` wins over every individual flag.
+ */
+export function resolveShareSections(input: Partial<VisitSummarySections> & { full_passport?: boolean }): VisitSummarySections & { full_passport: boolean } {
+  const { full_passport, ...flags } = input;
+  if (full_passport) return { ...ALL_SECTIONS, full_passport: true };
+  return { ...DEFAULT_SHARE_SECTIONS, ...flags, full_passport: false };
+}
 
 export interface VisitSummaryDto {
   /** timezone: the profile's IANA zone — the share landing formats clinical times in the PATIENT's day (docs/16). */
@@ -119,11 +156,57 @@ export interface VisitSummaryDto {
      */
     values?: Array<{ label: string; enteredValue: string; unit: string | null; referenceText: string | null }>;
   }>;
+  /**
+   * V2 Observation aggregates per concept over the last 30 days (docs_v2/05
+   * §9 "30-day measurements"). Arithmetic only — count/min/max/average of
+   * what the patient recorded, in the concept's canonical unit; never an
+   * interpretation (hazard H-25). Blood pressure carries both components.
+   */
+  measurements?: Array<{
+    concept: string;
+    label: string;
+    unit: string;
+    count: number;
+    latest: { value: string; value2: string | null; measuredAt: string; context: string | null } | null;
+    minimum: string | null;
+    maximum: string | null;
+    average: string | null;
+    average2: string | null;
+  }>;
+  /**
+   * V2 documents (docs_v2/05 §9). Metadata plus the document id — the one
+   * place an id is allowed on the public payload, because the recipient
+   * needs it for `public/shares/:token/documents/:id/pages/:n`, and it is
+   * useless without the token. Only present when the share chose
+   * `documents` explicitly; never on the default share.
+   */
+  documents?: Array<{
+    id: string;
+    kind: string;
+    title: string | null;
+    documentDate: string | null;
+    pageCount: number;
+    uploadedAt: string;
+  }>;
+  /** V2 encounters — visits and admissions, newest first. */
+  encounters?: Array<{
+    kind: string;
+    startedAt: string;
+    endedAt: string | null;
+    organizationName: string | null;
+    practitionerName: string | null;
+    reasonText: string | null;
+    diagnosisText: string | null;
+  }>;
 }
 
 const RECENT_DAYS = 90;
 /** The aggregate covers every reading in the window; only this listing is capped. */
 const GLUCOSE_RECENT_LIMIT = 10;
+/** docs_v2/05 §9: measurements are summarised over the last 30 days. */
+const MEASUREMENT_DAYS = 30;
+const DOCUMENTS_LIMIT = 20;
+const ENCOUNTERS_LIMIT = 10;
 
 /**
  * Doctor-visit mode data (docs/07 screen 28) and the public share payload
@@ -157,9 +240,96 @@ export class VisitSummaryService {
       this.addCheckups(profileId, sections, summary),
       this.addPrescriptions(profileId, sections, summary),
       this.addReports(profileId, sections, summary),
+      this.addMeasurements(profileId, sections, summary),
+      this.addDocuments(profileId, sections, summary),
+      this.addEncounters(profileId, sections, summary),
     ]);
 
     return summary;
+  }
+
+  /**
+   * 30-day Observation aggregates per concept (docs_v2/04 §5, ADR-V2-011).
+   * Every number is arithmetic on the canonical column; a concept with no
+   * numeric value (`other`, free text) is counted but never averaged.
+   */
+  private async addMeasurements(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.measurements) return;
+    const cutoff = new Date(Date.now() - MEASUREMENT_DAYS * 24 * 60 * 60 * 1000);
+    const rows = await this.prisma.observation.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, measuredAt: { gte: cutoff } },
+      orderBy: { measuredAt: "desc" },
+      select: { concept: true, valueNumeric: true, valueNumeric2: true, unit: true, measuredAt: true, context: true },
+    });
+    const byConcept = new Map<string, typeof rows>();
+    for (const r of rows) {
+      const bucket = byConcept.get(r.concept) ?? [];
+      bucket.push(r);
+      byConcept.set(r.concept, bucket);
+    }
+    const stat = (nums: number[], f: (n: number[]) => number) => (nums.length ? String(Math.round(f(nums) * 100) / 100) : null);
+    summary.measurements = [...byConcept.entries()].map(([concept, list]) => {
+      const entry = getObservationConcept(concept);
+      const values = list.map((r) => (r.valueNumeric == null ? null : Number(r.valueNumeric))).filter((n): n is number => n !== null);
+      const values2 = list.map((r) => (r.valueNumeric2 == null ? null : Number(r.valueNumeric2))).filter((n): n is number => n !== null);
+      const latest = list[0]!;
+      return {
+        concept,
+        label: entry?.display ?? concept,
+        // The human unit ("mmHg"), not the stored UCUM code ("mm[Hg]") — this is read by people, not by a converter.
+        unit: entry?.canonicalUnitDisplay ?? latest.unit,
+        count: list.length,
+        latest: {
+          value: latest.valueNumeric?.toString() ?? "",
+          value2: latest.valueNumeric2?.toString() ?? null,
+          measuredAt: latest.measuredAt.toISOString(),
+          context: latest.context,
+        },
+        minimum: stat(values, (n) => Math.min(...n)),
+        maximum: stat(values, (n) => Math.max(...n)),
+        average: stat(values, (n) => n.reduce((a, b) => a + b, 0) / n.length),
+        average2: stat(values2, (n) => n.reduce((a, b) => a + b, 0) / n.length),
+      };
+    });
+  }
+
+  /** Uploaded V2 documents, newest first — metadata and the id the public page route needs. */
+  private async addDocuments(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.documents) return;
+    const documents = await this.prisma.patientDocument.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, status: { notIn: ["pending_upload", "deleted"] } },
+      orderBy: [{ documentDate: "desc" }, { createdAt: "desc" }],
+      take: DOCUMENTS_LIMIT,
+      select: { id: true, kind: true, title: true, documentDate: true, pageCount: true, createdAt: true },
+    });
+    summary.documents = documents.map((d) => ({
+      id: d.id,
+      kind: d.kind,
+      title: d.title,
+      documentDate: d.documentDate?.toISOString().slice(0, 10) ?? null,
+      pageCount: d.pageCount,
+      uploadedAt: d.createdAt.toISOString(),
+    }));
+  }
+
+  private async addEncounters(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
+    if (!sections.encounters) return;
+    const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const encounters = await this.prisma.encounter.findMany({
+      where: { patientProfileId: profileId, deletedAt: null, startedAt: { gte: cutoff } },
+      include: { organization: { select: { displayName: true } }, practitioner: { select: { displayName: true } } },
+      orderBy: [{ startedAt: "desc" }, { createdAt: "desc" }],
+      take: ENCOUNTERS_LIMIT,
+    });
+    summary.encounters = encounters.map((e) => ({
+      kind: e.kind,
+      startedAt: e.startedAt.toISOString(),
+      endedAt: e.endedAt?.toISOString() ?? null,
+      organizationName: e.organization?.displayName ?? null,
+      practitionerName: e.practitioner?.displayName ?? null,
+      reasonText: e.reasonText,
+      diagnosisText: e.diagnosisText,
+    }));
   }
 
   private async addAllergies(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {

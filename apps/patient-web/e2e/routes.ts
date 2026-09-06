@@ -60,5 +60,29 @@ export function screenRoutes(): string[] {
     "/tour",
     "/visit",
     "/welcome",
+    // Documents V2 (docs_v2/09): the list, the capture flow (also where
+    // /add/scan now lands) and the share-target landing. /documents/[id],
+    // its review and its discharge screens need an uploaded + classified
+    // document, which the global setup cannot seed without the worker — they
+    // are covered by e2e/documents-v2.spec.ts instead.
+    "/documents",
+    "/documents/new",
+    "/share-target",
+    // Phase 2/4/5 (docs_v2/06 P2-5/P4-4/P5-3): the measurements hub, its
+    // concept diaries and trends, devices, the relocated check-ups, and one
+    // analyte trend. Prescription/report detail need seeded records and are
+    // covered by medication-platform / diagnostics specs instead.
+    "/measurements",
+    "/measurements/blood_pressure",
+    "/measurements/blood_glucose",
+    "/measurements/body_weight",
+    "/measurements/spo2",
+    "/measurements/body_temperature",
+    "/measurements/pain_score",
+    "/measurements/blood_pressure/trends",
+    "/measurements/blood_glucose/trends",
+    "/measurements/checkups",
+    "/measurements/devices",
+    "/reports/trends/hba1c",
   ];
 }

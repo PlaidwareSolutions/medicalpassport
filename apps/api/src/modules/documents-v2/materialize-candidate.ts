@@ -54,6 +54,17 @@ export interface MaterializeDeps {
   medications: MedicationsService;
 }
 
+/**
+ * docs_v2/08 §7: candidates parsed from an ABDM bundle materialize with the bundle's provenance
+ * — `abdm_imported`, `source_authenticated` (the HIP authenticated it), `sourceAbdmTxnId` — not
+ * as OCR rows. Derived from the *document's* own provenance by the caller; never client-supplied.
+ */
+export interface ImportProvenance {
+  provenanceSource: "abdm_imported";
+  verification: "source_authenticated";
+  sourceAbdmTxnId: string | null;
+}
+
 export interface MaterializeParams {
   profileId: string;
   documentId: string;
@@ -61,6 +72,8 @@ export interface MaterializeParams {
   actor: DocumentActor;
   targetEntity: string;
   groupKey: string | null;
+  /** Present when the document is an ABDM import (docs_v2/08 §7); absent for a scanned page. */
+  importProvenance?: ImportProvenance | null;
   /** Every confirmed field of one group — one medication line, one lab row, one practitioner. */
   fields: MaterializedField[];
   /** Dose and anything else the person typed rather than the page supplied. */
@@ -86,19 +99,29 @@ export interface MaterializedRow {
 
 type Tx = Prisma.TransactionClient | PrismaClient;
 
-/** The provenance every materialized row carries (docs_v2/04 §7.5, ADR-V2-002). */
+/**
+ * The provenance every materialized row carries (docs_v2/04 §7.5, ADR-V2-002). An ABDM import
+ * keeps the bundle's own provenance (docs_v2/08 §7); a scanned page is OCR the person confirmed.
+ */
 function ocrProvenance(params: MaterializeParams) {
-  return {
-    provenanceSource: "ocr_extracted" as const,
+  const stamp = {
+    provenanceSource: "ocr_extracted" as "ocr_extracted" | "abdm_imported",
     // A candidate only reaches this function because a person looked at the
     // page crop and said yes — that is exactly `patient_confirmed`, and it is
     // the one thing that lifts an OCR row above `unverified`.
-    verification: "patient_confirmed" as const,
+    verification: "patient_confirmed" as "patient_confirmed" | "source_authenticated",
     recordedVia: params.actor.recordedVia ?? "pwa",
     recordedByUserId: params.actor.userId,
     sourceDocumentId: params.documentId,
     sourceExtractionId: params.extractionId,
+    sourceAbdmTxnId: null as string | null,
   };
+  if (params.importProvenance) {
+    stamp.provenanceSource = params.importProvenance.provenanceSource;
+    stamp.verification = params.importProvenance.verification;
+    stamp.sourceAbdmTxnId = params.importProvenance.sourceAbdmTxnId;
+  }
+  return stamp;
 }
 
 function fieldValue<T>(params: MaterializeParams, field: string): T | undefined {
@@ -239,22 +262,11 @@ async function materializeMedication(deps: MaterializeDeps, params: MaterializeP
     params.actor,
   );
 
-  await deps.prisma.patientMedication.update({
-    where: { id: medication.id },
-    data: {
-      verification: "patient_confirmed",
-      sourceDocumentId: params.documentId,
-      sourceExtractionId: params.extractionId,
-    },
-  });
-  await deps.prisma.medicationInstruction.updateMany({
-    where: { patientMedicationId: medication.id },
-    data: {
-      verification: "patient_confirmed",
-      sourceDocumentId: params.documentId,
-      sourceExtractionId: params.extractionId,
-    },
-  });
+  // MedicationsService stamped the row as an OCR extraction; restamp it with the document's own
+  // provenance (verification, document/extraction links, and the ABDM transaction for an import).
+  const { recordedVia: _via, recordedByUserId: _by, ...restamp } = ocrProvenance(params);
+  await deps.prisma.patientMedication.update({ where: { id: medication.id }, data: restamp });
+  await deps.prisma.medicationInstruction.updateMany({ where: { patientMedicationId: medication.id }, data: restamp });
 
   await auditMaterialization(deps.prisma, params, "patient_medication", medication.id);
   return { entityType: "patient_medication", entityId: medication.id, candidateIds: candidateIds(params) };
@@ -332,7 +344,7 @@ async function materializePractitioner(tx: Tx, params: MaterializeParams): Promi
           data: {
             ...(speciality ? { speciality } : {}),
             ...(registrationNumber ? { registrationNumber } : {}),
-            verification: "patient_confirmed",
+            verification: ocrProvenance(params).verification,
           },
           select: { id: true },
         })
@@ -344,7 +356,7 @@ async function materializePractitioner(tx: Tx, params: MaterializeParams): Promi
             displayName,
             speciality: speciality ?? null,
             registrationNumber: registrationNumber ?? null,
-            verification: "patient_confirmed",
+            verification: ocrProvenance(params).verification,
           },
           select: { id: true },
         })
@@ -372,7 +384,7 @@ async function materializeOrganization(tx: Tx, params: MaterializeParams): Promi
     ? (
         await tx.organization.update({
           where: { id: existing.id },
-          data: { ...(city ? { city } : {}), verification: "patient_confirmed" },
+          data: { ...(city ? { city } : {}), verification: ocrProvenance(params).verification },
           select: { id: true },
         })
       ).id
@@ -382,7 +394,7 @@ async function materializeOrganization(tx: Tx, params: MaterializeParams): Promi
             patientProfileId: params.profileId,
             displayName,
             city: city ?? null,
-            verification: "patient_confirmed",
+            verification: ocrProvenance(params).verification,
             recordedByUserId: params.actor.userId,
           },
           select: { id: true },

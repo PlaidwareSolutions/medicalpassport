@@ -1,0 +1,58 @@
+{
+  "resourceType": "DocumentReference",
+  "id": "aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+  "meta": {
+    "profile": [
+      "https://nrces.in/ndhm/fhir/r4/StructureDefinition/DocumentReference"
+    ]
+  },
+  "identifier": [
+    {
+      "system": "urn:medicinepassport:document",
+      "value": "aa0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+    }
+  ],
+  "status": "current",
+  "type": {
+    "text": "Prescription",
+    "coding": [
+      {
+        "system": "http://loinc.org",
+        "code": "57833-6",
+        "display": "Prescription for medication"
+      }
+    ]
+  },
+  "subject": {
+    "reference": "Patient/2f6a7c0e-1b2c-4d5e-8f90-a1b2c3d4e5f6",
+    "identifier": {
+      "system": "https://healthid.ndhm.gov.in",
+      "value": "asha.demo@sbx"
+    },
+    "display": "Asha Demo"
+  },
+  "date": "2026-08-14T09:20:00.000Z",
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/pdf",
+        "url": "urn:medicinepassport:stored-object:ab7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",
+        "title": "Page 1",
+        "size": 40211
+      }
+    }
+  ],
+  "context": {
+    "period": {
+      "start": "2026-08-14"
+    },
+    "related": [
+      {
+        "identifier": {
+          "system": "urn:medicinepassport:prescription",
+          "value": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+        }
+      }
+    ]
+  }
+}

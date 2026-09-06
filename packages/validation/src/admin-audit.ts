@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const adminAuditSearchSchema = z.object({
   action: z.string().max(80).optional(),
-  actorType: z.enum(["patient", "caregiver", "admin", "system", "share_visitor"]).optional(),
+  actorType: z.enum(["patient", "caregiver", "admin", "system", "share_visitor", "provider"]).optional(),
   actorUserId: z.string().uuid().optional(),
   entityType: z.string().max(80).optional(),
   entityId: z.string().uuid().optional(),

@@ -673,6 +673,9 @@ export class MedicationsService {
         foodInstruction: string;
         durationDays: number | null;
         doseUnitConfirmedAt: Date | null;
+        routeText?: string | null;
+        strengthLabel?: string | null;
+        stopPlannedAt?: Date | null;
       }>;
     },
     content: {
@@ -758,6 +761,11 @@ export class MedicationsService {
             // offered a medicine-type picker — the app defaulted "tablet"
             // then, so the UI must ask rather than draw a guessed glyph.
             doseUnitConfirmed: instruction.doseUnitConfirmedAt != null,
+            // V2 Phase 2 instruction-only fields (docs_v2/04 §4): echoed so
+            // the medicine screen can show what was saved, not what it sent.
+            routeText: instruction.routeText ?? null,
+            strengthLabel: instruction.strengthLabel ?? null,
+            stopPlannedAt: instruction.stopPlannedAt?.toISOString().slice(0, 10) ?? null,
           }
         : null,
       createdAt: m.createdAt.toISOString(),

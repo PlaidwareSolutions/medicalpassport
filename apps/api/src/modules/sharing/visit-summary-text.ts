@@ -166,6 +166,45 @@ export function renderVisitSummaryText(summary: VisitSummaryDto): string {
     lines.push("");
   }
 
+  if (summary.measurements) {
+    lines.push(bold("Home measurements (last 30 days)"));
+    if (summary.measurements.length === 0) lines.push("No measurements in this period.");
+    else
+      for (const m of summary.measurements) {
+        const latest = m.latest
+          ? `${m.latest.value}${m.latest.value2 ? `/${m.latest.value2}` : ""} ${m.unit} (${formatDate(m.latest.measuredAt)})`
+          : "—";
+        const range = m.minimum != null && m.maximum != null ? ` · range ${m.minimum}–${m.maximum}` : "";
+        const avg = m.average != null ? ` · average ${m.average}${m.average2 != null ? `/${m.average2}` : ""}` : "";
+        lines.push(`- ${m.label}: latest ${latest} · ${m.count} reading(s)${range}${avg}`);
+      }
+    lines.push("");
+  }
+
+  if (summary.encounters) {
+    lines.push(bold("Visits (last 90 days)"));
+    if (summary.encounters.length === 0) lines.push("No visits in this period.");
+    else
+      for (const e of summary.encounters) {
+        const where = [e.organizationName, e.practitionerName].filter(Boolean).join(" · ");
+        lines.push(`- ${e.kind.replace(/_/g, " ")} (${formatDate(e.startedAt)})${where ? ` — ${where}` : ""}`);
+        if (e.reasonText) lines.push(`  Reason: ${e.reasonText}`);
+        if (e.diagnosisText) lines.push(`  Diagnosis: ${e.diagnosisText}`);
+      }
+    lines.push("");
+  }
+
+  if (summary.documents) {
+    lines.push(bold("Documents on record"));
+    if (summary.documents.length === 0) lines.push("No documents.");
+    else
+      for (const d of summary.documents) {
+        const when = d.documentDate ? formatDateOnly(d.documentDate) : `uploaded ${formatDate(d.uploadedAt)}`;
+        lines.push(`- ${d.title ?? d.kind.replace(/_/g, " ")} (${when}) — ${d.pageCount} page(s)`);
+      }
+    lines.push("");
+  }
+
   if (summary.unresolvedConcerns) {
     lines.push(bold("Unresolved safety concerns"));
     if (summary.unresolvedConcerns.length === 0) lines.push("None open.");

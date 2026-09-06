@@ -23,6 +23,7 @@
  * partial refill); completion fires exactly once per computed end date.
  */
 import { dailySlotQuantity, type SlotDose } from "@medpass/medication-terminology";
+import { queueRefillLowReminders } from "../lib/refill-low";
 import { runJob } from "../lib/run-job";
 
 const REFILL_THRESHOLD_DAYS = 5;
@@ -127,6 +128,9 @@ runJob("generate-refill-reminders", async ({ prisma, log }) => {
     completionsQueued++;
   }
 
-  log.info({ refillsQueued, completionsQueued }, "generate-refill-reminders completed");
-  return { refillsQueued, completionsQueued };
+  // --- refill_low: the caregiver twin, from the V2 refill plan (docs_v2/06 P6-4). ---
+  const { queued: refillLowQueued } = await queueRefillLowReminders(prisma);
+
+  log.info({ refillsQueued, completionsQueued, refillLowQueued }, "generate-refill-reminders completed");
+  return { refillsQueued, completionsQueued, refillLowQueued };
 });

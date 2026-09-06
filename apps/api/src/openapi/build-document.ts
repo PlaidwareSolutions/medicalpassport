@@ -37,6 +37,8 @@ export interface HandlerMeta {
   isPublic: boolean;
   /** `@UseGuards(AdminAuthGuard)` on the handler or its controller. */
   adminGuard: boolean;
+  /** `@UseGuards(ProviderGuard)` on the handler or its controller (provider portal, V2 Phases 11–14). */
+  providerGuard: boolean;
   stepUp: boolean;
   rateLimit?: string;
 }
@@ -82,6 +84,7 @@ function collectHandlerMeta(app: INestApplication): Map<string, HandlerMeta> {
       const classPublic = Reflect.getMetadata(PUBLIC_ROUTE, cls) === true;
       const classGuards = (Reflect.getMetadata(GUARDS_METADATA, cls) as unknown[] | undefined) ?? [];
       const classAdmin = classGuards.some(isAdminGuard);
+      const classProvider = classGuards.some(isProviderGuard);
       for (const name of Object.getOwnPropertyNames(proto)) {
         if (name === "constructor") continue;
         const handler = proto[name];
@@ -93,6 +96,7 @@ function collectHandlerMeta(app: INestApplication): Map<string, HandlerMeta> {
         out.set(`${cls.name}_${name}`, {
           isPublic: classPublic || Reflect.getMetadata(PUBLIC_ROUTE, handler) === true,
           adminGuard: classAdmin || guards.some(isAdminGuard),
+          providerGuard: classProvider || guards.some(isProviderGuard),
           stepUp: Reflect.getMetadata(REQUIRES_STEP_UP, handler) === true || Reflect.getMetadata(REQUIRES_STEP_UP, cls) === true,
           rateLimit: rateLimit?.name,
         });
@@ -104,6 +108,10 @@ function collectHandlerMeta(app: INestApplication): Map<string, HandlerMeta> {
 
 function isAdminGuard(guard: unknown): boolean {
   return typeof guard === "function" && guard.name === "AdminAuthGuard";
+}
+
+function isProviderGuard(guard: unknown): boolean {
+  return typeof guard === "function" && guard.name === "ProviderGuard";
 }
 
 /** Boots the app, enumerates every route and its handler metadata, closes the app. */
@@ -267,6 +275,8 @@ const SECURITY_SCHEMES: Record<string, JsonSchema> = {
   bearerSession: { type: "http", scheme: "bearer", description: "The same opaque patient session token, for native clients." },
   adminSessionCookie: { type: "apiKey", in: "cookie", name: "medpass_admin_session", description: "Opaque admin-portal session (MFA-verified unless noted)." },
   adminBearer: { type: "http", scheme: "bearer", description: "The admin session token as a bearer." },
+  providerSessionCookie: { type: "apiKey", in: "cookie", name: "medpass_provider_session", description: "Opaque provider-portal session (browsers); a distinct token type, never interchangeable with a patient or admin session." },
+  providerBearer: { type: "http", scheme: "bearer", description: "The provider session token (`mpp_…`) as a bearer." },
 };
 
 const SECURITY_BY_AUTH: Record<RouteDoc["auth"], unknown[]> = {
@@ -275,12 +285,14 @@ const SECURITY_BY_AUTH: Record<RouteDoc["auth"], unknown[]> = {
   webhook: [],
   patient: [{ sessionCookie: [] }, { bearerSession: [] }],
   admin: [{ adminSessionCookie: [] }, { adminBearer: [] }],
+  provider: [{ providerSessionCookie: [] }, { providerBearer: [] }],
 };
 
 const AUTH_DESCRIPTIONS: Record<RouteDoc["auth"], string> = {
   public: "No credential required.",
   patient: "Patient session (cookie or bearer).",
   admin: "Admin-portal session.",
+  provider: "Provider-portal session (cookie or bearer); organization context from the membership, or `x-organization-id` when the user belongs to several.",
   "share-token": "No session — the capability token in the path is the authorization.",
   webhook: "No session — verified by the provider's signature headers.",
 };
@@ -291,6 +303,7 @@ const HTTP_TEXT: Record<number, string> = { 200: "OK", 201: "Created", 202: "Acc
 
 function expectedAuthKinds(meta: HandlerMeta): RouteDoc["auth"][] {
   if (meta.adminGuard) return ["admin"];
+  if (meta.providerGuard) return ["provider"];
   if (meta.isPublic) return ["public", "share-token", "webhook"];
   return ["patient"];
 }
@@ -343,7 +356,7 @@ function queryParameters(query: RouteDoc["query"], schemas: SchemaRegistry): Jso
 
 function headerParameters(doc: RouteDoc, method: string): JsonSchema[] {
   const params: JsonSchema[] = [{ $ref: "#/components/parameters/XClient" }, { $ref: "#/components/parameters/XCorrelationId" }];
-  const authenticated = doc.auth === "patient" || doc.auth === "admin";
+  const authenticated = doc.auth === "patient" || doc.auth === "admin" || doc.auth === "provider";
   if (authenticated && method !== "GET") params.push({ $ref: "#/components/parameters/XRequestedWith" });
   for (const header of doc.headers ?? []) {
     if (header === "x-profile-id") params.push({ $ref: "#/components/parameters/XProfileId" });
@@ -383,7 +396,7 @@ function errorResponses(route: EnumeratedRoute, doc: RouteDoc): Record<string, J
   const ref = (name: string) => ({ $ref: `#/components/responses/${name}` });
   const hasInput = doc.request !== undefined || doc.query !== undefined || (doc.headers ?? []).includes("x-profile-id");
   if (hasInput) out["400"] = ref("ValidationFailed");
-  if (doc.auth === "patient" || doc.auth === "admin") {
+  if (doc.auth === "patient" || doc.auth === "admin" || doc.auth === "provider") {
     out["401"] = ref("Unauthenticated");
     out["403"] = doc.stepUp ? ref("StepUpRequired") : ref("Forbidden");
   }

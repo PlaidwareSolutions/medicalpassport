@@ -40,11 +40,17 @@ describe("purity guard", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("package.json depends only on zod at runtime", () => {
+  it("package.json depends only on zod and the pure terminology tables at runtime", () => {
+    // @medpass/terminology is versioned JSON tables + pure functions (docs_v2/08 section 3):
+    // no network, no Prisma, no apps/* — the "terminology bindings" docs_v2/08 section 2 places in ig/*.
     const pkg = JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf8")) as {
       dependencies?: Record<string, string>;
     };
-    expect(Object.keys(pkg.dependencies ?? {})).toEqual(["zod"]);
+    expect(Object.keys(pkg.dependencies ?? {}).sort()).toEqual(["@medpass/terminology", "zod"]);
+    const terminology = JSON.parse(readFileSync(join(PACKAGE_ROOT, "..", "terminology", "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
+    };
+    expect(Object.keys(terminology.dependencies ?? {})).toEqual([]);
   });
 
   it("IG version folders never import each other", () => {

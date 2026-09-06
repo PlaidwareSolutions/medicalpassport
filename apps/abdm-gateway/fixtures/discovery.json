@@ -1,0 +1,11 @@
+{
+  "_recorded": "ABDM sandbox v0.5 — patients/on-find from the sandbox HIP (synthetic care contexts)",
+  "hipId": "mock-hip-001",
+  "hipName": "Mock City Hospital (sandbox replay)",
+  "patientReferenceNumber": "PRN",
+  "careContexts": [
+    { "reference": "OPD-2026-0001", "display": "OPD visit 14 Aug 2026 — General Medicine" },
+    { "reference": "LAB-2026-0007", "display": "HbA1c panel 10 Aug 2026" }
+  ],
+  "linkOtp": "000000"
+}

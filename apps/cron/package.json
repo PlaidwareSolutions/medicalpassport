@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@medpass/audit": "workspace:*",
+    "@medpass/authorization": "workspace:*",
     "@medpass/config": "workspace:*",
     "@medpass/database": "workspace:*",
     "@medpass/domain": "workspace:*",
