@@ -171,4 +171,15 @@ test("Home shows the 'My health' summary card once the timeline has counts, link
   await expect(card).toContainText(/1 medicines/);
   await card.getByRole("button", { name: "See my health timeline" }).click();
   await expect(page).toHaveURL(/\/health$/);
+
+  // The timeline is the front door: every record section is one tap away.
+  const links = page.getByTestId("health-record-links");
+  for (const [name, href] of [
+    ["Conditions", "/conditions"],
+    ["Measurements", "/measurements"],
+    ["Test reports", "/reports"],
+    ["Documents", "/documents"],
+  ] as const) {
+    await expect(links.getByRole("link", { name })).toHaveAttribute("href", href);
+  }
 });

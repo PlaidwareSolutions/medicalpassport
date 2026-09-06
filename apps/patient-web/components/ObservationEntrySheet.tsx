@@ -4,6 +4,8 @@ import { ApiError } from "@medpass/api-client";
 import type { ObservationContext } from "@medpass/domain";
 import { Banner, Button, Card, ChoiceGrid, TextInput } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
+import type { VoiceObservationCandidate } from "../lib/voice/parse-observation";
+import { VoiceEntryButton } from "./VoiceEntryButton";
 import { BP_CONTEXTS, createObservation, GLUCOSE_CONTEXTS, useObservationConcepts, type HubConcept } from "../lib/observations";
 import { patientLocalToIso, patientNowLocal, useActiveTimezone } from "../lib/patient-time";
 
@@ -18,7 +20,16 @@ const PAIN = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] as const;
  * with its unit; the server converts to the canonical unit and checks
  * plausibility only (`observation_out_of_range`) — nothing here judges it.
  */
-export function ObservationEntrySheet({ concept, onSaved, onClose }: { concept: HubConcept; onSaved: () => Promise<void>; onClose: () => void }) {
+export function ObservationEntrySheet({
+  concept,
+  onSaved,
+  onClose,
+}: {
+  concept: HubConcept;
+  /** `queuedOffline` is true when the reading was saved on the phone for later sync (docs_v2/05 §14) rather than sent. */
+  onSaved: (result: { queuedOffline: boolean }) => Promise<void>;
+  onClose: () => void;
+}) {
   const { t } = useI18n();
   const timezone = useActiveTimezone();
   const titleId = useId();
@@ -36,6 +47,10 @@ export function ObservationEntrySheet({ concept, onSaved, onClose }: { concept: 
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  // Set when the fields were filled from speech (P16): the sheet says so
+  // until the patient edits or saves, because a mis-heard number must be
+  // seen as "heard", not typed.
+  const [fromVoice, setFromVoice] = useState(false);
 
   const isBp = concept === "blood_pressure";
   const isPain = concept === "pain_score";
@@ -47,7 +62,10 @@ export function ObservationEntrySheet({ concept, onSaved, onClose }: { concept: 
     setBusy(true);
     setError(undefined);
     try {
-      await createObservation({
+      // Offline, or a request that never got an answer, queues the reading
+      // for sync instead of failing (docs_v2/05 §14) — the sheet closes the
+      // same way; the page says it was saved on the phone.
+      const { queuedOffline } = await createObservation({
         concept,
         measuredAt: patientLocalToIso(measuredAt, timezone),
         valueNumeric: Number(value),
@@ -58,7 +76,7 @@ export function ObservationEntrySheet({ concept, onSaved, onClose }: { concept: 
         ...(context ? { context } : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       });
-      await onSaved();
+      await onSaved({ queuedOffline });
     } catch (err) {
       if (err instanceof ApiError && err.problem.code === "observation_out_of_range") {
         setError(err.problem.errors?.[0]?.message ?? t("measure.error_out_of_range"));
@@ -77,6 +95,23 @@ export function ObservationEntrySheet({ concept, onSaved, onClose }: { concept: 
         {t("measure.add_title", { name: t(`measure.concept.${concept}` as never) })}
       </strong>
       {error ? <Banner tone="danger">{error}</Banner> : null}
+
+      <VoiceEntryButton
+        concept={concept}
+        onCandidate={(candidate: VoiceObservationCandidate) => {
+          // Pre-fill only; the unit is applied only when this concept allows it.
+          if (candidate.value !== undefined) setValue(candidate.value);
+          if (isBp && candidate.value2 !== undefined) setValue2(candidate.value2);
+          if (isBp && candidate.pulse !== undefined) setPulse(candidate.pulse);
+          if (candidate.unit && units.some((u) => u.unit === candidate.unit)) setUnit(candidate.unit);
+          setFromVoice(true);
+        }}
+      />
+      {fromVoice ? (
+        <Banner tone="info">
+          <span data-testid="voice-entry-filled">{t("voice.filled")}</span>
+        </Banner>
+      ) : null}
 
       <TextInput label={t("bp.measured_at_label")} help={t("encounter.time_help")} type="datetime-local" value={measuredAt} onChange={(e) => setMeasuredAt(e.target.value)} />
 

@@ -73,6 +73,12 @@ export function FindingCard({ finding, onChanged }: { finding: SafetyFindingDto;
           <Button variant="secondary" disabled={busy} onClick={() => void act("reviewed_with_professional")}>
             {t("safety.action.mark_reviewed")}
           </Button>
+          {/* Gate 3 (docs_v2/06 P9-4): a patient saying an alert does not apply
+              to them is the false-positive signal the rule owners review. The
+              finding resolves; the rule version keeps the count. */}
+          <Button variant="ghost" disabled={busy} onClick={() => void act("dismissed_not_relevant")} data-testid="finding-not-relevant">
+            {t("safety.action.not_relevant")}
+          </Button>
         </div>
       ) : finding.status === "acknowledged" || finding.status === "reviewed_with_professional" ? (
         <Button variant="secondary" disabled={busy} onClick={() => void act("resolved")}>

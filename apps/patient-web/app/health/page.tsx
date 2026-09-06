@@ -5,6 +5,7 @@ import { Banner, Button, Card, PillSpinner, SectionTitle } from "@medpass/ui-web
 import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { HealthEventRow } from "../../components/HealthEventRow";
+import { ProfileLink } from "../../components/ProfileLink";
 import { PageHeader } from "../../components/PageHeader";
 import { KIND_GROUPS, localDayKey, useHealthTimeline, type HealthEventDto, type KindGroup } from "../../lib/health-timeline";
 import { useI18n } from "../../lib/i18n";
@@ -66,6 +67,16 @@ export default function HealthTimelinePage() {
           {t("health.visits_link")}
         </Button>
       </Link>
+
+      {/* The timeline is the front door to the record; each section it
+          summarises is one tap away, so nobody has to know a URL. */}
+      <SectionTitle>{t("health.records_links")}</SectionTitle>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)", marginBottom: "var(--space-sm)" }} data-testid="health-record-links">
+        <ProfileLink href="/conditions" glyph="pulse" label={t("condition.title")} />
+        <ProfileLink href="/measurements" glyph="pulse" label={t("measure.title")} />
+        <ProfileLink href="/reports" glyph="report" label={t("profile.reports")} />
+        <ProfileLink href="/documents" glyph="document" label={t("documents.title")} />
+      </div>
 
       {/* Filter chips: multi-select toggles; none pressed = everything. */}
       <div role="group" aria-label={t("health.filter_label")} style={{ display: "flex", flexWrap: "wrap", gap: "var(--size-touch-gap)", margin: "var(--space-sm) 0" }}>

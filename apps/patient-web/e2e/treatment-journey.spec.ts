@@ -121,6 +121,15 @@ test.afterAll(async () => {
   await ctx?.dispose();
 });
 
+test("the conditions list opens the hub without anyone typing a URL", async ({ page }) => {
+  await openAs(page, "/conditions");
+  const row = page.locator("[data-testid=\"condition-open-hub\"]").first();
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page).toHaveURL(new RegExp(`/conditions/${conditionId}$`));
+  await expect(page.getByTestId("journey-caveat")).toBeVisible();
+});
+
 test("states plainly that this is timing, not cause", async ({ page }) => {
   await openAs(page, `/conditions/${conditionId}`);
   await expect(page.getByRole("heading", { name: "Type 2 diabetes mellitus" })).toBeVisible();

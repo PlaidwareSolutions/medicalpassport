@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { ApiError } from "@medpass/api-client";
 import { CONDITION_CLINICAL_STATUSES, type ConditionClinicalStatus } from "@medpass/domain";
@@ -117,6 +118,11 @@ export default function ConditionsPage() {
               <div style={{ display: "flex", gap: "var(--size-touch-gap)", alignItems: "center", flexWrap: "wrap" }}>
                 <TrustBadge verification={c.verification} provenanceSource={c.provenanceSource} />
                 <span style={{ flex: 1 }} />
+                {/* The condition hub (docs_v2/06 P10): what happened around this
+                    condition, side by side, never one causing the other. */}
+                <Link href={`/conditions/${encodeURIComponent(c.id)}`} data-testid="condition-open-hub">
+                  <Button>{t("condition.open_hub")}</Button>
+                </Link>
                 <Button variant="secondary" onClick={() => open(c)}>
                   {t("condition.edit")}
                 </Button>
