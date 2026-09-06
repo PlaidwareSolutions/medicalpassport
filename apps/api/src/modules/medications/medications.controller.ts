@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Put, Query, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES, MEDICATION_STATUS_TRANSITIONS, type MedicationStatus } from "@medpass/domain";
 import {
   changeMedicationStatusSchema,
   confirmDoseUnitSchema,
   createMedicationSchema,
+  putRefillPlanSchema,
   recordRefillSchema,
   updateMedicationSchema,
 } from "@medpass/validation";
@@ -228,6 +229,29 @@ export class MedicationsController {
     const { profileId, actorRole } = await this.access.require(req, "edit_medications");
     const input = parseWith(recordRefillSchema, body);
     return this.medications.recordRefill(profileId, id, input, {
+      userId: req.auth!.userId,
+      actorRole,
+      correlationId: req.correlationId,
+      recordedVia: recordedViaFor(req),
+    });
+  }
+
+  /**
+   * Refill plan (docs_v2/05 §4). A projection of the patient's own numbers —
+   * how much they hold and how fast the confirmed schedule uses it — never a
+   * recommendation to buy.
+   */
+  @Get("medications/:id/refill-plan")
+  async refillPlan(@Param("id") id: string, @Req() req: ApiRequest) {
+    const { profileId } = await this.access.require(req, "view_medications");
+    return this.medications.getRefillPlan(profileId, id);
+  }
+
+  @Put("medications/:id/refill-plan")
+  async putRefillPlan(@Param("id") id: string, @Body() body: unknown, @Req() req: ApiRequest) {
+    const { profileId, actorRole } = await this.access.require(req, "edit_medications");
+    const input = parseWith(putRefillPlanSchema, body);
+    return this.medications.putRefillPlan(profileId, id, input, {
       userId: req.auth!.userId,
       actorRole,
       correlationId: req.correlationId,

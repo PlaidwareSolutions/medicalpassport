@@ -17,7 +17,7 @@ import { PractitionersService } from "../practitioners/practitioners.service";
 import { SchedulingService } from "../scheduling/scheduling.service";
 import { SafetyEvaluationService } from "../safety/safety-evaluation.service";
 import { ClinicalContentLookupService, CLINICAL_CONTENT_DTO_KEYS, type ClinicalContentEntry } from "../clinical-content/clinical-content-lookup.service";
-import { readRefillPlan, syncRefillPlan } from "./refill-plan";
+import { readRefillPlan, syncRefillPlan, type RefillPlanView } from "./refill-plan";
 
 interface Actor extends ProvenanceActor {
   correlationId?: string;
@@ -90,11 +90,21 @@ export class MedicationsService {
     const conditionIds = [...new Set(medications.map((m) => m.reasonConditionId).filter((v): v is string => !!v))];
     const practitionerIds = [...new Set(medications.map((m) => m.prescribingPractitionerId).filter((v): v is string => !!v))];
     const [conditions, practitioners] = await Promise.all([
+      // Soft-deleted rows are excluded deliberately: a medicine keeps its FK
+      // (this app never cascades a soft-delete), but a deleted condition or
+      // doctor must stop being surfaced as a live link — the same rule the
+      // prescription evidence above follows.
       conditionIds.length
-        ? this.prisma.patientCondition.findMany({ where: { id: { in: conditionIds }, patientProfileId: profileId }, select: { id: true, label: true } })
+        ? this.prisma.patientCondition.findMany({
+            where: { id: { in: conditionIds }, patientProfileId: profileId, deletedAt: null },
+            select: { id: true, label: true },
+          })
         : [],
       practitionerIds.length
-        ? this.prisma.practitioner.findMany({ where: { id: { in: practitionerIds }, createdByProfileId: profileId }, select: { id: true, displayName: true } })
+        ? this.prisma.practitioner.findMany({
+            where: { id: { in: practitionerIds }, createdByProfileId: profileId, deletedAt: null },
+            select: { id: true, displayName: true },
+          })
         : [],
     ]);
     return {
@@ -407,6 +417,18 @@ export class MedicationsService {
           ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
           ...(input.quantityOnHand !== undefined ? { quantityOnHand: input.quantityOnHand } : {}),
           ...(input.criticalEscalation !== undefined ? { criticalEscalation: input.criticalEscalation } : {}),
+          // Phase 2 links (docs_v2/04 §4.1). Each id is checked to belong to
+          // this profile first, so a foreign id is a 400, never a silent link.
+          ...(input.reasonConditionId !== undefined
+            ? { reasonConditionId: input.reasonConditionId ? (await this.requireCondition(tx, profileId, input.reasonConditionId)).id : null }
+            : {}),
+          ...(input.prescribingPractitionerId !== undefined
+            ? {
+                prescribingPractitionerId: input.prescribingPractitionerId
+                  ? (await this.requirePractitioner(tx, profileId, input.prescribingPractitionerId)).id
+                  : null,
+              }
+            : {}),
           rowVersion: { increment: 1 },
         },
       });
@@ -433,22 +455,46 @@ export class MedicationsService {
         }
       }
 
-      if (input.instruction) {
+      // Phase 2 (docs_v2/04 §4.1) adds three fields that live on the
+      // instruction rather than the medicine. Sent alongside a full
+      // instruction they override its matching field; sent alone they still
+      // supersede, because an instruction row is never edited in place —
+      // the medication history has to keep showing what was true before.
+      const instructionOnlyFields =
+        input.routeText !== undefined || input.strengthLabel !== undefined || input.stopPlannedAt !== undefined;
+      if (input.instruction || instructionOnlyFields) {
+        const current = await tx.medicationInstruction.findFirst({
+          where: { patientMedicationId: id, supersededAt: null },
+          orderBy: { createdAt: "desc" },
+        });
         // Instructions are copy-on-write: supersede, never overwrite (docs/13).
         await tx.medicationInstruction.updateMany({
           where: { patientMedicationId: id, supersededAt: null },
           data: { supersededAt: new Date() },
         });
+        const base = input.instruction ?? current;
+        if (!base) {
+          throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "This medicine has no instruction to change yet", 400, [
+            { path: "instruction", message: "Send the full instruction the first time" },
+          ]);
+        }
         await tx.medicationInstruction.create({
           data: {
             patientMedicationId: id,
-            doseQuantity: input.instruction.doseQuantity,
-            doseUnit: input.instruction.doseUnit,
-            frequencyCode: input.instruction.frequencyCode,
-            pattern: input.instruction.pattern,
-            foodInstruction: input.instruction.foodInstruction,
-            durationDays: input.instruction.durationDays,
-            originalText: input.instruction.originalText,
+            doseQuantity: base.doseQuantity,
+            doseUnit: base.doseUnit,
+            frequencyCode: base.frequencyCode,
+            pattern: base.pattern,
+            foodInstruction: base.foodInstruction,
+            durationDays: input.instruction?.durationDays ?? base.durationDays,
+            originalText: input.instruction?.originalText ?? ("originalText" in base ? base.originalText : null),
+            ...(input.routeText !== undefined ? { routeText: input.routeText } : { routeText: current?.routeText ?? null }),
+            ...(input.strengthLabel !== undefined
+              ? { strengthLabel: input.strengthLabel }
+              : { strengthLabel: current?.strengthLabel ?? null }),
+            ...(input.stopPlannedAt !== undefined
+              ? { stopPlannedAt: input.stopPlannedAt }
+              : { stopPlannedAt: current?.stopPlannedAt ?? null }),
             confirmedByUserId: actor.userId,
             doseUnitConfirmedAt: new Date(),
             ...stampProvenanceFor(actor),
@@ -491,6 +537,58 @@ export class MedicationsService {
   }
 
   /**
+   * Refill plan (docs_v2/05 §4). Reading never creates a row: a patient who
+   * has only ever used the bare counter still gets a projection, with
+   * `exists: false` so the client can offer to set a pack size.
+   */
+  async getRefillPlan(profileId: string, id: string): Promise<RefillPlanView> {
+    const medication = await this.prisma.patientMedication.findFirst({
+      where: { id, patientProfileId: profileId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!medication) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Medicine not found", 404);
+    return readRefillPlan(this.prisma, id);
+  }
+
+  /**
+   * Writes the plan and pushes the same quantity back onto the medication
+   * row, so the two never disagree while `quantityOnHand` still exists.
+   */
+  async putRefillPlan(profileId: string, id: string, input: PutRefillPlanInput, actor: Actor): Promise<RefillPlanView> {
+    const medication = await this.prisma.patientMedication.findFirst({
+      where: { id, patientProfileId: profileId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!medication) throw new ApiProblem(ERROR_CODES.NOT_FOUND, "Medicine not found", 404);
+
+    await this.prisma.$transaction(async (tx) => {
+      if (input.quantityOnHand !== undefined) {
+        await tx.patientMedication.update({
+          where: { id },
+          data: { quantityOnHand: input.quantityOnHand, rowVersion: { increment: 1 } },
+        });
+      }
+      await syncRefillPlan(tx, id, {
+        create: true,
+        ...(input.packSize !== undefined ? { packSize: input.packSize } : {}),
+        recordedByUserId: actor.userId,
+      });
+      await writeAudit(tx, {
+        action: "medication.refill_plan_updated",
+        actorUserId: actor.userId,
+        actorType: actor.actorRole,
+        entityType: "patient_medication",
+        entityId: id,
+        patientProfileId: profileId,
+        correlationId: actor.correlationId,
+        // Counts and flags only — never the quantity itself.
+        context: { setPackSize: input.packSize != null, setQuantity: input.quantityOnHand != null },
+      });
+    });
+    return readRefillPlan(this.prisma, id);
+  }
+
+  /**
    * "Mark refilled" (docs/07 screen 27) — a semantically distinct event from
    * a plain quantity edit, with its own audit action, since it's the answer
    * to a refill reminder rather than an incidental correction. Resolves any
@@ -513,6 +611,9 @@ export class MedicationsService {
       if (updated.count === 0) {
         throw new ApiProblem(ERROR_CODES.CONFLICT_ROW_VERSION, "This medicine was changed elsewhere. Reload and retry.", 409);
       }
+      // The medicine row stays the writer of record for the counter; the
+      // plan mirrors it so its projection reflects the refill immediately.
+      await syncRefillPlan(tx, id);
       const change = await tx.medicationChange.create({
         data: { patientMedicationId: id, change: "refilled", detail: { quantityOnHand }, actorUserId: actor.userId },
       });

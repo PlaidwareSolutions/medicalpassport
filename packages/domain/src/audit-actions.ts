@@ -88,6 +88,7 @@ export const AUDIT_ACTIONS = [
   "medication.deleted",
   "medication.list_viewed",
   "medication.refill_recorded",
+  "medication.refill_plan_updated",
   "refill_plan.updated",
   "dose.recorded",
   "dose.correction_notice_created",
