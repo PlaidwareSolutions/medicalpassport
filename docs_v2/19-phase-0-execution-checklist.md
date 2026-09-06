@@ -28,16 +28,16 @@ The concrete tickets. Each has an owner workstream, a size, an acceptance check,
 | 0.15 | ✅ Exhaustive caregiver authz matrix test — *done 2026-09-06 (858 cells)* | WS13 | S | test enumerates DMMF models × scopes |
 | 0.16 | ✅ Sync contract == dispatcher test; implement or remove the four undispatched entities — *done 2026-09-06* | WS12 | S | test green; contract updated |
 | 0.17 | ✅ Move safety engine to `packages/clinical-rules` after copying golden tests — *done 2026-09-06* | WS11 | S | zero behaviour diff (golden green before and after) |
-| 0.18 | Audit writes off read paths (queue `*_viewed` audit rows) — closes the V1 deferred fix behind INC-2026-001 | WS12 | M | read endpoints no longer take the advisory lock; chain still verifies |
+| 0.18 | ✅ Audit writes off read paths (queue `*_viewed` audit rows) — closes the V1 deferred fix behind INC-2026-001 — *done 2026-09-06 (`writeAuditDeferred` in packages/audit; 13 call sites; 7 unit + 3 e2e; [16 §3](16-dependencies-and-risks.md) item 7)* | WS12 | M | read endpoints no longer take the advisory lock; chain still verifies |
 
 ## Week 3 — security foundations, observability
 
 | # | Ticket | WS | Size | Accept when |
 |---|---|---|---|---|
-| 0.19 | ✅ Security headers at origin (helmet/CSP) — *done 2026-09-06* | WS13 | S | headers asserted in api e2e |
+| 0.19 | ✅ Security headers at origin (helmet/CSP) — *done 2026-09-06; bound from AppModule and regressed by `test/security-headers.e2e-spec.ts` (public, health, authenticated, 401, 404, `meta/openapi.json`)* | WS13 | S | headers asserted in api e2e |
 | 0.20 | ✅ Step-up auth: `Session.stepUpVerifiedAt`, endpoints, guard decorator, patient-web prompt component — *done 2026-09-06 (server + client sheet; api-client hook 6 tests; Playwright 3/3)* | WS13 | M | e2e: share creation without step-up → 403; with → 201 |
 | 0.21 | ✅ Encryption keyring (`FIELD_ENCRYPTION_KEYS`, `keyVersion` columns, re-encrypt job); rotation executed on dev — *done 2026-09-06 (ciphertext-versioned keyring; rotation cron; dev rotation run pending)* | WS13 | M | rotation runbook R-KEY-1 has a completed dev run recorded |
-| 0.22 | `MIGRATOR_DATABASE_URL` + `READONLY_DATABASE_URL` roles; pre-deploy uses migrator | WS14 | S | api runtime role cannot `ALTER` |
+| 0.22 | `MIGRATOR_DATABASE_URL` + `READONLY_DATABASE_URL` roles; pre-deploy uses migrator — *code done 2026-09-06 (config shape, IaC pre-deploy `${MIGRATOR_DATABASE_URL:-$DATABASE_URL}`, role SQL in infra/railway/README.md); **platform step open**: create the roles on dev, then prod, and run the README verification* | WS14 | S | api runtime role cannot `ALTER` |
 | 0.23 | Observability backend chosen (OD-13); OTLP wiring; seven SLI dashboards; alert routes; on-call rota of two | WS14 | M | an induced 5xx pages within 5 min on staging |
 | 0.24 | ✅ Backup key custody offline (public key on Railway, private key held offline); restore-test with the offline key — *runbook written (R-DR-3); execution needs production access + custodians* | WS14 | S | R-DR-3 recorded |
 | 0.25 | Rollback rehearsal: redeploy a named earlier deployment on staging; document the exact command | WS14 | S | runbook step verified |

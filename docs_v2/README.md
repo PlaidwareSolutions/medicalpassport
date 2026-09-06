@@ -29,6 +29,8 @@ This folder is the V2 program's working documentation. It turns the **MedicinePa
 | 18 | [Team and governance](18-team-and-governance.md) | roles, the four boards, decision flow |
 | 19 | [Phase 0 execution checklist](19-phase-0-execution-checklist.md) | the concrete tickets for the next four weeks |
 | 20 | [Status board](20-status-board.md) | the living record — update it with every meaningful change |
+| 21 | [Manual UI test guide](21-manual-ui-test-guide.md) | what was built, how to set up, test cases per feature, and what is missing |
+| 22 | [Handover of the leftovers](22-handover-leftovers.md) | everything that needs a person, a credential, a contract or a review, with the exact steps |
 | adr | [ADR register](adr/README.md) | V2 architecture decisions (ADR-V2-001 …) |
 
 ## Status vocabulary

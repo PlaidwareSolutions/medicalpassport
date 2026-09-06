@@ -290,6 +290,23 @@ The hi/te/ur strings are **drafts**. Read them as a native speaker if you can; n
 
 ---
 
+### 3.16 Added 2026-09-07: voice entry, offline capture, device sync, quarantine, alert quality, product metrics
+
+| # | Steps | Expect |
+|---|---|---|
+| 16.1 | `/measurements/blood_pressure` → Add a reading → **Speak the reading** (Chrome or Edge; allow the microphone) → say "blood pressure 128 over 76 pulse 70" | "Heard: …" shows the phrase; systolic, diastolic and pulse are filled; a note says to check every number; nothing is saved until you tap Save reading |
+| 16.2 | Same, say something unrelated ("call my daughter") | "Could not make out a reading"; fields stay empty; Save stays disabled |
+| 16.3 | Switch the app to Hindi, say "बीपी १२८ बटा ७६" | Same behaviour in Hindi; Devanagari digits read correctly |
+| 16.4 | Firefox, or any browser without speech recognition | The button is absent; the sheet is unchanged |
+| 16.5 | DevTools → Network → Offline. `/measurements/blood_glucose` → add a reading → Save | The reading is queued (banner), appears in the diary marked pending; `/sync/conflicts` shows "Waiting to send" |
+| 16.6 | Still offline: `/documents/new` → take or choose a photo → choose the kind → save | The capture is stored on the device with its kind; `/sync/conflicts` lists it |
+| 16.7 | Go online | The reading and the document are sent in order; progress "Sending page 1 of 1"; the document then classifies and reaches review as usual; a second flush does not duplicate either |
+| 16.8 | Queue a reading offline, delete the same reading from another device or session, go online | A conflict card on `/sync/conflicts` with "Add again" / "Dismiss" |
+| 16.9 | `/measurements/devices` in a browser with Web Bluetooth (Chrome on Android or desktop with a BLE adapter) on an active BP monitor row | "Connect and sync" is offered; without Bluetooth the previous sentence is shown instead |
+| 16.10 | Upload a PDF containing `/JavaScript` (a test file, not a real report) through `/documents/new` | The document lands in the quarantined state with the existing explanation; page downloads answer 410; admin `/documents` funnel counts one quarantined |
+| 16.11 | Patient: on a safety finding choose "not relevant to me" (API action `dismissed_not_relevant`; no patient UI yet, use the API) | Admin `/rules/quality` shows the dismissal in the false-positive rate for that rule version |
+| 16.12 | Admin → Operations | "Product metrics" card lists counts per event per day for the window; nothing in it names a patient |
+
 ## 4. What is missing
 
 ### Engineering gaps with no external dependency (my proposed order)
@@ -297,19 +314,19 @@ The hi/te/ur strings are **drafts**. Read them as a native speaker if you can; n
 Found by reconciling every plan row against the code on 2026-09-06.
 
 1. ~~**Key rotation misses three encrypted columns**~~ **Fixed 2026-09-06**: the column list is schema-guarded and unreadable rows are skipped and reported. — emergency-contact phone, organisation phone, ABHA number. Running the rotation runbook and retiring the old key would make them unreadable. Fix in `apps/cron/src/jobs/rotate-field-encryption.ts` plus a test that enumerates every `*_ciphertext` column in the schema.
-2. **Audit writes on read paths** behind one global lock (open incident remediation, ticket 0.18).
-3. **Offline sync does not cover measurements or document captures** (§14 of the API contract); they are lost offline.
-4. **CI does not run on the `v2` branch**, and there is no scheduled Windows job (ticket 0.10).
-5. **A stray empty migration folder** (`20260906165304_…`) duplicating a real one.
-6. **No antivirus scan on any upload path** (P3-3).
-7. **No security-header regression test**; the headers are wired where the test harness cannot reach them (ticket 0.19).
-8. **Gate 3 alert-quality dashboard** in admin (P9-4): the data exists, the page does not.
-9. **Guidance audio entries stop at the V1 screens**; the entry list is code, the MP3s need a key.
+2. ~~Audit writes on read paths~~ — resolved 2026-09-06: read-path audit rows are queued and written in ordered batches (`writeAuditDeferred`), flushed on shutdown; the chain still verifies (ticket 0.18).
+3. ~~Offline sync does not cover measurements or document captures~~ — resolved 2026-09-07: `observation/create` and `document_upload_intent/create` replay through the sync endpoint; the sheet and the capture screen queue when offline; progress and conflicts on `/sync/conflicts`; `e2e/offline-capture.spec.ts`.
+4. ~~CI does not run on the `v2` branch, and there is no scheduled Windows job~~ — resolved: CI triggers on `v2`; `.github/workflows/windows-weekly.yml` runs the api and worker suites on `windows-latest` weekly and on demand (ticket 0.10).
+5. ~~A stray empty migration folder~~ — removed.
+6. ~~No antivirus scan on any upload path~~ — resolved 2026-09-07: magic-byte scanner (declared type vs signature, executables and script-bearing PDFs refused) plus an optional ClamAV adapter (`CLAMAV_HOST`), run before OCR; infected pages quarantine the document, downloads answer 410, admin funnel shows the count (P3-3).
+7. ~~No security-header regression test~~ — resolved 2026-09-06: headers bound from `AppModule`, asserted by `apps/api/test/security-headers.e2e-spec.ts` (ticket 0.19).
+8. ~~Gate 3 alert-quality dashboard~~ — resolved 2026-09-07: `GET admin/rules/quality` and the admin page `/rules/quality` (per rule version: raised, acknowledged, reviewed with a professional, dismissed as not relevant, the two rates, median time to acknowledge).
+9. ~~Guidance audio entries stop at the V1 screens~~ — resolved 2026-09-06: 36 entries, 144 clips in four locales, every V2 route asserted by the guidance sweep.
 10. **Provider and marketing dev ports collided** on 3002 — fixed in this commit (provider-web is 3003).
-11. Adapter interfaces the plan scoped as buildable before a vendor is chosen: medicine catalog (P2-6), OCR and AI provider (P3-2), device connector (P5-5).
-12. **Voice entry** (P16) — no external dependency, entirely unbuilt.
-13. Product metrics: the event schema exists, nothing emits it (P1-7).
-14. Contract doc drift: `documents/*`, `medication-reconciliations`, `admin/providers` ship under different paths than `05-api-contracts-v2.md` says; the share-target server endpoint was replaced by a client-side flow.
+11. ~~Adapter interfaces~~ — resolved 2026-09-07: `MedicationCatalogAdapter` with a clearly-marked sample catalogue and an idempotent import cron (P2-6); `OcrProvider` / `DocumentAiProvider` with a vendor contract checklist, Tesseract as the default, OCR confidence now flowing into candidate confidence (P3-2); `DeviceConnector` with a Web Bluetooth prototype for BP monitors and glucometers, offered only when the browser has Bluetooth (P5-5).
+12. ~~Voice entry~~ — resolved 2026-09-07: "Speak the reading" on the measurement sheet (Web Speech API, four locales, Indic digits); the phrase only pre-fills the fields and the patient still checks and saves (H-19); `e2e/voice-entry.spec.ts`.
+13. ~~Product metrics~~ — resolved 2026-09-07: `product_events` table, `emitProductEvent()` at ten points, peppered profile digests, `GET admin/metrics/product` and the Operations card (P1-7).
+14. ~~Contract doc drift~~ — resolved 2026-09-06: `05-api-contracts-v2.md` now carries the shipped paths with a *Renamed:* note per row (`patient-documents/*`, `proposals/*`, `admin/practitioners`, `POST sync`) and records that the share-target server endpoint was replaced by the client-side `/share-target` flow.
 
 ### Blocked on an outside party
 
@@ -319,7 +336,7 @@ Clinical intelligence (licensed catalog OD-3, interaction provider OD-4, clinica
 
 Native review of ~900 draft hi/te/ur strings (H-19); Gate 4 clinical validation of new copy; Gate 1b terminology review; the six additional locales need professional translators.
 
-**Am I preparing the engineering gaps?** The list above is the plan, in that order. Items 1–5 and 10 are small and I would start with them. I was told to stop before starting; nothing below item 10 has been touched.
+Every item above is now done. What remains is in [22 — handover of the leftovers](22-handover-leftovers.md).
 
 ---
 
