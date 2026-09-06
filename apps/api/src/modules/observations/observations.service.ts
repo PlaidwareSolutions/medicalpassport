@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES, GLUCOSE_CONTEXT_TO_OBSERVATION_CONTEXT, TREND_WINDOW_DAYS, type GlucoseReadingContext } from "@medpass/domain";
-import { toLegacyBloodPressure, toLegacyGlucose, toLegacyWeight } from "./legacy-views";
 import { emitHealthEvent, localIso, projectObservation, supersedeHealthEvents } from "@medpass/health-events";
 import {
   LOINC_SYSTEM,
@@ -27,6 +26,7 @@ import { PrismaService } from "../../common/prisma.service";
 import { rejectClientInterpretation } from "../../common/provenance";
 import { stampProvenanceFor, type ProvenanceActor } from "../../common/provenance-actor";
 import { EncountersService } from "../encounters/encounters.service";
+import { toLegacyBloodPressure, toLegacyGlucose, toLegacyWeight } from "./legacy-views";
 
 interface Actor extends ProvenanceActor {
   correlationId?: string;

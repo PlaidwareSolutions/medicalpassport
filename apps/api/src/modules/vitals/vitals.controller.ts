@@ -1,9 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
-import { ERROR_CODES } from "@medpass/domain";
 import { emitHealthEvent, projectReading, supersedeHealthEvents } from "@medpass/health-events";
 import { bloodPressureReadingSchema, weightReadingSchema } from "@medpass/validation";
-import { ApiProblem } from "../../common/errors";
 import { eventCtx, profileTimezone } from "../../common/health-events";
 import type { ApiRequest } from "../../common/http";
 import { parseWith } from "../../common/zod";
