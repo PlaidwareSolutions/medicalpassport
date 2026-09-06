@@ -2055,4 +2055,16 @@ export const en = {
   "notify.how_often": "How often",
   "notify.off_note": "You will not be sent this message. It will still appear inside the app.",
   "notify.no_channel_note": "Pick at least one way to reach you, or this message cannot be sent.",
+  // Home / Add entry points for the V2 areas (docs_v2/21 §1): every new screen reachable without an address.
+  "home.record_title": "My health record",
+  "home.tile.health": "Health record",
+  "home.tile.documents": "Documents",
+  "home.tile.tests": "Test results",
+  "home.tile.measurements": "Measurements",
+  "home.tile.family": "Family",
+  "add.other_title": "Add something else",
+  "add.document": "Add a document or scan",
+  "add.test": "Add a test result",
+  "add.measurement": "Record a measurement",
+  "add.visit": "Record a doctor visit",
 } as const;

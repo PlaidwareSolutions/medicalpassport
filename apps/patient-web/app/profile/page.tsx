@@ -145,11 +145,12 @@ export default function ProfilePage() {
       <SectionTitle>{t("profile.section_records")}</SectionTitle>
       <ProfileLink href="/health" glyph="timeline" label={t("profile.health_timeline")} />
       <ProfileLink href="/health/visits" glyph="hospital" label={t("profile.visits")} />
-      <ProfileLink href="/blood-sugar" glyph="drop" label={t("profile.blood_sugar")} />
-      <ProfileLink href="/blood-pressure" glyph="heart" label={t("profile.blood_pressure")} />
-      <ProfileLink href="/body-weight" glyph="scale" label={t("profile.body_weight")} />
+      {/* V2: the three V1 reading screens now redirect into one measurements
+          hub, so one row replaces them; documents get their own door. */}
+      <ProfileLink href="/measurements" glyph="pulse" label={t("measure.title")} />
       <ProfileLink href="/prescriptions" glyph="prescription" label={t("profile.prescriptions")} />
       <ProfileLink href="/reports" glyph="report" label={t("profile.reports")} />
+      <ProfileLink href="/documents" glyph="document" label={t("documents.title")} />
       <ProfileLink href="/doctors" glyph="people" label={t("profile.doctors")} />
 
       {/* docs/06 sitemap: Help lives under Profile (screen 41). */}
@@ -175,6 +176,10 @@ export default function ProfilePage() {
         <ProfileLink href="/caregivers" glyph="people" label={t("profile.caregivers")} />
       ) : null}
       <ProfileLink href="/profile/dependents/new" glyph="people" label={t("profile.add_dependent")} />
+      {/* V2 Phases 8 and 11: the clinics that can see the record, and the
+          ABHA link. Both were reachable only by address before. */}
+      <ProfileLink href="/connections" glyph="hospital" label={t("connections.title")} />
+      <ProfileLink href="/abha" glyph="shield" label={t("abha.title")} />
 
       {activeProfile?.relationship === "dependent" ? (
         activeProfile.claimInvited ? <ClaimInvitePendingSection /> : <ClaimInviteSection />

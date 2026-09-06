@@ -2049,4 +2049,16 @@ export const te: Record<keyof typeof en, string> = {
   "notify.how_often": "ఎంత తరచుగా",
   "notify.off_note": "ఈ సందేశం మీకు పంపబడదు. అయితే యాప్‌లో కనిపిస్తుంది.",
   "notify.no_channel_note": "కనీసం ఒక మార్గం ఎంచుకోండి, లేదంటే ఈ సందేశం పంపలేము.",
+  // DRAFT — Home / Add entry points for the V2 areas; native review pending (H-19).
+  "home.record_title": "నా ఆరోగ్య రికార్డు",
+  "home.tile.health": "ఆరోగ్య రికార్డు",
+  "home.tile.documents": "పత్రాలు",
+  "home.tile.tests": "పరీక్ష ఫలితాలు",
+  "home.tile.measurements": "కొలతలు",
+  "home.tile.family": "కుటుంబం",
+  "add.other_title": "ఇంకేదైనా జోడించండి",
+  "add.document": "పత్రం జోడించండి లేదా స్కాన్ చేయండి",
+  "add.test": "పరీక్ష ఫలితం జోడించండి",
+  "add.measurement": "కొలత నమోదు చేయండి",
+  "add.visit": "డాక్టర్ సందర్శన నమోదు చేయండి",
 };

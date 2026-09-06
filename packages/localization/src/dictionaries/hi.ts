@@ -2049,4 +2049,16 @@ export const hi: Record<keyof typeof en, string> = {
   "notify.how_often": "कितनी बार",
   "notify.off_note": "यह संदेश आपको नहीं भेजा जाएगा। यह ऐप में फिर भी दिखेगा।",
   "notify.no_channel_note": "कम से कम एक तरीका चुनें, वरना यह संदेश नहीं भेजा जा सकता।",
+  // DRAFT — Home / Add entry points for the V2 areas; native review pending (H-19).
+  "home.record_title": "मेरा स्वास्थ्य रिकॉर्ड",
+  "home.tile.health": "स्वास्थ्य रिकॉर्ड",
+  "home.tile.documents": "दस्तावेज़",
+  "home.tile.tests": "जांच के नतीजे",
+  "home.tile.measurements": "माप",
+  "home.tile.family": "परिवार",
+  "add.other_title": "कुछ और जोड़ें",
+  "add.document": "दस्तावेज़ जोड़ें या स्कैन करें",
+  "add.test": "जांच का नतीजा जोड़ें",
+  "add.measurement": "माप दर्ज करें",
+  "add.visit": "डॉक्टर से मुलाकात दर्ज करें",
 };

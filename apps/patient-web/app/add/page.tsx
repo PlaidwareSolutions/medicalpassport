@@ -193,6 +193,33 @@ function AddMedicationForm() {
               </Button>
             </Link>
           </div>
+
+          {/* V2: the Add tab is where a patient comes to put anything into the
+              record, not only a medicine. Every door the new screens opened
+              is offered here, so none of them needs an address to reach. */}
+          <SectionTitle>{t("add.other_title")}</SectionTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+            <Link href="/documents/new">
+              <Button variant="secondary" fullWidth>
+                {t("add.document")}
+              </Button>
+            </Link>
+            <Link href="/reports/new">
+              <Button variant="secondary" fullWidth>
+                {t("add.test")}
+              </Button>
+            </Link>
+            <Link href="/measurements">
+              <Button variant="secondary" fullWidth>
+                {t("add.measurement")}
+              </Button>
+            </Link>
+            <Link href="/health/visits/new">
+              <Button variant="secondary" fullWidth>
+                {t("add.visit")}
+              </Button>
+            </Link>
+          </div>
         </>
       ) : (
         <>

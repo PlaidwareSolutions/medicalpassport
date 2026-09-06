@@ -121,6 +121,10 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    // Each app is its own Next root. Without this, running eslint from the
+    // workspace root makes the Next plugin look for a pages directory at the
+    // repo root and complain on every file.
+    settings: { next: { rootDir: ["apps/patient-web/", "apps/admin-web/", "apps/provider-web/", "apps/marketing-web/"] } },
     rules: {
       ...jsxA11y.flatConfigs.recommended.rules,
       // The screens already carry `eslint-disable react-hooks/*` comments in

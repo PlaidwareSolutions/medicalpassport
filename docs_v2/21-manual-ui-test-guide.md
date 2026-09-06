@@ -16,6 +16,14 @@ a safety defect, not a cosmetic one.
 
 ### Patient app (`apps/patient-web`)
 
+Where to find the new areas without typing an address: **Home** has a "My
+health record" card with tiles for the health record, documents, test
+results, measurements and family; the **Add** tab offers a document or scan,
+a test result, a measurement and a doctor visit below the medicine search;
+**Profile** lists measurements, documents, who can see the record, and ABHA
+alongside the existing rows. The bottom bar is unchanged.
+
+
 | Area | Screens | What it does |
 |---|---|---|
 | Health record | `/health`, `/health/visits`, `/health/visits/new`, `/conditions`, `/conditions/[id]`, `/allergies`, `/immunizations`, `/procedures`, `/family-history`, `/doctors`, `/organizations`, `/profile/health-details` | Longitudinal timeline with a trust badge on every event; visits; clinical profile; the condition hub with the treatment journey |
