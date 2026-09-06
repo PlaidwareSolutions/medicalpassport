@@ -44,16 +44,6 @@ function ClaimInviteSection() {
     }
   }
 
-  async function cancel() {
-    setBusy(true);
-    try {
-      await cancelClaimInvite();
-      await refresh();
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <Card>
       <strong>{t("caregiver.claim_invite_section_title")}</strong>
@@ -177,6 +167,10 @@ export default function ProfilePage() {
       <ProfileLink href="/organizations" glyph="hospital" label={t("profile.organizations")} />
 
       <SectionTitle>{t("profile.section_care")}</SectionTitle>
+      {/* V2 Phase 6 (docs_v2/06 P6-3): the two screens that span the family —
+          everyone this account looks after, and what those people changed. */}
+      <ProfileLink href="/family" glyph="family" label={t("household.title")} />
+      <ProfileLink href="/activity" glyph="timeline" label={t("activity.title")} />
       {activeProfile?.relationship !== "caregiver" ? (
         <ProfileLink href="/caregivers" glyph="people" label={t("profile.caregivers")} />
       ) : null}
@@ -187,6 +181,10 @@ export default function ProfilePage() {
       ) : null}
 
       <ReminderSettings />
+
+      {/* Per-kind channel and frequency (docs_v2/06 P6-4) — its own screen:
+          fourteen kinds do not belong inside the push/quiet-hours card. */}
+      <ProfileLink href="/profile/notifications" glyph="bell" label={t("notify.title")} />
 
       <SectionTitle>{t("profile.language")}</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "var(--size-touch-gap)" }}>

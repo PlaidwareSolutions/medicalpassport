@@ -27,7 +27,7 @@ import * as validation from "@medpass/validation";
 import { PUBLIC_ROUTE, REQUIRES_STEP_UP } from "../common/auth.guard";
 import { RATE_LIMIT_KEY, type RateLimitOptions } from "../common/rate-limit.guard";
 import { applyCiEnvDefaults } from "./env-defaults";
-import { ROUTES, registryByKey, routeKey, toOpenApiPath, TAG_DESCRIPTIONS, type QueryParam, type ResponseSpec, type RouteDoc } from "./registry";
+import { ROUTES, registryByKey, routeKey, TAG_DESCRIPTIONS, type QueryParam, type ResponseSpec, type RouteDoc } from "./registry";
 import { problemSchema, type JsonSchema } from "./schemas";
 
 // ───────────────────────── Route enumeration ─────────────────────────

@@ -1,5 +1,5 @@
 "use client";
-import { Banner, Card, PillSpinner, SectionTitle } from "@medpass/ui-web";
+import { Banner, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
 import { EmptyState } from "../../components/EmptyState";
 import { DoseCard } from "../../components/DoseCard";

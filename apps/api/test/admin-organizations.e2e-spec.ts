@@ -102,8 +102,9 @@ describe("Admin organizations e2e", () => {
       .expect(201);
     const token = verify.body.token;
     const patient = (method: "post", path: string) =>
-      request(app.getHttpServer())
-        [method](path)
+      // The computed call is kept on the same line as the request: split
+      // across lines it reads as an index into the previous expression.
+      request(app.getHttpServer())[method](path)
         .set("authorization", `Bearer ${token}`)
         .set("x-requested-with", "medpass")
         .set("idempotency-key", crypto.randomUUID());

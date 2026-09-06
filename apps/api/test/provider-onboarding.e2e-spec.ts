@@ -25,7 +25,6 @@ describe("Provider onboarding e2e", () => {
   const PHARMACY_OWNER = "+919000001203";
 
   let clinicId: string;
-  let pharmacyId: string;
   let patientToken: string;
   let profileId: string;
   let clinicToken: string;
@@ -46,7 +45,7 @@ describe("Provider onboarding e2e", () => {
         sessions, user_devices, otp_attempts, patient_profiles, users CASCADE
     `);
     ({ organizationId: clinicId } = await seedOrganization({ kind: "clinic", displayName: "Sunrise Clinic", ownerPhone: CLINIC_OWNER }));
-    ({ organizationId: pharmacyId } = await seedOrganization({ kind: "pharmacy", displayName: "Corner Pharmacy", ownerPhone: PHARMACY_OWNER }));
+    await seedOrganization({ kind: "pharmacy", displayName: "Corner Pharmacy", ownerPhone: PHARMACY_OWNER });
     clinicToken = await providerSignIn(server(), CLINIC_OWNER);
     pharmacyToken = await providerSignIn(server(), PHARMACY_OWNER);
     patientToken = await patientSignIn(server(), PATIENT);

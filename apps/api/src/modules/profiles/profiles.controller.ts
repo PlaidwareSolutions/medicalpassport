@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Patch, Post, Req } from "@nestjs/common";
 import { writeAudit } from "@medpass/audit";
 import { CAREGIVER_ALERT_WINDOW_DAYS, ERROR_CODES, isMinorByBirthYear } from "@medpass/domain";
-import { createDependentSchema, createProfileSchema, createSelfProfileSchema, updateProfileSchema } from "@medpass/validation";
+import { createDependentSchema, createSelfProfileSchema, updateProfileSchema } from "@medpass/validation";
 
 /** Children V1 attestation version stamped on child dependents (audit/provenance). */
 const GUARDIAN_ATTESTATION_VERSION = "v1-2026-08";

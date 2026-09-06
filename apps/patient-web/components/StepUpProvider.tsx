@@ -184,8 +184,13 @@ function StepUpSheet({ onDone }: { onDone: (verified: boolean) => void }) {
   const busy = phase === "sending" || phase === "verifying" || resending;
 
   return (
+    // Backdrop: a tap outside is the same as Cancel — nothing changes.
+    // Deliberately not focusable and not keyboard-reachable: Escape (see
+    // onKeyDown on the sheet) and the Cancel button already give keyboard
+    // users the same way out, and making the backdrop a tab stop would add a
+    // control that reads as nothing to a screen reader.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
-      // Backdrop: a tap outside is the same as Cancel — nothing changes.
       onClick={cancel}
       style={{
         position: "fixed",
@@ -197,6 +202,10 @@ function StepUpSheet({ onDone }: { onDone: (verified: boolean) => void }) {
         justifyContent: "center",
       }}
     >
+      {/* The click handler only stops the backdrop's cancel from firing, and
+          the key handler is the dialog's own Escape — both belong on the
+          dialog, which is why it is focusable (tabIndex -1) and labelled. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         ref={sheetRef}
         role="dialog"

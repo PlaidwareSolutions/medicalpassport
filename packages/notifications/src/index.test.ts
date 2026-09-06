@@ -1,5 +1,5 @@
 import { generateKeyPairSync, sign as signEd25519 } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TelnyxSmsSender, parseTelnyxDeliveryOutcome, verifyTelnyxWebhookSignature } from "./index.js";
 
 function mockFetchOnce(status: number, body: unknown) {

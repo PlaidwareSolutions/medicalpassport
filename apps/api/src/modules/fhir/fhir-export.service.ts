@@ -10,7 +10,6 @@ import {
   serializePatientSummary,
   validateResource,
   type BundleResource,
-  type CanonicalPatientRef,
   type CanonicalPatientSummary,
   type FhirValidationFailure,
   type IgVersion,

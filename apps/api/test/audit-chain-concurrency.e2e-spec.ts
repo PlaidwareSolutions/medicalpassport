@@ -85,7 +85,7 @@ describe("Audit chain concurrency e2e", () => {
     // before them.
     await appendRow(staleHash);
     const brokenRow1 = await appendRow(staleHash);
-    const brokenRow2 = await appendRow(staleHash);
+    await appendRow(staleHash);
     const brokenRow3 = await appendRow(staleHash);
     // A second, separate incident later in the same historical window —
     // same shape, different cause, still before the acknowledged boundary.

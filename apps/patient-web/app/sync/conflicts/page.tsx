@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Banner, Button, Card, PillSpinner } from "@medpass/ui-web";
+import { Button, Card, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
 import { EmptyState } from "../../../components/EmptyState";
 import { PageHeader } from "../../../components/PageHeader";

@@ -1,7 +1,7 @@
 import { buildFolderSerializers } from "../../common/folder-serializers.js";
 import type { IgModule } from "../../common/ig-module.js";
 import { serializePatientSummary as ips, type PatientSummarySerializer } from "./ips.js";
-import { ALTERNATE_PROFILES, EXTRA_PROFILES, IG_LABEL, IG_VERSION, PROFILES, VITAL_PROFILES, vitalProfileFor } from "./profiles.js";
+import { ALTERNATE_PROFILES, EXTRA_PROFILES, IG_LABEL, IG_VERSION, PROFILES, vitalProfileFor } from "./profiles.js";
 
 export { ALTERNATE_PROFILES, EXTRA_PROFILES, IG_LABEL, IG_VERSION, PROFILES, VITAL_PROFILES } from "./profiles.js";
 export { parseAllergyIntolerance, serializeAllergyIntolerance } from "./allergy-intolerance.js";

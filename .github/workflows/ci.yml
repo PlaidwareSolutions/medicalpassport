@@ -80,6 +80,14 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # ESLint gate (ADR-V2-014, docs_v2/13 §7). Deliberately not type-aware:
+      # `pnpm typecheck` above already covers what the type-aware rules would,
+      # so this run is for what the compiler cannot see — accessibility on the
+      # web apps, import hygiene, and a few correctness rules. Warnings are
+      # allowed through; errors fail the build.
+      - name: Lint
+        run: pnpm lint
+
       # OpenAPI contract gate (ADR-V2-013, docs_v2/13 §2): regenerates the
       # spec from the routes + Zod DTOs and fails on any diff against the
       # committed apps/api/openapi.json — a contract change must be

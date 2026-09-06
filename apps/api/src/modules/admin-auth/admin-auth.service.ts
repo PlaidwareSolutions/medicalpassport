@@ -6,7 +6,7 @@ import type { AdminDuty } from "@medpass/authorization";
 import type { AdminLoginInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
-import { encryptField, decryptField, hashSessionToken, hashPassword, newOpaqueToken, verifyPassword } from "../../common/crypto";
+import { encryptField, decryptField, hashSessionToken, newOpaqueToken, verifyPassword } from "../../common/crypto";
 import { generateTotpSecret, totpUri, verifyTotpCode } from "../../common/totp";
 
 const ADMIN_MAX_LOGIN_ATTEMPTS = 5;

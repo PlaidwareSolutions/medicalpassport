@@ -384,7 +384,7 @@ function settleStatus(kind: string, anySent: boolean): "done" | "pending" | "can
 }
 
 export async function dispatchPendingNotifications(prisma: PrismaClient, deps: DispatchDeps): Promise<DispatchSummary> {
-  const { pushSender, smsSender, config, log } = deps;
+  const { log } = deps;
   const now = deps.now ?? new Date();
   const summary: DispatchSummary = { sent: 0, deferred: 0, cancelled: 0, digested: 0, capped: 0 };
 
