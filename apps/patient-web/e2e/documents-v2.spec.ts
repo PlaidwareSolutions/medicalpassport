@@ -1,6 +1,8 @@
 import { randomInt } from "node:crypto";
 import { join } from "node:path";
+import type { ChildProcess } from "node:child_process";
 import { expect, request, test, type APIRequestContext, type Page } from "@playwright/test";
+import { startWorkerForSpec, stopWorker } from "./worker";
 
 /**
  * Documents V2 (docs_v2/09): drives the REAL capture → upload → classify →
@@ -50,7 +52,12 @@ async function openAs(page: Page, path: string) {
   await page.waitForLoadState("networkidle").catch(() => {});
 }
 
+let worker: ChildProcess | undefined;
+
 test.beforeAll(async () => {
+  // The scan flow needs a worker to classify the upload; CI has none unless
+  // this spec starts one (see ./worker.ts).
+  worker = await startWorkerForSpec();
   const phone = "+9195" + String(randomInt(0, 1e8)).padStart(8, "0");
   ctx = await request.newContext({ baseURL: API, extraHTTPHeaders: { "x-requested-with": "medpass" } });
 
@@ -70,6 +77,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  stopWorker(worker);
   await ctx?.dispose();
 });
 
