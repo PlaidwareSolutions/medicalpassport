@@ -67,7 +67,7 @@ test("a reading and a document captured offline are queued, then exist via the A
   await page.getByLabel("Pulse (optional)").fill("71");
   await page.getByRole("button", { name: "Save reading" }).click();
   await expect(page.getByTestId("observation-saved-offline")).toBeVisible();
-  await expect(page.getByText("1 changes waiting to sync")).toBeVisible();
+  await expect(page.getByText("1 change waiting to sync")).toBeVisible();
 
   // The document: queued with its declared kind; the screen says so.
   await capture.getByRole("button", { name: "Send this page" }).click();
@@ -116,7 +116,7 @@ test("a reading and a document captured offline are queued, then exist via the A
 
   // The diary refreshed itself from the replay's change signal and the queue is empty.
   await expect(page.getByTestId("observation-row").filter({ has: page.getByText("128/82 mmHg") })).toHaveCount(1, { timeout: 30_000 });
-  await expect(page.getByText(/changes waiting to sync/)).toHaveCount(0);
+  await expect(page.getByText(/changes? waiting to sync/)).toHaveCount(0);
 
   // Replaying is exactly-once: a second flush (another reload) adds nothing.
   await page.reload().catch(() => page.goto("/measurements/blood_pressure"));

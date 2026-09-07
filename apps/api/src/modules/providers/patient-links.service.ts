@@ -232,13 +232,44 @@ export class PatientLinksService {
     // against this same link. Same filter and order as
     // VisitSummaryService.addMedications, so the rows zip one-to-one.
     if (snapshot.currentMedications) {
-      const ids = await this.prisma.patientMedication.findMany({
+      const rows = await this.prisma.patientMedication.findMany({
         where: { patientProfileId: link.patientProfileId, status: "current", deletedAt: null },
-        select: { id: true },
+        select: {
+          id: true,
+          instructions: {
+            where: { supersededAt: null },
+            take: 1,
+            select: { doseQuantity: true, doseUnit: true, frequencyCode: true, pattern: true, foodInstruction: true, durationDays: true },
+          },
+        },
         orderBy: { createdAt: "asc" },
       });
-      if (ids.length === snapshot.currentMedications.length) {
-        snapshot.currentMedications = snapshot.currentMedications.map((m, i) => ({ ...m, patientMedicationId: ids[i]!.id }));
+      if (rows.length === snapshot.currentMedications.length) {
+        snapshot.currentMedications = snapshot.currentMedications.map((m, i) => {
+          const row = rows[i]!;
+          const instruction = row.instructions[0];
+          return {
+            ...m,
+            patientMedicationId: row.id,
+            // The shared `instructionSummary` string is the raw shorthand
+            // ("1 tablet · BD · after") because the public share has no label
+            // table of its own. The portal does: it writes "Twice a day ·
+            // After food" for a line it is proposing, and a CONTINUE line
+            // beside it must read the same way or the two look like different
+            // instructions. So the codes travel too, and provider-web renders
+            // them with the same labels it uses everywhere else.
+            instruction: instruction
+              ? {
+                  doseQuantity: Number(instruction.doseQuantity),
+                  doseUnit: instruction.doseUnit,
+                  frequencyCode: instruction.frequencyCode,
+                  pattern: instruction.pattern,
+                  foodInstruction: instruction.foodInstruction,
+                  durationDays: instruction.durationDays,
+                }
+              : null,
+          };
+        });
       }
     }
     await writeAuditDeferred(this.prisma, {

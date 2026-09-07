@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { writeAudit, writeAuditDeferred } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import type { Prisma, ProposalKind, ProviderProposal } from "@medpass/database";
+import { dispensedQuantityForSupply, unitMismatchMessage } from "@medpass/medication-terminology";
 import type { AcceptProposalInput, ProposalsQuery, RejectProposalInput } from "@medpass/validation";
 import { ApiProblem } from "../../common/errors";
 import { PrismaService } from "../../common/prisma.service";
@@ -37,6 +38,15 @@ function proposalDto(p: ProposalRow) {
     payload: p.payload,
     proposedAt: p.createdAt.toISOString(),
     decidedAt: p.decidedAt?.toISOString() ?? null,
+    /**
+     * What the patient decided, line by line (H-43) — the indexes into
+     * `payload.lines` they said no to while accepting the rest, and their
+     * own words when they declined the whole thing. Without these the
+     * organization that sent the proposal reads a partial acceptance as a
+     * plain "Accepted" and has no idea which line the patient refused.
+     */
+    declinedLines: p.declinedLines,
+    decisionReason: p.decisionReason,
     resultingEntityType: p.resultingEntityType,
     resultingEntityId: p.resultingEntityId,
     updatedAt: p.updatedAt.toISOString(),
@@ -83,13 +93,28 @@ export class ProposalsService {
       if (!linkSections(link).includes("medications")) {
         throw new ApiProblem(ERROR_CODES.FORBIDDEN, "This link does not share the patient's medicines", 403);
       }
-      const known = await this.prisma.patientMedication.count({
+      const known = await this.prisma.patientMedication.findMany({
         where: { id: { in: medicationIds }, patientProfileId: link.patientProfileId, deletedAt: null },
+        select: { id: true, instructions: { where: { supersededAt: null }, take: 1, select: { doseUnit: true } } },
       });
-      if (known !== medicationIds.length) {
+      if (known.length !== medicationIds.length) {
         throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, "A line refers to a medicine that is not on this patient's list", 400, [
           { path: "patientMedicationId", message: "Unknown medicine" },
         ]);
+      }
+      // A dispense in a unit the patient does not count in would silently
+      // corrupt their supply and move the run-out date they read on their
+      // own screen. Refuse it here, while the pharmacist is still on the
+      // screen and can fix the number — not at the patient's accept.
+      if (kind === "dispense") {
+        const dispense = payload as { quantity: number; unit: string; patientMedicationId?: string | null };
+        const trackedUnit = known.find((m) => m.id === dispense.patientMedicationId)?.instructions[0]?.doseUnit ?? null;
+        const conversion = dispensedQuantityForSupply({ quantity: dispense.quantity, dispenseUnit: dispense.unit, trackedUnit });
+        if (!conversion.ok) {
+          throw new ApiProblem(ERROR_CODES.VALIDATION_FAILED, unitMismatchMessage(conversion.dispenseUnit, conversion.trackedUnit), 400, [
+            { path: "unit", message: `The patient tracks this medicine in ${conversion.trackedUnit}` },
+          ]);
+        }
       }
     }
 
@@ -203,6 +228,7 @@ export class ProposalsService {
           status: "accepted",
           decidedByUserId: actor.userId,
           decidedAt: new Date(),
+          declinedLines: [...declined].sort((a, b) => a - b),
           resultingEntityType: result.entityType,
           resultingEntityId: result.entityId,
         },
@@ -228,7 +254,11 @@ export class ProposalsService {
     const updated = await this.prisma.$transaction(async (tx) => {
       const row = await tx.providerProposal.update({
         where: { id: proposal.id },
-        data: { status: "rejected", decidedByUserId: actor.userId, decidedAt: new Date() },
+        // The reason is the patient's free text. It is stored and shown back
+        // to the organization that sent the proposal — exactly what the app
+        // told the patient would happen — and to nobody else; the audit row
+        // below still records only that a reason existed.
+        data: { status: "rejected", decidedByUserId: actor.userId, decidedAt: new Date(), decisionReason: input.reason ?? null },
         include: PROPOSAL_INCLUDE,
       });
       await writeAudit(tx, {

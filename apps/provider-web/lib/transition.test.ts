@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  currentInstructionLabel,
   instructionSummary,
+  parseInstruction,
   splitForReview,
   stopLinesCarryNoInstruction,
   toPayloadLines,
@@ -81,7 +83,7 @@ describe("toPayloadLines", () => {
   it("emits the API body: STOP with id + reason only, START with name + instruction", () => {
     const lines: EditorLine[] = [metformin, { ...atorvastatin, decision: "STOP", reasonText: " LDL at target " }, amlodipine];
     expect(toPayloadLines(lines)).toEqual([
-      { decision: "STOP", patientMedicationId: atorvastatin.medicine.patientMedicationId, reasonText: "LDL at target" },
+      { decision: "STOP", patientMedicationId: atorvastatin.medicine.patientMedicationId, proposedName: "Atorvastatin 10", reasonText: "LDL at target" },
       {
         decision: "START",
         proposedName: "Amlodipine 5",
@@ -92,7 +94,7 @@ describe("toPayloadLines", () => {
 
   it("strips an instruction from a STOP line even if the state holds one (H-34)", () => {
     const payload = toPayloadLines([{ ...atorvastatin, decision: "STOP", instruction: od }]);
-    expect(payload).toEqual([{ decision: "STOP", patientMedicationId: atorvastatin.medicine.patientMedicationId }]);
+    expect(payload).toEqual([{ decision: "STOP", patientMedicationId: atorvastatin.medicine.patientMedicationId, proposedName: "Atorvastatin 10" }]);
     expect(stopLinesCarryNoInstruction(payload)).toBe(true);
     expect(stopLinesCarryNoInstruction([{ decision: "STOP", proposedInstruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD", foodInstruction: "any" } }])).toBe(false);
   });
@@ -103,10 +105,11 @@ describe("toPayloadLines", () => {
       { ...atorvastatin, decision: "CHANGE", instruction: { doseQuantity: 2, doseUnit: "tablet", frequencyCode: "PATTERN", pattern: "1-0-1", durationDays: 30 } },
     ]);
     expect(payload).toEqual([
-      { decision: "CONTINUE", patientMedicationId: metformin.medicine.patientMedicationId },
+      { decision: "CONTINUE", patientMedicationId: metformin.medicine.patientMedicationId, proposedName: "Metformin 500" },
       {
         decision: "CHANGE",
         patientMedicationId: atorvastatin.medicine.patientMedicationId,
+        proposedName: "Atorvastatin 10",
         proposedInstruction: { doseQuantity: 2, doseUnit: "tablet", frequencyCode: "PATTERN", pattern: "1-0-1", foodInstruction: "any", durationDays: 30 },
       },
     ]);
@@ -125,5 +128,50 @@ describe("review helpers", () => {
     expect(instructionSummary(od)).toBe("1 tablet · Once a day (morning) · After food");
     expect(instructionSummary({ doseQuantity: 1, doseUnit: "tablet", frequencyCode: "PATTERN", pattern: "1-0-1", durationDays: 5 })).toBe("1 tablet · 1-0-1 · Any time · 5 days");
     expect(instructionSummary(undefined)).toBe("");
+  });
+});
+
+describe("every line names its medicine", () => {
+  it("carries the medicine name on CONTINUE / CHANGE / STOP, not only on START", () => {
+    const payload = toPayloadLines([
+      { ...metformin, decision: "CONTINUE" },
+      { ...atorvastatin, decision: "STOP", reasonText: "LDL at target" },
+      amlodipine,
+    ]);
+    // Without this the provider's own copy of the proposal, and the patient's
+    // inbox, can only say "medicine on the patient's list".
+    expect(payload.map((l) => l.proposedName)).toEqual(["Metformin 500", "Atorvastatin 10", "Amlodipine 5"]);
+  });
+});
+
+describe("parseInstruction", () => {
+  it("reads the codes the provider snapshot carries", () => {
+    expect(parseInstruction({ doseQuantity: "1", doseUnit: "tablet", frequencyCode: "BD", foodInstruction: "after", pattern: null, durationDays: null })).toEqual({
+      doseQuantity: 1,
+      doseUnit: "tablet",
+      frequencyCode: "BD",
+      foodInstruction: "after",
+    });
+  });
+
+  it("refuses anything it cannot label rather than inventing one", () => {
+    expect(parseInstruction(null)).toBeUndefined();
+    expect(parseInstruction({ doseQuantity: 1, doseUnit: "flagon", frequencyCode: "BD" })).toBeUndefined();
+    expect(parseInstruction({ doseQuantity: 1, doseUnit: "tablet", frequencyCode: "TWICE_ISH" })).toBeUndefined();
+    expect(parseInstruction({ doseQuantity: 0, doseUnit: "tablet", frequencyCode: "BD" })).toBeUndefined();
+    // an unknown food instruction is not fatal — it falls back to "any"
+    expect(parseInstruction({ doseQuantity: 1, doseUnit: "tablet", frequencyCode: "BD", foodInstruction: "midnight" })?.foodInstruction).toBe("any");
+  });
+});
+
+describe("currentInstructionLabel", () => {
+  it("labels a medicine already on the list the same way a proposed line is labelled", () => {
+    const medicine = { instruction: parseInstruction({ doseQuantity: 1, doseUnit: "tablet", frequencyCode: "BD", foodInstruction: "after" }), instructionSummary: "1 tablet · BD · after" };
+    expect(currentInstructionLabel(medicine)).toBe("1 tablet · Twice a day · After food");
+  });
+
+  it("falls back to the raw shorthand when the codes could not be read", () => {
+    expect(currentInstructionLabel({ instruction: undefined, instructionSummary: "1 tablet · BD · after" })).toBe("1 tablet · BD · after");
+    expect(currentInstructionLabel({ instruction: undefined, instructionSummary: "" })).toBe("");
   });
 });

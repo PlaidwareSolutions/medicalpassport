@@ -26,7 +26,16 @@ export interface VisitSummaryDto {
     prescriberName: string | null;
     startDate: string | null;
   }>;
-  recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
+  /**
+   * `change` stays the raw kind — every renderer has its own label table for
+   * it (the app translates, the PDF/text exports print English), and a
+   * pre-rendered sentence here would be English on a Telugu screen.
+   * `statusTo` carries the one detail a label cannot say on its own: which
+   * status a `status_changed` entry moved to. Nothing else from `detail`
+   * comes along — this payload is read by whoever holds an unauthenticated
+   * link.
+   */
+  recentChanges?: Array<{ medicationName: string; change: string; statusTo: string | null; occurredAt: string }>;
   unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
   glucoseReadings?: {
     readingCount: number;
@@ -68,6 +77,18 @@ export interface VisitSummaryDto {
     documentCount: number;
     medicationCount: number;
   }>;
+  /**
+   * V1 `MedicalReport` rows and V2 `DiagnosticReport` rows in one list,
+   * newest first. Metadata only, same reasoning as prescriptions — no
+   * document handles on an unauthenticated path.
+   *
+   * `kind` is whichever vocabulary the row came from: `MedicalReportKind`
+   * (blood_test, urine_test, discharge_summary, …) or `DiagnosticReportKind`
+   * (laboratory, echo, microbiology, genetics, …). The two overlap on
+   * imaging/ecg/pathology/other and are otherwise disjoint, so a renderer
+   * can key one label table off the value without needing to know which
+   * table the row came from.
+   */
   reports?: Array<{
     kind: string;
     label: string | null;
@@ -126,6 +147,12 @@ function contextLabel(context: string): string {
   return CONTEXT_LABELS[context] ?? context.replace(/_/g, " ");
 }
 
+/**
+ * Both report vocabularies in one table: V1 `MedicalReportKind` and V2
+ * `DiagnosticReportKind`. They overlap on imaging/ecg/pathology/other and
+ * are otherwise disjoint, so one lookup covers a merged list. Kept in step
+ * with apps/api's visit-summary-format.ts.
+ */
 const REPORT_KIND_LABELS: Record<string, string> = {
   blood_test: "Blood test",
   urine_test: "Urine test",
@@ -134,10 +161,35 @@ const REPORT_KIND_LABELS: Record<string, string> = {
   pathology: "Pathology / biopsy",
   discharge_summary: "Discharge summary",
   other: "Other test",
+  laboratory: "Lab test",
+  echo: "Echo (heart ultrasound)",
+  microbiology: "Culture / microbiology",
+  genetics: "Genetic test",
 };
 
 function reportKindLabel(kind: string): string {
   return REPORT_KIND_LABELS[kind] ?? kind.replace(/_/g, " ");
+}
+
+const MEDICATION_CHANGE_LABELS: Record<string, string> = {
+  created: "Added to the list",
+  updated: "Details updated",
+  status_changed: "Status changed",
+  dose_unit_confirmed: "Medicine type confirmed",
+  refilled: "Marked as refilled",
+  deleted: "Removed from the list",
+  reconciled_continue: "Kept on after a visit",
+  reconciled_stop: "Stopped after a visit",
+};
+
+/**
+ * A medication-history entry as a sentence. The raw kind is an internal
+ * code — a doctor reading "reconciled_continue" off a printed summary is a
+ * bug, not shorthand.
+ */
+function medicationChangeLabel(change: string, statusTo: string | null): string {
+  if (change === "status_changed" && statusTo) return `Marked as ${statusTo.replace(/_/g, " ")}`;
+  return MEDICATION_CHANGE_LABELS[change] ?? change.replace(/_/g, " ");
 }
 
 /** Date-only values (`YYYY-MM-DD`) must not go through a timezone-shifting Date parse. */
@@ -218,7 +270,7 @@ export function renderVisitSummaryHtml(summary: VisitSummaryDto): string {
         "Recent changes (last 90 days)",
         summary.recentChanges.length
           ? `<ul>${summary.recentChanges
-              .map((c) => `<li>${esc(c.medicationName)} — ${esc(c.change.replace(/_/g, " "))} <span class="muted">(${formatDate(c.occurredAt)})</span></li>`)
+              .map((c) => `<li>${esc(c.medicationName)} — ${esc(medicationChangeLabel(c.change, c.statusTo))} <span class="muted">(${formatDate(c.occurredAt)})</span></li>`)
               .join("")}</ul>`
           : "<p class=\"muted\">No changes in this period.</p>",
       ),

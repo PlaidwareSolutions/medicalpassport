@@ -7,7 +7,17 @@ import { EmptyState } from "../../components/EmptyState";
 import { GuideGlyph } from "../../components/GuideGlyph";
 import { PageHeader } from "../../components/PageHeader";
 import { ScopeGate } from "../../components/ScopeGate";
-import { FILTER_KINDS, isDocumentKind, kindGlyph, kindLabelKey, useDocuments, type DocumentKind, type DocumentSummaryDto } from "../../lib/documents";
+import {
+  FILTER_KINDS,
+  documentTitle,
+  isAbdmImported,
+  isDocumentKind,
+  kindGlyph,
+  kindLabelKey,
+  useDocuments,
+  type DocumentKind,
+  type DocumentSummaryDto,
+} from "../../lib/documents";
 import { useI18n } from "../../lib/i18n";
 import { useProfileAccess } from "../../lib/scopes";
 import { formatCalendarDate, formatPatientDate, useActiveTimezone } from "../../lib/patient-time";
@@ -27,7 +37,7 @@ function statusOf(d: DocumentSummaryDto): { key: "documents.status.uploading" | 
  * behind a plain "Show more" button.
  */
 export default function DocumentsPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const timezone = useActiveTimezone();
 
   const [kind, setKind] = useState<DocumentKind | undefined>();
@@ -104,10 +114,13 @@ export default function DocumentsPage() {
                     <GuideGlyph name={kindGlyph(d.kind)} size="lg" />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <strong style={{ overflowWrap: "anywhere" }}>{d.title ?? t(kindLabelKey(d.kind))}</strong>
+                    <strong style={{ overflowWrap: "anywhere" }}>{documentTitle(d, t)}</strong>
                     <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                      {d.title ? `${t(kindLabelKey(d.kind))} · ` : ""}
-                      {t("documents.pages_count", { n: d.pageCount })} · {d.documentDate ? formatCalendarDate(d.documentDate) : formatPatientDate(d.createdAt, timezone)}
+                      {d.title && !isAbdmImported(d) ? `${t(kindLabelKey(d.kind))} · ` : ""}
+                      {/* An ABDM bundle has no pages; "0 pages" reads as a
+                          failed upload rather than as data that arrived. */}
+                      {isAbdmImported(d) ? "" : `${tn(d.pageCount, "documents.pages_count_one", "documents.pages_count")} · `}
+                      {d.documentDate ? formatCalendarDate(d.documentDate) : formatPatientDate(d.createdAt, timezone)}
                     </div>
                   </div>
                 </div>

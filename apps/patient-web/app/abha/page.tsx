@@ -22,7 +22,7 @@ import { formatPatientDate, useActiveTimezone } from "../../lib/patient-time";
  * from. Only the identity link ends.
  */
 export default function AbhaPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const timezone = useActiveTimezone();
   const { status, error, fromCache, reload } = useAbhaStatus();
 
@@ -171,7 +171,7 @@ export default function AbhaPage() {
             <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
               {t("abha.linked_on", { date: formatPatientDate(status.linkedAt, timezone) })}
             </span>
-            <span>{t("abha.care_context_count", { count: status.careContextCount })}</span>
+            <span>{tn(status.careContextCount, "abha.care_context_count_one", "abha.care_context_count")}</span>
           </Card>
 
           <SectionTitle>{t("abha.more_title")}</SectionTitle>

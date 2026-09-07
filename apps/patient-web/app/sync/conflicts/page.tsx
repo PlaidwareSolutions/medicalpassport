@@ -22,7 +22,7 @@ import { formatPatientDateTime, useActiveTimezone } from "../../../lib/patient-t
  * page-by-page progress for a document being sent right now.
  */
 export default function SyncConflictsPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const timezone = useActiveTimezone();
   const { items, reload } = useConflicts();
   const { items: pending } = usePendingSync();
@@ -52,7 +52,7 @@ export default function SyncConflictsPage() {
       if (progress?.status === "uploading") {
         return t("sync.pending_document_progress", { done: Math.min(total, progress.completedPages.length + 1), total });
       }
-      return t("sync.pending_document", { n: total });
+      return tn(total, "sync.pending_document_one", "sync.pending_document");
     }
     if (mutation.entity === "dose_event") return t("sync.pending_dose");
     return t("sync.pending_medicine");

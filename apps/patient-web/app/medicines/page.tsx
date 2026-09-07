@@ -13,7 +13,7 @@ import { useProfileAccess } from "../../lib/scopes";
 
 /** Screen 9/10: current passport + previous medicines (docs/07). */
 export default function MedicinesPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const [tab, setTab] = useState<"current" | "previous">("current");
   // One request for both tabs: the server's ?status=current filter is a plain
   // equality over the same ordering, so "current" is derived client-side and
@@ -45,7 +45,7 @@ export default function MedicinesPage() {
         <ScopeGate action="edit_medications" quiet>
           <Link href="/medicines/confirm-type" style={{ textDecoration: "none" }}>
             <Card tone="info">
-              <strong>{t("confirmtype.banner_title", { count: unconfirmed.length })}</strong>
+              <strong>{tn(unconfirmed.length, "confirmtype.banner_title_one", "confirmtype.banner_title")}</strong>
               <span style={{ fontSize: "var(--font-small)" }}>{t("confirmtype.banner_body")}</span>
             </Card>
           </Link>

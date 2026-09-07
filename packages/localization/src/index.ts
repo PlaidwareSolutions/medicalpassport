@@ -29,6 +29,24 @@ export function t(locale: Locale, key: MessageKey, params?: Record<string, strin
   return template.replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? `{${name}}`));
 }
 
+/**
+ * Picks the singular or plural message key for a count.
+ *
+ * Machine pluralisation — "1 prescription(s)", "1 pages", "0 medicine(s)" —
+ * is a developer's shorthand leaking onto a patient's screen, so every
+ * counted string in these dictionaries has two keys: `<key>_one` for
+ * exactly one, `<key>` for everything else (zero included).
+ *
+ * All four supported locales (en, hi, te, ur) distinguish only one from
+ * many, so `count === 1` is the whole rule. A locale with dual or paucal
+ * forms would need `Intl.PluralRules` and a key per category — the two-key
+ * shape here is deliberately the simplest thing that is correct for the
+ * languages actually shipped, not a general plural engine.
+ */
+export function pluralKey<K extends MessageKey>(count: number, one: K, other: K): K {
+  return count === 1 ? one : other;
+}
+
 export const LOCALE_NAMES: Record<Locale, string> = {
   en: "English",
   hi: "हिन्दी",

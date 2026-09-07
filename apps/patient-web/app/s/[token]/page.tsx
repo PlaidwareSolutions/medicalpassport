@@ -72,7 +72,7 @@ export default function PublicSharePage() {
       {/* Concern severity is shown without a color tone here — the public
           view is read by a clinician, who reads the finding itself rather
           than needing the patient-facing urgency cue. */}
-      <VisitSummarySections data={data} concernTones={false} />
+      <VisitSummarySections data={data} concernTones={false} shareToken={params.token} />
     </main>
   );
 }

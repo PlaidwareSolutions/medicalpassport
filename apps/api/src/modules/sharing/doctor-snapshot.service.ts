@@ -37,6 +37,22 @@ export interface DoctorSnapshotDto {
   }>;
   measurements?: NonNullable<VisitSummaryDto["measurements"]>;
   documents?: NonNullable<VisitSummaryDto["documents"]>;
+  /**
+   * The home-diary and visit sections a share (or a provider link) can
+   * grant. They are carried through from the visit summary unchanged —
+   * numbers as the patient recorded them, arithmetic aggregates only, never
+   * a high/low judgement (hazard H-25). They live here because the section
+   * list a link advertises has to be the section list this payload can
+   * actually answer: a snapshot that says "Shared: Visits, Blood pressure,
+   * Glucose" and then carries none of them is a lie the reader cannot see.
+   */
+  glucoseReadings?: NonNullable<VisitSummaryDto["glucoseReadings"]>;
+  bloodPressureReadings?: NonNullable<VisitSummaryDto["bloodPressureReadings"]>;
+  weightReadings?: NonNullable<VisitSummaryDto["weightReadings"]>;
+  checkups?: NonNullable<VisitSummaryDto["checkups"]>;
+  prescriptions?: NonNullable<VisitSummaryDto["prescriptions"]>;
+  unresolvedConcerns?: NonNullable<VisitSummaryDto["unresolvedConcerns"]>;
+  encounters?: NonNullable<VisitSummaryDto["encounters"]>;
 }
 
 const RECENT_DAYS = 90;
@@ -80,11 +96,12 @@ export class DoctorSnapshotService {
   ) {}
 
   /**
-   * `sections` uses the share vocabulary: medications → currentMedications,
-   * allergies, conditions → majorConditions, recentChanges, reports →
-   * latestResults, measurements, documents. Everything else on the share
-   * (glucose diary, check-ups, prescriptions list…) belongs to the fuller
-   * visit summary and is not repeated here.
+   * `sections` uses the share vocabulary. Three sections are rebuilt here in
+   * a doctor-facing shape the visit summary does not have — conditions →
+   * majorConditions, recentChanges off the timeline, reports →
+   * latestResults (newest live value per analyte). Every other granted
+   * section is carried through from the visit summary as it stands, so a
+   * caller can advertise exactly the sections it can also show.
    */
   async build(profileId: string, sections: VisitSummarySections): Promise<DoctorSnapshotDto> {
     const base = await this.visitSummary.build(profileId, {
@@ -93,12 +110,26 @@ export class DoctorSnapshotService {
       allergies: !!sections.allergies,
       measurements: !!sections.measurements,
       documents: !!sections.documents,
+      glucoseReadings: !!sections.glucoseReadings,
+      bloodPressureReadings: !!sections.bloodPressureReadings,
+      weightReadings: !!sections.weightReadings,
+      checkups: !!sections.checkups,
+      prescriptions: !!sections.prescriptions,
+      concerns: !!sections.concerns,
+      encounters: !!sections.encounters,
     });
     const snapshot: DoctorSnapshotDto = { profile: base.profile, generatedAt: base.generatedAt };
     if (base.currentMedications) snapshot.currentMedications = base.currentMedications;
     if (base.allergies) snapshot.allergies = base.allergies;
     if (base.measurements) snapshot.measurements = base.measurements;
     if (base.documents) snapshot.documents = base.documents;
+    if (base.glucoseReadings) snapshot.glucoseReadings = base.glucoseReadings;
+    if (base.bloodPressureReadings) snapshot.bloodPressureReadings = base.bloodPressureReadings;
+    if (base.weightReadings) snapshot.weightReadings = base.weightReadings;
+    if (base.checkups) snapshot.checkups = base.checkups;
+    if (base.prescriptions) snapshot.prescriptions = base.prescriptions;
+    if (base.unresolvedConcerns) snapshot.unresolvedConcerns = base.unresolvedConcerns;
+    if (base.encounters) snapshot.encounters = base.encounters;
 
     await Promise.all([
       this.addConditions(profileId, sections, snapshot),

@@ -90,6 +90,30 @@ describe("Sharing V2 e2e", () => {
       .send({ enteredName: "Snapshot Test Metformin", source: "manual", instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "BD" } })
       .expect(201);
 
+    // A V2 prescription: its medicines are `items` (line as written), not the
+    // V1 `medications` link — the summary used to count only the latter and
+    // report "0 medicine(s)".
+    await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/prescriptions"))
+      .send({
+        practitionerName: "Dr Sharma",
+        prescribedAt: "2026-09-01",
+        items: [
+          { enteredName: "Metformin 500", doseQuantity: 1, doseUnit: "tablet", frequencyCode: "BD" },
+          { enteredName: "Amlodipine 5", doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" },
+        ],
+      })
+      .expect(201);
+
+    // A second medicine, stopped straight away, so recentChanges carries a
+    // change whose sentence needs the status it moved to — and the current
+    // list stays exactly one medicine.
+    const stopped = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/medications"))
+      .send({ enteredName: "Snapshot Test Amlodipine", source: "manual", instruction: { doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" } })
+      .expect(201);
+    await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/medications/${stopped.body.id}/status`))
+      .send({ rowVersion: stopped.body.rowVersion, status: "stopped" })
+      .expect(201);
+
     const report = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/diagnostic-reports"))
       .send({ kind: "laboratory", title: "Quarterly panel", testedAt: "2026-09-01", facilityNameText: "Metro Labs" })
       .expect(201);
@@ -173,6 +197,37 @@ describe("Sharing V2 e2e", () => {
     expect(summary.body.encounters).toEqual([expect.objectContaining({ kind: "outpatient", reasonText: "Quarterly review" })]);
     expect(summary.body.conditions).toEqual([expect.objectContaining({ label: "Type 2 diabetes" })]);
     expect(summary.body.documents).toBeUndefined();
+
+    // A patient whose reports are all V2 used to see an empty reports
+    // section: the builder read only the V1 `medical_reports` table.
+    expect(summary.body.reports).toEqual([
+      expect.objectContaining({
+        kind: "laboratory",
+        label: "Quarterly panel",
+        facilityName: "Metro Labs",
+        testedAt: "2026-09-01",
+        documentCount: 0,
+        values: [expect.objectContaining({ label: expect.stringMatching(/HbA1c/i), enteredValue: "6.8", unit: "%", referenceText: "4.0 - 5.6" })],
+      }),
+    ]);
+
+    // A prescription's line items are its medicines; it used to read "0 medicine(s)".
+    expect(summary.body.prescriptions).toEqual([
+      expect.objectContaining({ practitionerName: "Dr Sharma", prescribedAt: "2026-09-01", medicationCount: 2, documentCount: 0 }),
+    ]);
+
+    // Recent changes carry the raw kind plus, for a status change, the status
+    // it moved to — enough for every renderer to write a sentence, and
+    // nothing else out of the change detail.
+    expect(summary.body.recentChanges).toEqual(
+      expect.arrayContaining([expect.objectContaining({ medicationName: "Snapshot Test Amlodipine", change: "status_changed", statusTo: "stopped" })]),
+    );
+    for (const change of summary.body.recentChanges) {
+      expect(Object.keys(change).sort()).toEqual(["change", "medicationName", "occurredAt", "statusTo"]);
+    }
+
+    // Still no internal identifiers anywhere on a share without documents —
+    // not on the merged reports, not on the prescriptions.
     expect(JSON.stringify(summary.body)).not.toMatch(UUID_RE);
 
     const snapshot = await request(app.getHttpServer()).get(`/v1/public/shares/${defaultToken}/snapshot`).expect(200);
@@ -300,6 +355,74 @@ describe("Sharing V2 e2e", () => {
     await request(app.getHttpServer()).get(`/v1/public/shares/${created.body.token}/documents/${documentId}/pages/1`).expect(404);
   });
 
+  it("merges V1 and V2 test reports in date order, and lists a V1 report mirrored into V2 only once", async () => {
+    // A V1 report. The V1 writer mirrors it into DiagnosticReport, so the
+    // merged list must not show it twice.
+    const legacy = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/reports"))
+      .send({ kind: "blood_test", label: "Older panel", facilityName: "City Lab", testedAt: "2026-08-20" })
+      .expect(201);
+    await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/reports/${legacy.body.id}/values`))
+      .send({ analyte: "hemoglobin", enteredValue: "13.2" })
+      .expect(201);
+    const mirrored = await prisma.diagnosticReport.count({ where: { legacyMedicalReportId: legacy.body.id } });
+    expect(mirrored).toBe(1);
+
+    const summary = await request(app.getHttpServer()).get(`/v1/public/shares/${defaultToken}`).expect(200);
+    expect(summary.body.reports.map((r: { label: string }) => r.label)).toEqual(["Quarterly panel", "Older panel"]);
+    expect(summary.body.reports[1]).toMatchObject({
+      kind: "blood_test",
+      facilityName: "City Lab",
+      values: [expect.objectContaining({ label: expect.stringMatching(/Haemoglobin|Hemoglobin/i), enteredValue: "13.2" })],
+    });
+    expect(JSON.stringify(summary.body)).not.toMatch(UUID_RE);
+  });
+
+  it("a share that ticked only medicines carries nothing else — reports, measurements, visits and documents all absent", async () => {
+    await stepUp(app.getHttpServer(), token);
+    const created = await auth(token, profileId)(request(app.getHttpServer()).post("/v1/profiles/current/shares"))
+      .send({
+        sections: {
+          medications: true,
+          allergies: false,
+          conditions: false,
+          recentChanges: false,
+          concerns: false,
+          reports: false,
+          measurements: false,
+          glucoseReadings: false,
+          bloodPressureReadings: false,
+          weightReadings: false,
+          checkups: false,
+          prescriptions: false,
+          encounters: false,
+          documents: false,
+        },
+        expiresIn: "1h",
+      })
+      .expect(201);
+
+    const summary = await request(app.getHttpServer()).get(`/v1/public/shares/${created.body.token}`).expect(200);
+    expect(summary.body.currentMedications).toHaveLength(1);
+    for (const absent of [
+      "allergies",
+      "conditions",
+      "recentChanges",
+      "unresolvedConcerns",
+      "reports",
+      "measurements",
+      "glucoseReadings",
+      "bloodPressureReadings",
+      "weightReadings",
+      "checkups",
+      "prescriptions",
+      "encounters",
+      "documents",
+    ]) {
+      expect({ section: absent, value: summary.body[absent] }).toEqual({ section: absent, value: undefined });
+    }
+    await request(app.getHttpServer()).get(`/v1/public/shares/${created.body.token}/documents/${documentId}/pages/1`).expect(404);
+  });
+
   it("revoking a documents share closes page access immediately", async () => {
     await auth(token, profileId)(request(app.getHttpServer()).post(`/v1/shares/${docsShareId}/revoke`)).expect(201);
     await request(app.getHttpServer()).get(`/v1/public/shares/${docsToken}/documents/${documentId}/pages/1`).expect(404);
@@ -314,6 +437,15 @@ describe("Sharing V2 e2e", () => {
     expect(res.body.text).toContain("Blood pressure: latest 128/82 mmHg");
     expect(res.body.text).toContain("Visits (last 90 days)");
     expect(res.body.text).not.toContain("Documents on record");
+    // The V2 diagnostic report reaches the text export with its kind as a
+    // label and its value as printed.
+    expect(res.body.text).toContain("Lab test — Quarterly panel");
+    expect(res.body.text).toContain("HbA1c: 6.8 % (ref 4.0 - 5.6)");
+    expect(res.body.text).toContain("Dr Sharma (1 Sept 2026) — 2 medicine(s), 0 file(s)");
+    // Never a raw action code on something a doctor reads.
+    expect(res.body.text).toContain("Snapshot Test Amlodipine — Marked as stopped");
+    expect(res.body.text).not.toContain("status_changed");
+    expect(res.body.text).not.toContain("reconciled_");
     const withDocs = await auth(token, profileId)(request(app.getHttpServer()).get("/v1/profiles/current/visit-summary/text?documents=true")).expect(200);
     expect(withDocs.body.text).toContain("Dr Sharma visit");
     expect(withDocs.body.text).not.toMatch(UUID_RE);

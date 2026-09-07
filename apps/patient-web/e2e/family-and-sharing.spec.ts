@@ -94,7 +94,14 @@ test.describe("family dashboard and scope-aware UI", () => {
   let patient: Actor;
   let caregiver: Actor;
   let profileId: string;
+  let sharedDocumentId: string;
   const patientName = "Scope Probe Patient";
+
+  /** A real 1x1 PNG — the upload path checks the bytes, not just the header. */
+  const PAGE_PNG = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
 
   test.beforeAll(async () => {
     test.setTimeout(180_000);
@@ -172,6 +179,67 @@ test.describe("family dashboard and scope-aware UI", () => {
       },
     });
     expect(created.ok(), `share ${created.status()} ${await created.text()}`).toBe(true);
+
+    // ── V2-shaped data, and a link that carries all of it ──────────────
+    // The QA finding this covers: a patient whose readings, reports, visits
+    // and documents are all V2 shared a link that showed none of them.
+    const profileHeaders = { "x-profile-id": profileId, "idempotency-key": randomUUID() };
+
+    const report = await patient.ctx.post("/v1/profiles/current/diagnostic-reports", {
+      headers: profileHeaders,
+      data: { kind: "laboratory", title: "Quarterly panel", testedAt: "2026-09-01", facilityNameText: "Metro Labs" },
+    });
+    expect(report.ok(), `diagnostic report ${report.status()} ${await report.text()}`).toBe(true);
+    const reportId = ((await report.json()) as { id: string }).id;
+    const result = await patient.ctx.post(`/v1/diagnostic-reports/${reportId}/results`, {
+      headers: { "x-profile-id": profileId, "idempotency-key": randomUUID() },
+      data: { analyteKey: "hba1c", enteredValueText: "6.8", referenceText: "4.0 - 5.6" },
+    });
+    expect(result.ok(), `result ${result.status()} ${await result.text()}`).toBe(true);
+
+    const observation = await patient.ctx.post("/v1/profiles/current/observations", {
+      headers: { "x-profile-id": profileId, "idempotency-key": randomUUID() },
+      data: { concept: "blood_pressure", valueNumeric: 128, valueNumeric2: 82, measuredAt: new Date().toISOString() },
+    });
+    expect(observation.ok(), `observation ${observation.status()} ${await observation.text()}`).toBe(true);
+
+    const encounter = await patient.ctx.post("/v1/profiles/current/encounters", {
+      headers: { "x-profile-id": profileId, "idempotency-key": randomUUID() },
+      data: { kind: "outpatient", startedAt: new Date().toISOString(), reasonText: "Quarterly review" },
+    });
+    expect(encounter.ok(), `encounter ${encounter.status()} ${await encounter.text()}`).toBe(true);
+
+    // Two lines on one prescription — the count that used to read "0 medicine(s)".
+    const prescription = await patient.ctx.post("/v1/profiles/current/prescriptions", {
+      headers: { "x-profile-id": profileId, "idempotency-key": randomUUID() },
+      data: {
+        practitionerName: "Dr Sharma",
+        prescribedAt: "2026-09-01",
+        items: [
+          { enteredName: "Metformin 500", doseQuantity: 1, doseUnit: "tablet", frequencyCode: "BD" },
+          { enteredName: "Amlodipine 5", doseQuantity: 1, doseUnit: "tablet", frequencyCode: "OD" },
+        ],
+      },
+    });
+    expect(prescription.ok(), `prescription ${prescription.status()} ${await prescription.text()}`).toBe(true);
+
+    const document = await patient.ctx.post("/v1/profiles/current/patient-documents", {
+      headers: { "x-profile-id": profileId, "idempotency-key": randomUUID() },
+      data: { sourceChannel: "camera", title: "Dr Sharma visit", pages: [{ contentType: "image/png", sizeBytes: PAGE_PNG.length }] },
+    });
+    expect(document.ok(), `document ${document.status()} ${await document.text()}`).toBe(true);
+    const documentBody = (await document.json()) as { id: string; pages: Array<{ uploadUrl: string }> };
+    sharedDocumentId = documentBody.id;
+    const uploaded = await patient.ctx.put(documentBody.pages[0]!.uploadUrl.replace(/^https?:\/\/[^/]+/, ""), {
+      headers: { "content-type": "image/png" },
+      data: PAGE_PNG,
+    });
+    expect(uploaded.ok(), `page upload ${uploaded.status()}`).toBe(true);
+    const completed = await patient.ctx.post(`/v1/patient-documents/${sharedDocumentId}/pages/1/complete`, {
+      headers: { "x-profile-id": profileId, "idempotency-key": randomUUID() },
+    });
+    expect(completed.ok(), `page complete ${completed.status()} ${await completed.text()}`).toBe(true);
+
   });
 
   test.afterAll(async () => {
@@ -291,6 +359,71 @@ test.describe("family dashboard and scope-aware UI", () => {
     await page.close();
   });
 
+  /**
+   * The recipient's own view, over a record whose readings, reports, visits
+   * and documents are all V2. This is the QA finding: the summary was still
+   * V1-shaped, so a patient like this shared a link that showed no readings
+   * at all, no documents and no visits.
+   *
+   * Opened without a session, exactly as a doctor opens it.
+   */
+  test("a full-passport link shows the V2 record: home readings, visits, documents with their pages, and reports with their values", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    if (API !== APP_API) {
+      await context.route(`${APP_API}/**`, (route) => route.continue({ url: route.request().url().replace(APP_API, API) }));
+    }
+    // Made here rather than in beforeAll so the share list stays exactly the
+    // one link the test above asserts on. The step-up taken during setup is
+    // still fresh (10 minutes), so this costs no extra OTP.
+    const fullPassport = await patient.ctx.post("/v1/profiles/current/shares", {
+      headers: { "x-profile-id": profileId, "idempotency-key": randomUUID() },
+      data: { sections: { full_passport: true }, audience: "clinic", expiresIn: "24h", kind: "link" },
+    });
+    expect(fullPassport.ok(), `full passport ${fullPassport.status()} ${await fullPassport.text()}`).toBe(true);
+    const fullPassportToken = ((await fullPassport.json()) as { token: string }).token;
+
+    const page = await context.newPage();
+    // Interception attaches on the first navigation (see pageFor) — warm a
+    // script-free URL so the share page's very first fetch is rewritten.
+    if (API !== APP_API) await page.goto("/manifest.webmanifest");
+    await page.goto(`/s/${fullPassportToken}`);
+    await expect(page.getByRole("heading", { name: patientName })).toBeVisible();
+
+    // Home measurements: the number as recorded, in its unit, with the
+    // arithmetic behind it — and never a high/low/normal judgement (H-25).
+    await expect(page.getByText("Home readings (last 30 days)")).toBeVisible();
+    await expect(page.getByText("Blood pressure", { exact: true })).toBeVisible();
+    await expect(page.getByText("128/82 mmHg").first()).toBeVisible();
+    const body = await page.locator("body").innerText();
+    // Visits, and the reason in the patient's own words.
+    await expect(page.getByText("Visits (last 90 days)")).toBeVisible();
+    await expect(page.getByText("Quarterly review")).toBeVisible();
+
+    // The V2 test report, its kind named rather than left as `laboratory`,
+    // and the value exactly as printed with the unit and range.
+    await expect(page.getByText("Quarterly panel")).toBeVisible();
+    await expect(page.getByText("Metro Labs")).toBeVisible();
+    await expect(page.getByText(/HbA1c.*6\.8 %/)).toBeVisible();
+    expect(body).not.toContain("laboratory");
+
+    // The prescription counts its own lines.
+    await expect(page.getByText("2 medicines")).toBeVisible();
+
+    // Documents, and the pages themselves through the public page route —
+    // the whole point of ticking documents.
+    await expect(page.getByText("Documents on record")).toBeVisible();
+    await expect(page.getByText("Dr Sharma visit")).toBeVisible();
+    const pageImage = page.locator(`img[src*="/public/shares/${fullPassportToken}/documents/${sharedDocumentId}/pages/1"]`);
+    await expect(pageImage).toBeVisible();
+    // It is a real image, not a broken one: the route redirected and served bytes.
+    await expect.poll(() => pageImage.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+
+    // Nothing anywhere reads as an internal code.
+    expect(body).not.toMatch(/reconciled_|status_changed|dose_unit_confirmed|pending_upload/);
+    await page.close();
+    await context.close();
+  });
+
   test("the preview names every section, including the ones that are not shared", async ({ browser }) => {
     const page = await pageFor(browser, patient, profileId);
     await page.goto("/share/new");
@@ -306,6 +439,11 @@ test.describe("family dashboard and scope-aware UI", () => {
     await expect(preview.getByTestId("preview-section-glucoseReadings")).toHaveAttribute("data-shared", "no");
     await expect(preview.getByTestId("preview-section-glucoseReadings")).toContainText("not shared");
     await expect(preview.getByTestId("preview-section-documents")).toHaveAttribute("data-shared", "no");
+    // Counted from the same builder the recipient sees: the V2 reports,
+    // readings and visits are no longer reported as "(0)".
+    await expect(preview.getByTestId("preview-section-reports")).toContainText("(1)");
+    await expect(preview.getByTestId("preview-section-measurements")).toContainText("(1)");
+    await expect(preview.getByTestId("preview-section-encounters")).toContainText("(1)");
 
     // Choosing documents warns, before the link exists, what it really means.
     await page.getByTestId("share-section-documents").check();

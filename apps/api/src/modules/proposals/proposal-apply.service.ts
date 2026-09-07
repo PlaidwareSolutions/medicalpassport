@@ -3,6 +3,7 @@ import { writeAudit } from "@medpass/audit";
 import { ERROR_CODES } from "@medpass/domain";
 import type { Prisma, PrismaClient, ProviderProposal } from "@medpass/database";
 import { emitHealthEvent, localIso } from "@medpass/health-events";
+import { dispensedQuantityForSupply } from "@medpass/medication-terminology";
 import { initialVerificationFor, type RecordSource, type VerificationState } from "@medpass/provenance";
 import {
   proposeDiagnosticReportSchema,
@@ -363,6 +364,24 @@ export class ProposalApplyService {
     const payload = parseWith(proposeDispenseSchema, proposal.payload);
     const actor = this.actor(ctx);
     const medication = payload.patientMedicationId ? await this.requireMedication(profileId, payload.patientMedicationId) : null;
+    // `ProposalsService.create` already refused a unit the patient does not
+    // count in, but a medicine's instruction can be edited between the
+    // proposal and the accept. Re-check here and, on a mismatch, record the
+    // dispense as the fact it is while leaving the supply counter alone —
+    // never mix "30 strip" into a counter denominated in tablets (H-…,
+    // docs_v2/10: the refill projection is patient-facing).
+    const supply = medication
+      ? dispensedQuantityForSupply({
+          quantity: payload.quantity,
+          dispenseUnit: payload.unit,
+          trackedUnit: (
+            await this.prisma.medicationInstruction.findFirst({
+              where: { patientMedicationId: medication.id, supersededAt: null },
+              select: { doseUnit: true },
+            })
+          )?.doseUnit,
+        })
+      : null;
     const dispense = await this.prisma.$transaction(async (tx) => {
       const row = await tx.medicationDispense.create({
         data: {
@@ -383,11 +402,11 @@ export class ProposalApplyService {
           sourceOrganizationId: ctx.organization.id,
         },
       });
-      if (medication) {
+      if (medication && supply?.ok) {
         // A dispense is a refill: the supply counter grows by what was
         // handed over, and the refill plan (docs_v2/06 P12 "refill
         // prediction from dispenses") is created or re-projected from it.
-        const quantityOnHand = Number(medication.quantityOnHand ?? 0) + payload.quantity;
+        const quantityOnHand = Number(medication.quantityOnHand ?? 0) + supply.quantity;
         await tx.patientMedication.update({
           where: { id: medication.id },
           data: { quantityOnHand, rowVersion: { increment: 1 }, sourceOrganizationId: medication.sourceOrganizationId ?? ctx.organization.id },
@@ -433,7 +452,13 @@ export class ProposalApplyService {
     return {
       entityType: "medication_dispense",
       entityId: dispense.id,
-      summary: { medicationId: medication?.id ?? null, quantity: payload.quantity, unit: payload.unit },
+      summary: {
+        medicationId: medication?.id ?? null,
+        quantity: payload.quantity,
+        unit: payload.unit,
+        /** False when the unit no longer matches what the patient counts in — the dispense is kept, the supply is not touched. */
+        supplyUpdated: Boolean(medication && supply?.ok),
+      },
     };
   }
 
@@ -443,9 +468,17 @@ export class ProposalApplyService {
     const payload = parseWith(proposeDiagnosticReportSchema, proposal.payload);
     const actor = this.actor(ctx);
     const { results, ...report } = payload;
+    // A laboratory proposal carries "Reported on" and "Sample collected on";
+    // `testedAt` is the V1 display date and is the one the patient's list
+    // and every date filter read, so leaving it unset showed "Date not
+    // recorded" on a report that plainly had dates on it. The collection
+    // date is preferred: it is when the value in the row was true of the
+    // patient, which is what a clinician reads the date for. The report
+    // date is the fallback — a report is never issued before its sample.
+    const testedAt = report.testedAt ?? report.specimenCollectedAt ?? report.reportedAt;
     const created = await this.diagnostics.create(
       profileId,
-      { ...report, organizationId: ctx.organization.id, facilityNameText: report.facilityNameText ?? ctx.organization.displayName },
+      { ...report, testedAt, organizationId: ctx.organization.id, facilityNameText: report.facilityNameText ?? ctx.organization.displayName },
       actor,
     );
     for (const result of results) await this.diagnostics.addResult(profileId, created.id, result, actor);

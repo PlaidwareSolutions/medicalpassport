@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Banner, Button, Card, PillSpinner } from "@medpass/ui-web";
 import { ProviderShell } from "../components/ProviderShell";
 import { usePatients } from "../lib/hooks";
+import { groupPatientLinks, sectionLabels } from "../lib/patient-links";
 import { allowedProposalKinds, ORGANIZATION_KIND_LABELS, PROPOSAL_KIND_META } from "../lib/proposal-kinds";
 import { useProviderSession } from "../lib/session";
 import { formatDate, patientLabel } from "../lib/format";
@@ -47,13 +48,21 @@ function PatientsHome() {
         </Card>
       ) : null}
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--space-sm)" }} data-testid="patients-list">
-        {patients.data?.map((link) => (
+        {groupPatientLinks(patients.data ?? [], (l) => patientLabel(l.patient)).map(({ link, position, total }) => (
           <li key={link.linkId}>
             <Link href={`/patients/${encodeURIComponent(link.linkId)}`} style={{ textDecoration: "none", color: "inherit" }}>
               <Card>
                 <strong>{patientLabel(link.patient)}</strong>
+                {/* Two codes from the same patient are two separate grants,
+                    revoked separately. Say which is which — the name alone
+                    showed them as one patient listed twice. */}
+                {total > 1 ? (
+                  <span style={{ fontSize: "var(--font-small)" }} data-testid="duplicate-link-note">
+                    Code {position} of {total} · added {formatDate(link.createdAt)}
+                  </span>
+                ) : null}
                 <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                  Shares {link.sections.length} section{link.sections.length === 1 ? "" : "s"} · access until {formatDate(link.expiresAt)}
+                  Shares {sectionLabels(link.sections) || "nothing"} · access until {formatDate(link.expiresAt)}
                 </span>
               </Card>
             </Link>

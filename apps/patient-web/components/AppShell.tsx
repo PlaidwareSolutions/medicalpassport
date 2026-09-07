@@ -28,7 +28,7 @@ const BANNER_TONE = {
  * navigation (docs/06).
  */
 export function AppShell({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const { status, activeProfileId, profiles } = useSession();
@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div style={{ padding: "var(--space-sm) var(--space-md) 0" }}>
           <Banner tone="info">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-sm)" }}>
-              <span>{t("caregiver.pending_invitations_banner", { count: pendingInvitations })}</span>
+              <span>{tn(pendingInvitations, "caregiver.pending_invitations_banner_one", "caregiver.pending_invitations_banner")}</span>
               <Link href="/caregivers/invitations" style={{ color: "inherit", textDecoration: "underline" }}>
                 {t("caregiver.pending_invitations_link")}
               </Link>
@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div style={{ padding: "var(--space-sm) var(--space-md) 0" }}>
           <Banner tone="info">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-sm)" }}>
-              <span>{t("caregiver.pending_claim_invitations_banner", { count: pendingClaimInvitations })}</span>
+              <span>{tn(pendingClaimInvitations, "caregiver.pending_claim_invitations_banner_one", "caregiver.pending_claim_invitations_banner")}</span>
               <Link href="/profile/claim-invitations" style={{ color: "inherit", textDecoration: "underline" }}>
                 {t("caregiver.pending_invitations_link")}
               </Link>
@@ -128,12 +128,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 ? t("sync.syncing")
                 : sync.status === "sync_failed"
                   ? t("sync.failed")
-                  : t("sync.pending", { count: sync.pendingCount })}
+                  : tn(sync.pendingCount, "sync.pending_one", "sync.pending")}
           </Banner>
           {/* Pending count is a fact independent of connectivity — show it
               even while the primary line above is "offline" (docs/15). */}
           {sync.pendingCount > 0 && sync.status !== "changes_pending" ? (
-            <Banner tone="warning">{t("sync.pending", { count: sync.pendingCount })}</Banner>
+            <Banner tone="warning">{tn(sync.pendingCount, "sync.pending_one", "sync.pending")}</Banner>
           ) : null}
           {sync.status === "sync_failed" ? (
             <button
@@ -147,7 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {sync.storageTrimmed ? <Banner tone="info">{t("sync.storage_trimmed")}</Banner> : null}
           {sync.conflictCount > 0 ? (
             <Banner tone="warning">
-              {t("sync.conflicts_pending", { count: sync.conflictCount })}{" "}
+              {tn(sync.conflictCount, "sync.conflicts_pending_one", "sync.conflicts_pending")}{" "}
               <Link href="/sync/conflicts" style={{ color: "inherit", textDecoration: "underline" }}>
                 {t("sync.conflicts_review")}
               </Link>

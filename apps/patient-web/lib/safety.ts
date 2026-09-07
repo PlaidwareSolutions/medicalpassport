@@ -18,6 +18,25 @@ export function isOpenFinding(f: SafetyFindingDto): boolean {
   return OPEN_STATUSES.has(f.status);
 }
 
+/**
+ * True when this finding was closed by the patient saying it does not apply
+ * to them, rather than by a professional review.
+ *
+ * Both actions land on `status: "resolved"` server-side (the Gate 3
+ * false-positive count is built on the action, docs_v2/06 P9-4), which is
+ * why the *screen* has to read the action: filing "This doesn't apply to
+ * me" under "Resolved and reviewed" with a "Resolved" chip tells the
+ * patient a professional looked at it. Nobody did.
+ */
+export function isDismissedAsNotRelevant(f: SafetyFindingDto): boolean {
+  return !isOpenFinding(f) && f.lastAction === "dismissed_not_relevant";
+}
+
+/** The status chip's message key — the patient's own outcome when they gave one. */
+export function findingStatusKey(f: SafetyFindingDto): string {
+  return isDismissedAsNotRelevant(f) ? "safety.status.dismissed_not_relevant" : `safety.status.${f.status}`;
+}
+
 export async function recordFindingAction(findingId: string, action: string, note?: string) {
   const res = await api.post(`/findings/${findingId}/actions`, { action, note }, { profileId: getActiveProfileId() });
   invalidate("profile", "/profiles/current/safety/findings");

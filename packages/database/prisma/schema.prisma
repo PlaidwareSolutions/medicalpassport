@@ -3556,6 +3556,14 @@ model ProviderProposal {
   proposedByUserId    String              @map("proposed_by_user_id") @db.Uuid
   decidedByUserId     String?             @map("decided_by_user_id") @db.Uuid
   decidedAt           DateTime?           @map("decided_at") @db.Timestamptz(6)
+  /// Indexes into `payload.lines` the patient declined while accepting the
+  /// rest (H-43). Kept so the organization that sent the proposal can see
+  /// what its patient actually agreed to, not just "accepted".
+  declinedLines       Int[]               @map("declined_lines")
+  /// The patient's own words when they declined — "Only you and the clinic
+  /// that sent this will see it" is what the app promises them, so it is
+  /// stored and shown to that organization, and to nobody else.
+  decisionReason      String?             @map("decision_reason")
   resultingEntityType String?             @map("resulting_entity_type")
   resultingEntityId   String?             @map("resulting_entity_id") @db.Uuid
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)

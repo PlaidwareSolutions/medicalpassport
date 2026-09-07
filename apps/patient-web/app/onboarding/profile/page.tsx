@@ -1,17 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
-import { Banner, Button, TextInput } from "@medpass/ui-web";
+import { Banner, Button, PillSpinner, TextInput } from "@medpass/ui-web";
 import { api } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { useSession } from "../../../lib/session";
 
-/** Screen 4: minimal profile — completable with almost no typing (docs/07). */
+/**
+ * Screen 4: minimal profile — completable with almost no typing (docs/07).
+ *
+ * This is the account's *first* profile and nothing else. Reaching it with
+ * a profile already on the account — a bookmark, a back button, a shared
+ * link — used to re-render "Tell us about yourself", let a signed-in
+ * patient create a second profile for themselves, and then send them to the
+ * first-run tour as if they had just arrived. An already-onboarded account
+ * goes to Home instead; adding a family member is a different screen
+ * (`/profile/dependents/new`), which asks the questions a dependent needs
+ * and is reached from the Profile hub, not from here.
+ */
 export default function CreateProfilePage() {
   const { t, locale } = useI18n();
   const router = useRouter();
-  const { refresh } = useSession();
+  const { status, profiles, refresh } = useSession();
+
+  const alreadyOnboarded = status === "ready" && profiles.length > 0;
+  useEffect(() => {
+    if (alreadyOnboarded) router.replace("/");
+  }, [alreadyOnboarded, router]);
 
   const [name, setName] = useState("");
   const [year, setYear] = useState("");
@@ -48,6 +64,17 @@ export default function CreateProfilePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Never paint the first-run form for someone who is past it, not even for
+  // the frame before the redirect lands: it is a form that would create a
+  // duplicate profile if submitted.
+  if (status === "loading" || alreadyOnboarded) {
+    return (
+      <main style={{ maxWidth: 480, margin: "0 auto", padding: "var(--space-xl) var(--space-md)" }}>
+        <PillSpinner label={t("common.loading")} />
+      </main>
+    );
   }
 
   return (

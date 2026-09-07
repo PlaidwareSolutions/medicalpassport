@@ -100,6 +100,11 @@ function ClaimInvitePendingSection() {
   );
 }
 
+/** A `DeviceKind` as a word rather than the stored value ("browser"). */
+function deviceKindKey(kind: string): string {
+  return ["browser", "android", "ios"].includes(kind) ? `profile.device_kind.${kind}` : "profile.device_kind.other";
+}
+
 interface DeviceItem {
   id: string;
   kind: string;
@@ -178,7 +183,8 @@ export default function ProfilePage() {
       <ProfileLink href="/profile/dependents/new" glyph="people" label={t("profile.add_dependent")} />
       {/* V2 Phases 8 and 11: the clinics that can see the record, and the
           ABHA link. Both were reachable only by address before. */}
-      <ProfileLink href="/connections" glyph="hospital" label={t("connections.title")} />
+      <ProfileLink href="/connections" glyph="hospital" label={t("connections.title")} sub={t("profile.connections_sub")} />
+      <ProfileLink href="/share" glyph="share" label={t("profile.share_links")} sub={t("profile.share_links_sub")} />
       <ProfileLink href="/abha" glyph="shield" label={t("abha.title")} />
 
       {activeProfile?.relationship === "dependent" ? (
@@ -206,7 +212,7 @@ export default function ProfilePage() {
           <Card key={d.id}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)", flexWrap: "wrap" }}>
               <div style={{ minWidth: 0 }}>
-                <strong>{d.label ?? d.kind}</strong>
+                <strong>{d.label ?? t(deviceKindKey(d.kind) as never)}</strong>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                   {new Date(d.lastSeenAt).toLocaleString()}
                 </div>

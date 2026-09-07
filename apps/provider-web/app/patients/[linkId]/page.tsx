@@ -6,25 +6,35 @@ import { ProposalStatusChip } from "../../../components/ProposalStatusChip";
 import { ProviderShell } from "../../../components/ProviderShell";
 import { useProposals, useSnapshot } from "../../../lib/hooks";
 import { formatDate, formatDateTime, patientLabel } from "../../../lib/format";
+import { SECTION_LABELS } from "../../../lib/patient-links";
 import { allowedProposalKinds, PROPOSAL_KIND_LABELS, PROPOSAL_KIND_META } from "../../../lib/proposal-kinds";
 import { useProviderSession } from "../../../lib/session";
-import type { LinkSection, SnapshotDto } from "../../../lib/types";
+import { currentInstructionLabel, parseInstruction } from "../../../lib/transition";
+import type { SnapshotDto } from "../../../lib/types";
 
-const SECTION_LABELS: Record<LinkSection, string> = {
-  medications: "Current medicines",
-  allergies: "Allergies",
-  conditions: "Conditions",
-  recentChanges: "Recent changes",
-  concerns: "Concerns",
-  glucoseReadings: "Glucose diary",
-  bloodPressureReadings: "Blood pressure",
-  weightReadings: "Weight",
-  checkups: "Check-ups",
-  prescriptions: "Prescriptions",
-  reports: "Latest results",
-  measurements: "Home measurements",
-  documents: "Documents",
-  encounters: "Visits",
+/**
+ * The timeline projects a medicine change with the medicine's name under
+ * `name` (packages/health-events `projectMedicationChange`). Reading the
+ * wrong key left the list saying "medicine started" three times over with
+ * nothing to tell the three apart. `medicationName` is the visit summary's
+ * spelling of the same thing and is accepted as a fallback.
+ */
+function changedMedicineName(summary: unknown): string | null {
+  if (!summary || typeof summary !== "object") return null;
+  const s = summary as { name?: unknown; medicationName?: unknown };
+  const name = typeof s.name === "string" ? s.name : typeof s.medicationName === "string" ? s.medicationName : null;
+  return name && name.trim() ? name : null;
+}
+
+/** Encounter kinds as a clinician reads them, not as the column stores them. */
+const ENCOUNTER_KIND_LABELS: Record<string, string> = {
+  outpatient: "Clinic visit",
+  inpatient: "Hospital stay",
+  emergency: "Emergency",
+  teleconsult: "Phone or video consultation",
+  pharmacy: "Pharmacy visit",
+  lab_visit: "Laboratory visit",
+  home: "Home visit",
 };
 
 /** Patient snapshot (read-only, granted sections only), the workflows this organization may start, and its proposals with status. */
@@ -134,7 +144,8 @@ function Snapshot({ snapshot }: { snapshot: SnapshotDto }) {
             {snapshot.currentMedications.map((m, i) => (
               <li key={m.patientMedicationId ?? i}>
                 <strong>{m.name}</strong>
-                {m.strengthLabel ? ` ${m.strengthLabel}` : ""} — {m.instructionSummary || "no instruction recorded"}
+                {m.strengthLabel ? ` ${m.strengthLabel}` : ""} —{" "}
+                {currentInstructionLabel({ instruction: parseInstruction(m.instruction), instructionSummary: m.instructionSummary }) || "no instruction recorded"}
                 {m.prescriberName ? ` · ${m.prescriberName}` : ""}
                 {m.startDate ? ` · since ${formatDate(m.startDate)}` : ""}
               </li>
@@ -210,11 +221,159 @@ function Snapshot({ snapshot }: { snapshot: SnapshotDto }) {
         <Card>
           <strong>Recent changes (90 days)</strong>
           {snapshot.recentChanges.length === 0 ? <span style={{ color: "var(--color-text-muted)" }}>No medicine changes.</span> : null}
-          <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
-            {snapshot.recentChanges.map((c, i) => (
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }} data-testid="snapshot-recent-changes">
+            {snapshot.recentChanges.map((c, i) => {
+              const name = changedMedicineName(c.summary);
+              return (
+                <li key={i}>
+                  {name ? <strong>{name}</strong> : null}
+                  {name ? " · " : ""}
+                  {c.kind.replace(/_/g, " ")} · {formatDate(c.occurredAt)}
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      ) : null}
+      {snapshot.encounters ? (
+        <Card>
+          <strong>Visits</strong>
+          {snapshot.encounters.length === 0 ? <span style={{ color: "var(--color-text-muted)" }}>No visits on record.</span> : null}
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }} data-testid="snapshot-encounters">
+            {snapshot.encounters.map((e, i) => (
               <li key={i}>
-                {c.kind.replace(/_/g, " ")} · {formatDate(c.occurredAt)}
-                {typeof c.summary === "object" && c.summary && "medicationName" in c.summary ? ` · ${String((c.summary as { medicationName: unknown }).medicationName)}` : ""}
+                <strong>{ENCOUNTER_KIND_LABELS[e.kind] ?? e.kind.replace(/_/g, " ")}</strong> · {formatDate(e.startedAt)}
+                {e.organizationName ? ` · ${e.organizationName}` : ""}
+                {e.practitionerName ? ` · ${e.practitionerName}` : ""}
+                {e.diagnosisText ? ` · ${e.diagnosisText}` : e.reasonText ? ` · ${e.reasonText}` : ""}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+      {snapshot.bloodPressureReadings ? (
+        <Card>
+          <strong>Blood pressure (30 days)</strong>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }} data-testid="snapshot-blood-pressure">
+            {snapshot.bloodPressureReadings.readingCount === 0
+              ? "No readings recorded."
+              : `${snapshot.bloodPressureReadings.readingCount} reading${snapshot.bloodPressureReadings.readingCount === 1 ? "" : "s"} · average ${snapshot.bloodPressureReadings.averageSystolic ?? "—"}/${snapshot.bloodPressureReadings.averageDiastolic ?? "—"} mmHg`}
+          </span>
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
+            {snapshot.bloodPressureReadings.recent.map((r, i) => (
+              <li key={i}>
+                {r.systolic}/{r.diastolic} mmHg{r.pulseBpm ? ` · pulse ${r.pulseBpm}` : ""} · {formatDate(r.measuredAt)}
+                {r.note ? ` · ${r.note}` : ""}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+      {snapshot.glucoseReadings ? (
+        <Card>
+          <strong>Glucose diary (30 days)</strong>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }} data-testid="snapshot-glucose">
+            {snapshot.glucoseReadings.readingCount === 0
+              ? "No readings recorded."
+              : `${snapshot.glucoseReadings.readingCount} reading${snapshot.glucoseReadings.readingCount === 1 ? "" : "s"} · average ${snapshot.glucoseReadings.averageMgDl ?? "—"} mg/dL · lowest ${snapshot.glucoseReadings.lowestMgDl ?? "—"} · highest ${snapshot.glucoseReadings.highestMgDl ?? "—"}`}
+          </span>
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
+            {snapshot.glucoseReadings.recent.map((r, i) => (
+              <li key={i}>
+                {r.valueMgDl} mg/dL · {r.context.replace(/_/g, " ")} · {formatDate(r.measuredAt)}
+                {r.note ? ` · ${r.note}` : ""}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+      {snapshot.weightReadings ? (
+        <Card>
+          <strong>Weight (30 days)</strong>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }} data-testid="snapshot-weight">
+            {snapshot.weightReadings.readingCount === 0
+              ? "No readings recorded."
+              : `Latest ${snapshot.weightReadings.latestKg ?? "—"} kg${snapshot.weightReadings.changeKg ? ` · ${snapshot.weightReadings.changeKg} kg across the window` : ""}`}
+          </span>
+        </Card>
+      ) : null}
+      {snapshot.measurements ? (
+        <Card>
+          <strong>Home measurements (30 days)</strong>
+          {snapshot.measurements.length === 0 ? <span style={{ color: "var(--color-text-muted)" }}>Nothing recorded.</span> : null}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "var(--font-small)" }} data-testid="snapshot-measurements">
+              <thead>
+                <tr>
+                  {["Measurement", "Latest", "Lowest", "Highest", "Average", "Readings"].map((h) => (
+                    <th key={h} scope="col" style={{ textAlign: "start", padding: "var(--space-xs)", borderBottom: "1px solid var(--color-border)" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {snapshot.measurements.map((m) => (
+                  <tr key={m.concept}>
+                    <td style={{ padding: "var(--space-xs)" }}>
+                      {m.label} ({m.unit})
+                    </td>
+                    <td style={{ padding: "var(--space-xs)" }}>
+                      {m.latest ? `${m.latest.value}${m.latest.value2 ? `/${m.latest.value2}` : ""} · ${formatDate(m.latest.measuredAt)}` : "—"}
+                    </td>
+                    <td style={{ padding: "var(--space-xs)" }}>{m.minimum ?? "—"}</td>
+                    <td style={{ padding: "var(--space-xs)" }}>{m.maximum ?? "—"}</td>
+                    <td style={{ padding: "var(--space-xs)" }}>
+                      {m.average ?? "—"}
+                      {m.average2 ? `/${m.average2}` : ""}
+                    </td>
+                    <td style={{ padding: "var(--space-xs)" }}>{m.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
+      {snapshot.checkups ? (
+        <Card>
+          <strong>Check-ups</strong>
+          {snapshot.checkups.length === 0 ? <span style={{ color: "var(--color-text-muted)" }}>None recorded.</span> : null}
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }} data-testid="snapshot-checkups">
+            {snapshot.checkups.map((c, i) => (
+              <li key={i}>
+                {formatDate(c.checkupDate)}
+                {c.hba1cPercent ? ` · HbA1c ${c.hba1cPercent}%` : ""}
+                {c.fastingGlucoseMgDl ? ` · fasting ${c.fastingGlucoseMgDl} mg/dL` : ""}
+                {c.bloodPressureSystolic && c.bloodPressureDiastolic ? ` · BP ${c.bloodPressureSystolic}/${c.bloodPressureDiastolic} mmHg` : ""}
+                {c.weightKg ? ` · ${c.weightKg} kg` : ""}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+      {snapshot.prescriptions ? (
+        <Card>
+          <strong>Prescriptions</strong>
+          {snapshot.prescriptions.length === 0 ? <span style={{ color: "var(--color-text-muted)" }}>None on record.</span> : null}
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }} data-testid="snapshot-prescriptions">
+            {snapshot.prescriptions.map((pr, i) => (
+              <li key={i}>
+                {pr.prescribedAt ? formatDate(pr.prescribedAt) : "Date not recorded"}
+                {pr.practitionerName ? ` · ${pr.practitionerName}` : ""} · {pr.medicationCount} medicine{pr.medicationCount === 1 ? "" : "s"}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+      {snapshot.unresolvedConcerns ? (
+        <Card tone={snapshot.unresolvedConcerns.length > 0 ? "warning" : "default"}>
+          <strong>Concerns the patient raised</strong>
+          {snapshot.unresolvedConcerns.length === 0 ? <span style={{ color: "var(--color-text-muted)" }}>None open.</span> : null}
+          <ul style={{ margin: 0, paddingLeft: "1.2em" }} data-testid="snapshot-concerns">
+            {snapshot.unresolvedConcerns.map((c, i) => (
+              <li key={i}>
+                {c.summary} · {c.category.replace(/_/g, " ")} · {c.severity}
               </li>
             ))}
           </ul>

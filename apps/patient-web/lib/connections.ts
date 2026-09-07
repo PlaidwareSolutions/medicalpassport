@@ -108,3 +108,21 @@ export function organizationKindLabelKey(kind: string | undefined): MessageKey {
 export function sectionLabelKey(section: ProviderLinkSection): MessageKey {
   return `connections.section.${section}` as MessageKey;
 }
+
+/**
+ * The onboarding token, broken into short groups so a person can actually
+ * read it out or type it in.
+ *
+ * The token is 43 characters of base64url and stays exactly as minted —
+ * nothing here changes a single character, and the groups are display only.
+ * As one unbroken run it was unreadable across a desk: no place to pause,
+ * no way to keep your place, no way to say where you are. Four-character
+ * groups are what card numbers, licence keys and OTPs all settled on for
+ * the same reason.
+ */
+export function groupTokenForReading(token: string, size = 4): string[] {
+  if (!token) return [];
+  const groups: string[] = [];
+  for (let i = 0; i < token.length; i += size) groups.push(token.slice(i, i + size));
+  return groups;
+}

@@ -20,6 +20,31 @@ export const MANDATORY_WARNING_STATEMENT_KEYS = [
 /** Shown whenever validated data is unavailable. Never fabricate (docs/19). */
 export const NO_RELIABLE_DATA_KEY = "safety.no_reliable_data";
 
+/**
+ * A finding's `sourceName` → the localization key that says, in words, what
+ * the check was made against.
+ *
+ * The stored source names ("internal-catalog-normalization",
+ * "patient-reported-allergy") are traceability identifiers for the rule
+ * owners (docs_v2/10 §3) — they were never patient copy, and were reaching
+ * the safety card verbatim, alongside a "rule v1" a patient cannot use.
+ * Anything not in this map falls back to `safety.source.unknown` rather
+ * than printing an identifier.
+ *
+ * Values must stay in step with the `*_SOURCE` constants in engine/types.ts;
+ * they are duplicated as literals here so a client never imports the engine.
+ */
+export const FINDING_SOURCE_KEYS: Record<string, string> = {
+  "internal-catalog-normalization": "safety.source.internal-catalog-normalization",
+  "patient-reported-allergy": "safety.source.patient-reported-allergy",
+  "patient-medication-schedule": "safety.source.patient-medication-schedule",
+  "patient-instruction-history": "safety.source.patient-instruction-history",
+  "patient-prescription-records": "safety.source.patient-prescription-records",
+  "patient-current-instructions": "safety.source.patient-current-instructions",
+};
+
+export const UNKNOWN_FINDING_SOURCE_KEY = "safety.source.unknown";
+
 export const FINDING_TITLE_KEYS: Record<SafetyFindingCategory, string> = {
   exact_ingredient_duplication: "safety.finding.exact_duplicate",
   partial_ingredient_duplication: "safety.finding.partial_duplicate",

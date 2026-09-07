@@ -10,6 +10,8 @@ import {
   CHOOSABLE_KINDS,
   chooserKindFor,
   deleteDocument,
+  documentTitle,
+  isAbdmImported,
   isDocumentKind,
   kindLabelKey,
   processDocument,
@@ -38,11 +40,11 @@ function statusChip(status: DocumentStatus, extractionStatus: string | null | un
  * (docs_v2/09 §1 rule 1) — and it is confirmed in words first.
  */
 export default function DocumentDetailPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const timezone = useActiveTimezone();
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { document: doc, error, reload, mutate } = useDocument(params.id);
+  const { document: doc, notFound, error, reload, mutate } = useDocument(params.id);
   const [actionError, setActionError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [changingKind, setChangingKind] = useState(false);
@@ -95,6 +97,24 @@ export default function DocumentDetailPage() {
     }
   }
 
+  // A document that is gone says so; only a real failure offers "try again".
+  if (notFound) {
+    return (
+      <AppShell>
+        <PageHeader title={t("documents.detail_title")} />
+        <Card tone="info" data-testid="document-not-found">
+          <strong>{t("documents.not_found_title")}</strong>
+          <span>{t("documents.not_found_body")}</span>
+        </Card>
+        <Link href="/documents">
+          <Button variant="secondary" fullWidth>
+            {t("documents.back_to_list")}
+          </Button>
+        </Link>
+      </AppShell>
+    );
+  }
+
   if (error && !doc) {
     return (
       <AppShell>
@@ -129,7 +149,7 @@ export default function DocumentDetailPage() {
 
   return (
     <AppShell>
-      <PageHeader title={doc.title ?? kindLabel} right={<Chip tone={chip.tone}>{t(chip.key)}</Chip>} readAloud={[{ audio: "screen.document_detail" }]} />
+      <PageHeader title={documentTitle(doc, t)} right={<Chip tone={chip.tone}>{t(chip.key)}</Chip>} readAloud={[{ audio: "screen.document_detail" }]} />
       {actionError ? <Banner tone="danger">{actionError}</Banner> : null}
       {doc.status === "quarantined" ? <Banner tone="danger">{t("documents.quarantined")}</Banner> : null}
 
@@ -138,8 +158,15 @@ export default function DocumentDetailPage() {
           <div>
             <strong data-testid="document-kind">{kindLabel}</strong>
             <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-              {t("documents.pages_count", { n: doc.pageCount })} · {doc.documentDate ? formatCalendarDate(doc.documentDate) : formatPatientDate(doc.createdAt, timezone)}
+              {/* No page count for a bundle that never had pages. */}
+              {isAbdmImported(doc) ? "" : `${tn(doc.pageCount, "documents.pages_count_one", "documents.pages_count")} · `}
+              {doc.documentDate ? formatCalendarDate(doc.documentDate) : formatPatientDate(doc.createdAt, timezone)}
             </div>
+            {isAbdmImported(doc) ? (
+              <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }} data-testid="document-abdm-source">
+                {t("documents.abdm_source")}
+              </div>
+            ) : null}
             {doc.classification.kind && doc.classification.classifiedBy !== "user" && chooserKindFor(doc.classification.kind) !== chooserKindFor(doc.kind) ? (
               <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                 {t("documents.classifier_said", { kind: t(kindLabelKey(doc.classification.kind)) })}
@@ -212,28 +239,38 @@ export default function DocumentDetailPage() {
         </>
       ) : null}
 
-      <SectionTitle>{t("documents.pages_title", { n: doc.pages.length })}</SectionTitle>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-        {doc.pages.map((p) => (
-          <Card key={p.pageNumber} data-testid="document-page">
-            <strong>{t("documents.page_n", { n: p.pageNumber })}</strong>
-            {p.status !== "verified" ? (
-              <Chip tone="warning">{p.status === "quarantined" ? t("documents.status.quarantined") : t("documents.status.uploading")}</Chip>
-            ) : p.contentType === "application/pdf" ? (
-              p.downloadUrl ? (
-                <a href={p.downloadUrl} target="_blank" rel="noopener noreferrer">
-                  {t("documents.open_pdf_page", { n: p.pageNumber })}
-                </a>
-              ) : null
-            ) : p.downloadUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- presigned, short-lived URL; never proxied through image optimisation
-              <img src={p.downloadUrl} alt={t("documents.page_alt", { n: p.pageNumber })} style={{ width: "100%", height: "auto", borderRadius: "var(--radius-sm)" }} />
-            ) : (
-              <span style={{ color: "var(--color-text-muted)" }}>{t("documents.page_unavailable")}</span>
-            )}
-          </Card>
-        ))}
-      </div>
+      {/* A bundle that arrived as data has no pages section to offer, and
+          saying so plainly beats an empty heading over "0 pages". */}
+      {isAbdmImported(doc) && doc.pages.length === 0 ? (
+        <Card tone="info" data-testid="document-no-pages">
+          <span>{t("documents.abdm_no_pages")}</span>
+        </Card>
+      ) : (
+        <>
+          <SectionTitle>{tn(doc.pages.length, "documents.pages_title_one", "documents.pages_title")}</SectionTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+            {doc.pages.map((p) => (
+              <Card key={p.pageNumber} data-testid="document-page">
+                <strong>{t("documents.page_n", { n: p.pageNumber })}</strong>
+                {p.status !== "verified" ? (
+                  <Chip tone="warning">{p.status === "quarantined" ? t("documents.status.quarantined") : t("documents.status.uploading")}</Chip>
+                ) : p.contentType === "application/pdf" ? (
+                  p.downloadUrl ? (
+                    <a href={p.downloadUrl} target="_blank" rel="noopener noreferrer">
+                      {t("documents.open_pdf_page", { n: p.pageNumber })}
+                    </a>
+                  ) : null
+                ) : p.downloadUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- presigned, short-lived URL; never proxied through image optimisation
+                  <img src={p.downloadUrl} alt={t("documents.page_alt", { n: p.pageNumber })} style={{ width: "100%", height: "auto", borderRadius: "var(--radius-sm)" }} />
+                ) : (
+                  <span style={{ color: "var(--color-text-muted)" }}>{t("documents.page_unavailable")}</span>
+                )}
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       <div style={{ marginTop: "var(--space-xl)", display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
         <Link href="/documents">

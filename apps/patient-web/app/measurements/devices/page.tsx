@@ -26,7 +26,7 @@ import { formatPatientDateTime, useActiveTimezone } from "../../../lib/patient-t
  * first client render agree.
  */
 export default function MeasurementDevicesPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const timezone = useActiveTimezone();
   const { items, error, reload } = useMeasurementDevices();
   const [showForm, setShowForm] = useState(false);
@@ -53,7 +53,15 @@ export default function MeasurementDevicesPage() {
       const found = await connector.discover(d.kind);
       if (found.length === 0) return;
       const result = await syncDeviceReadings(connector, d.id, d.lastSyncAt ? new Date(d.lastSyncAt) : null);
-      setSyncMessage(result.read === 0 ? t("device.sync_none") : t("device.sync_result", { created: result.created, duplicates: result.duplicates }));
+      // Two counts, two sentences: one plural form can't be right for both.
+      setSyncMessage(
+        result.read === 0
+          ? t("device.sync_none")
+          : [
+              tn(result.created, "device.sync_created_one", "device.sync_created", { created: result.created }),
+              tn(result.duplicates, "device.sync_duplicates_one", "device.sync_duplicates", { duplicates: result.duplicates }),
+            ].join(" · "),
+      );
       await reload();
     } catch (err) {
       // The chooser was dismissed: nothing to report. Anything else: one plain sentence.

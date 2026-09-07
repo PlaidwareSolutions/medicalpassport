@@ -14,7 +14,7 @@ import { dismissRefillReminder, markRefilled } from "../lib/refill-reminders";
  * card.
  */
 export function RefillReminderCard({ reminder, onChanged }: { reminder: RefillReminderDto; onChanged: () => void }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const [busy, setBusy] = useState(false);
   const [refillMode, setRefillMode] = useState(false);
   const [newQuantity, setNewQuantity] = useState("");
@@ -49,7 +49,7 @@ export function RefillReminderCard({ reminder, onChanged }: { reminder: RefillRe
       </span>
 
       {reminder.kind === "refill" && reminder.daysRemainingEstimate != null ? (
-        <div style={{ fontSize: "var(--font-small)" }}>{t("reminders.days_remaining", { count: reminder.daysRemainingEstimate })}</div>
+        <div style={{ fontSize: "var(--font-small)" }}>{tn(reminder.daysRemainingEstimate, "reminders.days_remaining_one", "reminders.days_remaining")}</div>
       ) : null}
       {reminder.estimatedDate ? (
         <div style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>

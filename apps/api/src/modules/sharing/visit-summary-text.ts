@@ -1,5 +1,5 @@
 import type { VisitSummaryDto } from "./visit-summary.service";
-import { checkupMetrics, contextLabel, formatDateOnly, reportKindLabel, reportValueLine } from "./visit-summary-format";
+import { checkupMetrics, contextLabel, formatDateOnly, medicationChangeLabel, reportKindLabel, reportValueLine } from "./visit-summary-format";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
@@ -63,7 +63,7 @@ export function renderVisitSummaryText(summary: VisitSummaryDto): string {
     if (summary.recentChanges.length === 0) lines.push("No changes in this period.");
     else
       for (const c of summary.recentChanges) {
-        lines.push(`- ${c.medicationName} — ${c.change.replace(/_/g, " ")} (${formatDate(c.occurredAt)})`);
+        lines.push(`- ${c.medicationName} — ${medicationChangeLabel(c.change, c.statusTo)} (${formatDate(c.occurredAt)})`);
       }
     lines.push("");
   }

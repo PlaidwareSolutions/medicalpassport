@@ -40,5 +40,13 @@ test("timeline dose times render on the patient's wall clock, not the viewer's",
   // viewer's zone leaked back in.
   const doseTimes = page.getByText(/8:00|9:00/).first();
   await expect(doseTimes).toBeVisible();
-  await expect(page.getByText(/9:30|10:30/)).toHaveCount(0);
+  // Only the dose rows: the "it is HH:MM there now" banner shows the real
+  // wall clock, which reads 10:30 twice a day (a run at 10:30 IST hit it).
+  const banner = page.getByRole("status");
+  const leaked = page.getByText(/9:30|10:30/);
+  const count = await leaked.count();
+  for (let i = 0; i < count; i += 1) {
+    const inBanner = await banner.filter({ has: leaked.nth(i) }).count();
+    expect(inBanner, "a viewer-zone time leaked into a dose row").toBeGreaterThan(0);
+  }
 });

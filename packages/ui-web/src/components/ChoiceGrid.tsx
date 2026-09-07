@@ -17,12 +17,22 @@ export function ChoiceGrid<V extends string>({
   value,
   onChange,
   columns = 2,
+  minItemWidth = 0,
 }: {
   label: string;
   choices: Array<Choice<V>>;
   value: V | undefined;
   onChange: (v: V) => void;
   columns?: number;
+  /**
+   * The narrowest a choice may get before the grid drops to fewer columns
+   * (px). `columns` becomes a maximum rather than a fixed count: on a wide
+   * enough row the grid is exactly `columns` wide, and on a 390px phone it
+   * reflows instead of squeezing "Unit (injection)" into 48px of content
+   * box. 0 (the default) keeps the fixed grid, so existing callers are
+   * unaffected until they choose a width.
+   */
+  minItemWidth?: number;
 }) {
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = choices.findIndex((c) => c.value === value);
@@ -65,9 +75,17 @@ export function ChoiceGrid<V extends string>({
         aria-label={label}
         style={{
           display: "grid",
-          // minmax(0, 1fr), not bare 1fr: bare 1fr floors each column at its
+          // minmax(0, …), not bare 1fr: bare 1fr floors each column at its
           // min-content width, which overflows 320px at 200% zoom (docs/33).
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          //
+          // The track minimum is the LARGER of `minItemWidth` and the width
+          // an exact-`columns` row would give, capped at 100%. Where the row
+          // is wide enough that is the exact-columns width, so auto-fit lays
+          // out exactly `columns` per row as before; where it is not, the
+          // grid drops to as many columns as still fit at `minItemWidth`.
+          gridTemplateColumns: minItemWidth
+            ? `repeat(auto-fit, minmax(min(100%, max(${minItemWidth}px, (100% - ${columns - 1} * var(--size-touch-gap)) / ${columns})), 1fr))`
+            : `repeat(${columns}, minmax(0, 1fr))`,
           gap: "var(--size-touch-gap)",
         }}
       >
@@ -100,9 +118,12 @@ export function ChoiceGrid<V extends string>({
                 cursor: "pointer",
               }}
             >
-              <div>{c.label}</div>
+              {/* A label the row cannot fit wraps and, failing that, breaks:
+                  a clipped "Unit (injection)" is a choice the reader cannot
+                  identify. */}
+              <div style={{ overflowWrap: "anywhere" }}>{c.label}</div>
               {c.description ? (
-                <div style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>{c.description}</div>
+                <div style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)", overflowWrap: "anywhere" }}>{c.description}</div>
               ) : null}
             </button>
           );

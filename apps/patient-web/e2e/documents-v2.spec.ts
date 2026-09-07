@@ -195,7 +195,7 @@ test("the documents list and detail show the uploaded document", async ({ page }
   const row = page.locator(`[data-testid="document-row"][href$="/documents/${documentId}"]`);
   await expect(row).toBeVisible();
   await expect(row).toContainText("Prescription");
-  await expect(row).toContainText("1 pages");
+  await expect(row).toContainText("1 page");
 
   // Kind filter narrows the list.
   await page.getByRole("button", { name: "Test report", exact: true }).click();

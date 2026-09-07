@@ -20,7 +20,7 @@ import { formatPatientDate, useActiveTimezone } from "../../../lib/patient-time"
  * it is right.
  */
 export default function AbdmRecordsPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const router = useRouter();
   const timezone = useActiveTimezone();
   const { items, error, fromCache, reload } = useAbdmBundles();
@@ -70,7 +70,7 @@ export default function AbdmRecordsPage() {
                 <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                   {t("abha.bundle_received_on", { date: formatPatientDate(bundle.createdAt, timezone) })}
                 </span>
-                {bundle.entryCount ? <span>{t("abha.bundle_entries", { n: bundle.entryCount })}</span> : null}
+                {bundle.entryCount ? <span>{tn(bundle.entryCount, "abha.bundle_entries_one", "abha.bundle_entries")}</span> : null}
 
                 {bundle.importStatus === "received" ? (
                   <>

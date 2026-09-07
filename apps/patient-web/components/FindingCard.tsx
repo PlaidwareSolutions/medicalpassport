@@ -1,11 +1,11 @@
 "use client";
 import { useState } from "react";
 import type { SafetyFindingDto } from "@medpass/api-client";
-import { MANDATORY_WARNING_STATEMENT_KEYS } from "@medpass/clinical-rules";
+import { FINDING_SOURCE_KEYS, MANDATORY_WARNING_STATEMENT_KEYS, UNKNOWN_FINDING_SOURCE_KEY } from "@medpass/clinical-rules";
 import { Button, Card, Chip } from "@medpass/ui-web";
 import { useI18n } from "../lib/i18n";
 import { formatPatientDate, useActiveTimezone } from "../lib/patient-time";
-import { findingExplanationParams, recordFindingAction } from "../lib/safety";
+import { findingExplanationParams, findingStatusKey, recordFindingAction } from "../lib/safety";
 
 const SEVERITY_TONE: Record<string, "default" | "warning" | "danger"> = {
   info: "default",
@@ -58,12 +58,15 @@ export function FindingCard({ finding, onChanged }: { finding: SafetyFindingDto;
       </ul>
 
       <span style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>
-        {t("safety.evidence", { source: finding.sourceName, version: finding.ruleVersion })}
+        {/* The source in words. The rule id and version are traceability
+            metadata (docs/09) and stay server-side: "internal-catalog-
+            normalization (rule v1)" is not something a patient can act on. */}
+        {t("safety.evidence", { source: t((FINDING_SOURCE_KEYS[finding.sourceName] ?? UNKNOWN_FINDING_SOURCE_KEY) as never) })}
         {" · "}
         {t("safety.checked_at", { date: formatPatientDate(finding.evaluatedAt, timezone) })}
       </span>
 
-      <Chip>{t(`safety.status.${finding.status}` as never)}</Chip>
+      <Chip>{t(findingStatusKey(finding) as never)}</Chip>
 
       {finding.status === "open" ? (
         <div style={{ display: "flex", gap: "var(--size-touch-gap)", flexWrap: "wrap" }}>

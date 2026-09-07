@@ -11,6 +11,7 @@ import {
   ONBOARDING_EXPIRIES,
   PROVIDER_LINK_SECTIONS,
   createOnboardingToken,
+  groupTokenForReading,
   sectionLabelKey,
   type OnboardingExpiry,
   type OnboardingTokenDto,
@@ -84,14 +85,21 @@ export default function ShowClinicCodePage() {
           </div>
           {qrFailed ? <Banner tone="warning">{t("connections.qr_unavailable")}</Banner> : null}
           <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{t("connections.code_readable_label")}</span>
-          {/* Always shown, not only on failure: a scanner that won't focus
-              is common, and reading the code out is the honest fallback. */}
+          {/* Always shown, not only on failure: a scanner that won't focus is
+              common. It is 43 characters, so it is grouped for reading — the
+              token itself is untouched, and the copy no longer pretends this
+              is a comfortable thing to read out. */}
           <code
             data-testid="onboarding-code-text"
-            style={{ fontSize: "var(--font-large)", letterSpacing: "0.08em", wordBreak: "break-all", fontWeight: 600, lineHeight: 1.6 }}
+            style={{ fontSize: "var(--font-large)", fontWeight: 600, lineHeight: 1.8, display: "flex", flexWrap: "wrap", gap: "0.5em" }}
           >
-            {minted.token}
+            {groupTokenForReading(minted.token).map((group, i) => (
+              <span key={i} style={{ letterSpacing: "0.12em" }}>
+                {group}
+              </span>
+            ))}
           </code>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{t("connections.code_readable_hint")}</span>
           <Banner tone="info">
             {t("connections.code_explains", {
               sections: sectionNames,

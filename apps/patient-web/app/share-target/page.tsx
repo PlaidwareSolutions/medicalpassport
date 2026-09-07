@@ -21,7 +21,7 @@ import { readSharedFiles } from "../../lib/share-target-inbox";
  * `sourceChannel: "share_target"`.
  */
 function ShareTargetLanding() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profiles, selectProfile } = useSession();
@@ -68,7 +68,7 @@ function ShareTargetLanding() {
                 <GuideGlyph name="document" size="lg" />
               </span>
               <div style={{ minWidth: 0 }}>
-                <strong>{t("documents.share_received", { n: files.length })}</strong>
+                <strong>{tn(files.length, "documents.share_received_one", "documents.share_received")}</strong>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)", overflowWrap: "anywhere" }}>{files.map((f) => f.name).join(", ")}</div>
               </div>
             </div>

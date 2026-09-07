@@ -86,7 +86,7 @@ export function DoseCard({
         <div style={{ minWidth: 0 }}>
           <strong style={{ fontSize: "var(--font-large)" }}>{item.medication.name}</strong>
           <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-            {formatPatientTime(item.dueAt, timezone)} · {item.quantity} {item.medication.doseUnit} ·{" "}
+            {formatPatientTime(item.dueAt, timezone)} · {item.quantity} {t(`unit.${item.medication.doseUnit}` as never)} ·{" "}
             {t(`food.${item.medication.foodInstruction}` as never)}
           </div>
         </div>

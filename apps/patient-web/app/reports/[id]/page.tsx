@@ -15,6 +15,7 @@ import {
   analyteUnitDisplay,
   deleteDiagnosticReport,
   deleteDiagnosticResult,
+  formatAnalyteValue,
   formatDateOnly,
   isImagingKind,
   referenceRangeText,
@@ -25,7 +26,6 @@ import {
   type DiagnosticResultDto,
 } from "../../../lib/diagnostics";
 import { useI18n } from "../../../lib/i18n";
-import { trimDecimal } from "../../../lib/observations";
 
 /**
  * One diagnostic report (docs_v2/06 P4-4): the header facts, the imaging
@@ -217,7 +217,7 @@ function ResultCard({
           </div>
           {showsCanonicalTwin(result) ? (
             <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-              {t("dx.canonical_twin", { value: trimDecimal(result.valueNumeric), unit: analyteUnitDisplay(analytes, result.analyteKey, result.unit) })}
+              {t("dx.canonical_twin", { value: formatAnalyteValue(result.valueNumeric, result.analyteKey), unit: analyteUnitDisplay(analytes, result.analyteKey, result.unit) })}
             </div>
           ) : null}
           {range ? <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{t("reports.reference_prefix", { range })}</div> : null}

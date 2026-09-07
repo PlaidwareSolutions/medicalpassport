@@ -50,6 +50,35 @@ export function patientTimeNow(timezone: string): string {
   return formatPatientTime(new Date(), timezone);
 }
 
+/**
+ * A time zone as a person reads it: "India Standard Time", and in Hindi
+ * "भारतीय मानक समय".
+ *
+ * "Asia/Kolkata" is an IANA database identifier — and the alias
+ * "Asia/Calcutta" for the very same zone is worse still, naming a city by a
+ * spelling the country stopped using in 2001. Neither is copy, and neither
+ * is translated by anything, so the Profile screen was showing the same
+ * English string in all four languages. `Intl` already knows the localized
+ * long name for every zone it supports; where it does not (or where the
+ * environment has no ICU data), the identifier itself is the honest
+ * fallback — better a raw id than a wrong zone.
+ */
+export function timeZoneLabel(timezone: string, locale?: string): string {
+  if (!timezone) return "";
+  try {
+    const parts = new Intl.DateTimeFormat(locale === "en" ? undefined : locale, {
+      timeZone: timezone,
+      timeZoneName: "long",
+    }).formatToParts(new Date());
+    const name = parts.find((p) => p.type === "timeZoneName")?.value;
+    // A zone with no long name formats as an offset ("GMT+5:30"), which says
+    // less than the identifier does — keep the identifier in that case.
+    return name && !/^(GMT|UTC)/.test(name) ? name : timezone;
+  } catch {
+    return timezone;
+  }
+}
+
 /** The viewer's device zone — compared against the profile zone to decide whether the banner shows. */
 export function deviceTimeZone(): string {
   try {

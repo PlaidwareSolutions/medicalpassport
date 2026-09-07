@@ -27,6 +27,11 @@ export function contextLabel(context: string): string {
   return CONTEXT_LABELS[context] ?? context.replace(/_/g, " ");
 }
 
+/**
+ * Both report vocabularies in one table: V1 `MedicalReportKind` and V2
+ * `DiagnosticReportKind`. They overlap on imaging/ecg/pathology/other and
+ * are otherwise disjoint, so one lookup covers a merged list.
+ */
 const REPORT_KIND_LABELS: Record<string, string> = {
   blood_test: "Blood test",
   urine_test: "Urine test",
@@ -35,10 +40,36 @@ const REPORT_KIND_LABELS: Record<string, string> = {
   pathology: "Pathology / biopsy",
   discharge_summary: "Discharge summary",
   other: "Other test",
+  laboratory: "Lab test",
+  echo: "Echo (heart ultrasound)",
+  microbiology: "Culture / microbiology",
+  genetics: "Genetic test",
 };
 
 export function reportKindLabel(kind: string): string {
   return REPORT_KIND_LABELS[kind] ?? kind.replace(/_/g, " ");
+}
+
+const MEDICATION_CHANGE_LABELS: Record<string, string> = {
+  created: "Added to the list",
+  updated: "Details updated",
+  status_changed: "Status changed",
+  dose_unit_confirmed: "Medicine type confirmed",
+  refilled: "Marked as refilled",
+  deleted: "Removed from the list",
+  reconciled_continue: "Kept on after a visit",
+  reconciled_stop: "Stopped after a visit",
+};
+
+/**
+ * A medication-history entry as a sentence. The raw kind is an internal
+ * code — a doctor reading "reconciled_continue" off a shared summary is a
+ * bug, not shorthand. `statusTo` supplies the one thing the kind cannot say
+ * on its own.
+ */
+export function medicationChangeLabel(change: string, statusTo?: string | null): string {
+  if (change === "status_changed" && statusTo) return `Marked as ${statusTo.replace(/_/g, " ")}`;
+  return MEDICATION_CHANGE_LABELS[change] ?? change.replace(/_/g, " ");
 }
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MessageKey } from "@medpass/localization";
+import { pluralKey, type MessageKey } from "@medpass/localization";
 import type { SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId, newIdempotencyKey } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
@@ -78,6 +78,41 @@ export function chooserKindFor(kind: string | null | undefined): DocumentKind | 
 
 export function kindLabelKey(kind: string): MessageKey {
   return (isDocumentKind(kind) ? `documents.kind.${kind}` : "documents.kind.other") as MessageKey;
+}
+
+/**
+ * A bundle that arrived through ABDM rather than off a camera.
+ *
+ * Two things follow from it, and both were wrong: the stored title is the
+ * importer's own audit string ("ABDM Prescription (IG 6.5)" — an HI type
+ * and an implementation-guide version, neither of which is copy), and there
+ * are no page images at all, so "0 pages" and "This page can't be shown
+ * right now" both describe a fault that does not exist. A FHIR bundle has
+ * nothing to photograph; it has contents, and the review queue lists them.
+ */
+export function isAbdmImported(doc: Pick<DocumentSummaryDto, "sourceChannel">): boolean {
+  return doc.sourceChannel === "abdm";
+}
+
+/**
+ * What to call a document on screen.
+ *
+ * The patient's own title wins where there is one; an ABDM bundle's stored
+ * title is the importer's, not a person's, so it is replaced by the kind in
+ * the reader's language ("Prescription from a hospital").
+ */
+export function documentTitle(
+  doc: Pick<DocumentSummaryDto, "kind" | "title" | "sourceChannel">,
+  t: (key: MessageKey, params?: Record<string, string | number>) => string,
+): string {
+  if (isAbdmImported(doc)) {
+    // "Something else from a hospital" is not a title; an unclassified
+    // bundle (HealthDocumentRecord, WellnessRecord) gets a plain one.
+    const kind = chooserKindFor(doc.kind);
+    if (!kind || kind === "other") return t("documents.abdm_title_generic");
+    return t("documents.abdm_title", { kind: t(kindLabelKey(kind)) });
+  }
+  return doc.title ?? t(kindLabelKey(doc.kind));
 }
 
 export type DocumentGlyph = "prescription" | "report" | "hospital" | "syringe" | "tablet" | "document";
@@ -388,12 +423,28 @@ export function fetchDocument(id: string) {
   return api.get<DocumentDetailDto>(`/patient-documents/${id}`, { profileId: getActiveProfileId() });
 }
 
+/**
+ * One document, with a 404 told apart from a failure.
+ *
+ * A deleted document is not "something went wrong" — it is an answer, and
+ * the honest one. Folding it into the generic error banner sent a patient
+ * who had just deleted a document (or followed a stale link) to "Please try
+ * again", which cannot succeed.
+ */
 export function useDocument(id: string) {
-  const { data, error, reload, mutate } = useSharedResource<DocumentDetailDto>({
+  const { data, error, reload, mutate } = useSharedResource<DocumentDetailDto | { notFound: true }>({
     path: `/patient-documents/${id}`,
     fetcher: () => fetchDocument(id),
+    mapApiError: (err) => (err.status === 404 ? { notFound: true } : undefined),
   });
-  return { document: data, error, reload, mutate };
+  const notFound = data !== undefined && "notFound" in data;
+  return {
+    document: notFound ? undefined : (data as DocumentDetailDto | undefined),
+    notFound,
+    error,
+    reload,
+    mutate: mutate as (next: DocumentDetailDto) => void,
+  };
 }
 
 export function fetchExtraction(documentId: string) {
@@ -653,7 +704,7 @@ export function valueText(c: Pick<CandidateDto, "targetEntity" | "targetField">,
   }
   if (field === "frequency") return frequencyText(value, t);
   if (field === "foodInstruction" && typeof value === "string") return t(`food.${value}` as MessageKey);
-  if (field === "durationDays" && typeof value === "number") return t("documents.value.days", { n: value });
+  if (field === "durationDays" && typeof value === "number") return t(pluralKey(value, "documents.value.days_one", "documents.value.days"), { n: value });
   if (field === "form" && typeof value === "string") return t(`documents.form.${value}` as MessageKey);
   if (field === "kind" && c.targetEntity === "encounter" && typeof value === "string") return t(`documents.encounter_kind.${value}` as MessageKey);
   if (DATE_FIELDS.has(field) && typeof value === "string") {

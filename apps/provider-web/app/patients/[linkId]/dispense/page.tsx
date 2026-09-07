@@ -7,6 +7,7 @@ import { WorkflowFrame } from "../../../../components/WorkflowFrame";
 import { api, newIdempotencyKey } from "../../../../lib/api";
 import { dateInputToIso, dateTimeInputToIso, nowInputValue } from "../../../../lib/format";
 import { errorMessage } from "../../../../lib/hooks";
+import { currentInstructionLabel, parseInstruction } from "../../../../lib/transition";
 import type { ProposalDto, SnapshotMedication } from "../../../../lib/types";
 
 const UNITS = ["tablet", "capsule", "ml", "strip", "bottle", "vial", "sachet", "tube"] as const;
@@ -92,7 +93,11 @@ function DispenseForm({ linkId, medications }: { linkId: string; medications: Sn
           label="Medicine dispensed"
           columns={1}
           choices={[
-            ...listed.map((m) => ({ value: m.patientMedicationId, label: m.strengthLabel ? `${m.name} ${m.strengthLabel}` : m.name, description: m.instructionSummary })),
+            ...listed.map((m) => ({
+              value: m.patientMedicationId,
+              label: m.strengthLabel ? `${m.name} ${m.strengthLabel}` : m.name,
+              description: currentInstructionLabel({ instruction: parseInstruction(m.instruction), instructionSummary: m.instructionSummary }),
+            })),
             { value: OTHER_MEDICINE, label: "Not on the patient's list — type the name" },
           ]}
           value={picked}
@@ -106,8 +111,8 @@ function DispenseForm({ linkId, medications }: { linkId: string; medications: Sn
         <TextInput label="Quantity" type="number" inputMode="decimal" min={0.5} step={0.5} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
         <TextInput label="Dispensed on" type="datetime-local" value={dispensedAt} onChange={(e) => setDispensedAt(e.target.value)} />
       </div>
-      <ChoiceGrid label="Unit" columns={4} choices={UNITS.map((u) => ({ value: u, label: u }))} value={unit} onChange={setUnit} />
-      <ChoiceGrid label="Days supply" columns={6} choices={DAYS.map((d) => ({ value: d, label: `${d} days` }))} value={days} onChange={setDays} />
+      <ChoiceGrid label="Unit" columns={4} minItemWidth={96} choices={UNITS.map((u) => ({ value: u, label: u }))} value={unit} onChange={setUnit} />
+      <ChoiceGrid label="Days supply" columns={6} minItemWidth={96} choices={DAYS.map((d) => ({ value: d, label: `${d} days` }))} value={days} onChange={setDays} />
       <TextInput label="Invoice number (optional)" maxLength={60} value={invoice} onChange={(e) => setInvoice(e.target.value)} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-md)" }}>
         <TextInput label="Batch / lot (optional)" maxLength={60} value={lot} onChange={(e) => setLot(e.target.value)} />

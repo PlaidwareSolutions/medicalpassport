@@ -20,7 +20,7 @@ type LinkProps = { prescriptionId: string } | { diagnosticReportId: string; repo
  * their own V1 attach buttons, so this offers none for them.
  */
 export function LinkedDocumentsSection(props: LinkProps) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const timezone = useActiveTimezone();
   const link = "prescriptionId" in props ? { prescriptionId: props.prescriptionId } : { diagnosticReportId: props.diagnosticReportId };
   const { items, error: loadError, reload } = useLinkedDocuments(link);
@@ -58,7 +58,7 @@ export function LinkedDocumentsSection(props: LinkProps) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <strong>{d.title ?? t(kindLabelKey(d.kind))}</strong>
                   <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-                    {t("documents.pages_count", { n: d.pageCount })} · {formatPatientDate(d.createdAt, timezone)}
+                    {tn(d.pageCount, "documents.pages_count_one", "documents.pages_count")} · {formatPatientDate(d.createdAt, timezone)}
                   </div>
                 </div>
                 <Chip>{t("documents.open")}</Chip>

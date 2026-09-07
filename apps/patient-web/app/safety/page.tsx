@@ -5,7 +5,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { FindingCard } from "../../components/FindingCard";
 import { PageHeader } from "../../components/PageHeader";
 import { useI18n } from "../../lib/i18n";
-import { isOpenFinding, useSafetyFindings } from "../../lib/safety";
+import { isDismissedAsNotRelevant, isOpenFinding, useSafetyFindings } from "../../lib/safety";
 
 /**
  * Screen 21: safety review results (docs/07). Duplicate-ingredient,
@@ -17,7 +17,11 @@ export default function SafetyPage() {
   const { items, error, reload } = useSafetyFindings();
 
   const open = (items ?? []).filter(isOpenFinding);
-  const resolved = (items ?? []).filter((f) => !isOpenFinding(f));
+  // "This doesn't apply to me" resolves the finding server-side, but it is
+  // the patient's own judgement, not a professional's — so it gets its own
+  // heading rather than being filed under "Resolved and reviewed".
+  const dismissed = (items ?? []).filter(isDismissedAsNotRelevant);
+  const resolved = (items ?? []).filter((f) => !isOpenFinding(f) && !isDismissedAsNotRelevant(f));
 
   return (
     <AppShell>
@@ -45,6 +49,17 @@ export default function SafetyPage() {
           <SectionTitle>{t("safety.resolved_findings")}</SectionTitle>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
             {resolved.map((f) => (
+              <FindingCard key={f.id} finding={f} onChanged={reload} />
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {dismissed.length > 0 ? (
+        <>
+          <SectionTitle>{t("safety.dismissed_findings")}</SectionTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }} data-testid="safety-dismissed">
+            {dismissed.map((f) => (
               <FindingCard key={f.id} finding={f} onChanged={reload} />
             ))}
           </div>

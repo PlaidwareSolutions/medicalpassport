@@ -13,7 +13,7 @@ import { SHARE_SECTIONS, fetchAccessLog, revokeShare, useShares, type ShareListI
 
 /** Screen 29 (list part): active shares with access history and revoke. */
 export default function SharesPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const access = useProfileAccess();
   const { items, error, reload } = useShares();
   const [expandedId, setExpandedId] = useState<string | undefined>();
@@ -100,7 +100,7 @@ export default function SharesPage() {
                   onClick={() => void toggleLog(s.id)}
                   style={{ background: "none", border: "none", color: "var(--color-info)", textAlign: "start", padding: 0, cursor: "pointer" }}
                 >
-                  {t("share.access_count", { count: s.accessCount })}
+                  {tn(s.accessCount, "share.access_count_one", "share.access_count")}
                 </button>
                 {expandedId === s.id ? (
                   <div id={`access-log-${s.id}`} style={{ fontSize: "var(--font-small)", color: "var(--color-text-muted)" }}>

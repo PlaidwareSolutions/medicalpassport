@@ -334,6 +334,11 @@ function SharePreview({ sections }: { sections: Record<ShareSection, boolean> })
         ...(sections.checkups ? { checkups: summary.checkups } : {}),
         ...(sections.prescriptions ? { prescriptions: summary.prescriptions } : {}),
         ...(sections.reports ? { reports: summary.reports } : {}),
+        ...(sections.measurements ? { measurements: summary.measurements } : {}),
+        ...(sections.encounters ? { encounters: summary.encounters } : {}),
+        // No token exists yet, so the preview lists the documents without
+        // their pages — the recipient's view is the same list plus the pages.
+        ...(sections.documents ? { documents: summary.documents } : {}),
       }
     : undefined;
 

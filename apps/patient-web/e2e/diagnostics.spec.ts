@@ -147,7 +147,8 @@ test("report detail shows values exactly as entered, the canonical unit alongsid
   const glucose = page.locator('[data-testid="dx-result"][data-analyte="fasting_glucose"]');
   await expect(glucose.getByTestId("dx-result-value")).toHaveText("6.1 mmol/L");
   // Entered in mmol/L: the mg/dL twin is shown beside it, never instead of it (H-35).
-  await expect(glucose.getByText(/= 109\.9\d* mg\/dL in the usual unit/)).toBeVisible();
+  // Glucose is shown to the nearest whole mg/dL: 6.1 mmol/L is 110, not 109.909.
+  await expect(glucose.getByText(/= 110 mg\/dL in the usual unit/)).toBeVisible();
 
   await expectNoValueBadge(page);
 });
@@ -163,7 +164,8 @@ test("the August report shows the lab's printed range as text and links to the t
 
 test("the analyte trend draws every point with the unit, a band from the printed range, a table, and the unconvertible value apart", async ({ page }) => {
   await openAs(page, "/reports/trends/hba1c");
-  await expect(page.getByRole("heading", { name: "HbA1c over time" })).toBeVisible();
+  // The heading carries the analyte's plain-language name, not just its code.
+  await expect(page.getByRole("heading", { name: /HbA1c.* over time/ })).toBeVisible();
 
   const chart = page.getByTestId("trend-chart");
   await expect(chart).toBeVisible();

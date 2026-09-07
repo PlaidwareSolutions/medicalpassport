@@ -80,6 +80,12 @@ function Details({ organization, editable, onSaved }: { organization: Organizati
     }
   }
 
+  // Same discipline as the PIN code: a field showing an inline error never
+  // leaves Save enabled. Posting anyway only turned a message the owner had
+  // already been given into a 400 from the server.
+  const pincodeInvalid = !!pincode && !/^\d{6}$/.test(pincode);
+  const phoneInvalid = !!phone.trim() && !PHONE_RE.test(phone.replace(/[\s-]/g, ""));
+
   return (
     <Card>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
@@ -96,11 +102,11 @@ function Details({ organization, editable, onSaved }: { organization: Organizati
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-md)" }}>
               <TextInput label="City" value={city} maxLength={100} onChange={(e) => setCity(e.target.value)} />
               <TextInput label="State" value={state} maxLength={100} onChange={(e) => setState(e.target.value)} />
-              <TextInput label="PIN code" inputMode="numeric" value={pincode} maxLength={6} onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))} error={pincode && !/^\d{6}$/.test(pincode) ? "6 digits" : undefined} />
+              <TextInput label="PIN code" inputMode="numeric" value={pincode} maxLength={6} onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))} error={pincodeInvalid ? "6 digits" : undefined} />
             </div>
-            <TextInput label="Organization phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={phone && !PHONE_RE.test(phone.replace(/[\s-]/g, "")) ? "With country code, e.g. +91…" : undefined} />
+            <TextInput label="Organization phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={phoneInvalid ? "With country code, e.g. +91…" : undefined} />
             {message ? <Banner tone={message.tone}>{message.text}</Banner> : null}
-            <Button onClick={() => void save()} loading={busy} disabled={busy || !displayName.trim() || (!!pincode && !/^\d{6}$/.test(pincode))}>
+            <Button onClick={() => void save()} loading={busy} disabled={busy || !displayName.trim() || pincodeInvalid || phoneInvalid} data-testid="save-organization">
               Save details
             </Button>
           </>
@@ -210,6 +216,11 @@ function Members() {
           rows={members}
           rowKey={(m) => m.id}
           emptyLabel="No members yet"
+          // On a phone the last two columns were squeezed off the edge with
+          // nothing to say the table went further. Let it be its own width
+          // and scroll, and say so while it is actually scrolling.
+          minWidth={640}
+          scrollHint="Scroll sideways for status, suspend and remove."
         />
       ) : null}
       <Card>

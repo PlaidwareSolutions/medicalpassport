@@ -487,7 +487,14 @@ export function isMorning(o: Pick<ObservationDto, "measuredAtLocal">): boolean |
   return clock ? clock.hour < 12 : null;
 }
 
-/** The trend bucket label a patient reads: a date for day/week, a month for month. */
+/**
+ * The trend bucket label a patient reads: a month for `month`, the seven
+ * days it covers for `week`, a date for `day`.
+ *
+ * A week bucket used to print only its first day, so a week and a single
+ * day were indistinguishable on the same axis — "6 Sep" could mean either.
+ * A week now reads as the range it is.
+ */
 export function bucketLabel(bucket: string, kind: TrendBucket, locale?: string): string {
   const lang = locale === "en" ? undefined : locale;
   if (kind === "month") {
@@ -495,7 +502,44 @@ export function bucketLabel(bucket: string, kind: TrendBucket, locale?: string):
     return new Date(Date.UTC(y!, (m ?? 1) - 1, 1)).toLocaleDateString(lang, { month: "short", year: "numeric", timeZone: "UTC" });
   }
   const [y, m, d] = bucket.split("-").map(Number);
-  return new Date(Date.UTC(y!, (m ?? 1) - 1, d ?? 1)).toLocaleDateString(lang, { day: "numeric", month: "short", timeZone: "UTC" });
+  const start = new Date(Date.UTC(y!, (m ?? 1) - 1, d ?? 1));
+  const dayMonth = { day: "numeric", month: "short", timeZone: "UTC" } as const;
+  if (kind !== "week") return start.toLocaleDateString(lang, dayMonth);
+  const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const startPart = start.getUTCMonth() === end.getUTCMonth() ? String(start.getUTCDate()) : start.toLocaleDateString(lang, dayMonth);
+  return `${startPart}–${end.toLocaleDateString(lang, dayMonth)}`;
+}
+
+/**
+ * Which x-values get a tick on a trend axis.
+ *
+ * Ticks used to be `[min, midpoint, max]` — arithmetic midpoints, not
+ * readings. Two values a month apart therefore rendered "Aug 26 / Aug 26 /
+ * Sept 26": the middle tick named an instant nothing was measured at, and
+ * at month precision it collided with a real one, so two different dates
+ * looked like the same date. Ticks are now real data points, and a label
+ * that would repeat one already on the axis is dropped rather than shown
+ * twice.
+ */
+export function axisTicks(xs: readonly number[], format: (x: number) => string, max = 3): number[] {
+  const sorted = [...new Set(xs)].sort((a, b) => a - b);
+  const picked =
+    sorted.length <= max
+      ? sorted
+      : [sorted[0]!, ...Array.from({ length: max - 2 }, (_, i) => sorted[Math.round(((i + 1) * (sorted.length - 1)) / (max - 1))]!), sorted[sorted.length - 1]!];
+
+  // Deduplication runs on every path, not only when points were dropped:
+  // two readings inside one month collide at month precision whether or not
+  // there were enough of them to sample.
+  const out: number[] = [];
+  const seen = new Set<string>();
+  for (const x of picked) {
+    const label = format(x);
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push(x);
+  }
+  return out;
 }
 
 /**

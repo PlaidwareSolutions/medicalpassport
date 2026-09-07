@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ApiError, type PatientMedicationDto } from "@medpass/api-client";
-import type { MessageKey } from "@medpass/localization";
+import { pluralKey, type MessageKey } from "@medpass/localization";
 import { formatDoseAmount } from "@medpass/medication-terminology";
 import { Banner, Button, Card, Chip, PillSpinner, SectionTitle, TextInput } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
@@ -398,7 +398,7 @@ function ProposalBody({ proposal, t, timezone }: { proposal: ProposalDto; t: Tra
           <strong style={{ overflowWrap: "anywhere" }}>{payload.medicineName}</strong>
           <span>{t("proposals.dispense_quantity", { quantity: payload.quantity, unit: payload.unit })}</span>
           <span>{t("proposals.dispense_on", { date: formatPatientDate(payload.dispensedAt, timezone) })}</span>
-          {payload.daysSupply ? <span>{t("proposals.dispense_days", { n: payload.daysSupply })}</span> : null}
+          {payload.daysSupply ? <span>{t(pluralKey(payload.daysSupply, "proposals.dispense_days_one", "proposals.dispense_days"), { n: payload.daysSupply })}</span> : null}
         </Card>
       );
     }
@@ -440,7 +440,7 @@ function instructionText(i: ProposedInstruction, t: Translate): string {
   const unit = t(`unit.${i.doseUnit}` as MessageKey);
   const parts = [`${formatDoseAmount(Number(i.doseQuantity))} ${unit}`, freq];
   if (i.foodInstruction) parts.push(t(`food.${i.foodInstruction}` as MessageKey));
-  if (i.durationDays) parts.push(t("proposals.for_days", { n: i.durationDays }));
+  if (i.durationDays) parts.push(t(pluralKey(i.durationDays, "proposals.for_days_one", "proposals.for_days"), { n: i.durationDays }));
   return parts.join(" · ");
 }
 

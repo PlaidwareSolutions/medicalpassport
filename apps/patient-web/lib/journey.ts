@@ -1,7 +1,11 @@
 "use client";
+import type { ObservationConcept } from "@medpass/domain";
+import type { MessageKey } from "@medpass/localization";
 import { api, getActiveProfileId } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
+import { formatAnalyteValue } from "./diagnostics";
 import type { ProvenanceSource, VerificationState } from "./health-timeline";
+import { formatObservationValue } from "./observations";
 
 /**
  * Treatment journey (docs_v2/06 P10) — the condition hub's data layer.
@@ -147,7 +151,31 @@ export function suggestionSubject(edge: ClinicalRelationshipDto): string {
   return edge.from.label ?? edge.from.key ?? "";
 }
 
-/** Trims a Prisma-ish number for display without ever rounding a clinical value away. */
-export function trimNumber(value: number): string {
-  return String(Math.round(value * 1000) / 1000);
+/**
+ * A tracked measure's value, rounded to what that measure deserves.
+ *
+ * This replaces a blanket three-decimal trim, which is right for a stored
+ * value and wrong for a shown one: a converted glucose read "140.542 mg/dL"
+ * on the condition hub. Nothing here changes the stored number or the
+ * window averages — only how many digits reach the screen.
+ */
+export function trackedMeasureValue(measure: Pick<TrackedMeasure, "kind" | "key">, value: number): string {
+  return measure.kind === "result" ? formatAnalyteValue(value, measure.key) : formatObservationValue(value, measure.key as ObservationConcept);
+}
+
+/**
+ * A tracked measure's name in the reader's language.
+ *
+ * The server sends `label` from the terminology tables, which are English:
+ * "HbA1c", "Blood glucose", "Body weight" were reaching a Hindi, Telugu or
+ * Urdu reader untranslated. The concepts are the same ones the measurements
+ * hub already translates (`measure.concept.*`), so those keys are reused
+ * rather than duplicated; lab analytes use `analyte.*`. The server's label
+ * remains the fallback for anything the dictionaries do not cover — an
+ * English name beats a missing one.
+ */
+export function trackedMeasureLabel(t: (key: MessageKey) => string, measure: Pick<TrackedMeasure, "kind" | "key" | "label">): string {
+  const key = (measure.kind === "result" ? `analyte.${measure.key}` : `measure.concept.${measure.key}`) as MessageKey;
+  const label = t(key);
+  return label === key ? measure.label : label;
 }

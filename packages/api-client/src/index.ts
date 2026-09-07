@@ -509,6 +509,12 @@ export interface SafetyFindingDto {
   explanationKey: string;
   detail: Record<string, unknown> | null;
   status: string;
+  /**
+   * The most recent action taken on this finding, or null if none.
+   * `status` cannot stand in for it: "Mark as resolved" and "This doesn't
+   * apply to me" both resolve the finding, and only the action says which.
+   */
+  lastAction: string | null;
   evaluatedAt: string;
 }
 
@@ -525,7 +531,13 @@ export interface VisitSummaryDto {
     prescriberName: string | null;
     startDate: string | null;
   }>;
-  recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
+  /**
+   * `change` is the raw kind (`created`, `status_changed`,
+   * `reconciled_continue`, …) — the app translates it; `statusTo` is the
+   * status a `status_changed` entry moved to, and the only piece of the
+   * change detail that crosses onto this payload.
+   */
+  recentChanges?: Array<{ medicationName: string; change: string; statusTo: string | null; occurredAt: string }>;
   unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
   glucoseReadings?: {
     readingCount: number;
@@ -570,7 +582,15 @@ export interface VisitSummaryDto {
     documentCount: number;
     medicationCount: number;
   }>;
-  /** Metadata only, same reasoning as prescriptions. */
+  /**
+   * V1 `MedicalReport` and V2 `DiagnosticReport` rows in one list, newest
+   * first. Metadata only, same reasoning as prescriptions.
+   *
+   * `kind` is whichever vocabulary the row came from — `blood_test`,
+   * `urine_test`, `discharge_summary` (V1) or `laboratory`, `echo`,
+   * `microbiology`, `genetics` (V2); they overlap on
+   * imaging/ecg/pathology/other and are otherwise disjoint.
+   */
   reports?: Array<{
     kind: string;
     label: string | null;
@@ -580,6 +600,47 @@ export interface VisitSummaryDto {
     notes: string | null;
     documentCount: number;
     values?: Array<{ label: string; enteredValue: string; unit: string | null; referenceText: string | null }>;
+  }>;
+  /**
+   * V2 Observation aggregates per concept over the last 30 days. Arithmetic
+   * only — count/min/max/average of what was recorded, in the concept's
+   * canonical unit, never an interpretation. Blood pressure carries both
+   * components in `value2`/`average2`.
+   */
+  measurements?: Array<{
+    concept: string;
+    label: string;
+    unit: string;
+    count: number;
+    latest: { value: string; value2: string | null; measuredAt: string; context: string | null } | null;
+    minimum: string | null;
+    maximum: string | null;
+    average: string | null;
+    average2: string | null;
+  }>;
+  /**
+   * V2 documents. The id is the one identifier allowed on this payload,
+   * because the recipient needs it for
+   * `public/shares/:token/documents/:id/pages/:n` — and it is useless
+   * without the token. Only present when the share chose `documents`.
+   */
+  documents?: Array<{
+    id: string;
+    kind: string;
+    title: string | null;
+    documentDate: string | null;
+    pageCount: number;
+    uploadedAt: string;
+  }>;
+  /** V2 encounters — visits and admissions, newest first. */
+  encounters?: Array<{
+    kind: string;
+    startedAt: string;
+    endedAt: string | null;
+    organizationName: string | null;
+    practitionerName: string | null;
+    reasonText: string | null;
+    diagnosisText: string | null;
   }>;
 }
 

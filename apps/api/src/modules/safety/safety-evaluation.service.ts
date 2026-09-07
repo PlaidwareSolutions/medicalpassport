@@ -120,20 +120,33 @@ export class SafetyEvaluationService {
     return { evaluationId: evaluation.id, findingCount: findings.length };
   }
 
-  /** Findings from a profile's most recent evaluation only (docs/13 §current state). */
+  /**
+   * Findings from a profile's most recent evaluation only (docs/13 §current
+   * state), each carrying the last action taken on it.
+   *
+   * `lastAction` exists because `status` alone loses a distinction the
+   * patient cares about: both "Mark as resolved" and "This doesn't apply to
+   * me" land on `resolved` (see `ACTION_TO_STATUS`), so a finding a patient
+   * waved away was being filed under "Resolved and reviewed" — copy that
+   * reads as if a professional had looked at it. The status stays as it is
+   * (it is what the Gate 3 false-positive count is built on); the action is
+   * what the screen words the outcome from.
+   */
   async currentFindings(profileId: string, status?: string) {
     const latest = await this.prisma.safetyEvaluation.findFirst({
       where: { patientProfileId: profileId },
       orderBy: { startedAt: "desc" },
     });
     if (!latest) return [];
-    return this.prisma.safetyFinding.findMany({
+    const findings = await this.prisma.safetyFinding.findMany({
       where: {
         evaluationId: latest.id,
         ...(status ? { status: status as never } : {}),
       },
       orderBy: [{ severity: "desc" }, { evaluatedAt: "desc" }],
+      include: { actions: { orderBy: { occurredAt: "desc" }, take: 1, select: { action: true } } },
     });
+    return findings.map(({ actions, ...f }) => ({ ...f, lastAction: actions[0]?.action ?? null }));
   }
 }
 

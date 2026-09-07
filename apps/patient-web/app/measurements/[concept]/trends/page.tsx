@@ -9,7 +9,7 @@ import { EmptyState } from "../../../../components/EmptyState";
 import { PageHeader } from "../../../../components/PageHeader";
 import { TrendChart, type TrendSeries } from "../../../../components/TrendChart";
 import { useI18n } from "../../../../lib/i18n";
-import { bucketLabel, conceptGlyph, isHubConcept, trimDecimal, useObservationTrend, type TrendPointDto } from "../../../../lib/observations";
+import { bucketLabel, conceptGlyph, formatObservationValue, isHubConcept, useObservationTrend, type TrendPointDto } from "../../../../lib/observations";
 
 /**
  * One concept's trend (docs_v2/05 §7, docs_v2/06 P5-3): 7d / 30d / 90d,
@@ -19,7 +19,7 @@ import { bucketLabel, conceptGlyph, isHubConcept, trimDecimal, useObservationTre
  * morning / evening split. Descriptive only: no band, no verdict (H-25).
  */
 export default function MeasurementTrendPage() {
-  const { t, locale } = useI18n();
+  const { t, tn, locale } = useI18n();
   const params = useParams<{ concept: string }>();
   const concept = isHubConcept(params.concept) ? params.concept : undefined;
   const [window, setWindow] = useState<TrendWindow>("30d");
@@ -36,7 +36,7 @@ export default function MeasurementTrendPage() {
 
   const unit = concept === "pain_score" ? "/10" : (trend?.unitDisplay ?? trend?.unit ?? "");
   const isBp = concept === "blood_pressure";
-  const fmt = (v: number | null) => (v == null ? "—" : trimDecimal(v));
+  const fmt = (v: number | null) => (v == null ? "—" : formatObservationValue(v, concept));
   const range = (p: Pick<TrendPointDto, "min" | "max" | "min2" | "max2">) =>
     isBp ? `${fmt(p.min)}/${fmt(p.min2)} – ${fmt(p.max)}/${fmt(p.max2)}` : `${fmt(p.min)} – ${fmt(p.max)}`;
   const avg = (p: Pick<TrendPointDto, "average" | "average2">) => (isBp ? `${fmt(p.average)}/${fmt(p.average2)}` : fmt(p.average));
@@ -51,7 +51,7 @@ export default function MeasurementTrendPage() {
       key: "primary",
       label: isBp ? t("measure.systolic_short") : t(`measure.concept.${concept}` as never),
       marker: "circle",
-      points: points.filter((p) => p.average != null).map((p) => ({ id: `${p.bucket}-1`, x: xOf(p.bucket), y: p.average!, label: `${trimDecimal(p.average)} ${unit} · ${bucketLabel(p.bucket, bucket, locale)}` })),
+      points: points.filter((p) => p.average != null).map((p) => ({ id: `${p.bucket}-1`, x: xOf(p.bucket), y: p.average!, label: `${formatObservationValue(p.average, concept)} ${unit} · ${bucketLabel(p.bucket, bucket, locale)}` })),
     },
     ...(isBp
       ? [
@@ -60,7 +60,7 @@ export default function MeasurementTrendPage() {
             label: t("measure.diastolic_short"),
             marker: "square" as const,
             dashed: true,
-            points: points.filter((p) => p.average2 != null).map((p) => ({ id: `${p.bucket}-2`, x: xOf(p.bucket), y: p.average2!, label: `${trimDecimal(p.average2)} ${unit} · ${bucketLabel(p.bucket, bucket, locale)}` })),
+            points: points.filter((p) => p.average2 != null).map((p) => ({ id: `${p.bucket}-2`, x: xOf(p.bucket), y: p.average2!, label: `${formatObservationValue(p.average2, concept)} ${unit} · ${bucketLabel(p.bucket, bucket, locale)}` })),
           },
         ]
       : []),
@@ -99,7 +99,7 @@ export default function MeasurementTrendPage() {
               series={series}
               unit={unit}
               formatX={(x) => new Date(x).toLocaleDateString(locale === "en" ? undefined : locale, { day: "numeric", month: "short", timeZone: "UTC" })}
-              ariaLabel={t("measure.chart_aria", { name: t(`measure.concept.${concept}` as never), count: points.length, unit })}
+              ariaLabel={tn(points.length, "measure.chart_aria_one", "measure.chart_aria", { name: t(`measure.concept.${concept}` as never), unit })}
               tableCaption={t("measure.table_caption", { name: t(`measure.concept.${concept}` as never), unit })}
               tableHeaders={[t("measure.col_bucket"), t("measure.col_count"), t("measure.col_average"), t("measure.col_range"), t("measure.col_morning"), t("measure.col_evening")]}
               tableRows={points.map((p) => ({
@@ -116,8 +116,8 @@ export default function MeasurementTrendPage() {
               <Stat label={t("measure.col_count")} value={String(trend.summary.count)} />
               <Stat label={t("measure.col_average")} value={`${avg(trend.summary)} ${unit}`} />
               <Stat label={t("measure.col_range")} value={`${range(trend.summary)} ${unit}`} />
-              <Stat label={t("measure.col_morning")} value={trend.summary.morning.count > 0 ? `${fmt(trend.summary.morning.average)} ${unit} · ${t("measure.n_readings", { count: trend.summary.morning.count })}` : "—"} />
-              <Stat label={t("measure.col_evening")} value={trend.summary.evening.count > 0 ? `${fmt(trend.summary.evening.average)} ${unit} · ${t("measure.n_readings", { count: trend.summary.evening.count })}` : "—"} />
+              <Stat label={t("measure.col_morning")} value={trend.summary.morning.count > 0 ? `${fmt(trend.summary.morning.average)} ${unit} · ${tn(trend.summary.morning.count, "measure.n_readings_one", "measure.n_readings")}` : "—"} />
+              <Stat label={t("measure.col_evening")} value={trend.summary.evening.count > 0 ? `${fmt(trend.summary.evening.average)} ${unit} · ${tn(trend.summary.evening.count, "measure.n_readings_one", "measure.n_readings")}` : "—"} />
             </div>
             <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>{t("measure.split_note")}</span>
           </Card>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@medpass/api-client";
+import { pluralKey } from "@medpass/localization";
 import { formatDoseAmount } from "@medpass/medication-terminology";
 import { Banner, Button, Card, Chip, PillSpinner, SectionTitle } from "@medpass/ui-web";
 import { AppShell } from "../../../components/AppShell";
@@ -37,7 +38,7 @@ function itemInstructionText(t: Translate, item: PrescriptionItemDto): string {
   if (item.frequencyCode === "PATTERN" && item.pattern) parts.push(item.pattern);
   else if (item.frequencyCode) parts.push(t(`frequency.${item.frequencyCode.toLowerCase()}` as never));
   if (item.foodInstruction) parts.push(t(`food.${item.foodInstruction}` as never));
-  if (item.durationDays) parts.push(t("rx.for_days" as never, { count: item.durationDays }));
+  if (item.durationDays) parts.push(t(pluralKey(item.durationDays, "rx.for_days_one", "rx.for_days") as never, { count: item.durationDays }));
   return parts.join(" · ");
 }
 
@@ -48,7 +49,7 @@ function itemInstructionText(t: Translate, item: PrescriptionItemDto): string {
  * the filed pages, and the medicines it substantiates.
  */
 export default function PrescriptionDetailPage() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const timezone = useActiveTimezone();
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -168,7 +169,7 @@ export default function PrescriptionDetailPage() {
   const spoken = [
     prescription.practitionerName ?? t("prescriptions.unnamed_doctor"),
     prescription.diagnosisText ?? "",
-    t("rx.lines_count", { count: items.length }),
+    tn(items.length, "rx.lines_count_one", "rx.lines_count"),
   ]
     .filter(Boolean)
     .join(". ");

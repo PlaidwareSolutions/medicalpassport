@@ -1,4 +1,5 @@
 "use client";
+import { pluralKey } from "@medpass/localization";
 import Link from "next/link";
 import { Button, Card, SectionTitle } from "@medpass/ui-web";
 import { useHealthTimelineSummary } from "../lib/health-timeline";
@@ -18,12 +19,13 @@ export function MyHealthCard() {
   const { t } = useI18n();
   const timezone = useActiveTimezone();
   const { summary } = useHealthTimelineSummary();
+  // Counted nouns need both forms: the card read "1 medicines".
 
   const tiles: Array<{ key: string; href: string; glyph: GuideGlyphName; label: string; count: number; countLabel: string }> = [
-    { key: "health", href: "/health", glyph: "timeline", label: t("home.tile.health"), count: summary?.medicines?.active ?? 0, countLabel: t("health.summary.medicines") },
-    { key: "documents", href: "/documents", glyph: "document", label: t("home.tile.documents"), count: summary?.documents ?? 0, countLabel: t("health.summary.documents") },
-    { key: "tests", href: "/reports", glyph: "report", label: t("home.tile.tests"), count: summary?.tests ?? 0, countLabel: t("health.summary.tests") },
-    { key: "measurements", href: "/measurements", glyph: "pulse", label: t("home.tile.measurements"), count: summary?.measurements ?? 0, countLabel: t("health.summary.measurements") },
+    { key: "health", href: "/health", glyph: "timeline", label: t("home.tile.health"), count: summary?.medicines?.active ?? 0, countLabel: t(pluralKey(summary?.medicines?.active ?? 0, "health.summary.medicines_one", "health.summary.medicines")) },
+    { key: "documents", href: "/documents", glyph: "document", label: t("home.tile.documents"), count: summary?.documents ?? 0, countLabel: t(pluralKey(summary?.documents ?? 0, "health.summary.documents_one", "health.summary.documents")) },
+    { key: "tests", href: "/reports", glyph: "report", label: t("home.tile.tests"), count: summary?.tests ?? 0, countLabel: t(pluralKey(summary?.tests ?? 0, "health.summary.tests_one", "health.summary.tests")) },
+    { key: "measurements", href: "/measurements", glyph: "pulse", label: t("home.tile.measurements"), count: summary?.measurements ?? 0, countLabel: t(pluralKey(summary?.measurements ?? 0, "health.summary.measurements_one", "health.summary.measurements")) },
     { key: "family", href: "/family", glyph: "family", label: t("home.tile.family"), count: 0, countLabel: "" },
   ];
 
@@ -49,19 +51,28 @@ export function MyHealthCard() {
                   minHeight: "var(--size-touch)",
                   display: "flex",
                   alignItems: "center",
-                  gap: "var(--space-sm)",
+                  gap: "var(--space-xs)",
                   padding: "var(--space-sm)",
                   border: "1px solid var(--color-border)",
                   borderRadius: "var(--radius)",
                 }}
               >
+                {/* A smaller mark and a tighter gap: at 390px the two-column
+                    grid left ~110px for the label, and "Measurements" broke
+                    across lines as "Measurement / s". */}
                 <span style={{ color: "var(--color-primary)" }} aria-hidden="true">
-                  <GuideGlyph name={x.glyph} size="md" />
+                  <GuideGlyph name={x.glyph} size="sm" />
                 </span>
-                <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
-                  <strong style={{ display: "block" }}>{x.label}</strong>
+                <span style={{ minWidth: 0 }}>
+                  {/* `overflow-wrap: anywhere` belongs on the count line, not
+                      on a label: a word split mid-word is unreadable, and a
+                      hyphen at a real syllable break is not. */}
+                  {/* "normal" kept "Measurements" whole at phone size but overflowed the
+                      tile at 320px with text doubled (the reflow gate). "break-word"
+                      breaks a word only when it cannot fit its line, which is both. */}
+                  <strong style={{ display: "block", overflowWrap: "break-word", hyphens: "auto" }}>{x.label}</strong>
                   {x.count > 0 ? (
-                    <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
+                    <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)", overflowWrap: "anywhere" }}>
                       {x.count} {x.countLabel}
                     </span>
                   ) : null}

@@ -90,7 +90,12 @@ export class AbdmImportService {
         data: {
           patientProfileId: profileId,
           kind: HI_TYPE_KIND[bundle.hiType] ?? "other",
-          title: `ABDM ${bundle.hiType} (${fetched.igVersion ? `IG ${fetched.igVersion}` : "FHIR"})`,
+          // No title: a FHIR bundle has no human-written one, and the
+          // importer's own audit string ("ABDM Prescription (IG 6.5)") was
+          // being shown to patients as if it were. The HI type and IG
+          // version are on the AbdmDataBundle row and in the audit context
+          // where they belong; clients name the document from its kind.
+          title: null,
           documentDate: now,
           status: "processed",
           classification: HI_TYPE_KIND[bundle.hiType] ?? "other",

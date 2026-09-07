@@ -76,7 +76,7 @@ const CLASSIFY_TIMEOUT_MS = 90_000;
  * since the classifier's guess can't be shown without a server.
  */
 function NewDocumentFlow() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const presetKind = chooserKindFor(searchParams.get("kind"));
@@ -143,7 +143,7 @@ function NewDocumentFlow() {
         channel,
       });
     }
-    if (rejected > 0) setError(t("documents.file_rejected", { n: rejected }));
+    if (rejected > 0) setError(tn(rejected, "documents.file_rejected_one", "documents.file_rejected"));
     setPages((prev) => [...prev, ...next].slice(0, MAX_DOCUMENT_PAGES));
   }
 
@@ -334,7 +334,7 @@ function NewDocumentFlow() {
 
           {pages.length > 0 ? (
             <>
-              <SectionTitle>{t("documents.pages_title", { n: pages.length })}</SectionTitle>
+              <SectionTitle>{tn(pages.length, "documents.pages_title_one", "documents.pages_title")}</SectionTitle>
               <ol style={{ listStyle: "none", padding: 0, margin: "0 0 var(--space-md)", display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 {pages.map((p, index) => (
                   <li key={p.key} data-testid="captured-page">
@@ -385,7 +385,7 @@ function NewDocumentFlow() {
 
           <div style={{ marginTop: "var(--space-lg)", display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
             <Button fullWidth disabled={pages.length === 0} onClick={() => void upload()}>
-              {pages.length > 1 ? t("documents.upload_pages", { n: pages.length }) : t("documents.upload_page")}
+              {pages.length > 1 ? tn(pages.length, "documents.upload_pages_one", "documents.upload_pages") : t("documents.upload_page")}
             </Button>
             <Link href="/documents" style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
               {t("documents.back_to_list")}

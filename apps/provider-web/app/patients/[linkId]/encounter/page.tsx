@@ -80,7 +80,7 @@ function EncounterForm({ linkId }: { linkId: string }) {
       }}
       style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
     >
-      <ChoiceGrid label="Kind of visit" columns={2} choices={KINDS.map((k) => ({ value: k.value, label: k.label }))} value={kind} onChange={setKind} />
+      <ChoiceGrid label="Kind of visit" columns={2} minItemWidth={160} choices={KINDS.map((k) => ({ value: k.value, label: k.label }))} value={kind} onChange={setKind} />
       <TextInput label="Visit date and time" type="datetime-local" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} error={startedAt && !startedIso ? "Not a valid date" : undefined} />
       <TextInput label="Doctor seen (optional)" maxLength={120} value={practitionerName} onChange={(e) => setPractitionerName(e.target.value)} />
       <TextInput label="Reason for the visit (optional)" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />

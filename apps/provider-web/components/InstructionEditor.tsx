@@ -81,6 +81,7 @@ export function InstructionEditor({
       <ChoiceGrid
         label={`${namePrefix}: how much each time`}
         columns={5}
+        minItemWidth={72}
         choices={[...DOSE_CHOICES.map((d) => ({ value: d, label: d })), { value: OTHER, label: "Other" }]}
         value={doseChoice}
         onChange={setDoseChoice}
@@ -91,6 +92,7 @@ export function InstructionEditor({
       <ChoiceGrid
         label={`${namePrefix}: form`}
         columns={4}
+        minItemWidth={150}
         choices={DOSE_UNITS.map((u) => ({ value: u, label: DOSE_UNIT_LABELS[u] }))}
         value={doseUnit}
         onChange={setDoseUnit}
@@ -98,6 +100,7 @@ export function InstructionEditor({
       <ChoiceGrid
         label={`${namePrefix}: how often`}
         columns={3}
+        minItemWidth={170}
         choices={FREQUENCY_CODES.map((f) => ({ value: f, label: FREQUENCY_LABELS[f] }))}
         value={frequency}
         onChange={setFrequency}
@@ -112,10 +115,11 @@ export function InstructionEditor({
           onChange={(e) => setPattern(e.target.value)}
         />
       ) : null}
-      <ChoiceGrid label={`${namePrefix}: with food`} columns={5} choices={FOOD_INSTRUCTIONS.map((f) => ({ value: f, label: FOOD_LABELS[f] }))} value={food} onChange={setFood} />
+      <ChoiceGrid label={`${namePrefix}: with food`} columns={5} minItemWidth={130} choices={FOOD_INSTRUCTIONS.map((f) => ({ value: f, label: FOOD_LABELS[f] }))} value={food} onChange={setFood} />
       <ChoiceGrid
         label={`${namePrefix}: for how long`}
         columns={4}
+        minItemWidth={110}
         choices={DURATION_CHOICES.map((d) => ({ value: d, label: d === "ongoing" ? "Ongoing" : d === OTHER ? "Other" : `${d} days` }))}
         value={durationChoice}
         onChange={setDurationChoice}

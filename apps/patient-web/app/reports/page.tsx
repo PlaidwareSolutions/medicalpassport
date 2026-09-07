@@ -18,7 +18,7 @@ import { useProfileAccess } from "../../lib/scopes";
  * exist yet (an older API), never merged.
  */
 export default function ReportsHubPage() {
-  const { t, locale } = useI18n();
+  const { t, locale, tn } = useI18n();
   const { items, unavailable, error } = useDiagnosticReports();
   const canUpload = useProfileAccess().can("upload_tests");
 
@@ -63,7 +63,7 @@ export default function ReportsHubPage() {
                     {r.facilityNameText ? ` · ${r.facilityNameText}` : ""}
                   </div>
                   <div style={{ display: "flex", gap: "var(--space-xs)", flexWrap: "wrap" }}>
-                    {r.resultCount > 0 ? <Chip>{t("dx.result_count", { count: r.resultCount })}</Chip> : null}
+                    {r.resultCount > 0 ? <Chip>{tn(r.resultCount, "dx.result_count_one", "dx.result_count")}</Chip> : null}
                     {r.modality ? <Chip>{t(`dx.modality.${r.modality}` as never)}</Chip> : null}
                     <TrustBadge verification={r.verification} provenanceSource={r.provenanceSource} />
                   </div>
@@ -79,7 +79,7 @@ export default function ReportsHubPage() {
 
 /** Screen 44 (docs/07): the V1 archive, unchanged — the fallback for an API without diagnostics. */
 function LegacyReportsList() {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const { items, error } = useReports();
   return (
     <AppShell>
@@ -111,7 +111,7 @@ function LegacyReportsList() {
                   {r.facilityName ? ` · ${r.facilityName}` : ""}
                 </div>
                 <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)", flexWrap: "wrap" }}>
-                  <Chip>{t("reports.document_count", { count: r.documentCount })}</Chip>
+                  <Chip>{tn(r.documentCount, "reports.document_count_one", "reports.document_count")}</Chip>
                 </div>
               </Card>
             </Link>

@@ -21,6 +21,7 @@ import {
   fieldLabelKey,
   groupTitle,
   invalidateMaterializedData,
+  isAbdmImported,
   materializeExtraction,
   processDocument,
   rejectCandidate,
@@ -410,7 +411,13 @@ export default function ReviewDocumentPage() {
         return (
           <section key={gid} aria-label={groupTitle(g, t, corrections)} data-testid="candidate-group" data-entity={g.targetEntity} style={{ marginBottom: "var(--space-lg)" }}>
             <SectionTitle>{groupTitle(g, t, corrections)}</SectionTitle>
-            <PageCrop src={page?.downloadUrl ?? null} box={focused.boundingBox} pageNumber={focused.pageNumber} contentType={page?.contentType} />
+            <PageCrop
+              src={page?.downloadUrl ?? null}
+              box={focused.boundingBox}
+              pageNumber={focused.pageNumber}
+              contentType={page?.contentType}
+              noPagesReason={isAbdmImported(doc) ? t("documents.abdm_no_pages") : undefined}
+            />
 
             {g.targetEntity === "diagnostic_result" ? (
               <p style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)", margin: "var(--space-sm) 0 0" }}>{t("documents.lab_unit_note")}</p>

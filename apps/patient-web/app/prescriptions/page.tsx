@@ -73,7 +73,7 @@ export default function PrescriptionsPage() {
 }
 
 function DoctorGroup({ name, prescriptions }: { name: string; prescriptions: PrescriptionDto[] }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const regionId = useId();
   const [expanded, setExpanded] = useState(false);
 
@@ -89,7 +89,7 @@ function DoctorGroup({ name, prescriptions }: { name: string; prescriptions: Pre
         >
           <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
           <strong style={{ flex: 1 }}>{name}</strong>
-          <Chip>{t("prescriptions.count", { count: prescriptions.length })}</Chip>
+          <Chip>{tn(prescriptions.length, "prescriptions.count_one", "prescriptions.count")}</Chip>
         </button>
       </Card>
       {expanded ? (
@@ -102,8 +102,8 @@ function DoctorGroup({ name, prescriptions }: { name: string; prescriptions: Pre
               <Card>
                 <strong>{p.prescribedAt ? formatCalendarDate(p.prescribedAt) : t("prescriptions.no_date")}</strong>
                 <div style={{ display: "flex", gap: "var(--space-xs)", marginTop: "var(--space-xs)", flexWrap: "wrap" }}>
-                  <Chip>{t("prescriptions.document_count", { count: p.documentCount })}</Chip>
-                  <Chip>{t("prescriptions.medication_count", { count: p.medicationCount })}</Chip>
+                  <Chip>{tn(p.documentCount, "prescriptions.document_count_one", "prescriptions.document_count")}</Chip>
+                  <Chip>{tn(p.medicationCount, "prescriptions.medication_count_one", "prescriptions.medication_count")}</Chip>
                 </div>
               </Card>
             </Link>

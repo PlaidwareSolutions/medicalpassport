@@ -15,7 +15,25 @@ const WINDOW_HEIGHT = 200;
  * expands it. Nothing here decodes or re-encodes the image: the original
  * pixels are exactly what the patient sees (docs_v2/09 §1 rule 1).
  */
-export function PageCrop({ src, box, pageNumber, contentType }: { src: string | null; box: BoundingBox | null; pageNumber: number | null; contentType?: string | null }) {
+export function PageCrop({
+  src,
+  box,
+  pageNumber,
+  contentType,
+  noPagesReason,
+}: {
+  src: string | null;
+  box: BoundingBox | null;
+  pageNumber: number | null;
+  contentType?: string | null;
+  /**
+   * Why there is no image to crop, when that is a fact about the document
+   * rather than a failure — an ABDM bundle arrives as data and never had a
+   * photograph. Without it, "This page can't be shown right now" claims a
+   * transient problem that will never resolve.
+   */
+  noPagesReason?: string;
+}) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [ratio, setRatio] = useState<number | null>(null);
@@ -43,7 +61,7 @@ export function PageCrop({ src, box, pageNumber, contentType }: { src: string | 
             {t("documents.open_pdf_page", { n: pageNumber ?? 1 })}
           </a>
         ) : (
-          t("documents.page_unavailable")
+          (noPagesReason ?? t("documents.page_unavailable"))
         )}
       </div>
     );

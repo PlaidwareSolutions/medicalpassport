@@ -168,7 +168,8 @@ test("Home shows the 'My health' summary card once the timeline has counts, link
   await openAs(page, "/");
   const card = page.getByTestId("my-health-card");
   await expect(card).toBeVisible();
-  await expect(card).toContainText(/1 medicines/);
+  // One medicine reads as one medicine.
+  await expect(card).toContainText(/1 medicine(?!s)/);
   await card.getByRole("button", { name: "See my health timeline" }).click();
   await expect(page).toHaveURL(/\/health$/);
 

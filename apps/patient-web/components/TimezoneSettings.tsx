@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ApiError } from "@medpass/api-client";
 import { DEFAULT_TIMEZONE } from "@medpass/domain";
 import { Banner, Button, Card, ChoiceGrid, SectionTitle } from "@medpass/ui-web";
-import { deviceTimeZone } from "../lib/patient-time";
+import { deviceTimeZone, timeZoneLabel } from "../lib/patient-time";
 import { useI18n } from "../lib/i18n";
 import { updateProfile } from "../lib/profiles";
 import { useSession } from "../lib/session";
@@ -20,7 +20,7 @@ import { ReadAloud } from "./ReadAloud";
  * this app's.
  */
 export function TimezoneSettings() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { profiles, activeProfileId, refresh } = useSession();
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
 
@@ -36,7 +36,7 @@ export function TimezoneSettings() {
   const choices = [
     { value: DEFAULT_TIMEZONE, label: t("tz.option_india") },
     ...(deviceZone && deviceZone !== DEFAULT_TIMEZONE
-      ? [{ value: deviceZone, label: t("tz.option_device", { zone: deviceZone }) }]
+      ? [{ value: deviceZone, label: t("tz.option_device", { zone: timeZoneLabel(deviceZone, locale) }) }]
       : []),
     { value: "__other__", label: t("tz.option_other") },
   ];
@@ -71,7 +71,7 @@ export function TimezoneSettings() {
       <Card>
         {error ? <Banner tone="danger">{error}</Banner> : null}
         <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-          {t("tz.current", { zone: current })}
+          {t("tz.current", { zone: timeZoneLabel(current, locale) })}
         </span>
 
         {pendingZone ? (
@@ -121,7 +121,9 @@ export function TimezoneSettings() {
                   >
                     {Intl.supportedValuesOf("timeZone").map((zone) => (
                       <option key={zone} value={zone}>
-                        {zone}
+                        {/* The identifier stays beside the name: a long
+                            picker is searched by city, not by zone name. */}
+                        {timeZoneLabel(zone, locale)} — {zone}
                       </option>
                     ))}
                   </select>

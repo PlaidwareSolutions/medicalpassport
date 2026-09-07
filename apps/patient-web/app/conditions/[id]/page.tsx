@@ -15,7 +15,8 @@ import {
   dismissSuggestion,
   suggestionQuestionKey,
   suggestionSubject,
-  trimNumber,
+  trackedMeasureLabel,
+  trackedMeasureValue,
   useConditionJourney,
   type BeforeAfterDto,
   type BeforeAfterWindow,
@@ -169,9 +170,9 @@ export default function ConditionHubPage() {
                     <GuideGlyph name={measure.kind === "result" ? "report" : "pulse"} size="md" />
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <strong>{measure.label}</strong>
+                    <strong>{trackedMeasureLabel(t, measure)}</strong>
                     <div style={{ fontSize: "var(--font-large)" }}>
-                      {measure.latest ? `${trimNumber(measure.latest.value)}${measure.unitDisplay ? ` ${measure.unitDisplay}` : ""}` : "—"}
+                      {measure.latest ? `${trackedMeasureValue(measure, measure.latest.value)}${measure.unitDisplay ? ` ${measure.unitDisplay}` : ""}` : "—"}
                     </div>
                     <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                       {measure.latest ? formatCalendarDate(measure.latest.at) : t("journey.no_readings")}
@@ -265,18 +266,18 @@ export default function ConditionHubPage() {
  * the block a reader is most likely to screenshot on its own.
  */
 function BeforeAfterCard({ view }: { view: BeforeAfterDto }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const unit = view.measure.unitDisplay ?? view.measure.unit ?? "";
   const valueOf = (w: BeforeAfterWindow) => {
     if (w.average === null) return t("journey.window_no_readings");
-    const primary = trimNumber(w.average);
-    const both = w.average2 === null ? primary : `${primary}/${trimNumber(w.average2)}`;
+    const primary = trackedMeasureValue(view.measure, w.average);
+    const both = w.average2 === null ? primary : `${primary}/${trackedMeasureValue(view.measure, w.average2)}`;
     return unit ? `${both} ${unit}` : both;
   };
 
   return (
     <Card>
-      <strong>{t("journey.before_after_heading", { medicine: view.medication.enteredName, measure: view.measure.label })}</strong>
+      <strong>{t("journey.before_after_heading", { medicine: view.medication.enteredName, measure: trackedMeasureLabel(t, view.measure) })}</strong>
       <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
         {t("journey.started_on", { date: formatCalendarDate(view.medication.startDate) })}
       </span>
@@ -288,7 +289,7 @@ function BeforeAfterCard({ view }: { view: BeforeAfterDto }) {
               <span style={{ display: "block", color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
                 {t("journey.window_dates", { from: formatCalendarDate(w.from), to: formatCalendarDate(w.to) })}
                 {" · "}
-                {t("journey.window_count", { count: String(w.count) })}
+                {tn(w.count, "journey.window_count_one", "journey.window_count")}
               </span>
             </dt>
             <dd style={{ margin: 0, fontSize: "var(--font-large)", whiteSpace: "nowrap" }}>{valueOf(w)}</dd>

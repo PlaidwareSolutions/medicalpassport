@@ -5,9 +5,11 @@ import { Banner, Button, Card, ChoiceGrid, TextInput } from "@medpass/ui-web";
 import { api, newIdempotencyKey } from "../lib/api";
 import { errorMessage } from "../lib/hooks";
 import {
+  currentInstructionLabel,
   EXISTING_DECISIONS,
   instructionSummary,
   lineKey,
+  parseInstruction,
   splitForReview,
   stopLinesCarryNoInstruction,
   toPayloadLines,
@@ -34,7 +36,13 @@ function initialLines(medications: readonly SnapshotMedication[]): EditorLine[] 
     .filter((m): m is SnapshotMedication & { patientMedicationId: string } => typeof m.patientMedicationId === "string")
     .map((m) => ({
       kind: "existing",
-      medicine: { patientMedicationId: m.patientMedicationId, name: m.name, strengthLabel: m.strengthLabel, instructionSummary: m.instructionSummary },
+      medicine: {
+        patientMedicationId: m.patientMedicationId,
+        name: m.name,
+        strengthLabel: m.strengthLabel,
+        instructionSummary: m.instructionSummary,
+        instruction: parseInstruction(m.instruction),
+      },
     }));
 }
 
@@ -142,8 +150,8 @@ export function TransitionEditor({
                   {line.kind === "new"
                     ? `START · ${instructionSummary(line.instruction)}`
                     : line.decision === "CHANGE"
-                      ? `CHANGE · ${instructionSummary(line.instruction)} (was ${line.medicine.instructionSummary || "unspecified"})`
-                      : `CONTINUE · ${line.medicine.instructionSummary || "as now"}`}
+                      ? `CHANGE · ${instructionSummary(line.instruction)} (was ${currentInstructionLabel(line.medicine) || "unspecified"})`
+                      : `CONTINUE · ${currentInstructionLabel(line.medicine) || "as now"}`}
                 </span>
                 {line.reasonText ? <span style={{ fontSize: "var(--font-small)" }}>Reason: {line.reasonText}</span> : null}
               </Card>
@@ -218,11 +226,12 @@ export function TransitionEditor({
                   <div>
                     <strong>{line.medicine.name}</strong>
                     {line.medicine.strengthLabel ? <span style={{ marginLeft: "var(--space-xs)" }}>{line.medicine.strengthLabel}</span> : null}
-                    <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>Now: {line.medicine.instructionSummary || "no instruction recorded"}</div>
+                    <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>Now: {currentInstructionLabel(line.medicine) || "no instruction recorded"}</div>
                   </div>
                   <ChoiceGrid
                     label={`Decision: ${line.medicine.name}`}
                     columns={3}
+                    minItemWidth={150}
                     choices={EXISTING_DECISIONS.map((d) => ({ value: d, label: DECISION_LABELS[d], description: DECISION_HELP[d] }))}
                     value={line.decision}
                     onChange={(decision) =>

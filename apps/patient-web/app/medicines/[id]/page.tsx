@@ -141,7 +141,10 @@ export default function MedicineDetailPage() {
         ) : null}
         {medication.quantityOnHand != null ? (
           <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
-            {t("meds.quantity_remaining", { count: medication.quantityOnHand, unit: medication.instruction?.doseUnit ?? "" })}
+            {t("meds.quantity_remaining", {
+              count: medication.quantityOnHand,
+              unit: medication.instruction ? t(`unit.${medication.instruction.doseUnit}` as never) : t("refill.unit_generic"),
+            })}
           </div>
         ) : null}
       </Card>

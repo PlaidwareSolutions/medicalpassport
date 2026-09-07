@@ -1,6 +1,7 @@
 "use client";
 import { useId, useState, type ReactNode } from "react";
 import { useI18n } from "../lib/i18n";
+import { axisTicks } from "../lib/observations";
 
 /**
  * The one trend chart (docs_v2/06 P4-4/P5-3, docs_v2/10 H-39): a line per
@@ -89,7 +90,10 @@ export function TrendChart({
   const sy = (y: number) => PAD.top + plotH - ((y - yMin) / (yMax - yMin || 1)) * plotH;
 
   const ticks = [0, 1, 2, 3, 4].map((i) => yMin + ((yMax - yMin) * i) / 4);
-  const xTicks = xs.length === 0 ? [] : xMax === xMin ? [xMin] : [xMin, xMin + (xMax - xMin) / 2, xMax];
+  // Ticks name real readings, and never twice with the same words — see
+  // `axisTicks`. The old [min, midpoint, max] rendered two HbA1c values a
+  // month apart as "Aug 26 / Aug 26 / Sept 26".
+  const xTicks = axisTicks(xs, formatX);
 
   const activePoint = active ? series[active.series]?.points[active.index] : undefined;
 
@@ -138,7 +142,7 @@ export function TrendChart({
               x={sx(x)}
               y={H - PAD.bottom + 18}
               fontSize="12"
-              textAnchor={i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}
+              textAnchor={xTicks.length === 1 ? "middle" : i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"}
               fill="var(--color-text-muted)"
             >
               {formatX(x)}

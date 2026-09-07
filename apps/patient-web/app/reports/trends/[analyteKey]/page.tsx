@@ -6,7 +6,7 @@ import { AppShell } from "../../../../components/AppShell";
 import { EmptyState } from "../../../../components/EmptyState";
 import { PageHeader } from "../../../../components/PageHeader";
 import { TrendChart, type TrendBand } from "../../../../components/TrendChart";
-import { referenceRangeText, useResultTrend } from "../../../../lib/diagnostics";
+import { analyteLabel, formatAnalyteValue, referenceRangeText, useResultTrend } from "../../../../lib/diagnostics";
 import { useI18n } from "../../../../lib/i18n";
 import { formatCalendarDate } from "../../../../lib/patient-time";
 
@@ -20,7 +20,7 @@ import { formatCalendarDate } from "../../../../lib/patient-time";
  * flagged by its value.
  */
 export default function ResultTrendPage() {
-  const { t, locale } = useI18n();
+  const { t, locale, tn } = useI18n();
   const params = useParams<{ analyteKey: string }>();
   const { trend, error } = useResultTrend(params.analyteKey);
 
@@ -40,6 +40,9 @@ export default function ResultTrendPage() {
   }
 
   const unit = trend.canonicalUnitDisplay ?? trend.canonicalUnit ?? "";
+  // The analyte's name in the reader's language; the picker keeps English
+  // on purpose (docs/34), a heading about the patient's own record does not.
+  const name = analyteLabel(t, trend.analyteKey, trend.label);
   /** A stored unit code as printed: the canonical display, else the allowed-unit table, else the code itself. */
   const unitOf = (code: string | null) => (code ? (code === trend.canonicalUnit ? unit : (trend.allowedEnteredUnits.find((u) => u.unit === code)?.display ?? code)) : "");
   const latestWithRange = [...trend.points].reverse().find((p) => p.referenceLow != null || p.referenceHigh != null);
@@ -54,7 +57,7 @@ export default function ResultTrendPage() {
 
   return (
     <AppShell>
-      <PageHeader title={t("trend.title", { name: trend.label })} readAloud={[{ audio: "screen.result_trend" }]} />
+      <PageHeader title={t("trend.title", { name })} readAloud={[{ audio: "screen.result_trend" }]} />
 
       {trend.points.length === 0 && trend.unconvertible.length === 0 ? (
         <EmptyState glyph="report" titleKey="reports.history_empty_title" bodyKey="trend.empty_body" cta={{ labelKey: "reports.add", href: "/reports/new" }} />
@@ -66,7 +69,7 @@ export default function ResultTrendPage() {
             series={[
               {
                 key: trend.analyteKey,
-                label: trend.label,
+                label: name,
                 marker: "circle",
                 points: trend.points.map((p) => ({
                   id: p.resultId,
@@ -78,16 +81,16 @@ export default function ResultTrendPage() {
             ]}
             unit={unit}
             band={band}
-            formatX={(x) => new Date(x).toLocaleDateString(locale === "en" ? undefined : locale, { month: "short", year: "2-digit", timeZone: "UTC" })}
-            ariaLabel={t("trend.chart_aria", { name: trend.label, count: trend.points.length, unit })}
-            tableCaption={t("trend.table_caption", { name: trend.label, unit })}
+            formatX={(x) => new Date(x).toLocaleDateString(locale === "en" ? undefined : locale, { day: "numeric", month: "short", year: "2-digit", timeZone: "UTC" })}
+            ariaLabel={tn(trend.points.length, "trend.chart_aria_one", "trend.chart_aria", { name, unit })}
+            tableCaption={t("trend.table_caption", { name, unit })}
             tableHeaders={[t("trend.col_date"), t("trend.col_entered"), t("trend.col_canonical", { unit }), t("trend.col_range"), t("trend.col_report")]}
             tableRows={trend.points.map((p) => ({
               id: p.resultId,
               cells: [
                 dateOf(p.at),
                 `${p.comparator ?? ""}${p.enteredValueText}${p.enteredUnit ? ` ${unitOf(p.enteredUnit)}` : ""}`,
-                `${p.value} ${unit}`,
+                `${formatAnalyteValue(p.value, trend.analyteKey)} ${unit}`,
                 [referenceRangeText(p) ?? "", p.interpretation ? t("dx.lab_flag", { flag: t(`dx.interpretation.${p.interpretation}` as never) }) : ""]
                   .filter(Boolean)
                   .join(" · ") || "—",

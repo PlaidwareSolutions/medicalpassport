@@ -1,9 +1,11 @@
 "use client";
 import { ApiError } from "@medpass/api-client";
 import type { DiagnosticReportKind, DiagnosticReportStatus, ImagingModality, ObservationInterpretation, ResultComparator } from "@medpass/domain";
+import type { MessageKey } from "@medpass/localization";
 import { api, getActiveProfileId } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
 import { invalidateHealthTimeline, type ProvenanceSource, type VerificationState } from "./health-timeline";
+import { magnitudeDecimals, roundForDisplay } from "./observations";
 
 /**
  * Diagnostics (docs_v2/04 §6, docs_v2/06 P4-4): labs and imaging in one
@@ -334,4 +336,80 @@ export function analyteUnitDisplay(analytes: readonly AnalyteTerminologyDto[] | 
   const analyte = analytes?.find((a) => a.key === analyteKey);
   if (analyte?.canonicalUnit === unit && analyte.canonicalUnitDisplay) return analyte.canonicalUnitDisplay;
   return analyte?.allowedEnteredUnits.find((u) => u.unit === unit)?.display ?? unit;
+}
+
+/**
+ * How many decimals a converted lab value is shown with.
+ *
+ * Same rule as the measurement side (see `CONCEPT_DECIMALS` in
+ * observations.ts): the stored value keeps every digit the conversion
+ * produced, and the entered value is always shown verbatim beside it
+ * (H-35); this only decides how the canonical twin is *printed*. An HbA1c
+ * of 7.2749 % is reported by every lab in India to one decimal, so
+ * "= 7.275 % in the usual unit" invents precision the result never had.
+ *
+ * Analytes not listed fall back to magnitude, which keeps small values
+ * (creatinine 0.94 mg/dL) intact while rounding large ones (a cholesterol
+ * in the hundreds) to whole numbers.
+ */
+const ANALYTE_DECIMALS: Record<string, number> = {
+  hba1c: 1,
+  fasting_glucose: 0,
+  post_prandial_glucose: 0,
+  total_cholesterol: 0,
+  ldl_cholesterol: 0,
+  hdl_cholesterol: 0,
+  triglycerides: 0,
+  urea: 0,
+  wbc_total: 0,
+  platelet_count: 0,
+  esr: 0,
+  vitamin_b12: 0,
+  vitamin_d: 1,
+  hemoglobin: 1,
+  hematocrit: 1,
+  uric_acid: 1,
+  sodium: 1,
+  potassium: 1,
+  crp: 1,
+  sgpt_alt: 0,
+  sgot_ast: 0,
+  alkaline_phosphatase: 0,
+  total_protein: 1,
+  albumin: 1,
+  bilirubin_total: 2,
+  creatinine: 2,
+  rbc_count: 2,
+  tsh: 2,
+};
+
+/** The decimals one analyte's canonical value is printed with. */
+export function analyteDecimals(analyteKey: string, value: number): number {
+  return ANALYTE_DECIMALS[analyteKey] ?? magnitudeDecimals(value);
+}
+
+/** A converted lab value as a patient reads it — rounded to what the test deserves. */
+export function formatAnalyteValue(value: string | number | null | undefined, analyteKey: string): string {
+  if (value == null || value === "") return "";
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  return roundForDisplay(n, analyteDecimals(analyteKey, n));
+}
+
+/**
+ * The analyte's name for screens that are *not* the transcribe-off-the-paper
+ * picker.
+ *
+ * `REPORT_ANALYTES` keeps English labels on purpose (docs/34): the picker
+ * has to say exactly what the printed report says, or matching gets harder
+ * for the reader it claims to help. That reasoning does not reach the
+ * condition hub or a trend heading, where the name is the app describing
+ * the record back to the patient — so those get a translated label, and
+ * fall back to the server's English one for anything the dictionary has
+ * not got.
+ */
+export function analyteLabel(t: (key: MessageKey) => string, analyteKey: string, fallback: string): string {
+  const key = `analyte.${analyteKey}` as MessageKey;
+  const label = t(key);
+  return label === key ? fallback : label;
 }

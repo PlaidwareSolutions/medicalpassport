@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { REPORT_ANALYTE_IDS, reportAnalyteById } from "@medpass/domain";
-import { getObservationConcept } from "@medpass/terminology";
+import { getAnalyte, getObservationConcept } from "@medpass/terminology";
 import { PrismaService } from "../../common/prisma.service";
 
 /**
@@ -82,7 +82,16 @@ export interface VisitSummaryDto {
     prescriberName: string | null;
     startDate: string | null;
   }>;
-  recentChanges?: Array<{ medicationName: string; change: string; occurredAt: string }>;
+  /**
+   * `change` stays the raw kind — every renderer has its own label table for
+   * it (the app translates, the PDF/text exports print English), and a
+   * pre-rendered sentence here would be English on a Telugu screen.
+   * `statusTo` carries the one detail a label cannot say on its own: which
+   * status a `status_changed` entry moved to. Nothing else from `detail`
+   * comes along — this payload is read by whoever holds an unauthenticated
+   * link.
+   */
+  recentChanges?: Array<{ medicationName: string; change: string; statusTo: string | null; occurredAt: string }>;
   unresolvedConcerns?: Array<{ category: string; severity: string; summary: string }>;
   /**
    * The trend a doctor reads first, then the individual readings behind it —
@@ -139,7 +148,18 @@ export interface VisitSummaryDto {
     documentCount: number;
     medicationCount: number;
   }>;
-  /** Metadata only, same reasoning as prescriptions — no document handles on an unauthenticated path. */
+  /**
+   * V1 `MedicalReport` rows and V2 `DiagnosticReport` rows in one list,
+   * newest first. Metadata only, same reasoning as prescriptions — no
+   * document handles on an unauthenticated path.
+   *
+   * `kind` is whichever vocabulary the row came from: `MedicalReportKind`
+   * (blood_test, urine_test, discharge_summary, …) or `DiagnosticReportKind`
+   * (laboratory, echo, microbiology, genetics, …). The two overlap on
+   * imaging/ecg/pathology/other and are otherwise disjoint, so a renderer
+   * can key one label table off the value without needing to know which
+   * table the row came from.
+   */
   reports?: Array<{
     kind: string;
     label: string | null;
@@ -207,6 +227,8 @@ const GLUCOSE_RECENT_LIMIT = 10;
 const MEASUREMENT_DAYS = 30;
 const DOCUMENTS_LIMIT = 20;
 const ENCOUNTERS_LIMIT = 10;
+/** Shared by the V1 and V2 report queries and by the merged list. */
+const REPORTS_LIMIT = 10;
 
 /**
  * Doctor-visit mode data (docs/07 screen 28) and the public share payload
@@ -396,11 +418,18 @@ export class VisitSummaryService {
         orderBy: { occurredAt: "desc" },
         take: 20,
       });
-      summary.recentChanges = changes.map((c) => ({
-        medicationName: c.patientMedication.enteredName,
-        change: c.change,
-        occurredAt: c.occurredAt.toISOString(),
-      }));
+      summary.recentChanges = changes.map((c) => {
+        // Only `to` is carried across, and only for a status change. The rest
+        // of `detail` (who, why, which fields) has no place on a payload the
+        // holder of a link can read.
+        const to = (c.detail as { to?: unknown } | null)?.to;
+        return {
+          medicationName: c.patientMedication.enteredName,
+          change: c.change,
+          statusTo: c.change === "status_changed" && typeof to === "string" ? to : null,
+          occurredAt: c.occurredAt.toISOString(),
+        };
+      });
     }
   }
 
@@ -554,22 +583,57 @@ export class VisitSummaryService {
         deletedAt: null,
         OR: [{ prescribedAt: { gte: cutoff } }, { prescribedAt: null, createdAt: { gte: cutoff } }],
       },
-      include: { practitioner: true, _count: { select: { documents: true, medications: true } } },
+      include: {
+        practitioner: true,
+        // `documents`/`medications` are the V1 relations; `items` is where a
+        // V2 prescription's lines actually live, and its evidence is a
+        // PatientDocument, not a PrescriptionDocument. Counting only the V1
+        // pair is why a two-line prescription read "0 medicine(s) · 0
+        // file(s)" — the same bug just fixed in reprojectPrescription.
+        _count: { select: { documents: true, medications: true, items: { where: { deletedAt: null } } } },
+      },
       orderBy: [{ prescribedAt: "desc" }, { createdAt: "desc" }],
       take: 10,
     });
+    const v2DocumentCounts = await this.countDocumentsBy("prescriptionId", prescriptions.map((p) => p.id));
     summary.prescriptions = prescriptions.map((p) => ({
       prescribedAt: p.prescribedAt?.toISOString().slice(0, 10) ?? null,
       practitionerName: p.practitioner?.displayName ?? null,
       notes: p.notes,
-      documentCount: p._count.documents,
-      medicationCount: p._count.medications,
+      documentCount: p._count.documents + (v2DocumentCounts.get(p.id) ?? 0),
+      // The lines as written on the paper are the medicine count; the V1
+      // linkage to started medicines is the fallback for rows that predate
+      // prescription lines.
+      medicationCount: p._count.items || p._count.medications,
     }));
   }
 
+  /**
+   * Test reports, V1 and V2 in one list (docs_v2/04 §6). `MedicalReport` is
+   * the V1 table; `DiagnosticReport` is what the app writes now, and a
+   * patient whose reports are all V2 was previously shown nothing at all
+   * here — the share said "Test reports shared (0)" while holding two.
+   *
+   * Rows the V1 writer mirrored into V2 (`legacyMedicalReportId`) are taken
+   * from the V1 side only, so a mirrored report is listed once, not twice.
+   */
   private async addReports(profileId: string, sections: VisitSummarySections, summary: VisitSummaryDto): Promise<void> {
     if (!sections.reports) return;
     const cutoff = new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000);
+    const [legacy, diagnostic] = await Promise.all([
+      this.legacyReports(profileId, cutoff),
+      this.diagnosticReports(profileId, cutoff),
+    ]);
+    summary.reports = [...legacy, ...diagnostic]
+      // Newest first on the date the patient recorded; a report with no test
+      // date sorts on when it was filed rather than dropping to the bottom.
+      .sort((a, b) => b.sortAt - a.sortAt)
+      .slice(0, REPORTS_LIMIT)
+      .map(({ sortAt: _sortAt, ...row }) => row);
+  }
+
+  /** V1 `MedicalReport` rows, with their transcribed values. */
+  private async legacyReports(profileId: string, cutoff: Date) {
     const reports = await this.prisma.medicalReport.findMany({
       // A report with no test date recorded still belongs in the window —
       // fall back to when it was filed rather than dropping it silently.
@@ -586,11 +650,12 @@ export class VisitSummaryService {
         values: { where: { deletedAt: null }, take: 30 },
       },
       orderBy: [{ testedAt: "desc" }, { createdAt: "desc" }],
-      take: 10,
+      take: REPORTS_LIMIT,
     });
     const vocabularyOrder = new Map(REPORT_ANALYTE_IDS.map((id, i) => [id, i]));
-    summary.reports = reports.map((r) => ({
-      kind: r.kind,
+    return reports.map((r) => ({
+      sortAt: (r.testedAt ?? r.createdAt).getTime(),
+      kind: r.kind as string,
       label: r.label,
       facilityName: r.facilityName,
       practitionerName: r.practitioner?.displayName ?? null,
@@ -609,5 +674,80 @@ export class VisitSummaryService {
           referenceText: v.referenceText,
         })),
     }));
+  }
+
+  /**
+   * V2 `DiagnosticReport` rows. Practitioner names need their own lookup —
+   * the model carries ids with no Prisma relation (the directory is global
+   * and merge-able), and the evidence for a V2 report is a PatientDocument
+   * keyed by `diagnosticReportId`, so that count is a second query too.
+   */
+  private async diagnosticReports(profileId: string, cutoff: Date) {
+    const reports = await this.prisma.diagnosticReport.findMany({
+      where: {
+        patientProfileId: profileId,
+        deletedAt: null,
+        // A row mirrored from V1 is the same test as the V1 row, not a second one.
+        legacyMedicalReportId: null,
+        OR: [{ testedAt: { gte: cutoff } }, { testedAt: null, createdAt: { gte: cutoff } }],
+      },
+      include: {
+        results: {
+          where: { deletedAt: null, supersededById: null },
+          orderBy: [{ sequence: "asc" }, { createdAt: "asc" }],
+          take: 30,
+        },
+      },
+      orderBy: [{ testedAt: "desc" }, { createdAt: "desc" }],
+      take: REPORTS_LIMIT,
+    });
+    const practitionerIds = [...new Set(reports.map((r) => r.orderingPractitionerId ?? r.reportingPractitionerId).filter((id): id is string => !!id))];
+    const [practitioners, documentCounts] = await Promise.all([
+      practitionerIds.length
+        ? this.prisma.practitioner.findMany({ where: { id: { in: practitionerIds } }, select: { id: true, displayName: true } })
+        : Promise.resolve([]),
+      this.countDocumentsBy("diagnosticReportId", reports.map((r) => r.id)),
+    ]);
+    const names = new Map(practitioners.map((p) => [p.id, p.displayName]));
+    return reports.map((r) => {
+      const who = r.orderingPractitionerId ?? r.reportingPractitionerId;
+      return {
+        sortAt: (r.testedAt ?? r.createdAt).getTime(),
+        kind: r.kind as string,
+        label: r.title,
+        facilityName: r.facilityNameText,
+        practitionerName: (who && names.get(who)) || null,
+        testedAt: r.testedAt?.toISOString().slice(0, 10) ?? null,
+        // The narrative blocks, verbatim as transcribed off the report. On an
+        // imaging report this is the clinically important part, so it is
+        // carried rather than dropped for want of a `notes` column.
+        notes: [r.impressionText, r.findingsText, r.conclusionText].filter(Boolean).join(" · ") || null,
+        documentCount: documentCounts.get(r.id) ?? 0,
+        values: r.results.map((v) => ({
+          label: v.analyteKey === "other" ? (v.analyteLabelText ?? "Other test value") : (getAnalyte(v.analyteKey)?.display ?? v.analyteLabelText ?? v.analyteKey),
+          // Verbatim, and the unit as printed on the report in preference to
+          // the canonical one it was converted into (H-39: what the patient
+          // sees on the paper is what the doctor is shown).
+          enteredValue: v.enteredValueText,
+          unit: v.enteredUnit ?? v.unit,
+          referenceText: v.referenceText,
+        })),
+      };
+    });
+  }
+
+  /**
+   * How many V2 documents point at each of these rows, in one query. Shared
+   * by prescriptions and diagnostic reports; `PatientDocument` carries the
+   * foreign key as a plain column with no back-relation on either model.
+   */
+  private async countDocumentsBy(field: "prescriptionId" | "diagnosticReportId", ids: string[]): Promise<Map<string, number>> {
+    if (!ids.length) return new Map();
+    const rows = await this.prisma.patientDocument.groupBy({
+      by: [field],
+      where: { [field]: { in: ids }, deletedAt: null, status: { notIn: ["pending_upload", "deleted"] } },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((r) => [r[field] as string, r._count._all]));
   }
 }

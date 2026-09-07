@@ -11,15 +11,24 @@ interface Loadable<T> {
   reload: () => Promise<void>;
 }
 
-function describe(err: unknown): string {
+/**
+ * What a 404 means depends on what was being opened. Every route on this
+ * portal reads through a patient link, so "the link is closed" was the only
+ * message — and an unknown proposal id, or a test vocabulary that failed to
+ * load, said the patient had revoked something they had not. Each loader
+ * names its own subject.
+ */
+const LINK_NOT_FOUND = "This patient link is no longer open — the patient may have revoked it or it expired.";
+
+function describe(err: unknown, notFound: string = LINK_NOT_FOUND): string {
   if (err instanceof ApiError) {
-    if (err.status === 404) return "This patient link is no longer open — the patient may have revoked it or it expired.";
+    if (err.status === 404) return notFound;
     return err.problem.title || "Something went wrong. Please try again.";
   }
   return "Could not reach the server. Check the connection and try again.";
 }
 
-function useLoad<T>(load: () => Promise<T>, deps: readonly unknown[]): Loadable<T> {
+function useLoad<T>(load: () => Promise<T>, deps: readonly unknown[], notFound?: string): Loadable<T> {
   const [data, setData] = useState<T | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -29,7 +38,7 @@ function useLoad<T>(load: () => Promise<T>, deps: readonly unknown[]): Loadable<
     try {
       setData(await load());
     } catch (err) {
-      setError(describe(err));
+      setError(describe(err, notFound));
     } finally {
       setLoading(false);
     }
@@ -54,11 +63,15 @@ export function useProposals(linkId: string): Loadable<ProposalDto[]> {
 }
 
 export function useProposal(id: string): Loadable<ProposalDto> {
-  return useLoad(() => api.get<ProposalDto>(`/provider/proposals/${encodeURIComponent(id)}`), [id]);
+  return useLoad(
+    () => api.get<ProposalDto>(`/provider/proposals/${encodeURIComponent(id)}`),
+    [id],
+    "This proposal does not exist, or it was not sent by this organization. Open it from the patient's page.",
+  );
 }
 
 export function useAnalytes(): Loadable<AnalytesDto> {
-  return useLoad(() => api.get<AnalytesDto>("/terminology/analytes"), []);
+  return useLoad(() => api.get<AnalytesDto>("/terminology/analytes"), [], "The list of tests could not be loaded. Reload the page and try again.");
 }
 
 export function errorMessage(err: unknown): string {

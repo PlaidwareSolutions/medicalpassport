@@ -45,7 +45,38 @@ export interface CurrentMedicine {
   patientMedicationId: string;
   name: string;
   strengthLabel: string | null;
+  /** Raw shorthand off the shared payload ("1 tablet · BD · after") — the fallback when `instruction` is absent. */
   instructionSummary: string;
+  /** The codes behind that summary, so a CONTINUE line can be labelled the way a START line is. */
+  instruction?: Instruction;
+}
+
+/**
+ * The snapshot's medicine instruction, validated into the editor's own
+ * shape. Anything the closed vocabularies here do not recognise (a code
+ * added on the server before this build knew about it) returns undefined,
+ * and the caller falls back to the raw shorthand rather than showing a
+ * label it made up.
+ */
+export function parseInstruction(raw: unknown): Instruction | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const doseQuantity = Number(r.doseQuantity);
+  const doseUnit = String(r.doseUnit ?? "") as DoseUnit;
+  const frequencyCode = String(r.frequencyCode ?? "") as FrequencyCode;
+  if (!Number.isFinite(doseQuantity) || doseQuantity <= 0) return undefined;
+  if (!DOSE_UNITS.includes(doseUnit) || !FREQUENCY_CODES.includes(frequencyCode)) return undefined;
+  const food = String(r.foodInstruction ?? "any") as FoodInstruction;
+  const out: Instruction = {
+    doseQuantity,
+    doseUnit,
+    frequencyCode,
+    foodInstruction: FOOD_INSTRUCTIONS.includes(food) ? food : "any",
+  };
+  if (typeof r.pattern === "string" && r.pattern) out.pattern = r.pattern;
+  if (typeof r.durationDays === "number" && r.durationDays > 0) out.durationDays = r.durationDays;
+  if (typeof r.strengthLabel === "string" && r.strengthLabel) out.strengthLabel = r.strengthLabel;
+  return out;
 }
 
 export interface ExistingLine {
@@ -190,7 +221,13 @@ export function toPayloadLines(lines: readonly EditorLine[]): PayloadLine[] {
       continue;
     }
     if (!line.decision) continue;
-    const payload: PayloadLine = { decision: line.decision, patientMedicationId: line.medicine.patientMedicationId };
+    // The medicine's name travels with every line, not just START. Without
+    // it a CONTINUE / CHANGE / STOP line is an opaque id, and both the
+    // patient's inbox and the provider's own copy of the proposal can only
+    // say "medicine on the patient's list". The name is not a disclosure:
+    // it came off the snapshot this same organization is looking at, through
+    // a link the patient granted.
+    const payload: PayloadLine = { decision: line.decision, patientMedicationId: line.medicine.patientMedicationId, proposedName: line.medicine.name };
     if (line.decision === "CHANGE" && line.instruction) payload.proposedInstruction = toPayloadInstruction(line.instruction);
     if (line.reasonText?.trim()) payload.reasonText = line.reasonText.trim();
     out.push(payload);
@@ -247,4 +284,16 @@ export function instructionSummary(i: Instruction | undefined): string {
   const parts = [`${i.doseQuantity} ${i.doseUnit}`, freq, FOOD_LABELS[i.foodInstruction ?? "any"]];
   if (i.durationDays) parts.push(`${i.durationDays} days`);
   return parts.join(" · ");
+}
+
+/**
+ * How a medicine the patient is already on is written on this portal. The
+ * codes carried on the provider snapshot get the same labels a proposed
+ * line gets ("Twice a day · After food"), so a CONTINUE line and the START
+ * line beside it read alike instead of one saying "BD · after". The raw
+ * shorthand off the shared payload stays as the fallback for a medicine
+ * whose codes could not be read.
+ */
+export function currentInstructionLabel(medicine: { instruction?: Instruction; instructionSummary: string }): string {
+  return instructionSummary(medicine.instruction) || medicine.instructionSummary;
 }

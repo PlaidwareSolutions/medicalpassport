@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
-import type { MessageKey } from "@medpass/localization";
+import { pluralKey, type MessageKey } from "@medpass/localization";
 import { api, getActiveProfileId } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
 import { invalidateHealthTimeline } from "./health-timeline";
@@ -291,7 +291,8 @@ export function proposalSummary(p: ProposalDto, t: Translate): string {
     }
     case "prescription": {
       const items = (p.payload as PrescriptionPayload | null)?.items;
-      return t("proposals.summary.prescription", { n: Array.isArray(items) ? items.length : 0 });
+      const n = Array.isArray(items) ? items.length : 0;
+      return t(pluralKey(n, "proposals.summary.prescription_one", "proposals.summary.prescription"), { n });
     }
     case "encounter":
       return t("proposals.summary.encounter");
@@ -303,7 +304,8 @@ export function proposalSummary(p: ProposalDto, t: Translate): string {
     }
     case "diagnostic_report": {
       const payload = p.payload as DiagnosticReportPayload | null;
-      return t("proposals.summary.report", { title: payload?.title ?? "", n: payload?.results?.length ?? 0 });
+      const n = payload?.results?.length ?? 0;
+      return t(pluralKey(n, "proposals.summary.report_one", "proposals.summary.report"), { title: payload?.title ?? "", n });
     }
     default:
       return "";

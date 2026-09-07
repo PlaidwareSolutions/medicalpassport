@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HealthEventKind } from "@medpass/domain";
-import type { MessageKey } from "@medpass/localization";
+import { pluralKey, type MessageKey } from "@medpass/localization";
 import { api, getActiveProfileId } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
 
@@ -158,8 +158,8 @@ export function eventSentence(t: Translate, event: Pick<HealthEventDto, "kind" |
       const practitioner = str(s.practitionerName);
       const count = Number(s.medicineCount ?? 0);
       return practitioner
-        ? t("health.event.prescription", { practitioner, count })
-        : t("health.event.prescription_anon", { count });
+        ? t(pluralKey(count, "health.event.prescription_one", "health.event.prescription"), { practitioner, count })
+        : t(pluralKey(count, "health.event.prescription_anon_one", "health.event.prescription_anon"), { count });
     }
     case "medicine_started":
       return t("health.event.medicine_started", { name: str(s.name) });
@@ -219,8 +219,10 @@ export function eventSentence(t: Translate, event: Pick<HealthEventDto, "kind" |
       const head = parts.length > 0 ? `${t(key)} · ${parts.join(", ")}` : t(key);
       return reason ? `${head} — ${reason}` : head;
     }
-    case "document":
-      return t("health.event.document", { pages: Number(s.pageCount ?? 1) });
+    case "document": {
+      const pages = Number(s.pageCount ?? 1);
+      return t(pluralKey(pages, "health.event.document_one", "health.event.document"), { pages });
+    }
     case "clinical_note":
       return t("health.event.clinical_note");
     case "allergy_recorded":

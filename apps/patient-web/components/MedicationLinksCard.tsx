@@ -6,6 +6,7 @@ import { Banner, Button, Card, SectionTitle, TextInput } from "@medpass/ui-web";
 import { api, getActiveProfileId } from "../lib/api";
 import { useSharedResource } from "../lib/data-cache";
 import { useI18n } from "../lib/i18n";
+import { medicationChangeSentence } from "../lib/medication-changes";
 import { medicationLinks, updateMedicationLinks } from "../lib/medications";
 import { formatCalendarDate, formatPatientDateTime, patientLocalToIso, useActiveTimezone } from "../lib/patient-time";
 import { createPractitioner, usePractitioners } from "../lib/practitioners";
@@ -174,22 +175,8 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
+/** Shared with the visit summary so the same event never reads two ways. */
 function changeSentence(t: (key: never, params?: Record<string, string | number>) => string, c: MedicationChangeDto): string {
-  const d = c.detail ?? {};
-  switch (c.change) {
-    case "created":
-      return t("medlinks.change.created" as never);
-    case "status_changed": {
-      const to = typeof d.to === "string" ? t(`meds.status.${d.to}` as never) : "";
-      return to ? t("medlinks.change.status_changed" as never, { status: to }) : t("medlinks.change.updated" as never);
-    }
-    case "dose_unit_confirmed":
-      return t("medlinks.change.dose_unit_confirmed" as never);
-    case "refilled":
-      return t("medlinks.change.refilled" as never);
-    case "deleted":
-      return t("medlinks.change.deleted" as never);
-    default:
-      return t("medlinks.change.updated" as never);
-  }
+  const to = (c.detail ?? {}).to;
+  return medicationChangeSentence(t as never, c.change, typeof to === "string" ? to : null);
 }

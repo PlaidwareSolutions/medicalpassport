@@ -103,7 +103,11 @@ const fixture: Required<VisitSummaryDto> = {
     },
     { name: "Amlong", ingredients: ["Amlodipine"], strengthLabel: null, instructionSummary: "1 tablet at night", prescriberName: null, startDate: null },
   ],
-  recentChanges: [{ medicationName: "Glycomet", change: "dose_increased", occurredAt: "2026-08-20T09:00:00.000Z" }],
+  recentChanges: [
+    { medicationName: "Glycomet", change: "dose_increased", statusTo: null, occurredAt: "2026-08-20T09:00:00.000Z" },
+    { medicationName: "Metformin 500", change: "reconciled_continue", statusTo: null, occurredAt: "2026-08-21T09:00:00.000Z" },
+    { medicationName: "Amlong", change: "status_changed", statusTo: "stopped", occurredAt: "2026-08-22T09:00:00.000Z" },
+  ],
   unresolvedConcerns: [{ category: "drug_interaction", severity: "moderate", summary: "Metformin with contrast dye planned next week" }],
   glucoseReadings: {
     readingCount: 12,
@@ -181,6 +185,17 @@ const fixture: Required<VisitSummaryDto> = {
       ],
     },
     { kind: "imaging", label: null, facilityName: null, practitionerName: null, testedAt: null, notes: null, documentCount: 0 },
+    // V2 DiagnosticReportKind — the same list carries both vocabularies.
+    {
+      kind: "laboratory",
+      label: "Lipid profile",
+      facilityName: "Metro Labs",
+      practitionerName: null,
+      testedAt: "2026-08-15",
+      notes: null,
+      documentCount: 0,
+      values: [{ label: "Total cholesterol", enteredValue: "182", unit: "mg/dL", referenceText: "< 200" }],
+    },
   ],
   measurements: [
     {
@@ -295,9 +310,14 @@ describe("renderVisitSummaryHtml — fixture coverage", () => {
     expect(html).toContain("<td>Amlong</td><td>Amlodipine</td><td>1 tablet at night</td><td>—</td><td>—</td>");
   });
 
-  it("renders recent changes with the change code humanised", () => {
+  it("renders recent changes as sentences, never a raw action code", () => {
     expect(html).toContain("Glycomet — dose increased");
     expect(html).not.toContain("dose_increased");
+    // The reconciliation codes are what a doctor was being shown verbatim.
+    expect(html).toContain("Metformin 500 — Kept on after a visit");
+    expect(html).not.toContain("reconciled_continue");
+    expect(html).toContain("Amlong — Marked as stopped");
+    expect(html).not.toContain("status_changed");
   });
 
   it("renders glucose aggregates, per-context breakdown and recent readings with human labels", () => {
@@ -357,6 +377,10 @@ describe("renderVisitSummaryHtml — fixture coverage", () => {
     expect(html).toContain("Fasting glucose: 110 mg/dL");
     expect(html).toContain("<br>Fasting sample</td><td>2</td>");
     expect(html).not.toContain("blood_test");
+    // A V2 DiagnosticReport kind reads as a label, not as the enum value.
+    expect(html).toContain("<strong>Lab test</strong><br>Lipid profile");
+    expect(html).not.toContain("laboratory<");
+    expect(html).toContain("Total cholesterol: 182 mg/dL");
     // Sparse report: humanised kind, dashes for missing cells, no "0 files".
     expect(html).toContain('<strong>Imaging / scan</strong></td><td><span class="muted">Not recorded</span></td><td>—</td><td>—</td><td>—</td>');
   });
@@ -384,7 +408,7 @@ describe("renderVisitSummaryHtml — nothing internal leaks", () => {
       allergies: [{ label: hostile, severity: hostile, reactionNote: hostile }],
       conditions: [{ label: hostile, note: hostile }],
       currentMedications: [{ name: hostile, ingredients: [hostile], strengthLabel: hostile, instructionSummary: hostile, prescriberName: hostile, startDate: hostile }],
-      recentChanges: [{ medicationName: hostile, change: hostile, occurredAt: fixture.generatedAt }],
+      recentChanges: [{ medicationName: hostile, change: hostile, statusTo: hostile, occurredAt: fixture.generatedAt }],
       unresolvedConcerns: [{ category: hostile, severity: hostile, summary: hostile }],
       glucoseReadings: { ...fixture.glucoseReadings, byContext: [{ context: hostile, count: 1, averageMgDl: 1 }], recent: [{ valueMgDl: 1, context: hostile, measuredAt: fixture.generatedAt, note: hostile }] },
       bloodPressureReadings: { ...fixture.bloodPressureReadings, recent: [{ systolic: 1, diastolic: 1, pulseBpm: null, measuredAt: fixture.generatedAt, note: hostile }] },

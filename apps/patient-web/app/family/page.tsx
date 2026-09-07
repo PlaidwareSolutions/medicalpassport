@@ -8,7 +8,7 @@ import { GuideGlyph } from "../../components/GuideGlyph";
 import { PageHeader } from "../../components/PageHeader";
 import { useFamily, type FamilyProfileDto } from "../../lib/family";
 import { useI18n } from "../../lib/i18n";
-import { displayUnit, isHubConcept } from "../../lib/observations";
+import { displayUnit, formatObservationValue, isHubConcept } from "../../lib/observations";
 import { formatPatientDateTime, useActiveTimezone } from "../../lib/patient-time";
 import { scopeLabelKey } from "../../lib/scopes";
 import { useSession } from "../../lib/session";
@@ -164,8 +164,12 @@ function SummaryRow({ label, value, emptyIsUnknown }: { label: string; value?: s
 
 /** Numbers as recorded — two components for blood pressure, never an interpretation (H-25). */
 function measurementText(m: NonNullable<FamilyProfileDto["summary"]["lastMeasurement"]>): string {
-  const value = m.value2 ? `${m.value}/${m.value2}` : m.value;
+  // Same display rounding as the diary and the trends (lib/observations):
+  // the household card shows the same reading, so it shows the same digits.
+  const concept = isHubConcept(m.concept) ? m.concept : undefined;
+  const primary = formatObservationValue(m.value, concept);
+  const value = m.value2 ? `${primary}/${formatObservationValue(m.value2, concept)}` : primary;
   // The API sends the UCUM code ("mm[Hg]"); people read "mmHg".
-  const unit = displayUnit(isHubConcept(m.concept) ? m.concept : undefined, m.unit);
+  const unit = displayUnit(concept, m.unit);
   return unit ? `${value} ${unit}` : value;
 }
