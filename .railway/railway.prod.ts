@@ -226,6 +226,31 @@ export default defineRailway(() => {
       env: { ...cronEnv, ...extraEnv },
     });
 
+  /**
+   * The V2 backfills (docs_v2/04 §14), as ONE ordered job rather than five
+   * services: order is load-bearing — provenance stamps the rows the others
+   * read, health events project from those, and documents resolves report
+   * links the diagnostics pass creates. Five services would be created and
+   * deployed at the same moment and would race.
+   *
+   *   provenance -> health-events -> observations -> diagnostics -> documents
+   *
+   * No cronSchedule and restartPolicyType NEVER means it runs once per
+   * deploy and stops, so redeploying this service is how you run it. `&&`
+   * stops the chain at the first failure, and every job is idempotent and
+   * resumable, so re-running after a fix is safe and cheap. Needs the R2
+   * credentials because the documents pass reads stored objects.
+   */
+  const backfills = service("job-v2-backfills", {
+    source: repo,
+    build: { builder: "DOCKERFILE", dockerfilePath: "apps/cron/Dockerfile" },
+    start:
+      "sh -c 'node dist/jobs/backfill-provenance.js && node dist/jobs/backfill-health-events.js && node dist/jobs/backfill-observations.js && node dist/jobs/backfill-diagnostics.js && node dist/jobs/backfill-documents.js'",
+    replicas: { [region]: 1 },
+    deploy: { restartPolicyType: "NEVER" },
+    env: { ...cronEnv, ...r2Env },
+  });
+
   const cleanupExpiredOtps = cronJob("cron-cleanup-expired-otps", "0 3 * * *", "cleanup-expired-otps");
   const cleanupExpiredSessions = cronJob("cron-cleanup-expired-sessions", "30 3 * * *", "cleanup-expired-sessions");
   // AUDIT_CHAIN_ACKNOWLEDGED_BREAKS_BEFORE_SEQ was set live via CLI (an
@@ -285,6 +310,7 @@ export default defineRailway(() => {
       patientWeb,
       adminWeb,
       providerWeb,
+      backfills,
       cleanupExpiredOtps,
       cleanupExpiredSessions,
       verifyAuditChain,
