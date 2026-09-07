@@ -207,7 +207,10 @@ describe("notification kind labels (docs_v2/10)", () => {
 // ─── Item 11: the clinic code's read-out fallback ────────────────────────
 
 describe("the clinic code, read out loud", () => {
-  const token = "kZ2p9QwErTyUiOpAsDfGhJkLzXcVbNm1234567890abc"; // 43 chars, as minted
+  // Built, not written: a 43-character literal here reads as a live
+  // credential to the repository's secret scanner, and this is a stand-in
+  // for one — the same length a real onboarding code is minted at.
+  const token = Array.from({ length: 43 }, (_, i) => "abcdefghij"[i % 10]).join("");
 
   it("groups the token for reading without changing a character of it", () => {
     const groups = groupTokenForReading(token);
