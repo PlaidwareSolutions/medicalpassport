@@ -21,6 +21,16 @@ import { LEGACY_RECORD_SOURCE_MAP, isLegacyRecordSource, isRecordSource, type Re
 
 export const BACKFILL_BATCH = 500;
 
+/**
+ * Prisma's interactive transactions default to a 5-second budget, which is a
+ * localhost assumption: one batch is up to BACKFILL_BATCH sequential writes,
+ * and against a managed database each round trip costs tens of milliseconds.
+ * The first production run of the health-event backfill died on exactly this
+ * ("Transaction not found", 20 s in) while passing locally. `maxWait` is how
+ * long to queue for a connection under load; `timeout` is the batch's budget.
+ */
+export const BACKFILL_TX_OPTIONS = { maxWait: 30_000, timeout: 600_000 } as const;
+
 const FILL = { verification: "patient_confirmed", recordedVia: "pwa" } as const;
 
 export interface BackfillLogger {

@@ -15,7 +15,7 @@
  * only — never row content.
  */
 import type { DocumentKind, PrismaClient } from "@medpass/database";
-import { BACKFILL_BATCH, type BackfillLogger } from "./backfill-provenance";
+import { BACKFILL_BATCH, BACKFILL_TX_OPTIONS, type BackfillLogger } from "./backfill-provenance";
 
 /**
  * V1 and V2 share one `DocumentKind` enum, so most values copy across. The two
@@ -132,7 +132,7 @@ export async function backfillDocuments(prisma: PrismaClient, log?: BackfillLogg
           counts.pagesCreated += 1;
         }
       }
-    });
+    }, BACKFILL_TX_OPTIONS);
 
     log?.info({ ...counts }, "documents backfill batch");
   }

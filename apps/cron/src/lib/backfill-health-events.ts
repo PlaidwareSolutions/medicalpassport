@@ -26,7 +26,7 @@ import {
   projectShare,
   type HealthEventInput,
 } from "@medpass/health-events";
-import { BACKFILL_BATCH, type BackfillLogger } from "./backfill-provenance";
+import { BACKFILL_BATCH, BACKFILL_TX_OPTIONS, type BackfillLogger } from "./backfill-provenance";
 
 type Tz = (profileId: string) => Promise<string>;
 
@@ -59,7 +59,7 @@ async function walk<Row extends { id: string }>(
     for (const row of rows) events.push(...(await project(row)));
     await prisma.$transaction(async (tx) => {
       for (const event of events) await emitHealthEvent(tx, event);
-    });
+    }, BACKFILL_TX_OPTIONS);
     total += events.length;
     afterId = rows[rows.length - 1]!.id;
     log?.info({ table: name, batch: rows.length, events: events.length, total }, "health-event backfill batch");
