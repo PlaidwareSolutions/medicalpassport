@@ -12,3 +12,9 @@
 # which re-touched line 19 and added line 20 with the same public values.
 095bedfb46f7dd2db27f25d3504941df58ed539f:apps/marketing-web/package.json:generic-api-key:19
 095bedfb46f7dd2db27f25d3504941df58ed539f:apps/marketing-web/package.json:generic-api-key:20
+# A 43-character stand-in for a clinic onboarding code, written as a literal in
+# a test (commit 1d4f4e0) and replaced by a generated string in the next commit
+# (5ac5375). The literal survives in history, which is what gitleaks scans, so
+# the scan fails on any branch whose range includes that commit even though the
+# working tree is clean. It was never a credential: no system ever issued it.
+1d4f4e0e70c870f3402ff71ed8c59baa415a9439:apps/patient-web/lib/patient-copy.test.ts:generic-api-key:210
