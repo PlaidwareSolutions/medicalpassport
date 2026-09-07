@@ -1,8 +1,17 @@
 import { z } from "zod";
 import { GLUCOSE_READING_CONTEXTS } from "@medpass/domain";
 
+/**
+ * A reading cannot be from the future (2026-09-07 UI review: a mistyped year
+ * filed a 2027 reading into the diary and the trends). Five minutes of slack
+ * covers a phone clock that runs fast. Same rule as the V2 observation schema.
+ */
+const measuredAtField = z.coerce.date().refine((d) => d.getTime() <= Date.now() + 5 * 60_000, {
+  message: "That time is in the future — please check the date",
+});
+
 export const glucoseReadingSchema = z.object({
-  measuredAt: z.coerce.date(),
+  measuredAt: measuredAtField,
   context: z.enum(GLUCOSE_READING_CONTEXTS),
   // Wide, sanity-only bounds (mg/dL) — no clinical judgment implied, just guards against a fat-fingered entry.
   valueMgDl: z.coerce.number().int().min(20).max(999),
@@ -12,7 +21,7 @@ export type GlucoseReadingInput = z.infer<typeof glucoseReadingSchema>;
 
 /** Home blood-pressure diary (screen 46). Bounds match checkupRecordSchema's BP fields — sanity-only, no clinical judgment implied. */
 export const bloodPressureReadingSchema = z.object({
-  measuredAt: z.coerce.date(),
+  measuredAt: measuredAtField,
   systolic: z.coerce.number().int().min(50).max(300),
   diastolic: z.coerce.number().int().min(30).max(200),
   pulseBpm: z.coerce.number().int().min(20).max(300).optional(),
@@ -22,7 +31,7 @@ export type BloodPressureReadingInput = z.infer<typeof bloodPressureReadingSchem
 
 /** Body-weight diary (screen 47). kg only — the unit checkupRecordSchema.weightKg already established. */
 export const weightReadingSchema = z.object({
-  measuredAt: z.coerce.date(),
+  measuredAt: measuredAtField,
   weightKg: z.coerce.number().min(1).max(400),
   note: z.string().trim().max(500).optional(),
 });

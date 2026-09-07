@@ -8,7 +8,7 @@ import type {
   StartMedicationFromItemInput,
   UpdatePrescriptionItemInput,
 } from "@medpass/validation";
-import type { PrescriptionItem } from "@medpass/database";
+import type { Prisma, PrescriptionItem } from "@medpass/database";
 import { ApiProblem } from "../../common/errors";
 import { emitMedicationChangeEvent, eventCtx } from "../../common/health-events";
 import { PrismaService } from "../../common/prisma.service";
@@ -127,7 +127,7 @@ export class PrescriptionsService {
         projectPrescription(await eventCtx(tx, profileId, actor), {
           ...created,
           practitionerName: created.practitioner?.displayName ?? null,
-          medicineCount: 0,
+          medicineCount: input.items?.length ?? 0,
         }),
       );
       // Caregivers who can see the medicines list are told a prescription
@@ -235,6 +235,29 @@ export class PrescriptionsService {
     return items.map(toItemDto);
   }
 
+  /**
+   * The timeline shows "Prescription — N medicines" from the event's summary,
+   * which is frozen at emission. Adding or removing a line re-emits the
+   * event with the current count so the timeline never says "0 medicines"
+   * for a prescription with lines (found in the 2026-09-07 UI review).
+   */
+  private async reprojectPrescription(tx: Prisma.TransactionClient, profileId: string, prescriptionId: string, actor: Actor) {
+    const row = await tx.prescription.findFirst({
+      where: { id: prescriptionId, patientProfileId: profileId },
+      include: { practitioner: { select: { displayName: true } }, _count: { select: { items: { where: { deletedAt: null } } } } },
+    });
+    if (!row) return;
+    await supersedeHealthEvents(tx, "prescription", prescriptionId);
+    await emitHealthEvent(
+      tx,
+      projectPrescription(await eventCtx(tx, profileId, actor), {
+        ...row,
+        practitionerName: row.practitioner?.displayName ?? null,
+        medicineCount: row._count.items,
+      }),
+    );
+  }
+
   async addItem(profileId: string, prescriptionId: string, input: PrescriptionItemInput, actor: Actor) {
     await this.requireOwnPrescription(this.prisma, profileId, prescriptionId);
     const created = await this.prisma.$transaction(async (tx) => {
@@ -273,6 +296,7 @@ export class PrescriptionsService {
         patientProfileId: profileId,
         correlationId: actor.correlationId,
       });
+      await this.reprojectPrescription(tx, profileId, prescriptionId, actor);
       return item;
     });
     return toItemDto(created);
@@ -318,6 +342,7 @@ export class PrescriptionsService {
     const existing = await this.requireOwnItem(profileId, itemId);
     await this.prisma.$transaction(async (tx) => {
       await tx.prescriptionItem.update({ where: { id: existing.id }, data: { deletedAt: new Date() } });
+      await this.reprojectPrescription(tx, profileId, existing.prescriptionId, actor);
       await writeAudit(tx, {
         action: "prescription_item.deleted",
         actorUserId: actor.userId,

@@ -139,6 +139,9 @@ export default function MeasurementDiaryPage() {
                   <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)", display: "flex", gap: "var(--space-xs)", flexWrap: "wrap", alignItems: "center" }}>
                     {o.context ? <Chip>{t(`measure.context.${o.context}` as never)}</Chip> : null}
                     <span>{formatPatientDateTime(o.measuredAt, timezone)}</span>
+                    {/* Saved on this phone, not sent yet — the row exists so
+                        the diary never contradicts the "saved" banner. */}
+                    {o.pending ? <Chip tone="warning">{t("measure.pending_sync")}</Chip> : null}
                   </div>
                   {o.enteredUnit && o.enteredValueText && displayUnit(undefined, o.enteredUnit) !== displayUnit(o.concept, o.unit) ? (
                     <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-small)" }}>
@@ -152,7 +155,8 @@ export default function MeasurementDiaryPage() {
                 </div>
                 {/* Quiet: one explanation above the list is enough — repeating
                     it on every row would bury the readings themselves. */}
-                {canAdd ? (
+                {/* A row still waiting to send has no server id to delete. */}
+                {canAdd && !o.pending ? (
                   <Button variant="danger" loading={deletingId === o.id} disabled={deletingId === o.id} onClick={() => void remove(o.id)}>
                     {t("bp.delete")}
                   </Button>

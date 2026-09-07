@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Banner, Button, Card, Chip, PillSpinner } from "@medpass/ui-web";
 import { AppShell } from "../../components/AppShell";
@@ -7,7 +7,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { GuideGlyph } from "../../components/GuideGlyph";
 import { PageHeader } from "../../components/PageHeader";
 import { ScopeGate } from "../../components/ScopeGate";
-import { FILTER_KINDS, kindGlyph, kindLabelKey, useDocuments, type DocumentKind, type DocumentSummaryDto } from "../../lib/documents";
+import { FILTER_KINDS, isDocumentKind, kindGlyph, kindLabelKey, useDocuments, type DocumentKind, type DocumentSummaryDto } from "../../lib/documents";
 import { useI18n } from "../../lib/i18n";
 import { useProfileAccess } from "../../lib/scopes";
 import { formatCalendarDate, formatPatientDate, useActiveTimezone } from "../../lib/patient-time";
@@ -29,9 +29,25 @@ function statusOf(d: DocumentSummaryDto): { key: "documents.status.uploading" | 
 export default function DocumentsPage() {
   const { t } = useI18n();
   const timezone = useActiveTimezone();
+
   const [kind, setKind] = useState<DocumentKind | undefined>();
   const { items, error, fromCache, hasMore, loadMore, loadingMore } = useDocuments(kind);
   const canUpload = useProfileAccess().can("upload_documents");
+
+  // The chips are the common kinds plus whatever this patient actually has.
+  // A doctor's note or a vaccination record could not be filtered to before
+  // (found in the 2026-09-07 UI review) — only found under "All". Read while
+  // "All" is showing, and kept, so filtering never shortens the row.
+  const [extraKinds, setExtraKinds] = useState<readonly DocumentKind[]>([]);
+  useEffect(() => {
+    if (kind !== undefined || items === undefined) return;
+    const present = items.map((d) => d.kind).filter(isDocumentKind).filter((k) => !FILTER_KINDS.includes(k));
+    setExtraKinds((prev) => {
+      const next = [...new Set([...prev, ...present])];
+      return next.length === prev.length ? prev : next;
+    });
+  }, [items, kind]);
+  const filterKinds = useMemo(() => [...FILTER_KINDS, ...extraKinds], [extraKinds]);
 
   return (
     <AppShell>
@@ -53,7 +69,7 @@ export default function DocumentsPage() {
         <Button variant={kind === undefined ? "primary" : "secondary"} aria-pressed={kind === undefined} onClick={() => setKind(undefined)} style={{ flex: "1 1 auto" }}>
           {t("documents.filter_all")}
         </Button>
-        {FILTER_KINDS.map((k) => (
+        {filterKinds.map((k) => (
           <Button key={k} variant={kind === k ? "primary" : "secondary"} aria-pressed={kind === k} onClick={() => setKind(kind === k ? undefined : k)} style={{ flex: "1 1 auto" }}>
             {t(kindLabelKey(k))}
           </Button>

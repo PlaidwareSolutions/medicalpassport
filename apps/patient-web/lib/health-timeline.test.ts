@@ -76,6 +76,13 @@ describe("trust badge (docs_v2/10 H-30)", () => {
 });
 
 describe("event sentence", () => {
+  it("reads a blood pressure from either projector shape, never a bare slash", () => {
+    // Legacy BloodPressureReading events say systolic/diastolic; generic
+    // Observation events say value/value2. Both must render the numbers.
+    expect(eventSentence(t, event({ kind: "measurement", summary: { concept: "blood_pressure", systolic: "129", diastolic: "80" } }))).toBe("Blood pressure 129/80");
+    expect(eventSentence(t, event({ kind: "measurement", summary: { concept: "blood_pressure", value: "129", value2: "80", unit: "mm[Hg]" } }))).toBe("Blood pressure 129/80");
+  });
+
   it("builds one line per kind from summary, with fallbacks for missing optional parts", () => {
     expect(eventSentence(t, event({ kind: "prescription", summary: { practitionerName: "Dr. Rao", medicineCount: 3 } }))).toBe(
       "Prescription from Dr. Rao — 3 medicines",

@@ -37,7 +37,14 @@ export const observationSchema = z
     context: z.enum(OBSERVATION_CONTEXTS).optional(),
     bodySite: z.string().trim().max(60).optional(),
     method: z.string().trim().max(60).optional(),
-    measuredAt: z.coerce.date(),
+    /**
+     * When it was measured. A reading cannot be from the future: a mistyped
+     * year filed a 2027 reading into the diary and the trends (2026-09-07 UI
+     * review). Five minutes of slack covers a phone clock that runs fast.
+     */
+    measuredAt: z.coerce.date().refine((d) => d.getTime() <= Date.now() + 5 * 60_000, {
+      message: "That time is in the future — please check the date",
+    }),
     /** Refused on a patient/caregiver path — see INTERPRETATION_NOT_CLIENT_SETTABLE. */
     interpretation: z.enum(OBSERVATION_INTERPRETATIONS).optional(),
     notes: z.string().trim().max(500).optional(),

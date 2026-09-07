@@ -182,7 +182,14 @@ export default function ReviewDocumentPage() {
 
   /** A medication group that has a medicine name selected must also have a typed dose and a frequency before it can be saved. */
   function medicationBlocker(g: CandidateGroupDto): MessageKey | null {
-    if (g.targetEntity !== "medication" || !anchorOf(g)) return null;
+    if (g.targetEntity !== "medication") return null;
+    if (!anchorOf(g)) {
+      // Without a name there is nothing to build the medicine from, and
+      // saving used to "succeed" while creating nothing at all (2026-09-07
+      // UI review). Say so, and only when the patient has actually said Yes
+      // to something in this group — an untouched group blocks nobody.
+      return g.candidates.some(isSaveable) ? "documents.need_medicine_name" : null;
+    }
     const input = medInputs[groupId(g)];
     if (!input || !(Number(input.doseQuantity) > 0)) return "documents.need_dose";
     if (!selectedFrequency(g) && !input.frequency) return "documents.need_frequency";
@@ -516,6 +523,15 @@ export default function ReviewDocumentPage() {
                   />
                 ) : null}
                 {blocker ? <span style={{ color: "var(--color-danger)", fontSize: "var(--font-small)" }}>{t(blocker)}</span> : null}
+                {blocker === "documents.need_medicine_name" && !g.candidates.some((c) => c.targetField === "brandName" || c.targetField === "genericName") ? (
+                  // The reader found no name on this page, so there is no Yes
+                  // to give. Offer the manual path instead of a dead end.
+                  <Link href="/add" data-testid="add-medicine-manually">
+                    <Button variant="secondary" fullWidth>
+                      {t("documents.add_medicine_manually")}
+                    </Button>
+                  </Link>
+                ) : null}
               </Card>
             ) : null}
             {g.targetEntity === "medication" && !anchor && g.candidates.some(isSaveable) ? (

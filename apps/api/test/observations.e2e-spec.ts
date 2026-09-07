@@ -202,6 +202,29 @@ describe("Observations e2e", () => {
     await post(tokenA, profileA, { concept: "blood_pressure", valueNumeric: 250, valueNumeric2: 95, measuredAt: "2026-08-11T03:11:00.000Z" }).expect(201);
   });
 
+  it("refuses a blood pressure whose numbers are the wrong way round", async () => {
+    // 80/120 passes both bounds on its own and was filed as a real reading
+    // (2026-09-07 UI review). Refusing it is a typo check, not a judgement.
+    const res = await post(tokenA, profileA, {
+      concept: "blood_pressure",
+      valueNumeric: 80,
+      valueNumeric2: 120,
+      measuredAt: "2026-08-11T03:12:00.000Z",
+    }).expect(400);
+    expect(res.body.code).toBe("observation_out_of_range");
+    // A narrow but real pressure still stores.
+    await post(tokenA, profileA, { concept: "blood_pressure", valueNumeric: 96, valueNumeric2: 90, measuredAt: "2026-08-11T03:13:00.000Z" }).expect(201);
+  });
+
+  it("refuses a reading measured in the future", async () => {
+    const nextYear = new Date(Date.now() + 365 * 24 * 3600_000).toISOString();
+    const res = await post(tokenA, profileA, { concept: "body_weight", valueNumeric: 70, measuredAt: nextYear }).expect(400);
+    expect(res.body.code).toBe("validation_failed");
+    // A clock a couple of minutes fast is still accepted.
+    const soon = new Date(Date.now() + 60_000).toISOString();
+    await post(tokenA, profileA, { concept: "body_weight", valueNumeric: 70.5, measuredAt: soon }).expect(201);
+  });
+
   it("refuses an interpretation from a patient — this app never decides normal/high/low", async () => {
     const res = await post(tokenA, profileA, {
       concept: "spo2",

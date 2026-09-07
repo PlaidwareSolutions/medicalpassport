@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   MeasurementDeviceKind,
   MeasurementDevicePlatform,
@@ -10,11 +10,11 @@ import type {
   TrendWindow,
 } from "@medpass/domain";
 import { ApiError } from "@medpass/api-client";
-import { enqueueMutation, type SyncChangeSignal } from "@medpass/offline-sync";
+import { enqueueMutation, listPendingMutations, type SyncChangeSignal } from "@medpass/offline-sync";
 import { api, getActiveProfileId, newIdempotencyKey } from "./api";
 import { invalidate, useSharedResource } from "./data-cache";
 import { invalidateHealthTimeline, type ProvenanceSource, type VerificationState } from "./health-timeline";
-import { notifyMutationQueued, REMOTE_CHANGE_EVENT } from "./offline";
+import { notifyMutationQueued, PENDING_CHANGED_EVENT, REMOTE_CHANGE_EVENT } from "./offline";
 
 /**
  * Observations (docs_v2/04 §5, docs_v2/06 P5-3): every home measurement in
@@ -52,6 +52,8 @@ export interface ObservationDto {
   provenanceSource: ProvenanceSource | null;
   verification: VerificationState | null;
   createdAt: string;
+  /** True only for a row still in the offline queue — never sent by the API. */
+  pending?: boolean;
 }
 
 export interface ObservationInput {
@@ -168,7 +170,67 @@ export function useObservations(concept?: ObservationConcept) {
     return () => window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange);
   }, [reload]);
 
-  return { items: data, error, reload, fromCache };
+  // A reading saved while offline lives only in the queue until it syncs.
+  // Without this the diary said "No readings yet" right after saving one
+  // (2026-09-07 UI review) — the banner said it was saved, the list denied
+  // it. Queued rows are shown in place, marked as not yet sent.
+  const [queued, setQueued] = useState<ObservationDto[]>([]);
+  const refreshQueued = useCallback(async () => {
+    const profileId = getActiveProfileId();
+    if (!profileId) return setQueued([]);
+    const pending = await listPendingMutations();
+    const rows = pending
+      .filter((m) => m.entity === "observation" && m.operation === "create" && m.profileId === profileId)
+      .map((m) => pendingObservation(m))
+      .filter((o): o is ObservationDto => o !== undefined && (concept === undefined || o.concept === concept));
+    setQueued(rows);
+  }, [concept]);
+  useEffect(() => {
+    void refreshQueued();
+    const onChange = () => void refreshQueued();
+    // PENDING_CHANGED fires when something is queued and again when the
+    // queue drains, so the row appears on save and disappears on sync.
+    window.addEventListener(PENDING_CHANGED_EVENT, onChange);
+    window.addEventListener(REMOTE_CHANGE_EVENT, onChange);
+    window.addEventListener("online", onChange);
+    return () => {
+      window.removeEventListener(PENDING_CHANGED_EVENT, onChange);
+      window.removeEventListener(REMOTE_CHANGE_EVENT, onChange);
+      window.removeEventListener("online", onChange);
+    };
+  }, [refreshQueued, data]);
+
+  const items = data === undefined ? (queued.length > 0 ? queued : undefined) : [...queued, ...data];
+  return { items, error, reload: async () => { await reload(); await refreshQueued(); }, fromCache };
+}
+
+/** A queued `observation/create` rendered as the row it will become. */
+function pendingObservation(m: { clientMutationId: string; payload: unknown; capturedAt: string }): ObservationDto | undefined {
+  const p = m.payload as Partial<ObservationInput> | undefined;
+  if (!p?.concept || !p.measuredAt) return undefined;
+  return {
+    id: `pending:${m.clientMutationId}`,
+    concept: p.concept,
+    label: p.concept,
+    valueNumeric: p.valueNumeric == null ? null : String(p.valueNumeric),
+    valueNumeric2: p.valueNumeric2 == null ? null : String(p.valueNumeric2),
+    valueText: null,
+    unit: p.enteredUnit ?? "",
+    enteredUnit: p.enteredUnit ?? null,
+    enteredValueText: p.enteredValueText ?? null,
+    context: p.context ?? null,
+    notes: p.notes ?? null,
+    bodySite: null,
+    method: null,
+    measuredAt: p.measuredAt,
+    measuredAtLocal: null,
+    interpretation: null,
+    deviceId: null,
+    provenanceSource: "user_entered",
+    verification: "unverified",
+    createdAt: m.capturedAt,
+    pending: true,
+  };
 }
 
 export function useObservationTrend(concept: ObservationConcept, window: TrendWindow, bucket: TrendBucket) {
@@ -333,17 +395,82 @@ export function trimDecimal(v: string | number | null | undefined): string {
 }
 
 /**
+ * How many decimals a converted number *deserves* on screen.
+ *
+ * The server stores and converts at full precision — 7.8 mmol/L really is
+ * 140.5416 mg/dL — and nothing here changes what is stored, what was
+ * entered, or what a trend is computed from. But a converted glucose shown
+ * as "140.542 mg/dL" claims a precision no glucometer has, and reads to a
+ * patient as a different, more official number than the one they typed.
+ * Display rounding is the honest presentation of a converted value; the
+ * "entered as" line beside it still shows the number the patient gave.
+ *
+ * The table is per concept because precision is a property of the
+ * measurement, not of the unit: mg/dL wants whole numbers for glucose and
+ * two decimals for creatinine. Anything not listed falls back to magnitude.
+ */
+const CONCEPT_DECIMALS: Partial<Record<ObservationConcept, number>> = {
+  blood_pressure: 0,
+  blood_glucose: 0,
+  heart_rate: 0,
+  respiratory_rate: 0,
+  spo2: 0,
+  steps: 0,
+  pain_score: 0,
+  body_weight: 1,
+  body_height: 1,
+  body_temperature: 1,
+  bmi: 1,
+  sleep_hours: 1,
+  insulin_dose: 1,
+  inr: 1,
+};
+
+/**
+ * The fallback when nothing knows better: big numbers carry no decimals,
+ * small ones carry enough not to collapse (0.94 must not become 1).
+ */
+export function magnitudeDecimals(value: number): number {
+  const abs = Math.abs(value);
+  if (abs >= 100) return 0;
+  if (abs >= 10) return 1;
+  return 2;
+}
+
+/** Rounds for display only, and never leaves a trailing "12.0" behind. */
+export function roundForDisplay(value: string | number | null | undefined, decimals: number): string {
+  if (value == null || value === "") return "";
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  return String(Number(n.toFixed(Math.max(0, decimals))));
+}
+
+/** The decimals one observation concept's canonical value is shown with. */
+export function conceptDecimals(concept: ObservationConcept | undefined, value: number): number {
+  const fixed = concept ? CONCEPT_DECIMALS[concept] : undefined;
+  return fixed ?? magnitudeDecimals(value);
+}
+
+/** A measured value as a patient reads it — rounded to what the measurement deserves. */
+export function formatObservationValue(value: string | number | null | undefined, concept?: ObservationConcept): string {
+  if (value == null || value === "") return "";
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  return roundForDisplay(n, conceptDecimals(concept, n));
+}
+
+/**
  * The reading as one plain string in its canonical unit: "120/80 mmHg",
  * "98 mg/dL", "72.5 kg". Text-only concepts show their text. No verdict
  * ever rides along with the number.
  */
 export function observationValueText(o: Pick<ObservationDto, "concept" | "valueNumeric" | "valueNumeric2" | "valueText" | "unit">): string {
   if (o.concept === "blood_pressure" && o.valueNumeric != null && o.valueNumeric2 != null) {
-    return `${trimDecimal(o.valueNumeric)}/${trimDecimal(o.valueNumeric2)} ${displayUnit(o.concept, o.unit)}`.trim();
+    return `${formatObservationValue(o.valueNumeric, o.concept)}/${formatObservationValue(o.valueNumeric2, o.concept)} ${displayUnit(o.concept, o.unit)}`.trim();
   }
   if (o.valueNumeric != null) {
-    if (o.concept === "pain_score") return `${trimDecimal(o.valueNumeric)} / 10`;
-    return `${trimDecimal(o.valueNumeric)} ${displayUnit(o.concept, o.unit)}`.trim();
+    if (o.concept === "pain_score") return `${formatObservationValue(o.valueNumeric, o.concept)} / 10`;
+    return `${formatObservationValue(o.valueNumeric, o.concept)} ${displayUnit(o.concept, o.unit)}`.trim();
   }
   return o.valueText ?? "";
 }

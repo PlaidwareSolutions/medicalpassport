@@ -25,6 +25,8 @@ export function useTimeline(date?: string) {
 
   const { data, error, fromCache, reload, mutate } = useSharedResource<TimelineDto>({
     path,
+    // Same as the medicines list: no view_schedule is a permission, not a fault.
+    mapApiError: (err) => (err.status === 403 ? { date: effectiveDate, items: [] } : undefined),
     fetcher: () => api.get<TimelineDto>(path, { profileId: getActiveProfileId() }),
     seed: readIndexedDb,
     fallback: readIndexedDb,

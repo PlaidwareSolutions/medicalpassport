@@ -192,7 +192,10 @@ export function eventSentence(t: Translate, event: Pick<HealthEventDto, "kind" |
     case "measurement": {
       const concept = str(s.concept);
       if (concept === "blood_pressure") {
-        return t("health.event.measurement_bp", { systolic: str(s.systolic), diastolic: str(s.diastolic) });
+        // Legacy BloodPressureReading events carry systolic/diastolic; the
+        // generic Observation projector carries value/value2 (docs_v2/04 §5.2).
+        // Both must read the same, or a reading shows as a bare "/".
+        return t("health.event.measurement_bp", { systolic: str(s.systolic) || str(s.value), diastolic: str(s.diastolic) || str(s.value2) });
       }
       if (concept === "blood_glucose") {
         return t("health.event.measurement_glucose", { value: str(s.value), unit: str(s.unit) });

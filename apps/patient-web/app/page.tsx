@@ -9,11 +9,13 @@ import { FindingCard } from "../components/FindingCard";
 import { InstallEducationCard } from "../components/InstallEducationCard";
 import { MyHealthCard } from "../components/MyHealthCard";
 import { PageHeader } from "../components/PageHeader";
+import { ScopeNotice } from "../components/ScopeGate";
 import { ProposalsInboxCard } from "../components/ProposalsInboxCard";
 import { RefillReminderCard } from "../components/RefillReminderCard";
 import { useGlucoseReadings } from "../lib/blood-sugar";
 import { useCaregiverAlerts } from "../lib/caregiver-alerts";
 import { useI18n } from "../lib/i18n";
+import { useProfileAccess } from "../lib/scopes";
 import { formatPatientDateTime, useActiveTimezone } from "../lib/patient-time";
 import { useMedications } from "../lib/medications";
 import { useRefillReminders } from "../lib/refill-reminders";
@@ -39,6 +41,8 @@ export default function HomePage() {
   const openFindings = (findings ?? []).filter(isOpenFinding);
 
   const noMedicinesAtAll = medications !== undefined && medications.length === 0;
+  const access = useProfileAccess();
+  const canSeeMedicines = access.can("view_medications");
   const hasAnySchedule = (timeline?.items.length ?? 0) > 0;
   const latestReading = glucoseReadings?.[0];
 
@@ -55,7 +59,11 @@ export default function HomePage() {
           answer for (docs_v2/06 P11-5) — hidden entirely when nothing is. */}
       <ProposalsInboxCard />
 
-      {noMedicinesAtAll ? (
+      {/* A caregiver who may not see the medicines gets the reason, not an
+          invitation to add one (their 403 reads as an empty list above). */}
+      {canSeeMedicines ? null : <ScopeNotice action="view_medications" />}
+
+      {canSeeMedicines && noMedicinesAtAll ? (
         <EmptyState
           glyph="tablet"
           titleKey="home.empty_title"

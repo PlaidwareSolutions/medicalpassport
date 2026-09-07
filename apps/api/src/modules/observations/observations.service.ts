@@ -116,6 +116,18 @@ function canonicalize(concept: ObservationConceptEntry, input: Pick<ObservationI
     const diastolic = convert(input.valueNumeric2!, "valueNumeric2");
     bound(systolic, systolicSlot?.plausibility ?? concept.plausibility, "valueNumeric", systolicSlot?.display ?? "Value");
     bound(diastolic, diastolicSlot?.plausibility ?? concept.plausibility, "valueNumeric2", diastolicSlot?.display ?? "Value");
+    // Each number can be plausible on its own and still be swapped: 80/120
+    // passed both bounds and was filed as a real reading (2026-09-07 UI
+    // review). Refusing it is a typo check, not an interpretation — the app
+    // still says nothing about whether the numbers are good or bad (H-25).
+    if (concept.key === "blood_pressure" && diastolic >= systolic) {
+      throw new ApiProblem(
+        ERROR_CODES.OBSERVATION_OUT_OF_RANGE,
+        "That reading looks like a typo — please check it",
+        400,
+        [{ path: "valueNumeric2", message: "The lower number should be smaller than the upper number. They may be the wrong way round." }],
+      );
+    }
     return { valueNumeric: round3(systolic), valueNumeric2: round3(diastolic), unit: concept.canonicalUnit };
   }
 

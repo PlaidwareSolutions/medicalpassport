@@ -10,6 +10,13 @@ const withSerwist = withSerwistInit({
   // it is runtime-cached on first play instead (see app/sw.ts), so this is
   // an explicit allowlist of what install-time precache may include.
   globPublicPatterns: ["icons/**/*", "manifest.webmanifest"],
+  // The navigation fallback in app/sw.ts points at /offline, and a fallback
+  // can only be served from the precache. Without this entry the page was
+  // never precached, so opening a route not visited this session while
+  // offline produced a blank error page instead of the offline screen
+  // (2026-09-07 UI review). The revision changes per build so a new offline
+  // page replaces the cached one.
+  additionalPrecacheEntries: [{ url: "/offline", revision: String(Date.now()) }],
 });
 
 /** @type {import('next').NextConfig} */

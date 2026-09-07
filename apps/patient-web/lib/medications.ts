@@ -45,6 +45,11 @@ export function useMedications(status?: string) {
 
   const { data, error, fromCache, reload } = useSharedResource<PatientMedicationDto[]>({
     path,
+    // A caregiver without view_medications is not an error state: the screen
+    // says which permission is missing (ScopeNotice), the way every other
+    // caregiver-aware screen does. Without this Home showed a red
+    // "Something went wrong" (found in the 2026-09-07 UI review).
+    mapApiError: (err) => (err.status === 403 ? [] : undefined),
     fetcher: async () =>
       (await api.get<{ items: PatientMedicationDto[] }>(path, { profileId: getActiveProfileId() })).items,
     // Cold start: the IndexedDB copy renders before the first network answer.
