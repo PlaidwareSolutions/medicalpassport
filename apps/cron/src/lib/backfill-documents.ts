@@ -79,60 +79,58 @@ export async function backfillDocuments(prisma: PrismaClient, log?: BackfillLogg
       diagnosticReports.map((r) => [r.legacyMedicalReportId!, r.id] as const),
     );
 
-    await prisma.$transaction(async (tx) => {
-      for (const legacy of batch) {
-        const diagnosticReportId = legacy.reportId ? (diagnosticReportByLegacy.get(legacy.reportId) ?? null) : null;
-        if (legacy.reportId && !diagnosticReportId) counts.reportLinksDeferred += 1;
+    for (const legacy of batch) {
+      const diagnosticReportId = legacy.reportId ? (diagnosticReportByLegacy.get(legacy.reportId) ?? null) : null;
+      if (legacy.reportId && !diagnosticReportId) counts.reportLinksDeferred += 1;
 
-        const verified = legacy.storedObject.status === "verified";
-        const shared = {
-          patientProfileId: legacy.patientProfileId,
-          kind: backfillDocumentKind(legacy.kind),
-          prescriptionId: legacy.prescriptionId,
-          diagnosticReportId,
-          status: legacy.status,
-          // V1 had one upload path and no channel column; "file" is the
-          // honest neutral value, not a guess at camera vs gallery.
-          sourceChannel: "file" as const,
-          pageCount: verified ? 1 : 0,
-          // V1's kind came from a form field that defaulted to "prescription"
-          // rather than from a deliberate choice, so `classifiedBy` stays
-          // null: a later classify run may still label these, and nothing
-          // here pretends the patient decided (docs_v2/09 §4).
-          classifiedBy: null,
-          provenanceSource: "user_entered" as const,
-          verification: "patient_confirmed" as const,
-          recordedVia: "pwa",
-          createdAt: legacy.createdAt,
-        };
+      const verified = legacy.storedObject.status === "verified";
+      const shared = {
+        patientProfileId: legacy.patientProfileId,
+        kind: backfillDocumentKind(legacy.kind),
+        prescriptionId: legacy.prescriptionId,
+        diagnosticReportId,
+        status: legacy.status,
+        // V1 had one upload path and no channel column; "file" is the
+        // honest neutral value, not a guess at camera vs gallery.
+        sourceChannel: "file" as const,
+        pageCount: verified ? 1 : 0,
+        // V1's kind came from a form field that defaulted to "prescription"
+        // rather than from a deliberate choice, so `classifiedBy` stays
+        // null: a later classify run may still label these, and nothing
+        // here pretends the patient decided (docs_v2/09 §4).
+        classifiedBy: null,
+        provenanceSource: "user_entered" as const,
+        verification: "patient_confirmed" as const,
+        recordedVia: "pwa",
+        createdAt: legacy.createdAt,
+      };
 
-        const existing = await tx.patientDocument.findUnique({
-          where: { legacyPrescriptionDocumentId: legacy.id },
-          select: { id: true },
-        });
-        const document = existing
-          ? await tx.patientDocument.update({ where: { id: existing.id }, data: shared, select: { id: true } })
-          : await tx.patientDocument.create({
-              data: { ...shared, legacyPrescriptionDocumentId: legacy.id },
-              select: { id: true },
-            });
-        if (existing) counts.documentsUpdated += 1;
-        else counts.documentsCreated += 1;
-
-        // The V1 object becomes page 1. Both rows point at the same
-        // StoredObject — the bytes are never copied.
-        const page = await tx.documentPage.findUnique({
-          where: { documentId_pageNumber: { documentId: document.id, pageNumber: 1 } },
-          select: { id: true },
-        });
-        if (!page) {
-          await tx.documentPage.create({
-            data: { documentId: document.id, pageNumber: 1, storedObjectId: legacy.storedObjectId },
+      const existing = await prisma.patientDocument.findUnique({
+        where: { legacyPrescriptionDocumentId: legacy.id },
+        select: { id: true },
+      });
+      const document = existing
+        ? await prisma.patientDocument.update({ where: { id: existing.id }, data: shared, select: { id: true } })
+        : await prisma.patientDocument.create({
+            data: { ...shared, legacyPrescriptionDocumentId: legacy.id },
+            select: { id: true },
           });
-          counts.pagesCreated += 1;
-        }
+      if (existing) counts.documentsUpdated += 1;
+      else counts.documentsCreated += 1;
+
+      // The V1 object becomes page 1. Both rows point at the same
+      // StoredObject — the bytes are never copied.
+      const page = await prisma.documentPage.findUnique({
+        where: { documentId_pageNumber: { documentId: document.id, pageNumber: 1 } },
+        select: { id: true },
+      });
+      if (!page) {
+        await prisma.documentPage.create({
+          data: { documentId: document.id, pageNumber: 1, storedObjectId: legacy.storedObjectId },
+        });
+        counts.pagesCreated += 1;
       }
-    });
+    }
 
     log?.info({ ...counts }, "documents backfill batch");
   }

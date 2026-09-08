@@ -57,9 +57,7 @@ async function walk<Row extends { id: string }>(
     if (rows.length === 0) break;
     const events: HealthEventInput[] = [];
     for (const row of rows) events.push(...(await project(row)));
-    await prisma.$transaction(async (tx) => {
-      for (const event of events) await emitHealthEvent(tx, event);
-    });
+    for (const event of events) await emitHealthEvent(prisma, event);
     total += events.length;
     afterId = rows[rows.length - 1]!.id;
     log?.info({ table: name, batch: rows.length, events: events.length, total }, "health-event backfill batch");
