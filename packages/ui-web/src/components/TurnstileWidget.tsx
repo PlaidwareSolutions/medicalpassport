@@ -24,7 +24,10 @@ function loadTurnstileScript(): Promise<void> {
       script.src = SCRIPT_SRC;
       script.async = true;
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load Turnstile"));
+      script.onerror = () => {
+        scriptPromise = undefined; // allow retry on next render
+        reject(new Error("Failed to load Turnstile"));
+      };
       document.head.appendChild(script);
     });
   }
@@ -41,7 +44,7 @@ function loadTurnstileScript(): Promise<void> {
  * simply never fires, and the server skips verification the same way when
  * its own secret isn't set.
  */
-export function TurnstileWidget({ siteKey, onToken }: { siteKey?: string; onToken: (token: string) => void }) {
+export function TurnstileWidget({ siteKey, onToken, onExpired }: { siteKey?: string; onToken: (token: string) => void; onExpired?: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export function TurnstileWidget({ siteKey, onToken }: { siteKey?: string; onToke
     let cancelled = false;
     loadTurnstileScript().then(() => {
       if (cancelled || !containerRef.current || !window.turnstile) return;
-      widgetId = window.turnstile.render(containerRef.current, { sitekey: siteKey, callback: onToken });
+      widgetId = window.turnstile.render(containerRef.current, { sitekey: siteKey, callback: onToken, "expired-callback": onExpired });
     });
     return () => {
       cancelled = true;

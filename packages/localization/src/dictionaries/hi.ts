@@ -155,6 +155,7 @@ export const hi: Record<keyof typeof en, string> = {
   "auth.invalid_code": "यह कोड सही नहीं है। कृपया जाँच कर फिर कोशिश करें।",
   "auth.locked": "बहुत अधिक प्रयास। कृपया बाद में नया कोड माँगें।",
   "auth.verification_failed": "हम यह सत्यापित नहीं कर सके कि आप रोबोट नहीं हैं। कृपया फिर से प्रयास करें।",
+  "auth.verification_pending": "सत्यापन अभी लोड हो रहा है — कृपया एक क्षण प्रतीक्षा करें और फिर प्रयास करें।",
   "auth.sign_out": "साइन आउट",
   // DRAFT — step-up sheet (ADR-V2-012), needs native-speaker review.
   "stepup.title": "पुष्टि करें कि यह आप ही हैं",

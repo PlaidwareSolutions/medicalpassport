@@ -155,6 +155,7 @@ export const te: Record<keyof typeof en, string> = {
   "auth.invalid_code": "ఆ కోడ్ సరైనది కాదు. దయచేసి సరిచూసి మళ్లీ ప్రయత్నించండి.",
   "auth.locked": "చాలా ఎక్కువ ప్రయత్నాలు. దయచేసి తర్వాత కొత్త కోడ్ అడగండి.",
   "auth.verification_failed": "మీరు రోబోట్ కాదని మేము నిర్ధారించలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.",
+  "auth.verification_pending": "ధృవీకరణ ఇంకా లోడ్ అవుతోంది — దయచేసి కొంత సేపు వేచి మళ్లీ ప్రయత్నించండి.",
   "auth.sign_out": "సైన్ అవుట్",
   // DRAFT — step-up sheet (ADR-V2-012), needs native-speaker review.
   "stepup.title": "ఇది మీరేనని నిర్ధారించండి",

@@ -156,6 +156,7 @@ export const en = {
   "auth.invalid_code": "That code is not correct. Please check and try again.",
   "auth.locked": "Too many attempts. Please request a new code later.",
   "auth.verification_failed": "We couldn't verify you're not a robot. Please try again.",
+  "auth.verification_pending": "Verification is still loading — please wait a moment and try again.",
   "auth.sign_out": "Sign out",
   "stepup.title": "Confirm it's you",
   "stepup.intro": "To keep your medicines private, we need to check it's really you before making this change.",

@@ -72,6 +72,10 @@ export default function LoginPage() {
   }
 
   async function requestCode() {
+    if (!turnstileToken) {
+      setError(t("auth.verification_pending"));
+      return;
+    }
     setBusyAction("request");
     setError(undefined);
     try {
@@ -134,7 +138,7 @@ export default function LoginPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
-          <TurnstileWidget siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} onToken={setTurnstileToken} />
+          <TurnstileWidget siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} onToken={setTurnstileToken} onExpired={() => setTurnstileToken(undefined)} />
           <Button
             fullWidth
             loading={busyAction === "request"}
